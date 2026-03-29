@@ -4,56 +4,102 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
-
-const mockQuestions = Array.from({ length: 10 }, (_, i) => ({
-  id: i + 1,
-  text: i === 0 ? "Look at the picture. What is the man doing?" :
-    i === 1 ? "Where is the meeting taking place?" :
-    i === 2 ? "What does the woman suggest?" :
-    `Sample question ${i + 1} for the TOEIC practice test.`,
-  imageUrl: i === 0 ? "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=300&fit=crop" : undefined,
-  options: [
-    { id: i * 4 + 1, text: "He is sitting at a desk.", isCorrect: i % 4 === 0 },
-    { id: i * 4 + 2, text: "He is standing near a window.", isCorrect: i % 4 === 1 },
-    { id: i * 4 + 3, text: "He is walking outside.", isCorrect: i % 4 === 2 },
-    { id: i * 4 + 4, text: "He is reading a book.", isCorrect: i % 4 === 3 },
-  ],
-}));
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/useAuth";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const QuizPage = () => {
   const { courseId, quizId } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const qid = Number(quizId);
+
   const [started, setStarted] = useState(false);
   const [currentQ, setCurrentQ] = useState(0);
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [showConfirm, setShowConfirm] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  const selectAnswer = (qIdx: number, optId: number) => {
-    setAnswers(prev => ({ ...prev, [qIdx]: optId }));
+  const { data: quiz } = useQuery({
+    queryKey: ["quiz", qid],
+    queryFn: async () => {
+      const { data } = await supabase.from("quizzes").select("*").eq("id", qid).single();
+      return data;
+    },
+  });
+
+  const { data: questions, isLoading } = useQuery({
+    queryKey: ["quiz-questions", qid],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("questions")
+        .select("*, answers(*)")
+        .eq("quiz_id", qid)
+        .order("display_order");
+      return (data || []).map((q: any) => ({
+        ...q,
+        answers: (q.answers || []).sort((a: any, b: any) => a.display_order - b.display_order),
+      }));
+    },
+  });
+
+  const selectAnswer = (qIdx: number, answerId: number) => {
+    setAnswers(prev => ({ ...prev, [qIdx]: answerId }));
   };
 
-  const submit = () => {
-    const correct = mockQuestions.filter((q, i) => {
+  const submit = async () => {
+    if (!user || !questions) return;
+    setSubmitting(true);
+
+    let correctCount = 0;
+    questions.forEach((q: any, i: number) => {
       const selectedId = answers[i];
-      return q.options.find(o => o.id === selectedId)?.isCorrect;
-    }).length;
+      const isCorrect = q.answers.find((a: any) => a.id === selectedId)?.is_correct;
+      if (isCorrect) correctCount++;
+    });
+
+    const score = questions.length > 0 ? (correctCount / questions.length) * 10 : 0;
+
+    const { data: result, error } = await supabase.from("user_quiz_results").insert({
+      user_id: user.id,
+      quiz_id: qid,
+      score: Number(score.toFixed(2)),
+      correct_answers: correctCount,
+      total_questions: questions.length,
+    }).select().single();
+
+    if (result) {
+      // Save individual answers
+      const userAnswers = questions.map((q: any, i: number) => ({
+        result_id: result.id,
+        question_id: q.id,
+        selected_answer_id: answers[i] || null,
+        is_correct: q.answers.find((a: any) => a.id === answers[i])?.is_correct || false,
+      }));
+      await supabase.from("user_answers").insert(userAnswers);
+    }
+
+    setSubmitting(false);
     navigate(`/courses/${courseId}/quiz/${quizId}/result`, {
-      state: { score: correct, total: mockQuestions.length, answers, questions: mockQuestions },
+      state: { score: correctCount, total: questions.length, answers, questions, resultId: result?.id },
     });
   };
 
+  if (isLoading) return <StudentLayout><Skeleton className="h-64 rounded-xl" /></StudentLayout>;
+
   const answeredCount = Object.keys(answers).length;
-  const unanswered = mockQuestions.length - answeredCount;
+  const totalQ = questions?.length || 0;
+  const unanswered = totalQ - answeredCount;
 
   if (!started) {
     return (
       <StudentLayout>
         <div className="max-w-lg mx-auto mt-12">
           <div className="bg-card rounded-xl border p-8 text-center space-y-4">
-            <h1 className="text-xl font-bold text-foreground">📝 Thi Online: Photos of People (Đề 01)</h1>
+            <h1 className="text-xl font-bold text-foreground">📝 {quiz?.title || "Bài thi"}</h1>
             <div className="text-sm text-muted-foreground space-y-1">
-              <p>10 câu hỏi · Không giới hạn thời gian</p>
-              <p>1 tài liệu đính kèm</p>
+              <p>{totalQ} câu hỏi · {quiz?.time_limit_seconds ? `${Math.round(quiz.time_limit_seconds / 60)} phút` : "Không giới hạn thời gian"}</p>
             </div>
             <Button size="lg" onClick={() => setStarted(true)}>🚀 Bắt đầu làm bài</Button>
           </div>
@@ -62,27 +108,40 @@ const QuizPage = () => {
     );
   }
 
-  const q = mockQuestions[currentQ];
+  if (!questions || questions.length === 0) {
+    return (
+      <StudentLayout>
+        <div className="max-w-lg mx-auto mt-12 bg-card rounded-xl border p-8 text-center">
+          <p className="text-muted-foreground">Bài thi này chưa có câu hỏi.</p>
+        </div>
+      </StudentLayout>
+    );
+  }
+
+  const q = questions[currentQ];
 
   return (
     <div className="min-h-screen bg-background">
       <div className="flex flex-col lg:flex-row">
-        {/* Question area */}
         <div className="flex-1 p-4 md:p-8">
           <div className="max-w-2xl mx-auto space-y-6">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-semibold text-foreground">Câu {currentQ + 1}/{mockQuestions.length}</span>
+              <span className="text-sm font-semibold text-foreground">Câu {currentQ + 1}/{totalQ}</span>
             </div>
-            <Progress value={((currentQ + 1) / mockQuestions.length) * 100} className="h-2" />
+            <Progress value={((currentQ + 1) / totalQ) * 100} className="h-2" />
 
-            {q.imageUrl && (
-              <img src={q.imageUrl} alt="Question" className="w-full max-w-md rounded-lg border" loading="lazy" />
+            {q.image_url && (
+              <img src={q.image_url} alt="Question" className="w-full max-w-md rounded-lg border" loading="lazy" />
             )}
 
-            <p className="text-lg font-medium text-foreground">{q.text}</p>
+            {q.audio_url && (
+              <audio controls src={q.audio_url} className="w-full" />
+            )}
+
+            <p className="text-lg font-medium text-foreground">{q.question_text}</p>
 
             <div className="grid gap-3">
-              {q.options.map((opt, oi) => (
+              {q.answers.map((opt: any, oi: number) => (
                 <button
                   key={opt.id}
                   onClick={() => selectAnswer(currentQ, opt.id)}
@@ -94,7 +153,7 @@ const QuizPage = () => {
                   )}
                 >
                   <span className="font-bold mr-2">{String.fromCharCode(65 + oi)}.</span>
-                  {opt.text}
+                  {opt.answer_text}
                 </button>
               ))}
             </div>
@@ -103,7 +162,7 @@ const QuizPage = () => {
               <Button variant="outline" disabled={currentQ === 0} onClick={() => setCurrentQ(prev => prev - 1)}>
                 ← Câu trước
               </Button>
-              {currentQ < mockQuestions.length - 1 ? (
+              {currentQ < totalQ - 1 ? (
                 <Button onClick={() => setCurrentQ(prev => prev + 1)}>Câu tiếp →</Button>
               ) : (
                 <Button onClick={() => setShowConfirm(true)}>Nộp bài</Button>
@@ -112,11 +171,10 @@ const QuizPage = () => {
           </div>
         </div>
 
-        {/* Navigator */}
         <div className="w-full lg:w-64 border-l bg-card p-4">
           <h3 className="text-sm font-semibold text-foreground mb-3">Câu hỏi</h3>
           <div className="grid grid-cols-5 gap-2 mb-4">
-            {mockQuestions.map((_, i) => (
+            {questions.map((_: any, i: number) => (
               <button
                 key={i}
                 onClick={() => setCurrentQ(i)}
@@ -138,7 +196,6 @@ const QuizPage = () => {
         </div>
       </div>
 
-      {/* Confirm modal */}
       {showConfirm && (
         <div className="fixed inset-0 z-50 bg-foreground/50 flex items-center justify-center p-4">
           <div className="bg-card rounded-xl p-6 max-w-sm w-full space-y-4">
@@ -149,7 +206,9 @@ const QuizPage = () => {
             <p className="text-sm text-muted-foreground">Bạn có muốn nộp bài không?</p>
             <div className="flex gap-3">
               <Button variant="outline" className="flex-1" onClick={() => setShowConfirm(false)}>Tiếp tục làm</Button>
-              <Button className="flex-1" onClick={submit}>Nộp bài ngay</Button>
+              <Button className="flex-1" onClick={submit} disabled={submitting}>
+                {submitting ? "Đang nộp..." : "Nộp bài ngay"}
+              </Button>
             </div>
           </div>
         </div>
