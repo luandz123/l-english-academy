@@ -4,40 +4,100 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-
-const quizHistory = [
-  { name: "Thi Online Part 2 Đề 03", part: "Part 2", score: "8.5/10", time: "8 phút", date: "25/03/2026" },
-  { name: "Thi Online Part 1 Đề 01", part: "Part 1", score: "10/10", time: "5 phút", date: "22/03/2026" },
-  { name: "Thi Online Part 1 Đề 02", part: "Part 1", score: "9/10", time: "6 phút", date: "20/03/2026" },
-  { name: "Bộ đề 2026 Đề 01", part: "Full Test", score: "750", time: "1h 45m", date: "18/03/2026" },
-  { name: "Bộ đề 2026 Đề 02", part: "Full Test", score: "680", time: "1h 50m", date: "15/03/2026" },
-];
-
-const courseProgress = [
-  { name: "Luyện thi TOEIC Nghe-Đọc", progress: 45 },
-  { name: "EZ Vocab TOEIC", progress: 30 },
-  { name: "Bổ Trợ Kỹ Năng Nghe", progress: 10 },
-  { name: "Luyện Bộ Đề TOEIC 2026", progress: 15 },
-];
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 
 const Profile = () => {
+  const { user, profile } = useAuth();
+  const { toast } = useToast();
+  const [fullName, setFullName] = useState(profile?.full_name || "");
+  const [saving, setSaving] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  const displayName = profile?.full_name || user?.user_metadata?.full_name || "User";
+  const initials = displayName.charAt(0).toUpperCase();
+
+  const { data: quizResults } = useQuery({
+    queryKey: ["profile-quiz-results", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("user_quiz_results")
+        .select("*, quizzes(title)")
+        .eq("user_id", user!.id)
+        .order("completed_at", { ascending: false });
+      return data || [];
+    },
+    enabled: !!user,
+  });
+
+  const { data: enrollments } = useQuery({
+    queryKey: ["profile-enrollments", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("enrollments")
+        .select("*, courses(title)")
+        .eq("user_id", user!.id);
+      return data || [];
+    },
+    enabled: !!user,
+  });
+
+  const handleUpdateProfile = async () => {
+    if (!user) return;
+    setSaving(true);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ full_name: fullName })
+      .eq("user_id", user.id);
+    setSaving(false);
+    if (error) {
+      toast({ title: "Lỗi", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Đã cập nhật!", description: "Thông tin cá nhân đã được lưu." });
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (newPassword !== confirmPassword) {
+      toast({ title: "Lỗi", description: "Mật khẩu xác nhận không khớp.", variant: "destructive" });
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast({ title: "Lỗi", description: "Mật khẩu mới phải có ít nhất 6 ký tự.", variant: "destructive" });
+      return;
+    }
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) {
+      toast({ title: "Lỗi", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Thành công!", description: "Mật khẩu đã được đổi." });
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    }
+  };
+
   return (
     <StudentLayout>
       <div className="max-w-4xl mx-auto space-y-6">
-        {/* Profile header */}
         <div className="bg-card rounded-xl border p-6 flex items-center gap-4">
-          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-2xl font-bold text-primary">D</div>
+          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-2xl font-bold text-primary">{initials}</div>
           <div>
-            <h1 className="text-xl font-bold text-foreground">Demo User</h1>
-            <p className="text-sm text-muted-foreground">demo@l-english.vn</p>
-            <p className="text-xs text-muted-foreground">Đăng ký: 01/01/2026</p>
+            <h1 className="text-xl font-bold text-foreground">{displayName}</h1>
+            <p className="text-sm text-muted-foreground">{user?.email}</p>
+            <p className="text-xs text-muted-foreground">Đăng ký: {user?.created_at ? new Date(user.created_at).toLocaleDateString("vi-VN") : ""}</p>
           </div>
         </div>
 
         <Tabs defaultValue="info">
           <TabsList>
             <TabsTrigger value="info">Thông tin</TabsTrigger>
-            <TabsTrigger value="progress">Tiến độ</TabsTrigger>
+            <TabsTrigger value="progress">Khóa học</TabsTrigger>
             <TabsTrigger value="history">Lịch sử bài thi</TabsTrigger>
             <TabsTrigger value="password">Đổi mật khẩu</TabsTrigger>
           </TabsList>
@@ -46,88 +106,75 @@ const Profile = () => {
             <div className="bg-card rounded-xl border p-6 space-y-4 max-w-md">
               <div className="space-y-2">
                 <Label>Họ và tên</Label>
-                <Input defaultValue="Demo User" />
+                <Input value={fullName} onChange={(e) => setFullName(e.target.value)} />
               </div>
               <div className="space-y-2">
                 <Label>Email</Label>
-                <Input defaultValue="demo@l-english.vn" disabled />
+                <Input value={user?.email || ""} disabled />
               </div>
-              <Button>Cập nhật</Button>
+              <Button onClick={handleUpdateProfile} disabled={saving}>
+                {saving ? "Đang lưu..." : "Cập nhật"}
+              </Button>
             </div>
           </TabsContent>
 
           <TabsContent value="progress" className="mt-4 space-y-4">
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-card rounded-xl border p-4 text-center">
-                <p className="text-2xl font-bold text-primary">24h 30m</p>
-                <p className="text-xs text-muted-foreground">Tổng giờ học</p>
-              </div>
-              <div className="bg-card rounded-xl border p-4 text-center">
-                <p className="text-2xl font-bold text-accent">45</p>
-                <p className="text-xs text-muted-foreground">Bài thi đã làm</p>
-              </div>
-              <div className="bg-card rounded-xl border p-4 text-center">
-                <p className="text-2xl font-bold text-warning">7.8</p>
-                <p className="text-xs text-muted-foreground">Điểm TB</p>
-              </div>
-              <div className="bg-card rounded-xl border p-4 text-center">
-                <p className="text-2xl font-bold text-success">4</p>
-                <p className="text-xs text-muted-foreground">Khóa đã đăng ký</p>
-              </div>
-            </div>
-            {courseProgress.map((c) => (
-              <div key={c.name} className="bg-card rounded-xl border p-4">
-                <div className="flex justify-between text-sm mb-2">
-                  <span className="font-medium text-foreground">{c.name}</span>
-                  <span className="text-muted-foreground">{c.progress}%</span>
+            {enrollments && enrollments.length > 0 ? (
+              enrollments.map((e: any) => (
+                <div key={e.id} className="bg-card rounded-xl border p-4 flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-foreground">{e.courses?.title}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {e.expires_at ? `Hết hạn: ${new Date(e.expires_at).toLocaleDateString("vi-VN")}` : "Vĩnh viễn"}
+                    </p>
+                  </div>
                 </div>
-                <Progress value={c.progress} className="h-2" />
-              </div>
-            ))}
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground">Chưa đăng ký khóa học nào.</p>
+            )}
           </TabsContent>
 
           <TabsContent value="history" className="mt-4">
             <div className="bg-card rounded-xl border overflow-hidden">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b bg-muted/50">
-                    <th className="text-left p-3 font-semibold text-foreground">Bài thi</th>
-                    <th className="text-left p-3 font-semibold text-foreground">Phần</th>
-                    <th className="text-center p-3 font-semibold text-foreground">Điểm</th>
-                    <th className="text-center p-3 font-semibold text-foreground">Thời gian</th>
-                    <th className="text-center p-3 font-semibold text-foreground">Ngày</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {quizHistory.map((h, i) => (
-                    <tr key={i} className="border-b last:border-0 hover:bg-muted/30">
-                      <td className="p-3 text-foreground">{h.name}</td>
-                      <td className="p-3 text-muted-foreground">{h.part}</td>
-                      <td className="p-3 text-center font-medium text-primary">{h.score}</td>
-                      <td className="p-3 text-center text-muted-foreground">{h.time}</td>
-                      <td className="p-3 text-center text-muted-foreground">{h.date}</td>
+              {quizResults && quizResults.length > 0 ? (
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b bg-muted/50">
+                      <th className="text-left p-3 font-semibold text-foreground">Bài thi</th>
+                      <th className="text-center p-3 font-semibold text-foreground">Điểm</th>
+                      <th className="text-center p-3 font-semibold text-foreground">Đúng</th>
+                      <th className="text-center p-3 font-semibold text-foreground">Ngày</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {quizResults.map((r: any) => (
+                      <tr key={r.id} className="border-b last:border-0 hover:bg-muted/30">
+                        <td className="p-3 text-foreground">{r.quizzes?.title || `Quiz #${r.quiz_id}`}</td>
+                        <td className="p-3 text-center font-medium text-primary">{Number(r.score).toFixed(1)}/10</td>
+                        <td className="p-3 text-center text-muted-foreground">{r.correct_answers}/{r.total_questions}</td>
+                        <td className="p-3 text-center text-muted-foreground">{new Date(r.completed_at).toLocaleDateString("vi-VN")}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p className="p-6 text-center text-sm text-muted-foreground">Chưa có kết quả bài thi.</p>
+              )}
             </div>
           </TabsContent>
 
           <TabsContent value="password" className="mt-4">
             <div className="bg-card rounded-xl border p-6 space-y-4 max-w-md">
               <div className="space-y-2">
-                <Label>Mật khẩu hiện tại</Label>
-                <Input type="password" />
-              </div>
-              <div className="space-y-2">
                 <Label>Mật khẩu mới</Label>
-                <Input type="password" />
+                <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
               </div>
               <div className="space-y-2">
                 <Label>Xác nhận mật khẩu mới</Label>
-                <Input type="password" />
+                <Input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
               </div>
-              <Button>Đổi mật khẩu</Button>
+              <Button onClick={handleChangePassword}>Đổi mật khẩu</Button>
             </div>
           </TabsContent>
         </Tabs>

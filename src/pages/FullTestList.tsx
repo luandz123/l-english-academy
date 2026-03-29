@@ -4,82 +4,113 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Lock, CheckCircle, Clock } from "lucide-react";
-
-const testCategories = [
-  {
-    title: "Bộ Đề 2026",
-    tests: Array.from({ length: 10 }, (_, i) => ({
-      id: i + 1,
-      title: `Bộ đề 2026 - Đề ${String(i + 1).padStart(2, "0")}`,
-      questions: 200,
-      materials: 1,
-      done: i < 2,
-      score: i === 0 ? "750" : i === 1 ? "680" : undefined,
-      released: i < 5,
-      releaseDate: i >= 5 ? `${String(i + 1).padStart(2, "0")}/04/2026 17:00` : undefined,
-    })),
-  },
-  { title: "Đề Thực Tế 2024-2026", tests: Array.from({ length: 7 }, (_, i) => ({ id: 100 + i, title: `Đề thực tế ${i + 1}`, questions: 200, materials: 1, done: false, released: true })) },
-  { title: "Bộ Đề 2025", tests: Array.from({ length: 12 }, (_, i) => ({ id: 200 + i, title: `Bộ đề 2025 - Đề ${String(i + 1).padStart(2, "0")}`, questions: 200, materials: 1, done: false, released: true })) },
-  { title: "Bộ Đề 2024", tests: Array.from({ length: 10 }, (_, i) => ({ id: 300 + i, title: `Bộ đề 2024 - Đề ${String(i + 1).padStart(2, "0")}`, questions: 200, materials: 1, done: false, released: true })) },
-  { title: "Bộ Đề 2023", tests: Array.from({ length: 11 }, (_, i) => ({ id: 400 + i, title: `Bộ đề 2023 - Đề ${String(i + 1).padStart(2, "0")}`, questions: 200, materials: 1, done: false, released: true })) },
-  { title: "Bộ Đề 2022", tests: Array.from({ length: 10 }, (_, i) => ({ id: 500 + i, title: `Bộ đề 2022 - Đề ${String(i + 1).padStart(2, "0")}`, questions: 200, materials: 1, done: false, released: true })) },
-  { title: "Nâng Cao 850+", tests: Array.from({ length: 5 }, (_, i) => ({ id: 600 + i, title: `Đề nâng cao ${i + 1}`, questions: 200, materials: 1, done: false, released: true })) },
-];
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/useAuth";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const FullTestList = () => {
   const { courseId } = useParams();
-  const doneCount = (tests: any[]) => tests.filter(t => t.done).length;
+  const { user } = useAuth();
+  const cid = Number(courseId);
+
+  const { data: tests, isLoading } = useQuery({
+    queryKey: ["full-tests", cid],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("full_tests")
+        .select("*")
+        .eq("course_id", cid)
+        .order("category")
+        .order("display_order");
+      return data || [];
+    },
+  });
+
+  const { data: results } = useQuery({
+    queryKey: ["full-test-results", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("user_full_test_results")
+        .select("test_id, total_score")
+        .eq("user_id", user!.id);
+      return data || [];
+    },
+    enabled: !!user,
+  });
+
+  const resultMap = new Map((results || []).map(r => [r.test_id, r.total_score]));
+
+  // Group by category
+  const categoryMap: Record<string, string> = {
+    "2026": "Bộ Đề 2026",
+    "real_2024_2026": "Đề Thực Tế 2024-2026",
+    "2025": "Bộ Đề 2025",
+    "2024": "Bộ Đề 2024",
+    "general": "Tổng hợp",
+  };
+
+  const grouped = (tests || []).reduce((acc: Record<string, any[]>, t: any) => {
+    const cat = t.category || "general";
+    if (!acc[cat]) acc[cat] = [];
+    acc[cat].push(t);
+    return acc;
+  }, {});
+
+  if (isLoading) return <StudentLayout><Skeleton className="h-64 rounded-xl" /></StudentLayout>;
 
   return (
     <StudentLayout>
       <div className="max-w-4xl mx-auto space-y-4">
         <h1 className="text-2xl font-bold text-foreground">📋 Bộ đề Full Test TOEIC</h1>
-        <p className="text-sm text-muted-foreground">60+ bộ đề · 200 câu/đề · 12,000+ câu hỏi</p>
 
-        <Accordion type="multiple" defaultValue={["cat-0"]} className="space-y-2">
-          {testCategories.map((cat, ci) => (
-            <AccordionItem key={ci} value={`cat-${ci}`} className="bg-card rounded-lg border">
+        <Accordion type="multiple" defaultValue={Object.keys(grouped).map((_, i) => `cat-${i}`)} className="space-y-2">
+          {Object.entries(grouped).map(([cat, catTests], ci) => (
+            <AccordionItem key={cat} value={`cat-${ci}`} className="bg-card rounded-lg border">
               <AccordionTrigger className="px-4 py-3 hover:no-underline">
                 <div className="flex items-center gap-3">
-                  <span className="font-semibold text-sm text-foreground">{cat.title}</span>
-                  <Badge variant="secondary" className="text-xs">{cat.tests.length} đề</Badge>
-                  {doneCount(cat.tests) > 0 && (
-                    <span className="text-xs text-muted-foreground">{doneCount(cat.tests)}/{cat.tests.length} đã làm</span>
-                  )}
+                  <span className="font-semibold text-sm text-foreground">{categoryMap[cat] || cat}</span>
+                  <Badge variant="secondary" className="text-xs">{catTests.length} đề</Badge>
                 </div>
               </AccordionTrigger>
               <AccordionContent className="px-4 pb-3">
                 <div className="space-y-1">
-                  {cat.tests.map((test: any) => (
-                    <div key={test.id} className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/50 transition-colors">
-                      {!test.released ? (
-                        <Lock className="w-4 h-4 text-muted-foreground shrink-0" />
-                      ) : test.done ? (
-                        <CheckCircle className="w-4 h-4 text-success shrink-0" />
-                      ) : (
-                        <span className="w-4 h-4 rounded-full border-2 border-muted-foreground shrink-0" />
-                      )}
-                      <span className="text-sm text-foreground flex-1">{test.title}</span>
-                      <span className="text-xs text-muted-foreground">{test.questions} câu</span>
-                      {test.score && <Badge className="bg-accent text-accent-foreground text-xs">{test.score} điểm</Badge>}
-                      {!test.released && test.releaseDate && (
-                        <span className="text-xs text-warning flex items-center gap-1">
-                          <Clock className="w-3 h-3" /> {test.releaseDate}
-                        </span>
-                      )}
-                      {test.released && !test.done && (
-                        <Button size="sm" variant="outline" className="text-xs h-7" asChild>
-                          <Link to={`/courses/${courseId}/fulltest/${test.id}`}>Làm bài</Link>
-                        </Button>
-                      )}
-                      {test.done && (
-                        <Button size="sm" variant="ghost" className="text-xs h-7" asChild>
-                          <Link to={`/courses/${courseId}/fulltest/${test.id}/result`}>Xem lại</Link>
-                        </Button>
-                      )}
-                    </div>
-                  ))}
+                  {catTests.map((test: any) => {
+                    const now = new Date();
+                    const released = !test.release_date || new Date(test.release_date) <= now;
+                    const done = resultMap.has(test.id);
+                    const score = resultMap.get(test.id);
+
+                    return (
+                      <div key={test.id} className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/50 transition-colors">
+                        {!released ? (
+                          <Lock className="w-4 h-4 text-muted-foreground shrink-0" />
+                        ) : done ? (
+                          <CheckCircle className="w-4 h-4 text-success shrink-0" />
+                        ) : (
+                          <span className="w-4 h-4 rounded-full border-2 border-muted-foreground shrink-0" />
+                        )}
+                        <span className="text-sm text-foreground flex-1">{test.title}</span>
+                        <span className="text-xs text-muted-foreground">{test.total_questions} câu</span>
+                        {done && score && <Badge className="bg-accent text-accent-foreground text-xs">{score} điểm</Badge>}
+                        {!released && test.release_date && (
+                          <span className="text-xs text-warning flex items-center gap-1">
+                            <Clock className="w-3 h-3" /> {new Date(test.release_date).toLocaleDateString("vi-VN")}
+                          </span>
+                        )}
+                        {released && !done && (
+                          <Button size="sm" variant="outline" className="text-xs h-7" asChild>
+                            <Link to={`/courses/${courseId}/fulltest/${test.id}`}>Làm bài</Link>
+                          </Button>
+                        )}
+                        {done && (
+                          <Button size="sm" variant="ghost" className="text-xs h-7" asChild>
+                            <Link to={`/courses/${courseId}/fulltest/${test.id}/result`}>Xem lại</Link>
+                          </Button>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </AccordionContent>
             </AccordionItem>

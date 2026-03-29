@@ -1,8 +1,9 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { LayoutDashboard, BookOpen, Users, ClipboardList, FileText, BarChart3, Settings, LogOut, GraduationCap, Menu, X, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
 
 const navItems = [
   { to: "/admin/dashboard", label: "Tổng quan", icon: LayoutDashboard },
@@ -17,12 +18,18 @@ const navItems = [
 const AdminLayout = ({ children }: { children: React.ReactNode }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { profile, signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/login");
+  };
 
   return (
     <div className="min-h-screen flex bg-background">
       {sidebarOpen && <div className="fixed inset-0 z-40 bg-foreground/20 lg:hidden" onClick={() => setSidebarOpen(false)} />}
 
-      {/* Admin sidebar - deep indigo */}
       <aside className={cn(
         "fixed lg:static z-50 inset-y-0 left-0 w-60 flex flex-col transition-transform duration-300",
         "bg-[hsl(255,61%,15%)] text-[hsl(226,100%,90%)]",
@@ -63,15 +70,21 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
           })}
         </nav>
 
-        <div className="p-3 border-t border-[hsl(255,40%,25%)]">
+        <div className="p-3 border-t border-[hsl(255,40%,25%)] space-y-1">
           <Link to="/dashboard" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-[hsl(226,100%,80%)] hover:bg-[hsl(255,40%,25%)] hover:text-white transition-colors">
             <LogOut className="w-4 h-4" />
             ← Về trang học
           </Link>
+          <button
+            onClick={handleSignOut}
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-[hsl(226,100%,80%)] hover:bg-[hsl(255,40%,25%)] hover:text-white transition-colors w-full"
+          >
+            <LogOut className="w-4 h-4" />
+            Đăng xuất
+          </button>
         </div>
       </aside>
 
-      {/* Main */}
       <div className="flex-1 flex flex-col min-w-0">
         <header className="sticky top-0 z-30 h-14 bg-card/95 backdrop-blur-sm border-b flex items-center px-4 gap-4 shadow-sm">
           <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setSidebarOpen(true)}>
@@ -79,7 +92,9 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
           </Button>
           <div className="flex-1" />
           <Button variant="ghost" size="icon"><Bell className="w-4 h-4" /></Button>
-          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">A</div>
+          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
+            {profile?.full_name?.charAt(0)?.toUpperCase() || "A"}
+          </div>
         </header>
         <main className="flex-1 p-4 lg:p-6">{children}</main>
       </div>
