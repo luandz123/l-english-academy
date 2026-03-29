@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AuthContextType {
   user: User | null;
@@ -24,28 +24,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [profile, setProfile] = useState<{ full_name: string | null; avatar_url: string | null } | null>(null);
 
+  const fetchUserData = async (userId: string) => {
+    const [profileRes, roleRes] = await Promise.all([
+      supabase.from("profiles").select("full_name, avatar_url").eq("user_id", userId).single(),
+      supabase.from("user_roles").select("role").eq("user_id", userId).eq("role", "admin").maybeSingle(),
+    ]);
+    setProfile(profileRes.data);
+    setIsAdmin(!!roleRes.data);
+  };
+
   useEffect(() => {
+    // Set up listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
 
       if (session?.user) {
-        // Fetch profile
-        const { data: profileData } = await supabase
-          .from("profiles")
-          .select("full_name, avatar_url")
-          .eq("user_id", session.user.id)
-          .single();
-        setProfile(profileData);
-
-        // Check admin role
-        const { data: roleData } = await supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", session.user.id)
-          .eq("role", "admin")
-          .maybeSingle();
-        setIsAdmin(!!roleData);
+        // Use setTimeout to avoid Supabase client deadlock
+        setTimeout(() => fetchUserData(session.user.id), 0);
       } else {
         setProfile(null);
         setIsAdmin(false);
@@ -53,6 +49,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(false);
     });
 
+    // Then check existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) setLoading(false);
     });
