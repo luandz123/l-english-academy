@@ -3,23 +3,45 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
-
-const enrollments = [
-  { id: 1, student: "Nguyễn A", email: "a@gmail.com", course: "TOEIC L&R", start: "01/01", end: "01/07/2026", remaining: 94, status: "active" },
-  { id: 2, student: "Trần B", email: "b@gmail.com", course: "EZ Vocab", start: "01/01", end: "25/03/2026", remaining: 0, status: "expired" },
-  { id: 3, student: "Lê C", email: "c@gmail.com", course: "TOEIC L&R", start: "15/01", end: "15/07/2026", remaining: 108, status: "active" },
-  { id: 4, student: "Phạm D", email: "d@gmail.com", course: "Full Test", start: "01/02", end: "01/08/2026", remaining: 125, status: "active" },
-  { id: 5, student: "Hoàng E", email: "e@gmail.com", course: "Listening", start: "01/03", end: "05/04/2026", remaining: 7, status: "expiring" },
-  { id: 6, student: "Vũ F", email: "f@gmail.com", course: "TOEIC L&R", start: "10/01", end: "20/03/2026", remaining: 0, status: "expired" },
-];
-
-const statusMap: Record<string, { label: string; color: string }> = {
-  active: { label: "Còn hạn", color: "bg-success text-success-foreground" },
-  expired: { label: "Hết hạn", color: "bg-destructive text-destructive-foreground" },
-  expiring: { label: "Sắp hết", color: "bg-warning text-warning-foreground" },
-};
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useState } from "react";
 
 const AdminEnrollments = () => {
+  const [search, setSearch] = useState("");
+
+  const { data: enrollments = [], isLoading } = useQuery({
+    queryKey: ["admin-enrollments"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("enrollments")
+        .select("*, courses(title), profiles!inner(full_name)")
+        .order("enrolled_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []).map((e: any) => {
+        const now = new Date();
+        const expires = e.expires_at ? new Date(e.expires_at) : null;
+        const remaining = expires ? Math.max(0, Math.ceil((expires.getTime() - now.getTime()) / 86400000)) : null;
+        let status = "active";
+        if (expires && remaining === 0) status = "expired";
+        else if (expires && remaining !== null && remaining <= 7) status = "expiring";
+        return { ...e, remaining, status };
+      });
+    },
+  });
+
+  const statusMap: Record<string, { label: string; color: string }> = {
+    active: { label: "Còn hạn", color: "bg-success text-success-foreground" },
+    expired: { label: "Hết hạn", color: "bg-destructive text-destructive-foreground" },
+    expiring: { label: "Sắp hết", color: "bg-warning text-warning-foreground" },
+  };
+
+  const filtered = enrollments.filter((e: any) =>
+    ((e as any).profiles?.full_name ?? "").toLowerCase().includes(search.toLowerCase()) ||
+    ((e as any).courses?.title ?? "").toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -28,56 +50,48 @@ const AdminEnrollments = () => {
             <h1 className="text-2xl font-bold text-foreground">Quản lý Đăng Ký</h1>
             <p className="text-sm text-muted-foreground">{enrollments.length} đăng ký</p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline">📥 Import Excel</Button>
-            <Button>+ Tạo đăng ký</Button>
-          </div>
         </div>
 
         <div className="relative max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input placeholder="Tìm kiếm..." className="pl-9" />
+          <Input placeholder="Tìm kiếm..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
 
-        <div className="bg-card rounded-xl border overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b bg-muted/50">
-                  <th className="text-left p-3 font-semibold text-foreground">Học viên</th>
-                  <th className="text-left p-3 font-semibold text-foreground">Khóa học</th>
-                  <th className="text-center p-3 font-semibold text-foreground">Bắt đầu</th>
-                  <th className="text-center p-3 font-semibold text-foreground">Hết hạn</th>
-                  <th className="text-center p-3 font-semibold text-foreground">Còn lại</th>
-                  <th className="text-center p-3 font-semibold text-foreground">Trạng thái</th>
-                  <th className="text-center p-3 font-semibold text-foreground">Hành động</th>
-                </tr>
-              </thead>
-              <tbody>
-                {enrollments.map((e) => (
-                  <tr key={e.id} className="border-b last:border-0 hover:bg-muted/30">
-                    <td className="p-3">
-                      <p className="font-medium text-foreground">{e.student}</p>
-                      <p className="text-xs text-muted-foreground">{e.email}</p>
-                    </td>
-                    <td className="p-3 text-foreground">{e.course}</td>
-                    <td className="p-3 text-center text-muted-foreground">{e.start}</td>
-                    <td className="p-3 text-center text-muted-foreground">{e.end}</td>
-                    <td className="p-3 text-center text-foreground">{e.remaining} ngày</td>
-                    <td className="p-3 text-center">
-                      <Badge className={statusMap[e.status].color}>{statusMap[e.status].label}</Badge>
-                    </td>
-                    <td className="p-3 text-center">
-                      <Button size="sm" variant="outline" className="text-xs">
-                        {e.status === "expired" ? "Gia hạn" : "Quản lý"}
-                      </Button>
-                    </td>
+        {isLoading ? (
+          <div className="space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
+        ) : (
+          <div className="bg-card rounded-xl border overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/50">
+                    <th className="text-left p-3 font-semibold text-foreground">Học viên</th>
+                    <th className="text-left p-3 font-semibold text-foreground">Khóa học</th>
+                    <th className="text-center p-3 font-semibold text-foreground">Bắt đầu</th>
+                    <th className="text-center p-3 font-semibold text-foreground">Hết hạn</th>
+                    <th className="text-center p-3 font-semibold text-foreground">Còn lại</th>
+                    <th className="text-center p-3 font-semibold text-foreground">Trạng thái</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {filtered.map((e: any) => (
+                    <tr key={e.id} className="border-b last:border-0 hover:bg-muted/30">
+                      <td className="p-3 font-medium text-foreground">{e.profiles?.full_name ?? "—"}</td>
+                      <td className="p-3 text-foreground">{e.courses?.title ?? "—"}</td>
+                      <td className="p-3 text-center text-muted-foreground">{e.enrolled_at ? new Date(e.enrolled_at).toLocaleDateString("vi-VN") : ""}</td>
+                      <td className="p-3 text-center text-muted-foreground">{e.expires_at ? new Date(e.expires_at).toLocaleDateString("vi-VN") : "Vĩnh viễn"}</td>
+                      <td className="p-3 text-center text-foreground">{e.remaining !== null ? `${e.remaining} ngày` : "∞"}</td>
+                      <td className="p-3 text-center">
+                        <Badge className={statusMap[e.status]?.color}>{statusMap[e.status]?.label}</Badge>
+                      </td>
+                    </tr>
+                  ))}
+                  {filtered.length === 0 && <tr><td colSpan={6} className="p-4 text-center text-muted-foreground">Không có dữ liệu</td></tr>}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </AdminLayout>
   );
