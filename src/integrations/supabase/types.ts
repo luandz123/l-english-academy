@@ -257,12 +257,58 @@ export type Database = {
           },
         ]
       }
+      lesson_practices: {
+        Row: {
+          created_at: string | null
+          display_order: number
+          id: number
+          lesson_id: number
+          quiz_id: number | null
+          title: string
+          trigger_at_seconds: number
+        }
+        Insert: {
+          created_at?: string | null
+          display_order?: number
+          id?: number
+          lesson_id: number
+          quiz_id?: number | null
+          title?: string
+          trigger_at_seconds?: number
+        }
+        Update: {
+          created_at?: string | null
+          display_order?: number
+          id?: number
+          lesson_id?: number
+          quiz_id?: number | null
+          title?: string
+          trigger_at_seconds?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lesson_practices_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lesson_practices_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: false
+            referencedRelation: "quizzes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lessons: {
         Row: {
           display_order: number
           duration_seconds: number | null
           id: number
           is_live: boolean | null
+          lesson_type: string
           live_time: string | null
           module_id: number | null
           title: string
@@ -273,6 +319,7 @@ export type Database = {
           duration_seconds?: number | null
           id?: number
           is_live?: boolean | null
+          lesson_type?: string
           live_time?: string | null
           module_id?: number | null
           title: string
@@ -283,6 +330,7 @@ export type Database = {
           duration_seconds?: number | null
           id?: number
           is_live?: boolean | null
+          lesson_type?: string
           live_time?: string | null
           module_id?: number | null
           title?: string
