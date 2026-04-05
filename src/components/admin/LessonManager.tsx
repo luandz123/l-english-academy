@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Edit, Trash2, Video, FileQuestion, BookOpen } from "lucide-react";
+import { Plus, Edit, Trash2, Video, FileQuestion, BookOpen, ChevronDown, ChevronRight } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -39,7 +39,21 @@ const LessonManager = ({ moduleId, courseId, lessons, quizzes }: LessonManagerPr
 
   const saveLessonMutation = useMutation({
     mutationFn: async () => {
-      const payload = {
+      let quizId: number | null = null;
+
+      // Auto-create quiz for exam/practice lessons
+      if ((lessonType === "exam" || lessonType === "practice") && !editingLesson?.quiz_id) {
+        const { data: quizData, error: quizError } = await supabase.from("quizzes").insert({
+          title: `Quiz - ${lessonTitle}`,
+          total_questions: 0,
+          module_id: moduleId,
+          display_order: quizzes.length,
+        }).select("id").single();
+        if (quizError) throw quizError;
+        quizId = quizData.id;
+      }
+
+      const payload: any = {
         title: lessonTitle,
         lesson_type: lessonType,
         video_url: lessonType === "video" ? videoUrl : null,
@@ -47,6 +61,8 @@ const LessonManager = ({ moduleId, courseId, lessons, quizzes }: LessonManagerPr
         module_id: moduleId,
         display_order: editingLesson ? editingLesson.display_order : lessons.length,
       };
+      if (quizId) payload.quiz_id = quizId;
+
       if (editingLesson) {
         const { error } = await supabase.from("lessons").update(payload).eq("id", editingLesson.id);
         if (error) throw error;
@@ -73,7 +89,7 @@ const LessonManager = ({ moduleId, courseId, lessons, quizzes }: LessonManagerPr
     },
   });
 
-  // Quiz CRUD
+  // Quiz CRUD (standalone quizzes in module)
   const [quizDialogOpen, setQuizDialogOpen] = useState(false);
   const [editingQuiz, setEditingQuiz] = useState<any>(null);
   const [quizTitle, setQuizTitle] = useState("");
@@ -152,6 +168,8 @@ const LessonManager = ({ moduleId, courseId, lessons, quizzes }: LessonManagerPr
   const sortedLessons = [...lessons].sort((a, b) => a.display_order - b.display_order);
   const sortedQuizzes = [...quizzes].sort((a, b) => a.display_order - b.display_order);
 
+  const isExpanded = (id: number) => expandedLesson === id;
+
   return (
     <div className="space-y-3">
       {/* Lessons */}
@@ -163,20 +181,42 @@ const LessonManager = ({ moduleId, courseId, lessons, quizzes }: LessonManagerPr
         {sortedLessons.map((l: any) => (
           <div key={l.id}>
             <div className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-muted/30 group">
+              <button onClick={() => setExpandedLesson(isExpanded(l.id) ? null : l.id)} className="shrink-0">
+                {isExpanded(l.id) ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
+              </button>
               {l.lesson_type === "video" && <Video className="w-4 h-4 text-blue-500 shrink-0" />}
               {l.lesson_type === "practice" && <FileQuestion className="w-4 h-4 text-orange-500 shrink-0" />}
               {l.lesson_type === "exam" && <BookOpen className="w-4 h-4 text-red-500 shrink-0" />}
               {!l.lesson_type && <Video className="w-4 h-4 text-blue-500 shrink-0" />}
-              <button onClick={() => setExpandedLesson(expandedLesson === l.id ? null : l.id)} className="text-sm text-foreground flex-1 text-left truncate">
+              <button onClick={() => setExpandedLesson(isExpanded(l.id) ? null : l.id)} className="text-sm text-foreground flex-1 text-left truncate">
                 {l.title}
               </button>
               <span className="text-xs text-muted-foreground">{lessonTypeLabels[l.lesson_type] || "Video"}</span>
               <Button size="icon" variant="ghost" className="opacity-0 group-hover:opacity-100 h-7 w-7" onClick={() => openEditLesson(l)}><Edit className="w-3 h-3" /></Button>
               <Button size="icon" variant="ghost" className="opacity-0 group-hover:opacity-100 h-7 w-7" onClick={() => { if (confirm("Xóa?")) deleteLessonMutation.mutate(l.id); }}><Trash2 className="w-3 h-3 text-destructive" /></Button>
             </div>
-            {expandedLesson === l.id && l.lesson_type === "video" && (
-              <div className="ml-8 mb-2 p-3 bg-muted/20 rounded-lg border">
-                <LessonPracticeManager lessonId={l.id} courseId={courseId} />
+            {isExpanded(l.id) && (
+              <div className="ml-8 mb-2 p-3 bg-muted/20 rounded-lg border space-y-3">
+                {/* Video lessons: show practice popup config */}
+                {l.lesson_type === "video" && (
+                  <LessonPracticeManager lessonId={l.id} courseId={courseId} />
+                )}
+                {/* Exam/Practice lessons: show QuizManager for questions */}
+                {(l.lesson_type === "exam" || l.lesson_type === "practice") && l.quiz_id && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <FileQuestion className="w-4 h-4 text-primary" />
+                      <span className="text-sm font-semibold text-foreground">Quản lý câu hỏi</span>
+                    </div>
+                    <QuizManager quizId={l.quiz_id} courseId={courseId} />
+                  </div>
+                )}
+                {(l.lesson_type === "exam" || l.lesson_type === "practice") && !l.quiz_id && (
+                  <div className="text-center py-4">
+                    <p className="text-sm text-muted-foreground mb-2">Bài học chưa có quiz liên kết.</p>
+                    <CreateQuizForLesson lessonId={l.id} moduleId={moduleId} courseId={courseId} quizzesCount={quizzes.length} lessonTitle={l.title} />
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -193,6 +233,9 @@ const LessonManager = ({ moduleId, courseId, lessons, quizzes }: LessonManagerPr
         {sortedQuizzes.map((q: any) => (
           <div key={q.id}>
             <div className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-muted/30 group">
+              <button onClick={() => setExpandedQuiz(expandedQuiz === q.id ? null : q.id)} className="shrink-0">
+                {expandedQuiz === q.id ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
+              </button>
               <FileQuestion className="w-4 h-4 text-emerald-500 shrink-0" />
               <button onClick={() => setExpandedQuiz(expandedQuiz === q.id ? null : q.id)} className="text-sm text-foreground flex-1 text-left truncate">
                 {q.title}
@@ -239,6 +282,12 @@ const LessonManager = ({ moduleId, courseId, lessons, quizzes }: LessonManagerPr
                 <Input value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} placeholder="https://www.youtube.com/embed/..." />
               </div>
             )}
+            {(lessonType === "exam" || lessonType === "practice") && (
+              <p className="text-xs text-muted-foreground bg-muted/50 p-3 rounded-lg">
+                💡 Sau khi tạo bài học, bạn có thể mở rộng bài học để cấu hình câu hỏi, đáp án, hình ảnh và audio.
+                Quiz sẽ được tạo tự động khi lưu.
+              </p>
+            )}
             <div className="space-y-2">
               <Label>Thời lượng (giây)</Label>
               <Input type="number" value={durationSeconds} onChange={(e) => setDurationSeconds(Number(e.target.value))} />
@@ -278,6 +327,35 @@ const LessonManager = ({ moduleId, courseId, lessons, quizzes }: LessonManagerPr
         </DialogContent>
       </Dialog>
     </div>
+  );
+};
+
+// Helper component to create quiz for existing exam/practice lessons without one
+const CreateQuizForLesson = ({ lessonId, moduleId, courseId, quizzesCount, lessonTitle }: { lessonId: number; moduleId: number; courseId: number; quizzesCount: number; lessonTitle: string }) => {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const createMutation = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.from("quizzes").insert({
+        title: `Quiz - ${lessonTitle}`,
+        total_questions: 0,
+        module_id: moduleId,
+        display_order: quizzesCount,
+      }).select("id").single();
+      if (error) throw error;
+      await supabase.from("lessons").update({ quiz_id: data.id }).eq("id", lessonId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-course-modules", courseId] });
+      toast({ title: "Đã tạo quiz cho bài học" });
+    },
+  });
+
+  return (
+    <Button size="sm" onClick={() => createMutation.mutate()} disabled={createMutation.isPending}>
+      {createMutation.isPending ? "Đang tạo..." : "Tạo Quiz để cấu hình câu hỏi"}
+    </Button>
   );
 };
 
