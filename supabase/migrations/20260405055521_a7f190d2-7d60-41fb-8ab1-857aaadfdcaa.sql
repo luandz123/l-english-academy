@@ -1,0 +1,1 @@
+ALTER TABLE public.lessons ADD COLUMN quiz_id integer REFERENCES public.quizzes(id) ON DELETE SET NULL;

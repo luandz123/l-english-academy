@@ -311,6 +311,7 @@ export type Database = {
           lesson_type: string
           live_time: string | null
           module_id: number | null
+          quiz_id: number | null
           title: string
           video_url: string | null
         }
@@ -322,6 +323,7 @@ export type Database = {
           lesson_type?: string
           live_time?: string | null
           module_id?: number | null
+          quiz_id?: number | null
           title: string
           video_url?: string | null
         }
@@ -333,6 +335,7 @@ export type Database = {
           lesson_type?: string
           live_time?: string | null
           module_id?: number | null
+          quiz_id?: number | null
           title?: string
           video_url?: string | null
         }
@@ -342,6 +345,13 @@ export type Database = {
             columns: ["module_id"]
             isOneToOne: false
             referencedRelation: "modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lessons_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: false
+            referencedRelation: "quizzes"
             referencedColumns: ["id"]
           },
         ]
