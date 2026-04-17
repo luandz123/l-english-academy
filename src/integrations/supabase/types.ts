@@ -506,6 +506,7 @@ export type Database = {
           question_text: string
           question_type: string | null
           quiz_id: number | null
+          translation: string | null
         }
         Insert: {
           audio_url?: string | null
@@ -515,6 +516,7 @@ export type Database = {
           question_text: string
           question_type?: string | null
           quiz_id?: number | null
+          translation?: string | null
         }
         Update: {
           audio_url?: string | null
@@ -524,6 +526,7 @@ export type Database = {
           question_text?: string
           question_type?: string | null
           quiz_id?: number | null
+          translation?: string | null
         }
         Relationships: [
           {
