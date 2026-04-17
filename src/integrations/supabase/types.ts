@@ -311,6 +311,7 @@ export type Database = {
           lesson_type: string
           live_time: string | null
           module_id: number | null
+          pdf_url: string | null
           quiz_id: number | null
           title: string
           video_url: string | null
@@ -323,6 +324,7 @@ export type Database = {
           lesson_type?: string
           live_time?: string | null
           module_id?: number | null
+          pdf_url?: string | null
           quiz_id?: number | null
           title: string
           video_url?: string | null
@@ -335,6 +337,7 @@ export type Database = {
           lesson_type?: string
           live_time?: string | null
           module_id?: number | null
+          pdf_url?: string | null
           quiz_id?: number | null
           title?: string
           video_url?: string | null
@@ -363,6 +366,7 @@ export type Database = {
           display_order: number
           file_type: string | null
           file_url: string
+          folder_path: string | null
           id: number
           lesson_id: number | null
           quiz_id: number | null
@@ -374,6 +378,7 @@ export type Database = {
           display_order?: number
           file_type?: string | null
           file_url: string
+          folder_path?: string | null
           id?: number
           lesson_id?: number | null
           quiz_id?: number | null
@@ -385,6 +390,7 @@ export type Database = {
           display_order?: number
           file_type?: string | null
           file_url?: string
+          folder_path?: string | null
           id?: number
           lesson_id?: number | null
           quiz_id?: number | null
@@ -531,6 +537,7 @@ export type Database = {
       }
       quizzes: {
         Row: {
+          audio_url: string | null
           display_order: number
           id: number
           module_id: number | null
@@ -539,6 +546,7 @@ export type Database = {
           total_questions: number
         }
         Insert: {
+          audio_url?: string | null
           display_order?: number
           id?: number
           module_id?: number | null
@@ -547,6 +555,7 @@ export type Database = {
           total_questions?: number
         }
         Update: {
+          audio_url?: string | null
           display_order?: number
           id?: number
           module_id?: number | null
