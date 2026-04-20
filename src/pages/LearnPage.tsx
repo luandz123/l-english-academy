@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { PlayCircle, FileText, CheckCircle, ChevronLeft, ChevronRight, Star, Check, Loader2, FileQuestion, X } from "lucide-react";
+import { PlayCircle, FileText, CheckCircle, ChevronLeft, ChevronRight, Star, Check, Loader2, FileQuestion, X, Headphones } from "lucide-react";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -49,6 +49,20 @@ const LearnPage = () => {
     queryFn: async () => {
       if (!user) return [];
       const { data } = await supabase.from("user_favorites").select("*").eq("user_id", user.id);
+      return data ?? [];
+    },
+    enabled: !!user,
+  });
+
+  const { data: quizResults = [] } = useQuery({
+    queryKey: ["learn-quiz-results", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data } = await supabase
+        .from("user_quiz_results")
+        .select("quiz_id, score, correct_answers, total_questions")
+        .eq("user_id", user.id)
+        .order("completed_at", { ascending: false });
       return data ?? [];
     },
     enabled: !!user,
@@ -202,6 +216,7 @@ const LearnPage = () => {
 
   const isVideoLesson = !currentLesson.lesson_type || currentLesson.lesson_type === "video";
   const isPracticeLesson = currentLesson.lesson_type === "practice" || currentLesson.lesson_type === "exam";
+  const isDictationLesson = currentLesson.lesson_type === "dictation";
 
   return (
     <div className="min-h-screen bg-background">
@@ -220,18 +235,62 @@ const LearnPage = () => {
             </div>
           )}
 
-          {isPracticeLesson && (
-            <div className="p-6 bg-muted/20">
-              <div className="max-w-2xl mx-auto text-center space-y-4">
-                <FileQuestion className="w-12 h-12 text-primary mx-auto" />
-                <h2 className="text-xl font-bold text-foreground">{currentLesson.title}</h2>
-                <p className="text-muted-foreground">Bài {currentLesson.lesson_type === "exam" ? "thi online" : "luyện tập"}</p>
-                <Button onClick={() => navigate(`/courses/${courseId}/quiz/${currentLessonId}`)}>
-                  Bắt đầu làm bài
-                </Button>
+          {isPracticeLesson && (() => {
+            const quizId = currentLesson.quiz_id || currentLesson.id;
+            const latestResult = quizResults.find((r: any) => r.quiz_id === quizId);
+
+            return (
+              <div className="p-6 bg-muted/20">
+                <div className="max-w-2xl mx-auto text-center space-y-4">
+                  <FileQuestion className="w-12 h-12 text-primary mx-auto" />
+                  <h2 className="text-xl font-bold text-foreground">{currentLesson.title}</h2>
+                  <p className="text-muted-foreground">Bài {currentLesson.lesson_type === "exam" ? "thi online" : "luyện tập"}</p>
+                  
+                  {latestResult && (
+                    <div className="flex flex-col items-center justify-center gap-1 mb-4">
+                      <span className="text-sm font-bold text-success bg-success/10 px-3 py-1 rounded-full">
+                        Điểm gần nhất: {latestResult.score}/10
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        Đúng {latestResult.correct_answers}/{latestResult.total_questions}
+                      </span>
+                    </div>
+                  )}
+
+                  <Button onClick={() => navigate(`/courses/${courseId}/quiz/${quizId}`)}>
+                    {latestResult ? "Làm lại bài thi" : "Bắt đầu làm bài"}
+                  </Button>
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
+
+          {isDictationLesson && (() => {
+            const quizId = currentLesson.quiz_id || currentLesson.id;
+            const latestResult = quizResults.find((r: any) => r.quiz_id === quizId);
+
+            return (
+              <div className="p-6 bg-muted/20">
+                <div className="max-w-2xl mx-auto text-center space-y-4">
+                  <Headphones className="w-12 h-12 text-purple-500 mx-auto" />
+                  <h2 className="text-xl font-bold text-foreground">{currentLesson.title}</h2>
+                  <p className="text-muted-foreground">Bài luyện nghe điền từ</p>
+                  
+                  {latestResult && (
+                    <div className="flex flex-col items-center justify-center gap-1 mb-4">
+                      <span className="text-sm font-bold text-purple-600 bg-purple-500/10 px-3 py-1 rounded-full">
+                        Đã làm: {latestResult.correct_answers || 0} câu
+                      </span>
+                    </div>
+                  )}
+
+                  <Button className="bg-purple-600 hover:bg-purple-700 text-white" onClick={() => navigate(`/courses/${courseId}/dictation/${quizId}`)}>
+                    {latestResult ? "Tiếp tục luyện nghe" : "Bắt đầu bài tập này"}
+                  </Button>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Controls */}
           <div className="p-4 border-b">
@@ -331,6 +390,7 @@ const LearnPage = () => {
                       const done = progress.some((p: any) => p.lesson_id === lesson.id && p.is_completed);
                       const isCurrent = currentLessonId === lesson.id;
                       const isVideo = !lesson.lesson_type || lesson.lesson_type === "video";
+                      const isDictation = lesson.lesson_type === "dictation";
                       return (
                         <button
                           key={lesson.id}
@@ -340,7 +400,7 @@ const LearnPage = () => {
                           } cursor-pointer`}
                         >
                           {done ? <CheckCircle className="w-3 h-3 text-emerald-500 shrink-0" /> :
-                            isVideo ? <PlayCircle className="w-3 h-3 shrink-0" /> : <FileQuestion className="w-3 h-3 shrink-0" />}
+                            isVideo ? <PlayCircle className="w-3 h-3 shrink-0" /> : isDictation ? <Headphones className="w-3 h-3 shrink-0 text-purple-500" /> : <FileQuestion className="w-3 h-3 shrink-0" />}
                           <span className="truncate">{lesson.title}</span>
                         </button>
                       );
@@ -400,10 +460,17 @@ const LearnPage = () => {
                       return (
                         <div key={q.id} className={`p-3 rounded-lg border ${isCorrect ? "bg-emerald-500/5 border-emerald-500/20" : "bg-red-500/5 border-red-500/20"}`}>
                           <p className="text-sm font-medium">{i + 1}. {q.question_text}</p>
+                          {q.image_url && (
+                            <img src={q.image_url} alt="" className="mt-3 w-full rounded-lg border object-cover" />
+                          )}
+                          {q.audio_url && (
+                            <audio controls src={q.audio_url} className="mt-3 w-full" />
+                          )}
                           <p className="text-xs mt-1">
                             {isCorrect ? "✅ Đúng" : `❌ Sai — Đáp án đúng: ${correct?.answer_text}`}
                           </p>
                           {correct?.explanation && <p className="text-xs text-muted-foreground mt-1">💡 {correct.explanation}</p>}
+                          {q.translation && <p className="text-xs text-blue-700 mt-1">🇻🇳 {q.translation}</p>}
                         </div>
                       );
                     })}
