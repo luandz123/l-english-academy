@@ -32,7 +32,6 @@ const FullTestExam = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [started, setStarted] = useState(false);
-  const [currentQ, setCurrentQ] = useState(0);
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [currentPart, setCurrentPart] = useState(0);
   const [timeLeft, setTimeLeft] = useState(120 * 60);
@@ -68,7 +67,8 @@ const FullTestExam = () => {
 
   const goToPart = (part: number) => {
     setCurrentPart(part);
-    setCurrentQ(getPartRange(part).start);
+    const targetQ = getPartRange(part).start;
+    document.getElementById(`question-${targetQ}`)?.scrollIntoView({ behavior: 'smooth' });
   };
 
   const submit = async () => {
@@ -111,7 +111,6 @@ const FullTestExam = () => {
     );
   }
 
-  const q = allQuestions[currentQ];
   const hours = Math.floor(timeLeft / 3600);
   const mins = Math.floor((timeLeft % 3600) / 60);
   const secs = timeLeft % 60;
@@ -143,10 +142,12 @@ const FullTestExam = () => {
                     {Array.from({ length: end - start + 1 }, (_, i) => {
                       const qIdx = start + i;
                       return (
-                        <button key={qIdx} onClick={() => { setCurrentQ(qIdx); setCurrentPart(pi); }}
-                          className={cn("w-7 h-7 text-xs rounded font-medium",
-                            currentQ === qIdx ? "bg-primary text-primary-foreground" :
-                            answers[qIdx] !== undefined ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"
+                      <button key={qIdx} onClick={() => { 
+                          setCurrentPart(pi); 
+                          document.getElementById(`question-${qIdx}`)?.scrollIntoView({ behavior: 'smooth' }); 
+                        }}
+                          className={cn("w-7 h-7 text-xs rounded font-medium border-2 transition-all hover:border-primary/50",
+                            answers[qIdx] !== undefined ? "bg-primary text-primary-foreground border-primary" : "bg-card text-muted-foreground border-muted"
                           )}>{qIdx + 1}</button>
                       );
                     })}
@@ -160,33 +161,39 @@ const FullTestExam = () => {
           </Button>
         </div>
 
-        <div className="flex-1 p-6 max-w-3xl mx-auto">
-          <div className="space-y-6">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-bold text-foreground">Câu {currentQ + 1}/200</span>
-              <span className="text-xs text-muted-foreground">({partNames[q.part]})</span>
+        <div className="flex-1 h-[calc(100vh-120px)] overflow-y-auto p-4 lg:p-8 space-y-8 scroll-smooth pb-32">
+          {allQuestions.map((q, qIdx) => (
+            <div key={qIdx} id={`question-${qIdx}`} className="max-w-4xl mx-auto bg-card border rounded-xl p-6 shadow-sm scroll-mt-6">
+              <div className="mb-4 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold px-3 py-1 bg-muted rounded-full text-foreground/80">Câu {qIdx + 1} / 200</span>
+                  <span className="text-xs text-muted-foreground font-semibold px-2 py-1 bg-primary/10 text-primary rounded">
+                    {partNames[q.part]}
+                  </span>
+                </div>
+              </div>
+              
+              <p className="text-lg font-medium text-foreground mb-6 leading-relaxed bg-background p-4 rounded-xl">{q.text}</p>
+              
+              <div className="grid gap-3">
+                {q.options.map((opt, oi) => {
+                  const checked = answers[qIdx] === oi;
+                  return (
+                    <button key={oi} onClick={() => setAnswers(prev => ({ ...prev, [qIdx]: oi }))}
+                      className={cn("w-full text-left p-4 rounded-xl border-2 text-sm transition-all flex items-center group",
+                        checked ? "border-primary bg-primary/10 text-primary font-medium shadow-sm" : "border-border bg-card text-foreground hover:border-primary/50 hover:bg-muted/20"
+                      )}>
+                      <div className={cn("w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors mr-3", checked ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground group-hover:border-primary")}>
+                        {checked && <div className="w-2.5 h-2.5 bg-background rounded-full" />}
+                      </div>
+                      <span className="font-bold mr-2">{String.fromCharCode(65 + oi)}.</span>
+                      <span className="flex-1">{opt}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-            <Progress value={((currentQ + 1) / 200) * 100} className="h-1.5" />
-            <p className="text-base text-foreground">{q.text}</p>
-            <div className="grid gap-3">
-              {q.options.map((opt, oi) => (
-                <button key={oi} onClick={() => setAnswers(prev => ({ ...prev, [currentQ]: oi }))}
-                  className={cn("w-full text-left p-4 rounded-xl border-2 text-sm transition-all",
-                    answers[currentQ] === oi ? "border-primary bg-primary/10 text-primary font-medium" : "border-border bg-card text-foreground hover:border-primary/50"
-                  )}>
-                  <span className="font-bold mr-2">{String.fromCharCode(65 + oi)}.</span>{opt}
-                </button>
-              ))}
-            </div>
-            <div className="flex gap-3">
-              <Button variant="outline" disabled={currentQ === 0} onClick={() => { setCurrentQ(prev => prev - 1); setCurrentPart(allQuestions[currentQ - 1]?.part ?? 0); }}>← Câu trước</Button>
-              {currentQ < 199 ? (
-                <Button onClick={() => { setCurrentQ(prev => prev + 1); setCurrentPart(allQuestions[currentQ + 1]?.part ?? 0); }}>Câu tiếp →</Button>
-              ) : (
-                <Button onClick={submit} disabled={submitting}>{submitting ? "Đang nộp..." : "Nộp bài"}</Button>
-              )}
-            </div>
-          </div>
+          ))}
         </div>
       </div>
     </div>

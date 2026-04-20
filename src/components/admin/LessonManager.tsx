@@ -4,13 +4,30 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Edit, Trash2, Video, FileQuestion, BookOpen, ChevronDown, ChevronRight } from "lucide-react";
+import { Plus, Edit, Trash2, Video, FileQuestion, BookOpen, ChevronDown, ChevronRight, GripVertical, FileText, Upload, Volume2 } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import QuizManager from "./QuizManager";
 import LessonPracticeManager from "./LessonPracticeManager";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 interface LessonManagerProps {
   moduleId: number;
@@ -20,9 +37,95 @@ interface LessonManagerProps {
 }
 
 const lessonTypeLabels: Record<string, string> = {
-  video: "🎬 Bài giảng Video",
+  video: "🎬 Bài giảng",
   practice: "📝 Luyện tập",
   exam: "📋 Bài thi Online",
+  dictation: "🎧 Luyện nghe điền từ",
+};
+
+const SortableLessonItem = ({
+  l,
+  isExpanded,
+  setExpandedLesson,
+  openEditLesson,
+  deleteLessonMutation,
+  courseId,
+}: {
+  l: any;
+  isExpanded: boolean;
+  setExpandedLesson: (id: number | null) => void;
+  openEditLesson: (l: any) => void;
+  deleteLessonMutation: any;
+  courseId: number;
+}) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: `lesson-${l.id}`,
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <div className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-muted/30 group">
+        <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing touch-none p-0.5 hover:bg-muted rounded shrink-0">
+          <GripVertical className="w-3.5 h-3.5 text-muted-foreground" />
+        </button>
+        <button onClick={() => setExpandedLesson(isExpanded ? null : l.id)} className="shrink-0">
+          {isExpanded ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
+        </button>
+        {l.lesson_type === "video" && !l.pdf_url && <Video className="w-4 h-4 text-blue-500 shrink-0" />}
+        {l.lesson_type === "video" && l.pdf_url && <FileText className="w-4 h-4 text-amber-600 shrink-0" />}
+        {l.lesson_type === "practice" && <FileQuestion className="w-4 h-4 text-orange-500 shrink-0" />}
+        {l.lesson_type === "exam" && <BookOpen className="w-4 h-4 text-red-500 shrink-0" />}
+        {l.lesson_type === "dictation" && <Volume2 className="w-4 h-4 text-purple-500 shrink-0" />}
+        {!l.lesson_type && <Video className="w-4 h-4 text-blue-500 shrink-0" />}
+        <button onClick={() => setExpandedLesson(isExpanded ? null : l.id)} className="text-sm text-foreground flex-1 text-left truncate">
+          {l.title}
+        </button>
+        <span className="text-xs text-muted-foreground">
+          {l.lesson_type === "video" && l.pdf_url ? "📄 PDF" : lessonTypeLabels[l.lesson_type] || "Video"}
+        </span>
+        <Button size="icon" variant="ghost" className="opacity-0 group-hover:opacity-100 h-7 w-7" onClick={() => openEditLesson(l)}><Edit className="w-3 h-3" /></Button>
+        <Button size="icon" variant="ghost" className="opacity-0 group-hover:opacity-100 h-7 w-7" onClick={() => { if (confirm("Xóa?")) deleteLessonMutation.mutate(l.id); }}><Trash2 className="w-3 h-3 text-destructive" /></Button>
+      </div>
+      {isExpanded && (
+        <div className="ml-8 mb-2 p-3 bg-muted/20 rounded-lg border space-y-3">
+          {/* Video/PDF lessons: show practice popup config */}
+          {l.lesson_type === "video" && !l.pdf_url && (
+            <LessonPracticeManager lessonId={l.id} courseId={courseId} />
+          )}
+          {l.lesson_type === "video" && l.pdf_url && (
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-muted-foreground">📄 Tài liệu PDF</p>
+              <a href={l.pdf_url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline break-all">
+                {l.pdf_url}
+              </a>
+            </div>
+          )}
+          {/* Exam/Practice/Dictation lessons: show QuizManager for questions */}
+          {(l.lesson_type === "exam" || l.lesson_type === "practice" || l.lesson_type === "dictation") && l.quiz_id && (
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <FileQuestion className="w-4 h-4 text-primary" />
+                <span className="text-sm font-semibold text-foreground">Quản lý câu hỏi</span>
+              </div>
+              <QuizManager quizId={l.quiz_id} courseId={courseId} lessonType={l.lesson_type} />
+            </div>
+          )}
+          {(l.lesson_type === "exam" || l.lesson_type === "practice" || l.lesson_type === "dictation") && !l.quiz_id && (
+            <div className="text-center py-4">
+              <p className="text-sm text-muted-foreground mb-2">Bài học chưa có quiz liên kết.</p>
+              <CreateQuizForLesson lessonId={l.id} moduleId={l.module_id} courseId={courseId} quizzesCount={0} lessonTitle={l.title} />
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
 };
 
 const LessonManager = ({ moduleId, courseId, lessons, quizzes }: LessonManagerProps) => {
@@ -33,16 +136,66 @@ const LessonManager = ({ moduleId, courseId, lessons, quizzes }: LessonManagerPr
   const [lessonTitle, setLessonTitle] = useState("");
   const [lessonType, setLessonType] = useState("video");
   const [videoUrl, setVideoUrl] = useState("");
-  const [durationSeconds, setDurationSeconds] = useState(0);
+  const [pdfUrl, setPdfUrl] = useState("");
+  const [durationVal, setDurationVal] = useState(0);
+  const [durationUnit, setDurationUnit] = useState("seconds");
   const [expandedLesson, setExpandedLesson] = useState<number | null>(null);
   const [expandedQuiz, setExpandedQuiz] = useState<number | null>(null);
+  const [uploadingPdf, setUploadingPdf] = useState(false);
+  const [contentMode, setContentMode] = useState<"video" | "pdf">("video");
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleLessonDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const sorted = [...lessons].sort((a, b) => a.display_order - b.display_order);
+    const oldIndex = sorted.findIndex((l: any) => `lesson-${l.id}` === active.id);
+    const newIndex = sorted.findIndex((l: any) => `lesson-${l.id}` === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const reordered = arrayMove(sorted, oldIndex, newIndex);
+
+    for (let i = 0; i < reordered.length; i++) {
+      await supabase.from("lessons").update({ display_order: i }).eq("id", reordered[i].id);
+    }
+    queryClient.invalidateQueries({ queryKey: ["admin-course-modules", courseId] });
+    toast({ title: "Đã sắp xếp lại bài học" });
+  };
+
+  const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingPdf(true);
+    try {
+      const sanitizedName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '');
+      const path = `lesson_pdfs/${Date.now()}_${sanitizedName}`;
+      const { error: uploadErr } = await supabase.storage.from("materials").upload(path, file, { upsert: true });
+      if (uploadErr) {
+        toast({ title: "Lỗi upload", description: uploadErr.message, variant: "destructive" });
+        return;
+      }
+      const { data: urlData } = supabase.storage.from("materials").getPublicUrl(path);
+      setPdfUrl(urlData.publicUrl);
+      toast({ title: "Đã tải PDF lên thành công" });
+    } catch (err: any) {
+      toast({ title: "Lỗi upload", description: err.message, variant: "destructive" });
+    } finally {
+      setUploadingPdf(false);
+      e.target.value = '';
+    }
+  };
 
   const saveLessonMutation = useMutation({
     mutationFn: async () => {
       let quizId: number | null = null;
 
-      // Auto-create quiz for exam/practice lessons
-      if ((lessonType === "exam" || lessonType === "practice") && !editingLesson?.quiz_id) {
+      // Auto-create quiz for exam/practice/dictation lessons
+      if ((lessonType === "exam" || lessonType === "practice" || lessonType === "dictation") && !editingLesson?.quiz_id) {
         const { data: quizData, error: quizError } = await supabase.from("quizzes").insert({
           title: `Quiz - ${lessonTitle}`,
           total_questions: 0,
@@ -56,8 +209,9 @@ const LessonManager = ({ moduleId, courseId, lessons, quizzes }: LessonManagerPr
       const payload: any = {
         title: lessonTitle,
         lesson_type: lessonType,
-        video_url: lessonType === "video" ? videoUrl : null,
-        duration_seconds: durationSeconds,
+        video_url: lessonType === "video" && contentMode === "video" ? videoUrl : null,
+        pdf_url: lessonType === "video" && contentMode === "pdf" ? pdfUrl : null,
+        duration_seconds: durationUnit === "minutes" ? durationVal * 60 : durationVal,
         module_id: moduleId,
         display_order: editingLesson ? editingLesson.display_order : lessons.length,
       };
@@ -94,14 +248,15 @@ const LessonManager = ({ moduleId, courseId, lessons, quizzes }: LessonManagerPr
   const [editingQuiz, setEditingQuiz] = useState<any>(null);
   const [quizTitle, setQuizTitle] = useState("");
   const [quizTotalQ, setQuizTotalQ] = useState(10);
-  const [quizTimeLimit, setQuizTimeLimit] = useState(0);
+  const [quizTimeLimitVal, setQuizTimeLimitVal] = useState(0);
+  const [quizTimeLimitUnit, setQuizTimeLimitUnit] = useState("seconds");
 
   const saveQuizMutation = useMutation({
     mutationFn: async () => {
       const payload = {
         title: quizTitle,
         total_questions: quizTotalQ,
-        time_limit_seconds: quizTimeLimit || null,
+        time_limit_seconds: (quizTimeLimitUnit === "minutes" ? quizTimeLimitVal * 60 : quizTimeLimitVal) || null,
         module_id: moduleId,
         display_order: editingQuiz ? editingQuiz.display_order : quizzes.length,
       };
@@ -136,7 +291,10 @@ const LessonManager = ({ moduleId, courseId, lessons, quizzes }: LessonManagerPr
     setLessonTitle("");
     setLessonType("video");
     setVideoUrl("");
-    setDurationSeconds(0);
+    setPdfUrl("");
+    setContentMode("video");
+    setDurationVal(0);
+    setDurationUnit("seconds");
     setDialogOpen(true);
   };
 
@@ -145,7 +303,16 @@ const LessonManager = ({ moduleId, courseId, lessons, quizzes }: LessonManagerPr
     setLessonTitle(l.title);
     setLessonType(l.lesson_type || "video");
     setVideoUrl(l.video_url || "");
-    setDurationSeconds(l.duration_seconds || 0);
+    setPdfUrl(l.pdf_url || "");
+    setContentMode(l.pdf_url ? "pdf" : "video");
+    const ds = l.duration_seconds || 0;
+    if (ds > 0 && ds % 60 === 0) {
+      setDurationVal(ds / 60);
+      setDurationUnit("minutes");
+    } else {
+      setDurationVal(ds);
+      setDurationUnit("seconds");
+    }
     setDialogOpen(true);
   };
 
@@ -153,7 +320,8 @@ const LessonManager = ({ moduleId, courseId, lessons, quizzes }: LessonManagerPr
     setEditingQuiz(null);
     setQuizTitle("");
     setQuizTotalQ(10);
-    setQuizTimeLimit(0);
+    setQuizTimeLimitVal(0);
+    setQuizTimeLimitUnit("seconds");
     setQuizDialogOpen(true);
   };
 
@@ -161,14 +329,19 @@ const LessonManager = ({ moduleId, courseId, lessons, quizzes }: LessonManagerPr
     setEditingQuiz(q);
     setQuizTitle(q.title);
     setQuizTotalQ(q.total_questions);
-    setQuizTimeLimit(q.time_limit_seconds || 0);
+    const tl = q.time_limit_seconds || 0;
+    if (tl > 0 && tl % 60 === 0) {
+      setQuizTimeLimitVal(tl / 60);
+      setQuizTimeLimitUnit("minutes");
+    } else {
+      setQuizTimeLimitVal(tl);
+      setQuizTimeLimitUnit("seconds");
+    }
     setQuizDialogOpen(true);
   };
 
   const sortedLessons = [...lessons].sort((a, b) => a.display_order - b.display_order);
   const sortedQuizzes = [...quizzes].sort((a, b) => a.display_order - b.display_order);
-
-  const isExpanded = (id: number) => expandedLesson === id;
 
   return (
     <div className="space-y-3">
@@ -177,52 +350,24 @@ const LessonManager = ({ moduleId, courseId, lessons, quizzes }: LessonManagerPr
         <span className="text-xs font-semibold text-muted-foreground uppercase">Bài học</span>
         <Button size="sm" variant="outline" onClick={openNewLesson}><Plus className="w-3 h-3 mr-1" /> Thêm bài</Button>
       </div>
-      <div className="space-y-1">
-        {sortedLessons.map((l: any) => (
-          <div key={l.id}>
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-muted/30 group">
-              <button onClick={() => setExpandedLesson(isExpanded(l.id) ? null : l.id)} className="shrink-0">
-                {isExpanded(l.id) ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
-              </button>
-              {l.lesson_type === "video" && <Video className="w-4 h-4 text-blue-500 shrink-0" />}
-              {l.lesson_type === "practice" && <FileQuestion className="w-4 h-4 text-orange-500 shrink-0" />}
-              {l.lesson_type === "exam" && <BookOpen className="w-4 h-4 text-red-500 shrink-0" />}
-              {!l.lesson_type && <Video className="w-4 h-4 text-blue-500 shrink-0" />}
-              <button onClick={() => setExpandedLesson(isExpanded(l.id) ? null : l.id)} className="text-sm text-foreground flex-1 text-left truncate">
-                {l.title}
-              </button>
-              <span className="text-xs text-muted-foreground">{lessonTypeLabels[l.lesson_type] || "Video"}</span>
-              <Button size="icon" variant="ghost" className="opacity-0 group-hover:opacity-100 h-7 w-7" onClick={() => openEditLesson(l)}><Edit className="w-3 h-3" /></Button>
-              <Button size="icon" variant="ghost" className="opacity-0 group-hover:opacity-100 h-7 w-7" onClick={() => { if (confirm("Xóa?")) deleteLessonMutation.mutate(l.id); }}><Trash2 className="w-3 h-3 text-destructive" /></Button>
-            </div>
-            {isExpanded(l.id) && (
-              <div className="ml-8 mb-2 p-3 bg-muted/20 rounded-lg border space-y-3">
-                {/* Video lessons: show practice popup config */}
-                {l.lesson_type === "video" && (
-                  <LessonPracticeManager lessonId={l.id} courseId={courseId} />
-                )}
-                {/* Exam/Practice lessons: show QuizManager for questions */}
-                {(l.lesson_type === "exam" || l.lesson_type === "practice") && l.quiz_id && (
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <FileQuestion className="w-4 h-4 text-primary" />
-                      <span className="text-sm font-semibold text-foreground">Quản lý câu hỏi</span>
-                    </div>
-                    <QuizManager quizId={l.quiz_id} courseId={courseId} />
-                  </div>
-                )}
-                {(l.lesson_type === "exam" || l.lesson_type === "practice") && !l.quiz_id && (
-                  <div className="text-center py-4">
-                    <p className="text-sm text-muted-foreground mb-2">Bài học chưa có quiz liên kết.</p>
-                    <CreateQuizForLesson lessonId={l.id} moduleId={moduleId} courseId={courseId} quizzesCount={quizzes.length} lessonTitle={l.title} />
-                  </div>
-                )}
-              </div>
-            )}
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleLessonDragEnd}>
+        <SortableContext items={sortedLessons.map((l: any) => `lesson-${l.id}`)} strategy={verticalListSortingStrategy}>
+          <div className="space-y-1">
+            {sortedLessons.map((l: any) => (
+              <SortableLessonItem
+                key={l.id}
+                l={l}
+                isExpanded={expandedLesson === l.id}
+                setExpandedLesson={setExpandedLesson}
+                openEditLesson={openEditLesson}
+                deleteLessonMutation={deleteLessonMutation}
+                courseId={courseId}
+              />
+            ))}
+            {sortedLessons.length === 0 && <p className="text-xs text-muted-foreground px-3">Chưa có bài học</p>}
           </div>
-        ))}
-        {sortedLessons.length === 0 && <p className="text-xs text-muted-foreground px-3">Chưa có bài học</p>}
-      </div>
+        </SortableContext>
+      </DndContext>
 
       {/* Quizzes */}
       <div className="flex items-center justify-between mt-4">
@@ -270,27 +415,87 @@ const LessonManager = ({ moduleId, courseId, lessons, quizzes }: LessonManagerPr
               <Select value={lessonType} onValueChange={setLessonType}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="video">🎬 Bài giảng Video</SelectItem>
+                  <SelectItem value="video">🎬 Bài giảng (Video / PDF)</SelectItem>
                   <SelectItem value="practice">📝 Luyện tập</SelectItem>
                   <SelectItem value="exam">📋 Bài thi Online</SelectItem>
+                  <SelectItem value="dictation">🎧 Luyện nghe điền từ</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             {lessonType === "video" && (
-              <div className="space-y-2">
-                <Label>Link video (YouTube embed URL)</Label>
-                <Input value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} placeholder="https://www.youtube.com/embed/..." />
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label>Nội dung bài giảng</Label>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant={contentMode === "video" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setContentMode("video")}
+                    >
+                      <Video className="w-3.5 h-3.5 mr-1" /> Video Link
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={contentMode === "pdf" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setContentMode("pdf")}
+                    >
+                      <FileText className="w-3.5 h-3.5 mr-1" /> Tài liệu PDF
+                    </Button>
+                  </div>
+                </div>
+                {contentMode === "video" && (
+                  <div className="space-y-2">
+                    <Label>Link video (YouTube embed URL)</Label>
+                    <Input value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} placeholder="https://www.youtube.com/embed/..." />
+                  </div>
+                )}
+                {contentMode === "pdf" && (
+                  <div className="space-y-2">
+                    <Label>File PDF</Label>
+                    {pdfUrl && (
+                      <div className="flex items-center gap-2 p-2 bg-muted/30 rounded-lg border">
+                        <FileText className="w-4 h-4 text-amber-600" />
+                        <span className="text-xs text-foreground truncate flex-1">{pdfUrl.split('/').pop()}</span>
+                        <Button size="sm" variant="ghost" className="h-6 text-xs text-destructive" onClick={() => setPdfUrl("")}>Xóa</Button>
+                      </div>
+                    )}
+                    <div className="flex gap-2">
+                      <Input value={pdfUrl} onChange={(e) => setPdfUrl(e.target.value)} placeholder="URL tài liệu PDF hoặc upload file bên dưới..." className="flex-1" />
+                      <Button variant="outline" size="sm" asChild disabled={uploadingPdf}>
+                        <label className="cursor-pointer">
+                          <Upload className="w-4 h-4 mr-1" />
+                          {uploadingPdf ? "Đang tải..." : "Upload PDF"}
+                          <input type="file" className="hidden" accept=".pdf" onChange={handlePdfUpload} />
+                        </label>
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      💡 Học viên sẽ xem PDF trực tiếp trên website khi mở bài học này.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
-            {(lessonType === "exam" || lessonType === "practice") && (
+            {(lessonType === "exam" || lessonType === "practice" || lessonType === "dictation") && (
               <p className="text-xs text-muted-foreground bg-muted/50 p-3 rounded-lg">
                 💡 Sau khi tạo bài học, bạn có thể mở rộng bài học để cấu hình câu hỏi, đáp án, hình ảnh và audio.
                 Quiz sẽ được tạo tự động khi lưu.
               </p>
             )}
             <div className="space-y-2">
-              <Label>Thời lượng (giây)</Label>
-              <Input type="number" value={durationSeconds} onChange={(e) => setDurationSeconds(Number(e.target.value))} />
+              <Label>Thời lượng</Label>
+              <div className="flex gap-2">
+                <Input type="number" className="flex-1" value={durationVal} onChange={(e) => setDurationVal(Number(e.target.value))} />
+                <Select value={durationUnit} onValueChange={setDurationUnit}>
+                  <SelectTrigger className="w-[120px]"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="seconds">Giây</SelectItem>
+                    <SelectItem value="minutes">Phút</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <Button onClick={() => saveLessonMutation.mutate()} disabled={saveLessonMutation.isPending || !lessonTitle.trim()}>
               {saveLessonMutation.isPending ? "Đang lưu..." : "Lưu"}
@@ -316,8 +521,17 @@ const LessonManager = ({ moduleId, courseId, lessons, quizzes }: LessonManagerPr
                 <Input type="number" value={quizTotalQ} onChange={(e) => setQuizTotalQ(Number(e.target.value))} />
               </div>
               <div className="space-y-2">
-                <Label>Giới hạn thời gian (giây, 0=không)</Label>
-                <Input type="number" value={quizTimeLimit} onChange={(e) => setQuizTimeLimit(Number(e.target.value))} />
+                <Label>Giới hạn TG (0=không)</Label>
+                <div className="flex gap-2">
+                  <Input type="number" className="flex-1" value={quizTimeLimitVal} onChange={(e) => setQuizTimeLimitVal(Number(e.target.value))} />
+                  <Select value={quizTimeLimitUnit} onValueChange={setQuizTimeLimitUnit}>
+                    <SelectTrigger className="w-[100px]"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="seconds">Giây</SelectItem>
+                      <SelectItem value="minutes">Phút</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
             <Button onClick={() => saveQuizMutation.mutate()} disabled={saveQuizMutation.isPending || !quizTitle.trim()}>

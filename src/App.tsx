@@ -18,6 +18,7 @@ import QuizPage from "./pages/QuizPage";
 import QuizResult from "./pages/QuizResult";
 import VocabPage from "./pages/VocabPage";
 import ListeningPage from "./pages/ListeningPage";
+import DictationPage from "./pages/DictationPage";
 import FullTestList from "./pages/FullTestList";
 import FullTestExam from "./pages/FullTestExam";
 import FullTestResult from "./pages/FullTestResult";
@@ -57,6 +58,7 @@ const App = () => (
             <Route path="/courses/:courseId/quiz/:quizId/result" element={<ProtectedRoute><QuizResult /></ProtectedRoute>} />
             <Route path="/courses/:courseId/vocab" element={<ProtectedRoute><VocabPage /></ProtectedRoute>} />
             <Route path="/courses/:courseId/listening/:quizId" element={<ProtectedRoute><ListeningPage /></ProtectedRoute>} />
+            <Route path="/courses/:courseId/dictation/:quizId" element={<ProtectedRoute><DictationPage /></ProtectedRoute>} />
             <Route path="/courses/:courseId/fulltest" element={<ProtectedRoute><FullTestList /></ProtectedRoute>} />
             <Route path="/courses/:courseId/fulltest/:testId" element={<ProtectedRoute><FullTestExam /></ProtectedRoute>} />
             <Route path="/courses/:courseId/fulltest/:testId/result" element={<ProtectedRoute><FullTestResult /></ProtectedRoute>} />

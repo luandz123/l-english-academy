@@ -10,6 +10,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Unlock, ShieldAlert, Trash2, Edit, Plus } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 const AdminStudentDetail = () => {
   const { userId } = useParams();
@@ -17,6 +22,9 @@ const AdminStudentDetail = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [noteText, setNoteText] = useState("");
+  const [unlockDialogOpen, setUnlockDialogOpen] = useState(false);
+  const [selectedCourseId, setSelectedCourseId] = useState<string>("");
+  const [expiryDays, setExpiryDays] = useState("180");
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ["admin-student-profile", userId],
@@ -62,6 +70,16 @@ const AdminStudentDetail = () => {
     enabled: !!userId,
   });
 
+  const { data: allCourses = [] } = useQuery({
+    queryKey: ["admin-all-courses"],
+    queryFn: async () => {
+      const { data } = await supabase.from("courses").select("id, title").order("title");
+      return data ?? [];
+    },
+  });
+
+  const availableCourses = allCourses.filter(c => !enrollments.find((e: any) => e.course_id === c.id));
+
   const addNoteMutation = useMutation({
     mutationFn: async () => {
       const { error } = await supabase.from("admin_student_notes").insert({
@@ -73,6 +91,38 @@ const AdminStudentDetail = () => {
       setNoteText("");
       queryClient.invalidateQueries({ queryKey: ["admin-student-notes", userId] });
       toast({ title: "Đã lưu ghi chú" });
+    },
+  });
+
+  const unlockCourseMutation = useMutation({
+    mutationFn: async () => {
+      const expiresAt = expiryDays === "unlimited" ? null : new Date(Date.now() + Number(expiryDays) * 86400000).toISOString();
+      const { error } = await supabase.from("enrollments").insert({
+        user_id: userId!,
+        course_id: Number(selectedCourseId),
+        expires_at: expiresAt,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setUnlockDialogOpen(false);
+      setSelectedCourseId("");
+      queryClient.invalidateQueries({ queryKey: ["admin-student-enrollments", userId] });
+      toast({ title: "Thành công", description: "Đã mở khóa khóa học cho học viên." });
+    },
+    onError: (err: any) => {
+      toast({ title: "Lỗi", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const removeEnrollmentMutation = useMutation({
+    mutationFn: async (enrollmentId: number) => {
+      const { error } = await supabase.from("enrollments").delete().eq("id", enrollmentId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-student-enrollments", userId] });
+      toast({ title: "Đã xóa quyền truy cập khóa học" });
     },
   });
 
@@ -94,6 +144,56 @@ const AdminStudentDetail = () => {
             <h1 className="text-xl font-bold text-foreground">{profile.full_name ?? "—"}</h1>
             <p className="text-xs text-muted-foreground">📅 Đăng ký: {profile.created_at ? new Date(profile.created_at).toLocaleDateString("vi-VN") : ""}</p>
           </div>
+          <Dialog open={unlockDialogOpen} onOpenChange={setUnlockDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-90">
+                <Unlock className="w-4 h-4 mr-2" /> Mở khóa học
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Cấp quyền truy cập khóa học</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 pt-4">
+                <div className="space-y-2">
+                  <Label>Chọn khóa học</Label>
+                  <Select value={selectedCourseId} onValueChange={setSelectedCourseId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="-- Chọn khóa học --" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableCourses.map(c => (
+                        <SelectItem key={c.id} value={c.id.toString()}>{c.title}</SelectItem>
+                      ))}
+                      {availableCourses.length === 0 && <SelectItem value="none" disabled>Tất cả khóa học đã được mở</SelectItem>}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Thời hạn (ngày)</Label>
+                  <Select value={expiryDays} onValueChange={setExpiryDays}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="30">30 ngày</SelectItem>
+                      <SelectItem value="90">90 ngày</SelectItem>
+                      <SelectItem value="180">180 ngày (6 tháng)</SelectItem>
+                      <SelectItem value="365">365 ngày (1 năm)</SelectItem>
+                      <SelectItem value="unlimited">Vĩnh viễn</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button 
+                  className="w-full" 
+                  onClick={() => unlockCourseMutation.mutate()} 
+                  disabled={unlockCourseMutation.isPending || !selectedCourseId}
+                >
+                  {unlockCourseMutation.isPending ? "Đang xử lý..." : "Cấp quyền truy cập"}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
 
         <Tabs defaultValue="overview">
@@ -129,6 +229,7 @@ const AdminStudentDetail = () => {
                     <th className="text-left p-3 font-semibold text-foreground">Khóa học</th>
                     <th className="text-center p-3 font-semibold text-foreground">Đăng ký</th>
                     <th className="text-center p-3 font-semibold text-foreground">Hết hạn</th>
+                    <th className="text-center p-3 font-semibold text-foreground">Hành động</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -137,9 +238,21 @@ const AdminStudentDetail = () => {
                       <td className="p-3 font-medium text-foreground">{e.courses?.title ?? "—"}</td>
                       <td className="p-3 text-center text-muted-foreground">{e.enrolled_at ? new Date(e.enrolled_at).toLocaleDateString("vi-VN") : ""}</td>
                       <td className="p-3 text-center text-muted-foreground">{e.expires_at ? new Date(e.expires_at).toLocaleDateString("vi-VN") : "Vĩnh viễn"}</td>
+                      <td className="p-3 text-center">
+                        <Button 
+                          size="icon" 
+                          variant="ghost" 
+                          className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                          onClick={() => {
+                            if (confirm("Xóa quyền truy cập khóa học này?")) removeEnrollmentMutation.mutate(e.id);
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </td>
                     </tr>
                   ))}
-                  {enrollments.length === 0 && <tr><td colSpan={3} className="p-4 text-center text-muted-foreground">Chưa đăng ký khóa nào</td></tr>}
+                  {enrollments.length === 0 && <tr><td colSpan={4} className="p-4 text-center text-muted-foreground">Chưa đăng ký khóa nào</td></tr>}
                 </tbody>
               </table>
             </div>
