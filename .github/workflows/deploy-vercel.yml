@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - sang-1-nhanh-moi
   pull_request:
   workflow_dispatch:
 
