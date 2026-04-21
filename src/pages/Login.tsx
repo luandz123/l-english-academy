@@ -2,12 +2,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Link, useNavigate } from "react-router-dom";
-import { GraduationCap } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { useAuth } from "@/hooks/useAuth";
+import Logo from "@/components/Logo";
+
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -48,16 +49,14 @@ const Login = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-light via-background to-background px-4">
       <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center gap-2 mb-4">
-            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-              <GraduationCap className="w-5 h-5 text-primary-foreground" />
-            </div>
-            <span className="text-2xl font-bold text-primary">L-English</span>
+        <div className="text-center mb-8 flex flex-col items-center">
+          <Link to="/" className="mb-4">
+            <Logo imgClassName="w-12 h-12" />
           </Link>
           <h1 className="text-2xl font-bold text-foreground">Đăng nhập</h1>
           <p className="text-sm text-muted-foreground mt-1">Chào mừng bạn quay lại!</p>
         </div>
+
 
         <div className="bg-card rounded-xl border shadow-sm p-6 space-y-6">
           <form onSubmit={handleSubmit} className="space-y-4">

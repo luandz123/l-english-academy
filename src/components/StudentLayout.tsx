@@ -1,9 +1,11 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { GraduationCap, LayoutDashboard, BookOpen, TrendingUp, ClipboardList, User, LogOut, Menu, X } from "lucide-react";
+import { LayoutDashboard, BookOpen, User, LogOut, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
+import Logo from "@/components/Logo";
+
 
 const navItems = [
   { to: "/dashboard", label: "Tổng quan", icon: LayoutDashboard },
@@ -34,14 +36,12 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
         sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
       )}>
         <div className="p-4 border-b flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-            <GraduationCap className="w-4 h-4 text-primary-foreground" />
-          </div>
-          <span className="font-bold text-primary">L-English</span>
+          <Logo imgClassName="w-8 h-8" />
           <Button variant="ghost" size="icon" className="ml-auto md:hidden" onClick={() => setSidebarOpen(false)}>
             <X className="w-4 h-4" />
           </Button>
         </div>
+
 
         <div className="p-4 border-b">
           <div className="flex items-center gap-3">
