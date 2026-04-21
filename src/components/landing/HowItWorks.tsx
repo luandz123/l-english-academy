@@ -1,9 +1,9 @@
-import { BookOpen, PlayCircle, Trophy } from "lucide-react";
+import { BookOpen, Search, Trophy } from "lucide-react";
 
 const steps = [
-  { icon: BookOpen, title: "Đăng ký khóa học", desc: "Chọn khóa học phù hợp với trình độ và mục tiêu của bạn" },
-  { icon: PlayCircle, title: "Học video + làm bài tập", desc: "Xem bài giảng, làm bài thi online và ôn từ vựng mỗi ngày" },
-  { icon: Trophy, title: "Đạt mục tiêu TOEIC", desc: "Chinh phục điểm TOEIC mơ ước với phương pháp học thông minh" },
+  { icon: Search, title: "Liên hệ tư vấn", desc: "Liên hệ Admin qua Zalo để được tư vấn khóa học và tạo tài khoản dùng thử miễn phí." },
+  { icon: BookOpen, title: "Học tập chất lượng", desc: "Truy cập kho bài giảng video, bài tập và bộ đề thi chất lượng gốc như các trung tâm lớn." },
+  { icon: Trophy, title: "Tiết kiệm & Hiệu quả", desc: "Đạt mục tiêu tiếng Anh với mức chi phí siêu rẻ nhưng chất lượng cam kết hàng đầu." },
 ];
 
 const HowItWorks = () => {
@@ -12,7 +12,7 @@ const HowItWorks = () => {
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-3">Cách thức hoạt động</h2>
-          <p className="text-muted-foreground">3 bước đơn giản để bắt đầu hành trình TOEIC</p>
+          <p className="text-muted-foreground">Lộ trình đơn giản để sở hữu kiến thức chất lượng với giá hời</p>
         </div>
         <div className="grid md:grid-cols-3 gap-8">
           {steps.map((s, i) => (
@@ -34,3 +34,4 @@ const HowItWorks = () => {
 };
 
 export default HowItWorks;
+

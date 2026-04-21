@@ -1,21 +1,21 @@
 const testimonials = [
   {
     name: "Nguyễn Thị Mai",
-    score: "TOEIC 845",
+    score: "Tiết kiệm 2 triệu đồng",
     avatar: "👩‍🎓",
-    quote: "Nhờ L-English, mình đã đạt 845 điểm chỉ sau 3 tháng ôn tập. Bài giảng rất dễ hiểu và bài thi sát thực tế!",
+    quote: "Mình từng định mua khóa học ở trung tâm lớn với giá 3 triệu, nhưng khi học ở L-English chất lượng bài giảng y hệt mà giá chỉ bằng 1/5. Thật sự bất ngờ!",
   },
   {
     name: "Trần Minh Đức",
-    score: "TOEIC 780",
+    score: "Chất lượng tuyệt vời",
     avatar: "👨‍💼",
-    quote: "Hệ thống flashcard giúp mình nhớ từ vựng nhanh hơn gấp 3 lần. Bộ đề full test rất chất lượng!",
+    quote: "Hệ thống bài tập và đề thi online cực kỳ mượt mà. Nội dung bám sát đề thi thật, giúp mình tiết kiệm rất nhiều thời gian và tiền bạc.",
   },
   {
     name: "Lê Hoàng Anh",
-    score: "TOEIC 900",
+    score: "Học mọi lúc mọi nơi",
     avatar: "👩‍💻",
-    quote: "Cô Mai Phương giảng rất tận tâm. 60+ bộ đề giúp mình tự tin vào phòng thi và đạt 900 điểm!",
+    quote: "Kiến thức cô đọng, dễ hiểu. Giá rẻ không có nghĩa là chất lượng thấp, ngược lại mình thấy L-English đầu tư rất kỹ vào nội dung.",
   },
 ];
 
@@ -25,7 +25,7 @@ const Testimonials = () => {
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-3">Học viên nói gì?</h2>
-          <p className="text-muted-foreground">Hàng nghìn học viên đã đạt mục tiêu TOEIC cùng L-English</p>
+          <p className="text-muted-foreground">Chia sẻ từ những học viên đã trải nghiệm chương trình học giá rẻ chất lượng cao</p>
         </div>
         <div className="grid md:grid-cols-3 gap-6">
           {testimonials.map((t, i) => (
@@ -51,3 +51,4 @@ const Testimonials = () => {
 };
 
 export default Testimonials;
+

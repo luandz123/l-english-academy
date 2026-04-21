@@ -1,9 +1,11 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, BookOpen, Users, ClipboardList, FileText, BarChart3, Settings, LogOut, GraduationCap, Menu, X, Bell } from "lucide-react";
+import { LayoutDashboard, BookOpen, Users, ClipboardList, FileText, BarChart3, Settings, LogOut, Menu, X, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
+import Logo from "@/components/Logo";
+
 
 const navItems = [
   { to: "/admin/dashboard", label: "Tổng quan", icon: LayoutDashboard },
@@ -36,9 +38,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
         sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       )}>
         <div className="p-4 flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-            <GraduationCap className="w-4 h-4 text-primary-foreground" />
-          </div>
+          <Logo imgClassName="w-8 h-8" showText={false} />
           <div>
             <span className="font-bold text-sm text-white">L-English</span>
             <p className="text-[10px] text-[hsl(226,100%,80%)]">Admin Panel</p>
@@ -47,6 +47,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
             <X className="w-4 h-4" />
           </Button>
         </div>
+
 
         <nav className="flex-1 p-3 space-y-1">
           {navItems.map((item) => {

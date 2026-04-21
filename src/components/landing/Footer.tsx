@@ -1,4 +1,4 @@
-import { GraduationCap } from "lucide-react";
+import Logo from "@/components/Logo";
 
 const Footer = () => {
   return (
@@ -6,14 +6,10 @@ const Footer = () => {
       <div className="container mx-auto px-4">
         <div className="grid md:grid-cols-3 gap-8">
           <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-                <GraduationCap className="w-4 h-4 text-primary-foreground" />
-              </div>
-              <span className="text-lg font-bold text-background">L-English</span>
-            </div>
-            <p className="text-sm text-background/60">Learn Smart. Score High.</p>
-            <p className="text-xs text-background/50">Nền tảng luyện thi TOEIC trực tuyến hàng đầu Việt Nam</p>
+            <Logo showText={true} />
+            <p className="text-sm text-background/60">Học Tiếng Anh Giá Rẻ Chất Lượng Cao</p>
+
+            <p className="text-xs text-background/50">Nền tảng học Tiếng Anh trực tuyến với chi phí tối ưu nhất</p>
           </div>
           <div className="space-y-3">
             <h4 className="font-semibold text-background">Liên kết</h4>
@@ -26,8 +22,8 @@ const Footer = () => {
           <div className="space-y-3">
             <h4 className="font-semibold text-background">Liên hệ</h4>
             <div className="flex flex-col gap-2 text-sm text-background/60">
-              <p>📧 contact@l-english.vn</p>
-              <p>📱 0123 456 789</p>
+              <p>📱 Zalo: 0334729066</p>
+              <p>📧 Email: hotro@l-english.vn</p>
             </div>
           </div>
         </div>
@@ -40,3 +36,4 @@ const Footer = () => {
 };
 
 export default Footer;
+

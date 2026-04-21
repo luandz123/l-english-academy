@@ -1,7 +1,8 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { GraduationCap, LogOut, User } from "lucide-react";
+import { LogOut, User } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import Logo from "@/components/Logo";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,12 +26,10 @@ const Navbar = () => {
   return (
     <nav className="sticky top-0 z-50 bg-card/95 backdrop-blur-sm border-b shadow-sm">
       <div className="container mx-auto flex items-center justify-between h-16 px-4">
-        <Link to="/" className="flex items-center gap-2">
-          <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
-            <GraduationCap className="w-5 h-5 text-primary-foreground" />
-          </div>
-          <span className="text-xl font-bold text-primary">L-English</span>
+        <Link to="/">
+          <Logo />
         </Link>
+
 
         <div className="hidden md:flex items-center gap-8">
           <Link to="/" className="text-sm font-medium text-foreground hover:text-primary transition-colors">Trang chủ</Link>
