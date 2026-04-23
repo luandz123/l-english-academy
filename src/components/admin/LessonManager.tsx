@@ -3,8 +3,9 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Edit, Trash2, Video, FileQuestion, BookOpen, ChevronDown, ChevronRight, GripVertical, FileText, Upload, Volume2 } from "lucide-react";
+import { Plus, Edit, Trash2, Video, FileQuestion, BookOpen, ChevronDown, ChevronRight, GripVertical, FileText, Upload, Volume2, Eye, EyeOff, Unlock, Lock } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -50,6 +51,8 @@ const SortableLessonItem = ({
   openEditLesson,
   deleteLessonMutation,
   courseId,
+  queryClient,
+  toast,
 }: {
   l: any;
   isExpanded: boolean;
@@ -57,6 +60,8 @@ const SortableLessonItem = ({
   openEditLesson: (l: any) => void;
   deleteLessonMutation: any;
   courseId: number;
+  queryClient: any;
+  toast: any;
 }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: `lesson-${l.id}`,
@@ -83,12 +88,52 @@ const SortableLessonItem = ({
         {l.lesson_type === "exam" && <BookOpen className="w-4 h-4 text-red-500 shrink-0" />}
         {l.lesson_type === "dictation" && <Volume2 className="w-4 h-4 text-purple-500 shrink-0" />}
         {!l.lesson_type && <Video className="w-4 h-4 text-blue-500 shrink-0" />}
-        <button onClick={() => setExpandedLesson(isExpanded ? null : l.id)} className="text-sm text-foreground flex-1 text-left truncate">
+        <button onClick={() => setExpandedLesson(isExpanded ? null : l.id)} className={`text-sm flex-1 text-left truncate ${l.is_published === false ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
           {l.title}
         </button>
         <span className="text-xs text-muted-foreground">
           {l.lesson_type === "video" && l.pdf_url ? "📄 PDF" : lessonTypeLabels[l.lesson_type] || "Video"}
         </span>
+        <Button 
+          size="icon" 
+          variant="ghost" 
+          className={`h-7 w-7 ${l.is_free ? 'text-emerald-600' : 'text-muted-foreground'}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            const newStatus = !l.is_free;
+            (supabase.from("lessons") as any).update({ is_free: newStatus }).eq("id", l.id).then(({ error }: any) => {
+              if (error) {
+                toast({ title: "Lỗi", description: error.message, variant: "destructive" });
+                return;
+              }
+              queryClient.invalidateQueries({ queryKey: ["admin-course-modules", courseId] });
+              toast({ title: newStatus ? "Đã bật học thử bài học" : "Đã tắt học thử bài học" });
+            });
+          }}
+          title={l.is_free ? "Bài học miễn phí" : "Bài học trả phí"}
+        >
+          {l.is_free ? <Unlock className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
+        </Button>
+        <Button 
+          size="icon" 
+          variant="ghost" 
+          className={`h-7 w-7 ${l.is_published === false ? 'text-muted-foreground' : 'text-primary'}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            const newStatus = l.is_published === false ? true : false;
+            supabase.from("lessons").update({ is_published: newStatus } as any).eq("id", l.id).then(({ error }: any) => {
+              if (error) {
+                toast({ title: "Lỗi", description: error.message, variant: "destructive" });
+                return;
+              }
+              queryClient.invalidateQueries({ queryKey: ["admin-course-modules", courseId] });
+              toast({ title: newStatus ? "Đã hiện bài học" : "Đã ẩn bài học" });
+            });
+          }}
+          title={l.is_published === false ? "Hiện bài học" : "Ẩn bài học"}
+        >
+          {l.is_published === false ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+        </Button>
         <Button size="icon" variant="ghost" className="opacity-0 group-hover:opacity-100 h-7 w-7" onClick={() => openEditLesson(l)}><Edit className="w-3 h-3" /></Button>
         <Button size="icon" variant="ghost" className="opacity-0 group-hover:opacity-100 h-7 w-7" onClick={() => { if (confirm("Xóa?")) deleteLessonMutation.mutate(l.id); }}><Trash2 className="w-3 h-3 text-destructive" /></Button>
       </div>
@@ -134,6 +179,7 @@ const LessonManager = ({ moduleId, courseId, lessons, quizzes }: LessonManagerPr
   const [editingLesson, setEditingLesson] = useState<any>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [lessonTitle, setLessonTitle] = useState("");
+  const [lessonDescription, setLessonDescription] = useState("");
   const [lessonType, setLessonType] = useState("video");
   const [videoUrl, setVideoUrl] = useState("");
   const [pdfUrl, setPdfUrl] = useState("");
@@ -208,6 +254,7 @@ const LessonManager = ({ moduleId, courseId, lessons, quizzes }: LessonManagerPr
 
       const payload: any = {
         title: lessonTitle,
+        description: lessonDescription,
         lesson_type: lessonType,
         video_url: lessonType === "video" && contentMode === "video" ? videoUrl : null,
         pdf_url: lessonType === "video" && contentMode === "pdf" ? pdfUrl : null,
@@ -289,6 +336,7 @@ const LessonManager = ({ moduleId, courseId, lessons, quizzes }: LessonManagerPr
   const openNewLesson = () => {
     setEditingLesson(null);
     setLessonTitle("");
+    setLessonDescription("");
     setLessonType("video");
     setVideoUrl("");
     setPdfUrl("");
@@ -301,6 +349,7 @@ const LessonManager = ({ moduleId, courseId, lessons, quizzes }: LessonManagerPr
   const openEditLesson = (l: any) => {
     setEditingLesson(l);
     setLessonTitle(l.title);
+    setLessonDescription(l.description || "");
     setLessonType(l.lesson_type || "video");
     setVideoUrl(l.video_url || "");
     setPdfUrl(l.pdf_url || "");
@@ -362,6 +411,8 @@ const LessonManager = ({ moduleId, courseId, lessons, quizzes }: LessonManagerPr
                 openEditLesson={openEditLesson}
                 deleteLessonMutation={deleteLessonMutation}
                 courseId={courseId}
+                queryClient={queryClient}
+                toast={toast}
               />
             ))}
             {sortedLessons.length === 0 && <p className="text-xs text-muted-foreground px-3">Chưa có bài học</p>}
@@ -369,35 +420,7 @@ const LessonManager = ({ moduleId, courseId, lessons, quizzes }: LessonManagerPr
         </SortableContext>
       </DndContext>
 
-      {/* Quizzes */}
-      <div className="flex items-center justify-between mt-4">
-        <span className="text-xs font-semibold text-muted-foreground uppercase">Quiz / Bài thi</span>
-        <Button size="sm" variant="outline" onClick={openNewQuiz}><Plus className="w-3 h-3 mr-1" /> Thêm Quiz</Button>
-      </div>
-      <div className="space-y-1">
-        {sortedQuizzes.map((q: any) => (
-          <div key={q.id}>
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-muted/30 group">
-              <button onClick={() => setExpandedQuiz(expandedQuiz === q.id ? null : q.id)} className="shrink-0">
-                {expandedQuiz === q.id ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
-              </button>
-              <FileQuestion className="w-4 h-4 text-emerald-500 shrink-0" />
-              <button onClick={() => setExpandedQuiz(expandedQuiz === q.id ? null : q.id)} className="text-sm text-foreground flex-1 text-left truncate">
-                {q.title}
-              </button>
-              <span className="text-xs text-muted-foreground">{q.total_questions} câu</span>
-              <Button size="icon" variant="ghost" className="opacity-0 group-hover:opacity-100 h-7 w-7" onClick={() => openEditQuiz(q)}><Edit className="w-3 h-3" /></Button>
-              <Button size="icon" variant="ghost" className="opacity-0 group-hover:opacity-100 h-7 w-7" onClick={() => { if (confirm("Xóa?")) deleteQuizMutation.mutate(q.id); }}><Trash2 className="w-3 h-3 text-destructive" /></Button>
-            </div>
-            {expandedQuiz === q.id && (
-              <div className="ml-8 mb-2 p-3 bg-muted/20 rounded-lg border">
-                <QuizManager quizId={q.id} courseId={courseId} />
-              </div>
-            )}
-          </div>
-        ))}
-        {sortedQuizzes.length === 0 && <p className="text-xs text-muted-foreground px-3">Chưa có quiz</p>}
-      </div>
+      {/* Quizzes removed per user request - use Lesson type practice/exam instead */}
 
       {/* Lesson Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -409,6 +432,10 @@ const LessonManager = ({ moduleId, courseId, lessons, quizzes }: LessonManagerPr
             <div className="space-y-2">
               <Label>Tên bài học</Label>
               <Input value={lessonTitle} onChange={(e) => setLessonTitle(e.target.value)} placeholder="VD: Bài 1 - Mô tả tranh" />
+            </div>
+            <div className="space-y-2">
+              <Label>Mô tả bài học</Label>
+              <Textarea value={lessonDescription} onChange={(e) => setLessonDescription(e.target.value)} placeholder="Mô tả ngắn về nội dung bài học..." rows={3} />
             </div>
             <div className="space-y-2">
               <Label>Loại bài học</Label>

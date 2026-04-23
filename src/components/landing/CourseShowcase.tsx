@@ -65,9 +65,16 @@ const CourseShowcase = () => {
                 </div>
                 <div className="p-6 flex-1 flex flex-col space-y-4">
                   <div>
-                    <Badge variant="secondary" className="bg-primary/10 text-primary mb-2">
-                      {courseTypeMap[c.course_type] || c.course_type}
-                    </Badge>
+                    <div className="flex items-center justify-between mb-2">
+                      <Badge variant="secondary" className="bg-primary/10 text-primary">
+                        {courseTypeMap[c.course_type] || c.course_type}
+                      </Badge>
+                      {((c as any).is_free || !c.price || c.price === 0) && (
+                        <Badge variant="outline" className="text-[10px] font-bold text-emerald-600 bg-emerald-50 border-emerald-200 uppercase">
+                          FREE
+                        </Badge>
+                      )}
+                    </div>
                     <h3 className="text-base font-bold text-foreground line-clamp-1">{c.title}</h3>
                   </div>
                   <p className="text-sm text-muted-foreground line-clamp-2">{c.subtitle}</p>

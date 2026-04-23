@@ -82,7 +82,14 @@ const Courses = () => {
                   </div>
                   <div className="p-5 flex-1 flex flex-col space-y-3">
                     <div>
-                      <Badge variant="secondary" className="font-normal text-[10px] h-5 mb-2">{courseTypeMap[c.course_type] || c.course_type}</Badge>
+                      <div className="flex items-center justify-between mb-2">
+                        <Badge variant="secondary" className="font-normal text-[10px] h-5">{courseTypeMap[c.course_type] || c.course_type}</Badge>
+                        {((c as any).is_free || !c.price || c.price === 0) && (
+                          <Badge variant="outline" className="text-[10px] font-bold text-emerald-600 bg-emerald-50 border-emerald-200 uppercase">
+                            FREE
+                          </Badge>
+                        )}
+                      </div>
                       <h3 className="font-bold text-foreground leading-tight text-base line-clamp-2">{c.title}</h3>
                     </div>
                     <p className="text-sm text-muted-foreground line-clamp-2 flex-1">{c.subtitle}</p>

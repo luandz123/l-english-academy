@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { Lock } from "lucide-react";
 
 const LearnPage = () => {
   const { courseId } = useParams();
@@ -19,18 +20,42 @@ const LearnPage = () => {
   const queryClient = useQueryClient();
   const cId = Number(courseId);
 
+  const { data: enrollment } = useQuery({
+    queryKey: ["learn-enrollment", user?.id, cId],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data } = await supabase.from("enrollments").select("*").eq("user_id", user.id).eq("course_id", cId).maybeSingle();
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  const { data: course } = useQuery({
+    queryKey: ["learn-course", cId],
+    queryFn: async () => {
+      const { data } = await supabase.from("courses").select("*").eq("id", cId).maybeSingle();
+      return data;
+    },
+  });
+
   const { data: modules = [], isLoading } = useQuery({
     queryKey: ["learn-modules", cId],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("modules")
+      const { data } = await (supabase.from("modules") as any)
         .select("*, lessons(*)")
         .eq("course_id", cId)
         .order("display_order");
-      return (data ?? []).map((m: any) => ({
-        ...m,
-        lessons: (m.lessons ?? []).sort((a: any, b: any) => a.display_order - b.display_order),
-      }));
+        
+      if (!data) return [];
+      
+      return data
+        .filter((m: any) => m.is_published !== false)
+        .map((m: any) => ({
+          ...m,
+          lessons: (m.lessons ?? [])
+            .filter((l: any) => l.is_published !== false)
+            .sort((a: any, b: any) => a.display_order - b.display_order),
+        }));
     },
   });
 
@@ -214,7 +239,8 @@ const LearnPage = () => {
     return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground">Khóa học chưa có nội dung.</p></div>;
   }
 
-  const isVideoLesson = !currentLesson.lesson_type || currentLesson.lesson_type === "video";
+  const isVideoLesson = (!currentLesson.lesson_type || currentLesson.lesson_type === "video") && currentLesson.video_url;
+  const isPdfLesson = (!currentLesson.lesson_type || currentLesson.lesson_type === "video") && currentLesson.pdf_url;
   const isPracticeLesson = currentLesson.lesson_type === "practice" || currentLesson.lesson_type === "exam";
   const isDictationLesson = currentLesson.lesson_type === "dictation";
 
@@ -226,10 +252,20 @@ const LearnPage = () => {
           {isVideoLesson && (
             <div className="aspect-video bg-foreground">
               <iframe
-                src={currentLesson.video_url || "about:blank"}
+                src={currentLesson.video_url}
                 className="w-full h-full"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
+                title={currentLesson.title}
+              />
+            </div>
+          )}
+
+          {isPdfLesson && (
+            <div className="w-full h-[80vh] bg-muted">
+              <iframe
+                src={`${currentLesson.pdf_url}#toolbar=0`}
+                className="w-full h-full border-none"
                 title={currentLesson.title}
               />
             </div>
@@ -293,8 +329,11 @@ const LearnPage = () => {
           })()}
 
           {/* Controls */}
-          <div className="p-4 border-b">
-            <h1 className="text-lg font-bold text-foreground mb-3">{currentLesson.title}</h1>
+          <div className="p-4 border-b bg-card shadow-sm sticky top-0 z-10">
+            <h1 className="text-lg font-bold text-foreground mb-3 flex items-center gap-2">
+              <span className="bg-primary/10 text-primary px-2 py-0.5 rounded text-sm">Bài {currentIndex + 1}</span>
+              {currentLesson.title}
+            </h1>
             <div className="flex flex-wrap items-center gap-2">
               <Button size="sm" variant="outline" disabled={currentIndex === 0}
                 onClick={() => setCurrentLessonId(allLessons[currentIndex - 1].id)}>
@@ -326,24 +365,17 @@ const LearnPage = () => {
           </div>
 
           {/* Tabs */}
-          <div className="p-4">
-            <Tabs defaultValue="materials">
+          <div className="p-4 max-w-4xl mx-auto">
+            <Tabs defaultValue="notes">
               <TabsList>
-                <TabsTrigger value="materials">Tài liệu ({materials.length})</TabsTrigger>
-                <TabsTrigger value="notes">Ghi chú</TabsTrigger>
+                <TabsTrigger value="notes">Ghi chú cá nhân</TabsTrigger>
+                <TabsTrigger value="description">Mô tả bài học</TabsTrigger>
               </TabsList>
-              <TabsContent value="materials" className="mt-4">
-                <div className="space-y-2">
-                  {materials.map((m: any) => (
-                    <div key={m.id} className="flex items-center gap-3 p-3 bg-card rounded-lg border">
-                      <FileText className="w-4 h-4 text-primary" />
-                      <span className="text-sm flex-1">{m.title}</span>
-                      <Button size="sm" variant="outline" asChild>
-                        <a href={m.file_url} target="_blank" rel="noopener noreferrer">Tải xuống</a>
-                      </Button>
-                    </div>
-                  ))}
-                  {materials.length === 0 && <p className="text-sm text-muted-foreground">Chưa có tài liệu cho bài này.</p>}
+              <TabsContent value="description" className="mt-4">
+                <div className="p-4 bg-muted/20 rounded-lg border">
+                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                    {currentLesson.description || "Chưa có mô tả cho bài học này."}
+                  </p>
                 </div>
               </TabsContent>
               <TabsContent value="notes" className="mt-4 space-y-4">
@@ -387,21 +419,44 @@ const LearnPage = () => {
                     <p className="text-xs text-muted-foreground px-2 py-1">Đang cập nhật...</p>
                   ) : (
                     mod.lessons.map((lesson: any) => {
+                      const globalIdx = allLessons.findIndex((al: any) => al.id === lesson.id);
                       const done = progress.some((p: any) => p.lesson_id === lesson.id && p.is_completed);
                       const isCurrent = currentLessonId === lesson.id;
                       const isVideo = !lesson.lesson_type || lesson.lesson_type === "video";
                       const isDictation = lesson.lesson_type === "dictation";
+                      const canStudy = enrollment || (course as any)?.is_free || mod.is_free || lesson.is_free;
+
                       return (
                         <button
                           key={lesson.id}
-                          onClick={() => setCurrentLessonId(lesson.id)}
-                          className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-xs transition-colors text-left ${
-                            isCurrent ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted"
+                          onClick={() => {
+                            if (canStudy) {
+                              setCurrentLessonId(lesson.id);
+                            } else {
+                              toast({
+                                title: "Nội dung có phí",
+                                description: "Vui lòng đăng ký khóa học để xem bài học này.",
+                                variant: "destructive"
+                              });
+                            }
+                          }}
+                          className={`w-full flex items-center gap-2 px-2 py-2 rounded text-xs transition-colors text-left border mb-1 ${
+                            isCurrent ? "bg-primary/10 text-primary border-primary/20 shadow-sm" : "text-muted-foreground hover:bg-muted border-transparent"
                           } cursor-pointer`}
                         >
-                          {done ? <CheckCircle className="w-3 h-3 text-emerald-500 shrink-0" /> :
-                            isVideo ? <PlayCircle className="w-3 h-3 shrink-0" /> : isDictation ? <Headphones className="w-3 h-3 shrink-0 text-purple-500" /> : <FileQuestion className="w-3 h-3 shrink-0" />}
-                          <span className="truncate">{lesson.title}</span>
+                          <span className="w-5 text-[10px] text-muted-foreground shrink-0 font-mono">{(globalIdx + 1).toString().padStart(2, '0')}</span>
+                          {!canStudy ? (
+                            <div className="flex items-center gap-1.5 shrink-0">
+                               <Lock className="w-3 h-3 text-amber-500" />
+                               <span className="text-[9px] font-bold text-amber-600 bg-amber-50 px-1 rounded border border-amber-100">VIP</span>
+                            </div>
+                          ) : (
+                            (done ? <CheckCircle className="w-3 h-3 text-emerald-500 shrink-0" /> :
+                              isVideo ? <PlayCircle className="w-3 h-3 shrink-0" /> : isDictation ? <Headphones className="w-3 h-3 shrink-0 text-purple-500" /> : <FileQuestion className="w-3 h-3 shrink-0" />)
+                          )}
+                          <span className="truncate flex-1">{lesson.title}</span>
+                          {lesson.pdf_url && <FileText className="w-3 h-3 opacity-50" />}
+                          {canStudy && !enrollment && <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1 rounded border border-emerald-100">FREE</span>}
                         </button>
                       );
                     })

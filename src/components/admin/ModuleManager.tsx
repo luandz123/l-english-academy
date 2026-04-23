@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Edit, Trash2, GripVertical, ChevronDown, ChevronRight } from "lucide-react";
+import { Plus, Edit, Trash2, GripVertical, ChevronDown, ChevronRight, Eye, EyeOff, Unlock, Lock } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -39,6 +39,8 @@ const SortableModuleItem = ({
   openEdit,
   deleteMutation,
   courseId,
+  queryClient,
+  toast,
 }: {
   mod: any;
   expandedModules: Set<number>;
@@ -46,6 +48,8 @@ const SortableModuleItem = ({
   openEdit: (mod: any) => void;
   deleteMutation: any;
   courseId: number;
+  queryClient: any;
+  toast: any;
 }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: mod.id,
@@ -67,13 +71,55 @@ const SortableModuleItem = ({
           </button>
           <button onClick={() => toggleExpand(mod.id)} className="flex items-center gap-2 text-left flex-1">
             {expandedModules.has(mod.id) ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-            <span className="font-semibold text-sm text-foreground">{mod.title}</span>
+            <span className={`font-semibold text-sm ${mod.is_published === false ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
+              {mod.title}
+            </span>
             <span className="text-xs text-muted-foreground ml-2">
               ({(mod.lessons ?? []).length} bài · {(mod.quizzes ?? []).length} quiz)
             </span>
           </button>
         </div>
-        <div className="flex gap-1">
+        <div className="flex items-center gap-1">
+          <Button 
+            size="icon" 
+            variant="ghost" 
+            className={`h-8 w-8 ${mod.is_free ? 'text-emerald-600' : 'text-muted-foreground'}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              const newStatus = !mod.is_free;
+              (supabase.from("modules") as any).update({ is_free: newStatus }).eq("id", mod.id).then(({ error }: any) => {
+                if (error) {
+                  toast({ title: "Lỗi", description: error.message, variant: "destructive" });
+                  return;
+                }
+                queryClient.invalidateQueries({ queryKey: ["admin-course-modules", courseId] });
+                toast({ title: newStatus ? "Đã bật học thử cho module" : "Đã tắt học thử cho module" });
+              });
+            }}
+            title={mod.is_free ? "Module miễn phí" : "Module trả phí"}
+          >
+            {mod.is_free ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+          </Button>
+          <Button 
+            size="icon" 
+            variant="ghost" 
+            className={`h-8 w-8 ${mod.is_published === false ? 'text-muted-foreground' : 'text-primary'}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              const newStatus = mod.is_published === false ? true : false;
+              supabase.from("modules").update({ is_published: newStatus } as any).eq("id", mod.id).then(({ error }: any) => {
+                if (error) {
+                  toast({ title: "Lỗi", description: error.message, variant: "destructive" });
+                  return;
+                }
+                queryClient.invalidateQueries({ queryKey: ["admin-course-modules", courseId] });
+                toast({ title: newStatus ? "Đã hiện module" : "Đã ẩn module" });
+              });
+            }}
+            title={mod.is_published === false ? "Hiện module" : "Ẩn module"}
+          >
+            {mod.is_published === false ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+          </Button>
           <Button size="icon" variant="ghost" onClick={() => openEdit(mod)}><Edit className="w-4 h-4" /></Button>
           <Button size="icon" variant="ghost" onClick={() => { if (confirm("Xóa module này?")) deleteMutation.mutate(mod.id); }}><Trash2 className="w-4 h-4 text-destructive" /></Button>
         </div>
@@ -193,6 +239,8 @@ const ModuleManager = ({ courseId, modules }: ModuleManagerProps) => {
                 openEdit={openEdit}
                 deleteMutation={deleteMutation}
                 courseId={courseId}
+                queryClient={queryClient}
+                toast={toast}
               />
             ))}
           </div>

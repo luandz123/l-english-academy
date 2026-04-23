@@ -39,6 +39,7 @@ const AdminCourseDetail = () => {
   const [price, setPrice] = useState(0);
   const [durationMonths, setDurationMonths] = useState(6);
   const [isActive, setIsActive] = useState(true);
+  const [isFree, setIsFree] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
@@ -52,6 +53,7 @@ const AdminCourseDetail = () => {
       setPrice(course.price ?? 0);
       setDurationMonths(course.duration_months ?? 6);
       setIsActive(course.is_active ?? true);
+      setIsFree((course as any).is_free ?? false);
     }
   }, [course]);
 
@@ -83,12 +85,16 @@ const AdminCourseDetail = () => {
         title, description, subtitle, instructor, course_type: courseType,
         thumbnail_url: thumbnailUrl || null,
         price, duration_months: durationMonths, is_active: isActive,
+        is_free: isFree,
       }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-course", id] });
       toast({ title: "Đã cập nhật khóa học" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Lỗi", description: error.message, variant: "destructive" });
     },
   });
 
@@ -140,6 +146,9 @@ const AdminCourseDetail = () => {
       setMatTitle(""); setMatUrl(""); setMatType("pdf");
       toast({ title: "Đã thêm tài liệu" });
     },
+    onError: (error: any) => {
+      toast({ title: "Lỗi", description: error.message, variant: "destructive" });
+    },
   });
 
   const deleteMaterialMutation = useMutation({
@@ -149,6 +158,9 @@ const AdminCourseDetail = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-course-materials", id] });
       toast({ title: "Đã xóa tài liệu" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Lỗi", description: error.message, variant: "destructive" });
     },
   });
 
@@ -248,12 +260,22 @@ const AdminCourseDetail = () => {
                   <Input type="number" value={durationMonths} onChange={(e) => setDurationMonths(Number(e.target.value))} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Trạng thái</Label>
+                  <Label>Chế độ học</Label>
+                  <Select value={isFree ? "free" : "paid"} onValueChange={(v) => setIsFree(v === "free")}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="paid">Tính phí / Phải đăng ký</SelectItem>
+                      <SelectItem value="free">Hoàn toàn Miễn phí (Public)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Trạng thái hiển thị</Label>
                   <Select value={isActive ? "active" : "inactive"} onValueChange={(v) => setIsActive(v === "active")}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="active">Hoạt động</SelectItem>
-                      <SelectItem value="inactive">Tạm dừng</SelectItem>
+                      <SelectItem value="active">Hoạt động (Đang bán/dạy)</SelectItem>
+                      <SelectItem value="inactive">Tạm dừng (Ẩn khỏi học viên)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

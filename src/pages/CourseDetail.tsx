@@ -38,12 +38,21 @@ const CourseDetail = () => {
   const { data: modules } = useQuery({
     queryKey: ["modules", cid],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("modules")
+      const { data } = await (supabase.from("modules") as any)
         .select("*, lessons(*), quizzes(*)")
         .eq("course_id", cid)
         .order("display_order");
-      return data || [];
+      
+      if (!data) return [];
+      
+      // Filter unpublished modules, lessons and quizzes
+      return data
+        .filter((mod: any) => mod.is_published !== false)
+        .map((mod: any) => ({
+          ...mod,
+          lessons: (mod.lessons || []).filter((l: any) => l.is_published !== false),
+          quizzes: (mod.quizzes || []).filter((q: any) => q.is_published !== false)
+        }));
     },
   });
 
@@ -85,20 +94,12 @@ const CourseDetail = () => {
 
   const handleEnroll = async () => {
     if (!user) return navigate("/login");
-    const expiresAt = course?.duration_months
-      ? new Date(Date.now() + course.duration_months * 30 * 24 * 60 * 60 * 1000).toISOString()
-      : null;
-    const { error } = await supabase.from("enrollments").insert({
-      user_id: user.id,
-      course_id: cid,
-      expires_at: expiresAt,
+    toast({ 
+      title: "Bản quyền khóa học", 
+      description: "Khóa học này trả phí. Vui lòng liên hệ Admin để đăng ký toàn bộ khóa học!", 
+      variant: "default",
+      duration: 5000,
     });
-    if (error) {
-      toast({ title: "Lỗi", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Đăng ký thành công!", description: `Bạn đã đăng ký ${course?.title}` });
-      refetchEnrollment();
-    }
   };
 
   if (isLoading) return <StudentLayout><Skeleton className="h-64 rounded-xl" /></StudentLayout>;
@@ -154,10 +155,12 @@ const CourseDetail = () => {
                 </p>
               </div>
               <div className="flex gap-3 pt-2">
-                {enrollment ? (
-                  <Button asChild className="shadow-sm"><Link to={getLessonLink()}>Tiếp tục học</Link></Button>
+                {enrollment || (course as any).is_free ? (
+                  <Button asChild className="shadow-sm text-base h-11 px-8">
+                    <Link to={getLessonLink()}>{enrollment ? "Tiếp tục học" : "Vào học miễn phí"}</Link>
+                  </Button>
                 ) : (
-                  <Button onClick={handleEnroll} className="shadow-sm">Đăng ký khóa học</Button>
+                  <Button onClick={handleEnroll} className="shadow-sm text-base h-11 px-8">Đăng ký khóa học</Button>
                 )}
               </div>
             </div>
@@ -177,12 +180,15 @@ const CourseDetail = () => {
                 {modules.map((mod: any, pi: number) => {
                   const lessons = (mod.lessons || []).sort((a: any, b: any) => a.display_order - b.display_order);
                   const quizzes = (mod.quizzes || []).sort((a: any, b: any) => a.display_order - b.display_order);
+                  
+                  const lessonQuizIds = new Set(lessons.map((l: any) => l.quiz_id).filter(Boolean));
+                  const standaloneQuizzes = quizzes.filter((q: any) => !lessonQuizIds.has(q.id));
                   return (
                     <AccordionItem key={mod.id} value={`mod-${pi}`} className="bg-card rounded-lg border">
                       <AccordionTrigger className="px-4 py-3 hover:no-underline">
                         <div className="flex flex-col items-start gap-1">
                           <span className="font-semibold text-sm text-foreground">{mod.title}</span>
-                          <span className="text-xs text-muted-foreground">{lessons.length} bài giảng · {quizzes.length} bài thi</span>
+                          <span className="text-xs text-muted-foreground">{lessons.length} bài học</span>
                         </div>
                       </AccordionTrigger>
                       <AccordionContent className="px-4 pb-3">
@@ -191,8 +197,9 @@ const CourseDetail = () => {
                             const isTest = lesson.lesson_type === "exam" || lesson.lesson_type === "practice";
                             const isDictation = lesson.lesson_type === "dictation";
                             
+                            const canAccess = enrollment || (course as any).is_free || mod.is_free || lesson.is_free;
                             const getDestUrl = () => {
-                              if (!enrollment) return "#";
+                              if (!canAccess) return "#";
                               if (isTest) return `/courses/${cid}/quiz/${lesson.quiz_id || lesson.id}`;
                               if (isDictation) return `/courses/${cid}/dictation/${lesson.quiz_id || lesson.id}`;
                               return `/courses/${cid}/learn`;
@@ -206,6 +213,16 @@ const CourseDetail = () => {
                               <Link
                                 key={`l-${lesson.id}`}
                                 to={destUrl}
+                                onClick={(e) => {
+                                  if (!canAccess) {
+                                    e.preventDefault();
+                                    toast({
+                                      title: "Nội dung có phí",
+                                      description: "Vui lòng đăng ký khóa học để xem nội dung bài học này.",
+                                      variant: "destructive"
+                                    });
+                                  }
+                                }}
                                 className={cn(
                                   "flex justify-between items-center px-4 py-3 rounded-xl border transition-all hover:bg-muted/50",
                                   (isTest || isDictation) ? "bg-muted/10 border-border" : "border-transparent hover:border-border"
@@ -229,85 +246,54 @@ const CourseDetail = () => {
                                     {isDictation && <span className="text-xs text-muted-foreground">Luyện nghe điền từ</span>}
                                   </div>
                                 </div>
-                                <div className="flex items-center gap-3 shrink-0">
-                                  {(isTest || isDictation) ? (
-                                    <>
-                                      {latestResult ? (
-                                        <div className="flex flex-col items-end hidden sm:flex">
-                                          {isDictation ? (
-                                            <span className="text-xs font-bold text-purple-600 bg-purple-500/10 px-2 py-0.5 rounded-full">
-                                              Đã làm: {latestResult.correct_answers || 0}
-                                            </span>
-                                          ) : (
-                                            <span className="text-xs font-bold text-success bg-success/10 px-2 py-0.5 rounded-full">
-                                              Điểm: {latestResult.score}/10
-                                            </span>
-                                          )}
-                                        </div>
-                                      ) : (
-                                        <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full hidden sm:inline-block">
-                                          Chưa làm
-                                        </span>
-                                      )}
-                                      <span className="text-xs font-bold text-primary whitespace-nowrap ml-2">Tới bài</span>
-                                    </>
-                                  ) : (
-                                    lesson.duration_seconds > 0 && (
-                                      <span className="text-xs text-muted-foreground whitespace-nowrap">{Math.round(lesson.duration_seconds / 60)}m</span>
-                                    )
-                                  )}
-                                </div>
-                              </Link>
-                            );
-                          })}
-                          {quizzes.length > 0 && (
-                            <>
-                              <div className="border-t my-2" />
-                              <p className="text-xs font-semibold text-muted-foreground px-3 py-1">PHẦN THI ONLINE</p>
-                            </>
-                          )}
-                          {quizzes.map((quiz: any) => {
-                            const latestResult = quizResults?.find(r => r.quiz_id === quiz.id);
-
-                            return (
-                              <Link
-                                key={`q-${quiz.id}`}
-                                to={enrollment ? `/courses/${cid}/quiz/${quiz.id}` : "#"}
-                                className="flex justify-between items-center px-4 py-3 bg-muted/20 hover:bg-muted/50 rounded-xl border transition-all"
-                              >
-                                <div className="flex items-center gap-3 opacity-90">
-                                  <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center shrink-0">
-                                    <FileText className="w-4 h-4 text-accent" />
-                                  </div>
-                                  <div className="flex flex-col">
-                                    <span className="text-sm font-semibold text-foreground line-clamp-1">{quiz.title}</span>
-                                    <span className="text-xs text-muted-foreground">{quiz.total_questions} câu hỏi</span>
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-3 shrink-0">
-                                  {latestResult ? (
-                                    <div className="flex flex-col items-end">
-                                      <span className="text-xs font-bold text-success bg-success/10 px-2 py-0.5 rounded-full">
-                                        Điểm: {latestResult.score}/10
-                                      </span>
-                                      <span className="text-[10px] text-muted-foreground mt-0.5">
-                                        Đúng {latestResult.correct_answers}/{latestResult.total_questions}
-                                      </span>
+                                 <div className="flex items-center gap-3 shrink-0">
+                                  {!canAccess ? (
+                                    <div className="flex items-center gap-1.5 shrink-0">
+                                      <Lock className="w-4 h-4 text-amber-500" />
+                                      <Badge variant="outline" className="text-[10px] text-amber-600 bg-amber-50 border-amber-200 h-5 px-1.5">
+                                        VIP
+                                      </Badge>
                                     </div>
                                   ) : (
-                                    <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                                      Chưa làm
-                                    </span>
-                                  )}
-                                  {enrollment && (
-                                    <Button size="sm" variant={latestResult ? "outline" : "default"} className="text-xs h-7 ml-2">
-                                      {latestResult ? "Làm lại" : "Làm bài"}
-                                    </Button>
+                                    <>
+                                      {(lesson.is_free || mod.is_free || (course as any).is_free) && (
+                                        <Badge variant="outline" className="text-[10px] text-emerald-600 bg-emerald-50 border-emerald-200 h-5 px-1.5">
+                                          FREE
+                                        </Badge>
+                                      )}
+                                      {(isTest || isDictation) ? (
+                                        <>
+                                          {latestResult ? (
+                                            <div className="flex flex-col items-end hidden sm:flex">
+                                              {isDictation ? (
+                                                <span className="text-xs font-bold text-purple-600 bg-purple-500/10 px-2 py-0.5 rounded-full">
+                                                  Đã làm: {latestResult.correct_answers || 0}
+                                                </span>
+                                              ) : (
+                                                <span className="text-xs font-bold text-success bg-success/10 px-2 py-0.5 rounded-full">
+                                                  Điểm: {latestResult.score}/10
+                                                </span>
+                                              )}
+                                            </div>
+                                          ) : (
+                                            <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full hidden sm:inline-block">
+                                              Chưa làm
+                                            </span>
+                                          )}
+                                          <span className="text-xs font-bold text-primary whitespace-nowrap ml-2">Tới bài</span>
+                                        </>
+                                      ) : (
+                                        lesson.duration_seconds > 0 && (
+                                          <span className="text-xs text-muted-foreground whitespace-nowrap">{Math.round(lesson.duration_seconds / 60)}m</span>
+                                        )
+                                      )}
+                                    </>
                                   )}
                                 </div>
                               </Link>
                             );
                           })}
+                          {/* Removed standalone quizzes per user request */}
                         </div>
                       </AccordionContent>
                     </AccordionItem>
