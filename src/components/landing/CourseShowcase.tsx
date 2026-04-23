@@ -47,21 +47,32 @@ const CourseShowcase = () => {
             ))}
           </div>
         ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {courses?.map((c, i) => (
               <div
                 key={c.id}
-                className="bg-card rounded-xl border shadow-sm card-hover flex flex-col animate-fade-in"
+                className="bg-card rounded-xl border shadow-sm card-hover flex flex-col animate-fade-in h-full overflow-hidden"
                 style={{ animationDelay: `${i * 0.1}s` }}
               >
-                <div className="p-6 flex-1 space-y-4">
-                  <Badge variant="secondary" className="bg-primary/10 text-primary">
-                    {courseTypeMap[c.course_type] || c.course_type}
-                  </Badge>
-                  <h3 className="text-lg font-bold text-foreground">{c.title}</h3>
+                <div className="aspect-video w-full bg-muted relative">
+                  {c.thumbnail_url ? (
+                    <img src={c.thumbnail_url} alt={c.title} className="w-full h-full object-cover transition-transform duration-300 hover:scale-105" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-muted-foreground uppercase font-bold text-xs">
+                       L-ENGLISH
+                    </div>
+                  )}
+                </div>
+                <div className="p-6 flex-1 flex flex-col space-y-4">
+                  <div>
+                    <Badge variant="secondary" className="bg-primary/10 text-primary mb-2">
+                      {courseTypeMap[c.course_type] || c.course_type}
+                    </Badge>
+                    <h3 className="text-base font-bold text-foreground line-clamp-1">{c.title}</h3>
+                  </div>
                   <p className="text-sm text-muted-foreground line-clamp-2">{c.subtitle}</p>
-                  <p className="text-xs text-muted-foreground">
-                    Giảng viên: {c.instructor}
+                  <p className="text-xs text-muted-foreground mt-auto pt-2">
+                    Giảng viên: <span className="text-foreground font-medium">{c.instructor}</span>
                   </p>
                 </div>
                 <div className="px-6 pb-6 flex items-center justify-between mt-auto">

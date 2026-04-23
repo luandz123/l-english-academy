@@ -137,8 +137,8 @@ const LessonManager = ({ moduleId, courseId, lessons, quizzes }: LessonManagerPr
   const [lessonType, setLessonType] = useState("video");
   const [videoUrl, setVideoUrl] = useState("");
   const [pdfUrl, setPdfUrl] = useState("");
-  const [durationVal, setDurationVal] = useState(0);
-  const [durationUnit, setDurationUnit] = useState("seconds");
+  const [durationVal, setDurationVal] = useState<number | "">(60);
+  const [durationUnit, setDurationUnit] = useState("minutes");
   const [expandedLesson, setExpandedLesson] = useState<number | null>(null);
   const [expandedQuiz, setExpandedQuiz] = useState<number | null>(null);
   const [uploadingPdf, setUploadingPdf] = useState(false);
@@ -211,7 +211,7 @@ const LessonManager = ({ moduleId, courseId, lessons, quizzes }: LessonManagerPr
         lesson_type: lessonType,
         video_url: lessonType === "video" && contentMode === "video" ? videoUrl : null,
         pdf_url: lessonType === "video" && contentMode === "pdf" ? pdfUrl : null,
-        duration_seconds: durationUnit === "minutes" ? durationVal * 60 : durationVal,
+        duration_seconds: durationUnit === "minutes" ? (Number(durationVal) || 0) * 60 : (Number(durationVal) || 0),
         module_id: moduleId,
         display_order: editingLesson ? editingLesson.display_order : lessons.length,
       };
@@ -247,16 +247,16 @@ const LessonManager = ({ moduleId, courseId, lessons, quizzes }: LessonManagerPr
   const [quizDialogOpen, setQuizDialogOpen] = useState(false);
   const [editingQuiz, setEditingQuiz] = useState<any>(null);
   const [quizTitle, setQuizTitle] = useState("");
-  const [quizTotalQ, setQuizTotalQ] = useState(10);
-  const [quizTimeLimitVal, setQuizTimeLimitVal] = useState(0);
-  const [quizTimeLimitUnit, setQuizTimeLimitUnit] = useState("seconds");
+  const [quizTotalQ, setQuizTotalQ] = useState<number | "">(10);
+  const [quizTimeLimitVal, setQuizTimeLimitVal] = useState<number | "">(60);
+  const [quizTimeLimitUnit, setQuizTimeLimitUnit] = useState("minutes");
 
   const saveQuizMutation = useMutation({
     mutationFn: async () => {
       const payload = {
         title: quizTitle,
-        total_questions: quizTotalQ,
-        time_limit_seconds: (quizTimeLimitUnit === "minutes" ? quizTimeLimitVal * 60 : quizTimeLimitVal) || null,
+        total_questions: Number(quizTotalQ) || 0,
+        time_limit_seconds: (quizTimeLimitUnit === "minutes" ? (Number(quizTimeLimitVal) || 0) * 60 : (Number(quizTimeLimitVal) || 0)) || null,
         module_id: moduleId,
         display_order: editingQuiz ? editingQuiz.display_order : quizzes.length,
       };
@@ -293,8 +293,8 @@ const LessonManager = ({ moduleId, courseId, lessons, quizzes }: LessonManagerPr
     setVideoUrl("");
     setPdfUrl("");
     setContentMode("video");
-    setDurationVal(0);
-    setDurationUnit("seconds");
+    setDurationVal(60);
+    setDurationUnit("minutes");
     setDialogOpen(true);
   };
 
@@ -320,8 +320,8 @@ const LessonManager = ({ moduleId, courseId, lessons, quizzes }: LessonManagerPr
     setEditingQuiz(null);
     setQuizTitle("");
     setQuizTotalQ(10);
-    setQuizTimeLimitVal(0);
-    setQuizTimeLimitUnit("seconds");
+    setQuizTimeLimitVal(60);
+    setQuizTimeLimitUnit("minutes");
     setQuizDialogOpen(true);
   };
 
@@ -487,7 +487,12 @@ const LessonManager = ({ moduleId, courseId, lessons, quizzes }: LessonManagerPr
             <div className="space-y-2">
               <Label>Thời lượng</Label>
               <div className="flex gap-2">
-                <Input type="number" className="flex-1" value={durationVal} onChange={(e) => setDurationVal(Number(e.target.value))} />
+                <Input 
+                  type="number" 
+                  className="flex-1" 
+                  value={durationVal === 0 ? "" : durationVal} 
+                  onChange={(e) => setDurationVal(e.target.value === "" ? "" : Number(e.target.value))} 
+                />
                 <Select value={durationUnit} onValueChange={setDurationUnit}>
                   <SelectTrigger className="w-[120px]"><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -518,12 +523,21 @@ const LessonManager = ({ moduleId, courseId, lessons, quizzes }: LessonManagerPr
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Số câu hỏi</Label>
-                <Input type="number" value={quizTotalQ} onChange={(e) => setQuizTotalQ(Number(e.target.value))} />
+                <Input 
+                  type="number" 
+                  value={quizTotalQ === 0 ? "" : quizTotalQ} 
+                  onChange={(e) => setQuizTotalQ(e.target.value === "" ? "" : Number(e.target.value))} 
+                />
               </div>
               <div className="space-y-2">
                 <Label>Giới hạn TG (0=không)</Label>
                 <div className="flex gap-2">
-                  <Input type="number" className="flex-1" value={quizTimeLimitVal} onChange={(e) => setQuizTimeLimitVal(Number(e.target.value))} />
+                  <Input 
+                    type="number" 
+                    className="flex-1" 
+                    value={quizTimeLimitVal === 0 ? "" : quizTimeLimitVal} 
+                    onChange={(e) => setQuizTimeLimitVal(e.target.value === "" ? "" : Number(e.target.value))} 
+                  />
                   <Select value={quizTimeLimitUnit} onValueChange={setQuizTimeLimitUnit}>
                     <SelectTrigger className="w-[100px]"><SelectValue /></SelectTrigger>
                     <SelectContent>

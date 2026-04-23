@@ -131,18 +131,36 @@ const CourseDetail = () => {
   return (
     <StudentLayout>
       <div className="space-y-6 max-w-4xl">
-        <div className="bg-card rounded-xl border p-6 space-y-4">
-          <Badge variant="secondary">{courseTypeMap[course.course_type] || course.course_type}</Badge>
-          <h1 className="text-2xl font-bold text-foreground">{course.title}</h1>
-          <p className="text-sm text-muted-foreground">
-            Giảng viên: {course.instructor} · Thời hạn: {course.duration_months ? `${course.duration_months} tháng` : "Vĩnh viễn"}
-          </p>
-          <div className="flex gap-3">
-            {enrollment ? (
-              <Button asChild><Link to={getLessonLink()}>Tiếp tục học</Link></Button>
-            ) : (
-              <Button onClick={handleEnroll}>Đăng ký khóa học</Button>
-            )}
+        <div className="bg-card rounded-xl border overflow-hidden">
+          <div className="grid md:grid-cols-5 gap-0">
+            <div className="md:col-span-2 aspect-video md:aspect-square bg-muted">
+              {course.thumbnail_url ? (
+                <img src={course.thumbnail_url} alt={course.title} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-muted-foreground uppercase font-bold text-xs">
+                  Image placeholder
+                </div>
+              )}
+            </div>
+            <div className="md:col-span-3 p-6 space-y-4 flex flex-col justify-center">
+              <div>
+                <Badge variant="secondary" className="mb-2">{courseTypeMap[course.course_type] || course.course_type}</Badge>
+                <h1 className="text-2xl font-bold text-foreground leading-tight">{course.title}</h1>
+                <p className="text-sm text-muted-foreground mt-2 font-medium">
+                  Giảng viên: <span className="text-foreground">{course.instructor}</span>
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Thời hạn: {course.duration_months ? `${course.duration_months} tháng` : "Vĩnh viễn"}
+                </p>
+              </div>
+              <div className="flex gap-3 pt-2">
+                {enrollment ? (
+                  <Button asChild className="shadow-sm"><Link to={getLessonLink()}>Tiếp tục học</Link></Button>
+                ) : (
+                  <Button onClick={handleEnroll} className="shadow-sm">Đăng ký khóa học</Button>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 

@@ -100,19 +100,32 @@ const Dashboard = () => {
               {[1, 2, 3].map(i => <Skeleton key={i} className="h-40 rounded-xl" />)}
             </div>
           ) : enrollments && enrollments.length > 0 ? (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {enrollments.map((e: any) => (
-                <div key={e.id} className="bg-card rounded-xl border p-5 space-y-3 card-hover">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-foreground text-sm">{e.courses?.title}</h3>
-                    <span className="text-xs">{courseTypeMap[e.courses?.course_type] || ""}</span>
+                <div key={e.id} className="bg-card rounded-xl border shadow-sm flex flex-col card-hover h-full overflow-hidden">
+                  <div className="aspect-video w-full bg-muted relative">
+                    {e.courses?.thumbnail_url ? (
+                      <img src={e.courses.thumbnail_url} alt={e.courses.title} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-muted-foreground uppercase font-bold text-xs">
+                        {e.courses?.title?.substring(0, 20)}...
+                      </div>
+                    )}
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    {e.expires_at ? `Hết hạn: ${new Date(e.expires_at).toLocaleDateString("vi-VN")}` : "Vĩnh viễn"}
-                  </p>
-                  <Button size="sm" className="w-full" asChild>
-                    <Link to={`/courses/${e.course_id}`}>Tiếp tục học →</Link>
-                  </Button>
+                  <div className="p-4 space-y-2 flex-1 flex flex-col">
+                    <div className="flex items-start justify-between gap-2">
+                       <h3 className="font-bold text-foreground text-sm line-clamp-2 flex-1 leading-tight">{e.courses?.title}</h3>
+                       <span className="text-[10px] text-muted-foreground shrink-0 bg-muted px-1.5 py-0.5 rounded">{courseTypeMap[e.courses?.course_type] || ""}</span>
+                    </div>
+                    <div className="mt-auto pt-2">
+                      <p className="text-[10px] text-muted-foreground">
+                        {e.expires_at ? `📅 Hạn: ${new Date(e.expires_at).toLocaleDateString("vi-VN")}` : "♾️ Vĩnh viễn"}
+                      </p>
+                      <Button size="sm" className="w-full h-8 text-xs mt-3" asChild>
+                        <Link to={`/courses/${e.course_id}`}>Tiếp tục học →</Link>
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>

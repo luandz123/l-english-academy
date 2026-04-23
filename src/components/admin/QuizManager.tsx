@@ -95,11 +95,17 @@ const SortableQuestionItem = ({
   index,
   openEdit,
   deleteQuestionMutation,
+  isSelected,
+  onToggleSelect,
+  showCheckbox = false,
 }: {
   q: any;
   index: number;
   openEdit: (q: any) => void;
   deleteQuestionMutation: any;
+  isSelected?: boolean;
+  onToggleSelect?: (id: number) => void;
+  showCheckbox?: boolean;
 }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: `q-${q.id}`,
@@ -113,6 +119,13 @@ const SortableQuestionItem = ({
 
   return (
     <div ref={setNodeRef} style={style} className="flex items-start gap-2 px-2 py-1.5 rounded hover:bg-muted/30 group text-xs">
+      {showCheckbox && (
+        <Checkbox 
+          checked={isSelected} 
+          onCheckedChange={() => onToggleSelect?.(q.id)} 
+          className="mt-1"
+        />
+      )}
       <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing touch-none p-0.5 hover:bg-muted rounded shrink-0 mt-0.5">
         <GripVertical className="w-3 h-3 text-muted-foreground" />
       </button>
@@ -194,18 +207,31 @@ const QuizManager = ({ quizId, courseId, lessonType }: QuizManagerProps) => {
   const [mediaPickerPath, setMediaPickerPath] = useState("/");
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const [isDraggingAudio, setIsDraggingAudio] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
-  const autoImportAudio = async (externalUrl: string, folderPath: string, title: string, filePrefix?: string) => {
+  const toggleSelect = (id: number) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+  };
+
+  const selectAll = () => {
+    if (selectedIds.length === questions.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(questions.map((q: any) => q.id));
+    }
+  };
+
+  const autoImportMedia = async (externalUrl: string, folderPath: string, title: string, type: "audio" | "image", filePrefix?: string) => {
     if (!externalUrl || !externalUrl.trim()) return null;
     // If already in our Supabase storage, just return it
     if (externalUrl.includes('supabase.co') || externalUrl.includes('/storage/v1/object/public/materials')) return externalUrl;
     
     try {
       const res = await fetch(externalUrl);
-      if (!res.ok) throw new Error("Không thể tải audio từ link bên ngoài");
+      if (!res.ok) throw new Error(`Không thể tải ${type} từ link bên ngoài`);
       const blob = await res.blob();
       
-      const fileName = externalUrl.split('/').pop()?.split('?')[0] || `audio_${Date.now()}.mp3`;
+      const fileName = externalUrl.split('/').pop()?.split('?')[0] || `${type}_${Date.now()}`;
       const sanitizedName = fileName.replace(/[^a-zA-Z0-9.\-_]/g, '');
       const storagePath = `quiz_media/${Date.now()}_${filePrefix ? filePrefix + "_" : ""}${sanitizedName}`;
       
@@ -217,15 +243,15 @@ const QuizManager = ({ quizId, courseId, lessonType }: QuizManagerProps) => {
       await supabase.from("materials").insert({
         title: title || sanitizedName,
         file_url: urlData.publicUrl,
-        file_type: "audio",
-        folder_path: folderPath || "/Quiz Audios",
+        file_type: type,
+        folder_path: folderPath || (type === "audio" ? "/Quiz Audios" : "/Quiz Images"),
         quiz_id: quizId,
         course_id: courseId,
       });
       
       return urlData.publicUrl;
     } catch (err) {
-      console.error("Auto import failed:", err);
+      console.error(`Auto import ${type} failed:`, err);
       return externalUrl;
     }
   };
@@ -378,14 +404,15 @@ const QuizManager = ({ quizId, courseId, lessonType }: QuizManagerProps) => {
         
         // Use current index for naming
         const qIndex = editingQ ? (questions.findIndex(q => q.id === editingQ.id) + 1) : (questions.length + 1);
-        const finalAudioUrl = await autoImportAudio(qAudioUrl, quizFolder, `Q${qIndex} - ${qText.substring(0, 20)}`, `Q${qIndex}`);
+        const finalAudioUrl = await autoImportMedia(qAudioUrl, quizFolder, `Q${qIndex} - Audio`, "audio", `Q${qIndex}`);
+        const finalImageUrl = await autoImportMedia(qImageUrl, quizFolder, `Q${qIndex} - Image`, "image", `Q${qIndex}`);
         
         let targetQuestionId: number;
         if (editingQ) {
           await supabase.from("questions").update({
             question_text: qText,
             translation: qTranslation || null,
-            image_url: qImageUrl || null,
+            image_url: finalImageUrl || null,
             audio_url: finalAudioUrl || null,
             question_type: qType,
           }).eq("id", editingQ.id);
@@ -397,7 +424,7 @@ const QuizManager = ({ quizId, courseId, lessonType }: QuizManagerProps) => {
             quiz_id: quizId,
             question_text: qText,
             translation: qTranslation || null,
-            image_url: qImageUrl || null,
+            image_url: finalImageUrl || null,
             audio_url: finalAudioUrl || null,
             question_type: qType,
             display_order: questions.length,
@@ -445,6 +472,24 @@ const QuizManager = ({ quizId, courseId, lessonType }: QuizManagerProps) => {
       queryClient.invalidateQueries({ queryKey: ["admin-course-modules", courseId] });
       toast({ title: "Đã xóa câu hỏi" });
     },
+  });
+
+  const deleteMultipleQuestionsMutation = useMutation({
+    mutationFn: async (ids: number[]) => {
+      await supabase.from("answers").delete().in("question_id", ids);
+      await supabase.from("questions").delete().in("id", ids);
+      const { count } = await supabase.from("questions").select("id", { count: "exact", head: true }).eq("quiz_id", quizId);
+      await supabase.from("quizzes").update({ total_questions: count ?? 0 }).eq("id", quizId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["quiz-questions-admin", quizId] });
+      queryClient.invalidateQueries({ queryKey: ["admin-course-modules", courseId] });
+      setSelectedIds([]);
+      toast({ title: `Đã xóa ${selectedIds.length} câu hỏi` });
+    },
+    onError: (err: any) => {
+      toast({ title: "Lỗi khi xóa nhiều câu hỏi", description: err.message, variant: "destructive" });
+    }
   });
 
   // Import CSV
@@ -514,11 +559,12 @@ const QuizManager = ({ quizId, courseId, lessonType }: QuizManagerProps) => {
       for (let i = 0; i < rows.length; i++) {
         const cols = rows[i];
         if (isDictation) {
-          // Format for dictation: Question, A, B, C, D, Translation, AudioURL
-          const [questionText, a, b, c, d, translation, audioUrl] = cols.map(s => s?.trim());
+          // Format for dictation: Question, A, B, C, D, Translation, AudioURL, ImageURL
+          const [questionText, a, b, c, d, translation, audioUrl, imageUrl] = cols.map(s => s?.trim());
           
           const qOrder = questions.length + i;
-          const finalAudioUrl = await autoImportAudio(audioUrl, quizFolder, `Q${qOrder + 1} - ${questionText?.substring(0, 20)}`, `Q${qOrder + 1}`);
+          const finalAudioUrl = await autoImportMedia(audioUrl, quizFolder, `Q${qOrder + 1} - Audio`, "audio", `Q${qOrder + 1}`);
+          const finalImageUrl = await autoImportMedia(imageUrl, quizFolder, `Q${qOrder + 1} - Image`, "image", `Q${qOrder + 1}`);
 
           const { data: qData } = await supabase.from("questions").insert({
             quiz_id: quizId,
@@ -527,6 +573,7 @@ const QuizManager = ({ quizId, courseId, lessonType }: QuizManagerProps) => {
             display_order: qOrder,
             translation: translation || null,
             audio_url: finalAudioUrl || null,
+            image_url: finalImageUrl || null,
           }).select("id").single();
 
           if (qData) {
@@ -542,13 +589,14 @@ const QuizManager = ({ quizId, courseId, lessonType }: QuizManagerProps) => {
             }
           }
         } else {
-          // Format for quiz: QuestionText, A, B, C, D, Correct, Explanation, Translation, AudioURL
+          // Format for quiz: QuestionText, A, B, C, D, Correct, Explanation, Translation, AudioURL, ImageURL
           if (cols.length < 6) continue;
-          const [questionText, a, b, c, d, correct, explanation, translation, audioUrl] = cols.map(s => s?.trim());
+          const [questionText, a, b, c, d, correct, explanation, translation, audioUrl, imageUrl] = cols.map(s => s?.trim());
           const correctIdx = "ABCD".indexOf(correct?.toUpperCase() || "");
 
           const qOrder = questions.length + i;
-          const finalAudioUrl = await autoImportAudio(audioUrl, quizFolder, `Q${qOrder + 1} - ${questionText?.substring(0, 20)}`, `Q${qOrder + 1}`);
+          const finalAudioUrl = await autoImportMedia(audioUrl, quizFolder, `Q${qOrder + 1} - Audio`, "audio", `Q${qOrder + 1}`);
+          const finalImageUrl = await autoImportMedia(imageUrl, quizFolder, `Q${qOrder + 1} - Image`, "image", `Q${qOrder + 1}`);
 
           const { data: qData } = await supabase.from("questions").insert({
             quiz_id: quizId,
@@ -557,6 +605,7 @@ const QuizManager = ({ quizId, courseId, lessonType }: QuizManagerProps) => {
             display_order: qOrder,
             translation: translation || null,
             audio_url: finalAudioUrl || null,
+            image_url: finalImageUrl || null,
           }).select("id").single();
 
           if (qData) {
@@ -796,7 +845,28 @@ const QuizManager = ({ quizId, courseId, lessonType }: QuizManagerProps) => {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <span className="text-xs font-semibold text-muted-foreground">{questions.length} câu hỏi</span>
+        <div className="flex items-center gap-2">
+          <Checkbox 
+            checked={questions.length > 0 && selectedIds.length === questions.length}
+            onCheckedChange={selectAll}
+          />
+          <span className="text-xs font-semibold text-muted-foreground">{questions.length} câu hỏi {selectedIds.length > 0 && `(Đã chọn ${selectedIds.length})`}</span>
+          {selectedIds.length > 0 && (
+            <Button 
+              size="sm" 
+              variant="destructive" 
+              className="h-7 text-[10px] px-2"
+              onClick={() => {
+                if (confirm(`Bạn có chắc chắn muốn xóa ${selectedIds.length} câu hỏi đã chọn?`)) {
+                  deleteMultipleQuestionsMutation.mutate(selectedIds);
+                }
+              }}
+              disabled={deleteMultipleQuestionsMutation.isPending}
+            >
+              <Trash2 className="w-3 h-3 mr-1" /> Xóa {selectedIds.length} mục
+            </Button>
+          )}
+        </div>
         <div className="flex gap-1 flex-wrap">
           <Button size="sm" variant="outline" onClick={() => setImportDialogOpen(true)}><Upload className="w-3 h-3 mr-1" /> Import</Button>
           <Button size="sm" variant="outline" onClick={openNew}><Plus className="w-3 h-3 mr-1" /> Thêm câu</Button>
@@ -818,6 +888,9 @@ const QuizManager = ({ quizId, courseId, lessonType }: QuizManagerProps) => {
                 index={i}
                 openEdit={openEdit}
                 deleteQuestionMutation={deleteQuestionMutation}
+                isSelected={selectedIds.includes(q.id)}
+                onToggleSelect={toggleSelect}
+                showCheckbox={true}
               />
             ))}
           </div>
@@ -955,10 +1028,10 @@ const QuizManager = ({ quizId, courseId, lessonType }: QuizManagerProps) => {
                   <br />Dòng đầu tiên là header. Hỗ trợ CSV (dấu phẩy) hoặc TSV (tab).
                   <br /><strong>Lưu ý quan trọng:</strong> 
                   <ul className="list-disc ml-4 space-y-1 mt-1">
-                    <li><strong>Audio URL:</strong> Nếu bạn dán link audio từ bên ngoài, hệ thống sẽ tự động tải về và lưu vào thư viện bài học.</li>
+                    <li><strong>Nhập Media tự động:</strong> Bạn có thể dán link <strong>Audio</strong> (cột 7) và <strong>Ảnh</strong> (cột 8), hệ thống sẽ tự động tải về thư viện.</li>
                     <li><strong>Part 1 (4 đáp án):</strong> Để trống cột 1, điền đáp án vào cột 2,3,4,5.</li>
                     <li><strong>Part 2 (1 câu hỏi, 3 đáp án):</strong> Điền câu hỏi vào cột 1, đáp án vào cột 2,3,4.</li>
-                    <li>Cột cuối cùng (thứ 7) là URL Audio. Cứ đúng thứ tự cột là được.</li>
+                    <li>Cột 7 là URL Audio, Cột 8 là URL Ảnh.</li>
                   </ul>
                 </>
               ) : (
@@ -967,8 +1040,8 @@ const QuizManager = ({ quizId, courseId, lessonType }: QuizManagerProps) => {
                   <br />Dòng đầu tiên là header. Hỗ trợ CSV (dấu phẩy) hoặc TSV (tab).
                   <br /><strong>Tính năng mới:</strong> 
                   <ul className="list-disc ml-4 space-y-1 mt-1">
-                    <li><strong>Tự động nhập Audio:</strong> Bạn có thể dán link audio trực tiếp vào cột cuối cùng, hệ thống sẽ tự động lưu vào thư viện hệ thống.</li>
-                    <li>Cột <code>translation</code> và <code>audio_url</code> là tùy chọn.</li>
+                    <li><strong>Tự động nhập Media:</strong> Dán link Audio (cột 9) và Ảnh (cột 10) để hệ thống tự động lưu vào thư viện.</li>
+                    <li>Cột <code>translation</code>, <code>audio_url</code> và <code>image_url</code> là tùy chọn.</li>
                   </ul>
                 </>
               )}
@@ -977,8 +1050,8 @@ const QuizManager = ({ quizId, courseId, lessonType }: QuizManagerProps) => {
               <input ref={fileInputRef} type="file" accept=".csv,.tsv,.txt" onChange={handleFileImport} className="text-sm" />
               <Button size="sm" variant="outline" onClick={() => {
                 const template = isDictation 
-                  ? "question_text\tanswer_1\tanswer_2\tanswer_3\tanswer_4\ttranslation\taudio_url\nWhat is shown ...\tin the picture?\tand the video?\t\t\tCái gì xuất hiện trong hình và video?\thttps://example.com/audio.mp3"
-                  : "question_text\tanswer_a\tanswer_b\tanswer_c\tanswer_d\tcorrect\texplanation\ttranslation\taudio_url\nWhat is shown in the picture?\tA man reading\tA woman cooking\tA child playing\tA dog sleeping\tA\tThe image shows a man reading\tBức tranh cho thấy một người đàn ông đang đọc sách\thttps://example.com/audio.mp3";
+                  ? "question_text\tanswer_1\tanswer_2\tanswer_3\tanswer_4\ttranslation\taudio_url\timage_url\nWhat is shown ...\tin the picture?\tand the video?\t\t\tCái gì xuất hiện trong hình và video?\thttps://example.com/audio.mp3\thttps://example.com/image.jpg"
+                  : "question_text\tanswer_a\tanswer_b\tanswer_c\tanswer_d\tcorrect\texplanation\ttranslation\taudio_url\timage_url\nWhat is shown in the picture?\tA man reading\tA woman cooking\tA child playing\tA dog sleeping\tA\tThe image shows a man reading\tBức tranh cho thấy một người đàn ông đang đọc sách\thttps://example.com/audio.mp3\thttps://example.com/image.jpg";
                 const blob = new Blob([template], { type: "text/tab-separated-values" });
                 const a = document.createElement("a");
                 a.href = URL.createObjectURL(blob);

@@ -51,7 +51,7 @@ const Courses = () => {
 
   return (
     <StudentLayout>
-      <div className="space-y-6 max-w-6xl">
+      <div className="space-y-8 max-w-6xl mx-auto pb-10 px-1">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Khóa học</h1>
           <p className="text-sm text-muted-foreground mt-1">Danh sách tất cả khóa học trên L-English</p>
@@ -61,21 +61,39 @@ const Courses = () => {
             {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-56 rounded-xl" />)}
           </div>
         ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {courses?.map((c) => {
               const isEnrolled = enrolledIds.has(c.id);
               return (
-                <div key={c.id} className="bg-card rounded-xl border shadow-sm card-hover flex flex-col">
-                  <div className="p-5 flex-1 space-y-3">
-                    <Badge variant="secondary">{courseTypeMap[c.course_type] || c.course_type}</Badge>
-                    <h3 className="font-bold text-foreground">{c.title}</h3>
-                    <p className="text-sm text-muted-foreground">{c.subtitle}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {c.instructor} · Thời hạn: {c.duration_months ? `${c.duration_months} tháng` : "Vĩnh viễn"}
-                    </p>
-                    {isEnrolled && (
-                      <Badge className="bg-success text-success-foreground">Đã đăng ký</Badge>
+                <div key={c.id} className="bg-card rounded-xl border shadow-sm card-hover flex flex-col h-full overflow-hidden">
+                  <div className="aspect-video w-full bg-muted relative">
+                    {c.thumbnail_url ? (
+                      <img src={c.thumbnail_url} alt={c.title} className="w-full h-full object-cover transition-transform duration-300 hover:scale-105" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-muted-foreground uppercase font-bold text-xs">
+                         L-ENGLISH
+                      </div>
                     )}
+                    {isEnrolled && (
+                      <div className="absolute top-2 right-2">
+                        <Badge className="bg-emerald-500 text-white shadow-sm border-none">Đã đăng ký</Badge>
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-5 flex-1 flex flex-col space-y-3">
+                    <div>
+                      <Badge variant="secondary" className="font-normal text-[10px] h-5 mb-2">{courseTypeMap[c.course_type] || c.course_type}</Badge>
+                      <h3 className="font-bold text-foreground leading-tight text-base line-clamp-2">{c.title}</h3>
+                    </div>
+                    <p className="text-sm text-muted-foreground line-clamp-2 flex-1">{c.subtitle}</p>
+                    <div className="pt-2 border-t mt-auto">
+                      <p className="text-[10px] text-muted-foreground">
+                        Giảng viên: <span className="font-medium text-foreground">{c.instructor}</span>
+                      </p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                        Hạn: {c.duration_months ? `${c.duration_months} tháng` : "Vĩnh viễn"}
+                      </p>
+                    </div>
                   </div>
                   <div className="px-5 pb-5 flex items-center justify-between">
                     <span className="font-bold text-sm text-primary">{formatPrice(c.price)}</span>
