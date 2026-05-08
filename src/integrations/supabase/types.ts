@@ -113,6 +113,7 @@ export type Database = {
           id: number
           instructor: string | null
           is_active: boolean | null
+          is_free: boolean | null
           price: number | null
           subtitle: string | null
           thumbnail_url: string | null
@@ -127,6 +128,7 @@ export type Database = {
           id?: number
           instructor?: string | null
           is_active?: boolean | null
+          is_free?: boolean | null
           price?: number | null
           subtitle?: string | null
           thumbnail_url?: string | null
@@ -141,6 +143,7 @@ export type Database = {
           id?: number
           instructor?: string | null
           is_active?: boolean | null
+          is_free?: boolean | null
           price?: number | null
           subtitle?: string | null
           thumbnail_url?: string | null
@@ -307,6 +310,7 @@ export type Database = {
           display_order: number
           duration_seconds: number | null
           id: number
+          is_free: boolean | null
           is_live: boolean | null
           lesson_type: string
           live_time: string | null
@@ -320,6 +324,7 @@ export type Database = {
           display_order?: number
           duration_seconds?: number | null
           id?: number
+          is_free?: boolean | null
           is_live?: boolean | null
           lesson_type?: string
           live_time?: string | null
@@ -333,6 +338,7 @@ export type Database = {
           display_order?: number
           duration_seconds?: number | null
           id?: number
+          is_free?: boolean | null
           is_live?: boolean | null
           lesson_type?: string
           live_time?: string | null
@@ -426,6 +432,7 @@ export type Database = {
           description: string | null
           display_order: number
           id: number
+          is_free: boolean | null
           title: string
         }
         Insert: {
@@ -433,6 +440,7 @@ export type Database = {
           description?: string | null
           display_order?: number
           id?: number
+          is_free?: boolean | null
           title: string
         }
         Update: {
@@ -440,6 +448,7 @@ export type Database = {
           description?: string | null
           display_order?: number
           id?: number
+          is_free?: boolean | null
           title?: string
         }
         Relationships: [
@@ -543,6 +552,7 @@ export type Database = {
           audio_url: string | null
           display_order: number
           id: number
+          is_free: boolean | null
           module_id: number | null
           time_limit_seconds: number | null
           title: string
@@ -552,6 +562,7 @@ export type Database = {
           audio_url?: string | null
           display_order?: number
           id?: number
+          is_free?: boolean | null
           module_id?: number | null
           time_limit_seconds?: number | null
           title: string
@@ -561,6 +572,7 @@ export type Database = {
           audio_url?: string | null
           display_order?: number
           id?: number
+          is_free?: boolean | null
           module_id?: number | null
           time_limit_seconds?: number | null
           title?: string
@@ -864,6 +876,7 @@ export type Database = {
           id: number
           image_url: string | null
           phonetic: string | null
+          question_id: number | null
           vocab_quiz_id: number | null
           word: string
           wrong_answer_1: string | null
@@ -880,6 +893,7 @@ export type Database = {
           id?: number
           image_url?: string | null
           phonetic?: string | null
+          question_id?: number | null
           vocab_quiz_id?: number | null
           word: string
           wrong_answer_1?: string | null
@@ -896,6 +910,7 @@ export type Database = {
           id?: number
           image_url?: string | null
           phonetic?: string | null
+          question_id?: number | null
           vocab_quiz_id?: number | null
           word?: string
           wrong_answer_1?: string | null
@@ -903,6 +918,13 @@ export type Database = {
           wrong_answer_3?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "vocab_questions_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "vocab_questions_vocab_quiz_id_fkey"
             columns: ["vocab_quiz_id"]
@@ -915,25 +937,25 @@ export type Database = {
       vocab_quizzes: {
         Row: {
           category_id: number | null
-          lesson_id: number | null
           display_order: number
           id: number
+          lesson_id: number | null
           title: string
           total_questions: number
         }
         Insert: {
           category_id?: number | null
-          lesson_id?: number | null
           display_order?: number
           id?: number
+          lesson_id?: number | null
           title: string
           total_questions?: number
         }
         Update: {
           category_id?: number | null
-          lesson_id?: number | null
           display_order?: number
           id?: number
+          lesson_id?: number | null
           title?: string
           total_questions?: number
         }
@@ -943,6 +965,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "vocab_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vocab_quizzes_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
             referencedColumns: ["id"]
           },
         ]
