@@ -98,6 +98,7 @@ const SortableQuestionItem = ({
   deleteQuestionMutation,
   isSelected,
   onToggleSelect,
+  openVocab,
   showCheckbox = false,
 }: {
   q: any;
