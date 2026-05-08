@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
+import { cn } from "@/lib/utils";
 
 // Utils for dictation checking
 const normalizeChar = (c: string) => c.toLowerCase();
@@ -415,6 +416,10 @@ const DictationPage = () => {
     }
   });
 
+  const questions = quizData?.questions ?? [];
+  const completedQuestionIds = new Set(userAnswers.map((ua: any) => ua.question_id));
+  const currentQuestion = questions[currentIndex];
+
   // Keyboard Shortcuts
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
@@ -463,10 +468,6 @@ const DictationPage = () => {
       </StudentLayout>
     );
   }
-
-  const questions = quizData.questions;
-  const completedQuestionIds = new Set(userAnswers.map((ua: any) => ua.question_id));
-  const currentQuestion = questions[currentIndex];
 
   const handleNext = (auto = false) => {
     const currentActiveIdx = activeQuestionIndices.indexOf(currentIndex);
