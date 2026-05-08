@@ -5,10 +5,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import StudentLayout from "@/components/StudentLayout";
-import { Loader2, ArrowLeft, CheckCircle, ChevronRight, Volume2, SkipForward, Play, RefreshCcw } from "lucide-react";
+import { Loader2, ArrowLeft, CheckCircle, ChevronRight, Volume2, SkipForward, Play, RefreshCcw, Library, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 
 // Utils for dictation checking
 const normalizeChar = (c: string) => c.toLowerCase();
@@ -92,34 +93,39 @@ const DictationInput = ({
 }) => {
   const [value, setValue] = useState("");
   const [status, setStatus] = useState<"typing" | "correct">("typing");
+  const [mistakeCount, setMistakeCount] = useState(0);
   const [showHint, setShowHint] = useState(false);
   const [shake, setShake] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Focus effect when moving
+  const getHintText = () => {
+    if (mistakeCount === 1) {
+      return `Gợi ý: Bắt đầu bằng chữ "${expected[0]}"`;
+    }
+    if (mistakeCount === 2) {
+      const halfLen = Math.ceil(expected.length / 2);
+      return `Gợi ý: ${expected.substring(0, halfLen)}${".".repeat(expected.length - halfLen)}`;
+    }
+    return `Đáp án: ${expected}`;
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
-      if (e.nativeEvent?.isComposing) return; // Prevent IME confirm from auto-filling
+      if (e.nativeEvent?.isComposing) return;
       
       const errIdx = findErrorIndex(value, expected);
-      if (errIdx !== -1) {
-        // has error -> show hint but DON'T auto-fill, as per user request to "điền và check đáp án bình thường"
+      if (errIdx !== -1 || !isFullMatch(value, expected)) {
         playSound("error");
         setShake(true);
         setTimeout(() => setShake(false), 300);
+        setMistakeCount(prev => prev + 1);
         setShowHint(true);
-      } else if (isFullMatch(value, expected)) {
+      } else {
         playSound("correct");
         setStatus("correct");
         setShowHint(false);
-        setValue(expected); // Auto-fill correct string with punctuation ONLY when actually correct
+        setValue(expected);
         onCorrect();
-      } else {
-        // incomplete -> show hint but DON'T auto-fill
-        playSound("error");
-        setShake(true);
-        setTimeout(() => setShake(false), 300);
-        setShowHint(true);
       }
     }
   };
@@ -129,8 +135,8 @@ const DictationInput = ({
        setStatus("correct");
        setValue(expected);
        onCorrect();
-    } else {
-       if (status === "correct") setStatus("typing");
+    } else if (status === "correct") {
+       setStatus("typing");
     }
   }, [value, expected]);
 
@@ -142,7 +148,7 @@ const DictationInput = ({
           value={value}
           onChange={(e) => {
             setValue(e.target.value);
-            if (showHint) setShowHint(false);
+            if (showHint && mistakeCount < 3) setShowHint(false);
           }}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
@@ -158,8 +164,11 @@ const DictationInput = ({
         )}
       </div>
       {showHint && (
-        <div className="text-sm font-medium text-red-500 bg-red-500/10 px-3 py-2 rounded-lg border border-red-500/20">
-          Gợi ý: <span className="font-bold">{expected}</span>
+        <div className={cn(
+          "text-sm font-medium px-3 py-2 rounded-lg border transition-all animate-in fade-in slide-in-from-top-1",
+          mistakeCount >= 3 ? "text-amber-600 bg-amber-50 border-amber-200" : "text-red-500 bg-red-500/10 border-red-500/20"
+        )}>
+          {getHintText()}
         </div>
       )}
     </div>
@@ -169,6 +178,16 @@ const DictationInput = ({
 
 const DictationPage = () => {
   const { courseId, quizId } = useParams();
+  // Get lessonId for navigation
+  const { data: lessonData } = useQuery({
+    queryKey: ["lesson-from-quiz", quizId],
+    queryFn: async () => {
+      const { data } = await supabase.from("lessons").select("id").eq("quiz_id", Number(quizId)).single();
+      return data;
+    }
+  });
+  const lessonId = lessonData?.id;
+  
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -252,6 +271,22 @@ const DictationPage = () => {
     },
     enabled: !!targetResultId,
   });
+  
+  // 4. Fetch Vocabulary for current lesson/questions
+  const { data: vocabWords = [] } = useQuery({
+    queryKey: ["dictation-vocab", quizId],
+    queryFn: async () => {
+      const { data: qz } = await supabase.from("vocab_quizzes").select("id").eq("lesson_id", quizData?.quiz?.module_id ? (await supabase.from("lessons").select("id").eq("quiz_id", Number(quizId)).single()).data?.id : 0).maybeSingle();
+      // Actually, a better way to get lessonId is from the quiz module or directly
+      const { data: lesson } = await supabase.from("lessons").select("id").eq("quiz_id", Number(quizId)).maybeSingle();
+      if (!lesson) return [];
+      const { data: vq } = await supabase.from("vocab_quizzes").select("id").eq("lesson_id", lesson.id).maybeSingle();
+      if (!vq) return [];
+      const { data } = await supabase.from("vocab_questions").select("*").eq("vocab_quiz_id", vq.id);
+      return data || [];
+    },
+    enabled: !!quizData
+  });
 
   const saveAnswerMutation = useMutation({
     onMutate: async (question_id: number) => {
@@ -313,8 +348,6 @@ const DictationPage = () => {
         next.add(question_id);
         return next;
       });
-      // Don't auto next immediately
-      setTimeout(() => handleNext(true), 1500);
     }
   });
  
@@ -382,7 +415,7 @@ const DictationPage = () => {
     }
   });
 
-  // Ctrl to Play/Pause
+  // Keyboard Shortcuts
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Control") {
@@ -394,10 +427,15 @@ const DictationPage = () => {
           }
         }
       }
+      
+      // Enter to next if current is done
+      if (e.key === "Enter" && sessionDone.has(currentQuestion?.id)) {
+        handleNext(true);
+      }
     };
     window.addEventListener("keydown", handleGlobalKeyDown);
     return () => window.removeEventListener("keydown", handleGlobalKeyDown);
-  }, []);
+  }, [currentQuestion?.id, sessionDone]);
 
   // Fix React Hooks rule: move this above any early returns
   useEffect(() => {
@@ -484,7 +522,34 @@ const DictationPage = () => {
                       {activeQuestionIndices.length === questions.length ? "Bỏ chọn tất cả" : "Chọn tất cả"}
                     </Button>
                  </div>
-             </div>
+              </div>
+              
+              {/* Filtered Vocab Info */}
+              {activeQuestionIndices.length > 0 && (
+                <div className="mb-4 p-3 bg-blue-50 border border-blue-100 rounded-lg flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-blue-700">
+                    <Library className="w-4 h-4" />
+                    <span className="text-sm font-medium">
+                      Các câu đã chọn có {vocabWords.filter(w => activeQuestionIndices.map(idx => questions[idx].id).includes(w.question_id)).length} từ vựng
+                    </span>
+                  </div>
+                  <Button 
+                    variant="link" 
+                    size="sm" 
+                    className="text-blue-700 font-bold"
+                    onClick={() => {
+                      const selectedIds = activeQuestionIndices.map(idx => questions[idx].id);
+                      if (lessonId) {
+                        navigate(`/courses/${courseId}/vocab-lesson/${lessonId}`, { state: { questionIds: selectedIds } });
+                      } else {
+                        toast({ title: "Đang tải dữ liệu...", description: "Vui lòng thử lại sau giây lát." });
+                      }
+                    }}
+                  >
+                    Học từ vựng của các câu này <ArrowRight className="w-4 h-4 ml-1" />
+                  </Button>
+                </div>
+              )}
              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                {questions.map((q: any, idx: number) => (
                  <label key={q.id} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${activeQuestionIndices.includes(idx) ? 'bg-primary/5 border-primary/50' : 'bg-background hover:bg-muted'}`}>
@@ -543,14 +608,37 @@ const DictationPage = () => {
 
             {/* Audio Block */}
             {currentQuestion.audio_url && (
-              <div className="w-full bg-primary/5 p-4 rounded-xl border border-primary/20 flex flex-col items-center gap-3">
+              <div className="w-full bg-primary/5 p-6 rounded-xl border border-primary/20 flex flex-col items-center gap-4">
                 <audio 
                   ref={audioRef} 
                   src={currentQuestion.audio_url} 
                   controls 
-                  className="w-full max-w-md"
+                  className="w-full max-w-md h-10"
                   autoPlay
                 />
+                <div className="flex items-center gap-2 bg-background border rounded-lg p-1">
+                  {[0.5, 0.75, 1, 1.25, 1.5].map((speed) => (
+                    <Button
+                      key={speed}
+                      variant="ghost"
+                      size="sm"
+                      className={cn(
+                        "h-7 px-2 text-xs font-bold",
+                        audioRef.current?.playbackRate === speed ? "bg-primary text-primary-foreground" : ""
+                      )}
+                      onClick={() => {
+                        if (audioRef.current) {
+                          audioRef.current.playbackRate = speed;
+                          // Force re-render to show active speed
+                          const currentSpeed = audioRef.current.playbackRate;
+                          (e: any) => {}; 
+                        }
+                      }}
+                    >
+                      {speed}x
+                    </Button>
+                  ))}
+                </div>
               </div>
             )}
 
@@ -567,18 +655,27 @@ const DictationPage = () => {
             </div>
 
             {/* Bottom Actions */}
-            <div className="pt-4 border-t flex items-center justify-between gap-3 mt-auto">
+            <div className="pt-4 border-t flex items-center justify-between gap-3 mt-auto flex-wrap">
                <span className="text-sm font-semibold text-emerald-600">
                  Đã xong {completedQuestionIds.size}/{questions.length} câu
                </span>
                <div className="flex gap-2">
-                 <Button variant="outline" onClick={() => handleNext(false)}>
-                   <SkipForward className="w-4 h-4 mr-2" /> Bỏ qua
-                 </Button>
+                 {sessionDone.has(currentQuestion.id) ? (
+                   <Button 
+                     onClick={() => handleNext(true)} 
+                     className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold px-8 shadow-lg animate-in zoom-in-95 duration-300"
+                   >
+                     Tiếp tục câu sau <ChevronRight className="w-4 h-4 ml-2" />
+                   </Button>
+                 ) : (
+                   <Button variant="outline" onClick={() => handleNext(false)}>
+                     <SkipForward className="w-4 h-4 mr-2" /> Bỏ qua
+                   </Button>
+                 )}
                  <Button 
-                   variant="default" 
+                   variant="secondary" 
                    onClick={() => navigate(`/courses/${courseId}/quiz/${quizId}/result`, { state: { score: completedQuestionIds.size, total: questions.length, resultId: targetResultId } })}
-                   className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-md hover:shadow-lg transition-all"
+                   className="shadow-sm border font-medium"
                  >
                    <CheckCircle className="w-4 h-4 mr-2" /> Nộp bài
                  </Button>
@@ -586,30 +683,73 @@ const DictationPage = () => {
             </div>
           </div>
 
-          {/* Sidebar - Question Navigator */}
-          <div className="lg:col-span-1 bg-card rounded-xl border p-4 max-h-[80vh] overflow-y-auto">
-             <h3 className="font-semibold text-sm mb-4 text-foreground">Danh sách câu hỏi</h3>
-             <div className="grid grid-cols-5 sm:grid-cols-8 lg:grid-cols-4 gap-2">
-               {activeQuestionIndices.map((idx: number) => {
-                 const q = questions[idx];
-                 const isDone = completedQuestionIds.has(q.id);
-                 const isCurrent = currentIndex === idx;
-                 return (
-                   <button
-                     key={q.id}
-                     onClick={() => setCurrentIndex(idx)}
-                     className={`aspect-square flex items-center justify-center rounded-lg text-sm font-semibold transition-all
-                       ${isCurrent ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : ''}
-                       ${isDone ? 'bg-emerald-500 text-white' : 'bg-muted text-muted-foreground hover:bg-muted/80'}
-                     `}
-                   >
-                     {idx + 1}
-                   </button>
-                 );
-               })}
-             </div>
+          {/* Sidebar - Question Navigator (Desktop) */}
+          <div className="hidden lg:block lg:col-span-1 space-y-6">
+             <QuestionVocabSidebar vocabWords={vocabWords} currentQuestionId={currentQuestion?.id} />
+             
+             <div className="bg-card rounded-xl border p-4 max-h-[80vh] overflow-y-auto">
+                <h3 className="font-semibold text-sm mb-4 text-foreground">Danh sách câu hỏi</h3>
+                <div className="grid grid-cols-4 gap-2">
+                  {activeQuestionIndices.map((idx: number) => {
+                    const q = questions[idx];
+                    const isDone = completedQuestionIds.has(q.id);
+                    const isCurrent = currentIndex === idx;
+                    return (
+                      <button
+                        key={q.id}
+                        onClick={() => setCurrentIndex(idx)}
+                        className={`aspect-square flex items-center justify-center rounded-lg text-sm font-semibold transition-all
+                          ${isCurrent ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : ''}
+                          ${isDone ? 'bg-emerald-500 text-white' : 'bg-muted text-muted-foreground hover:bg-muted/80'}
+                        `}
+                      >
+                        {idx + 1}
+                      </button>
+                    );
+                  })}
+              </div>
+            </div>
           </div>
 
+          {/* Mobile Navigator Trigger */}
+          <div className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-40">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button className="rounded-full shadow-2xl px-6 h-12 bg-primary text-primary-foreground font-bold border-4 border-background">
+                  <Library className="w-4 h-4 mr-2" /> Danh sách câu & Từ vựng
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="bottom" className="h-[70vh] rounded-t-3xl border-t-0 p-0 overflow-hidden bg-background">
+                <div className="h-full overflow-y-auto p-6 space-y-6">
+                  <QuestionVocabSidebar vocabWords={vocabWords} currentQuestionId={currentQuestion?.id} />
+                  
+                  <div className="space-y-4">
+                    <h3 className="font-bold text-lg text-foreground">Danh sách câu hỏi</h3>
+                    <div className="grid grid-cols-5 sm:grid-cols-8 gap-2">
+                      {activeQuestionIndices.map((idx: number) => {
+                        const q = questions[idx];
+                        const isDone = completedQuestionIds.has(q.id);
+                        const isCurrent = currentIndex === idx;
+                        return (
+                          <SheetClose asChild key={q.id}>
+                            <button
+                              onClick={() => setCurrentIndex(idx)}
+                              className={`aspect-square flex items-center justify-center rounded-xl text-sm font-bold transition-all
+                                ${isCurrent ? 'ring-2 ring-primary ring-offset-4 ring-offset-background' : ''}
+                                ${isDone ? 'bg-emerald-500 text-white' : 'bg-muted text-muted-foreground'}
+                              `}
+                            >
+                              {idx + 1}
+                            </button>
+                          </SheetClose>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
         </div>
       </div>
     </StudentLayout>
@@ -630,7 +770,6 @@ const QuestionDictationSection = ({
   onComplete: () => void, 
   onRedo: () => void 
 }) => {
-  // We need to track how many fields are correctly filled to mark the question as complete
   const [fields, setFields] = useState<boolean[]>([]);
   
   const expectedItems = useMemo(() => {
@@ -638,7 +777,6 @@ const QuestionDictationSection = ({
     if (question.question_text?.trim() && question.question_text !== 'Audio dictation') {
        items.push({ type: 'question', text: question.question_text, placeholder: "Nhập nội dung câu hỏi..." });
     }
-    // Answers
     question.answers.forEach((ans: any, idx: number) => {
        if (ans.answer_text?.trim()) {
           items.push({ type: 'answer', text: ans.answer_text, placeholder: `Nhập đáp án ${String.fromCharCode(65 + idx)}...` });
@@ -648,7 +786,6 @@ const QuestionDictationSection = ({
   }, [question]);
 
   useEffect(() => {
-    // Current session completion state is what determines if fields are filled/locked
     setFields(new Array(expectedItems.length).fill(isDoneInSession));
   }, [expectedItems.length, isDoneInSession]);
 
@@ -663,23 +800,47 @@ const QuestionDictationSection = ({
     });
   };
 
-  return (
-    <div className="space-y-4">
-      {expectedItems.map((item, idx) => (
-         <div key={`field-${idx}`} className="flex gap-3 items-start">
-           <div className={`mt-3 w-8 h-8 rounded-full shrink-0 flex items-center justify-center font-bold text-sm
-              ${fields[idx] ? 'bg-emerald-500 text-white' : 'bg-primary/10 text-primary'}
-           `}>
-             {item.type === 'question' ? 'Q' : String.fromCharCode(65 + (idx - (expectedItems[0].type === 'question' ? 1 : 0)))}
-           </div>
+  const renderItem = (item: any, idx: number) => {
+    const isCloze = item.type === 'question' && item.text.includes("[___]");
+    const clozeParts = isCloze ? item.text.split("[___]") : [];
+    
+    return (
+      <div key={`field-${idx}`} className="flex gap-3 items-start">
+        <div className={`mt-3 w-8 h-8 rounded-full shrink-0 flex items-center justify-center font-bold text-sm
+           ${fields[idx] ? 'bg-emerald-500 text-white' : 'bg-primary/10 text-primary'}
+        `}>
+          {item.type === 'question' ? 'Q' : String.fromCharCode(65 + (idx - (expectedItems[0].type === 'question' ? 1 : 0)))}
+        </div>
+        
+        {isCloze ? (
+          <div className="flex-1 bg-muted/30 p-6 rounded-xl border leading-loose text-lg font-medium">
+            {clozeParts.map((part: any, pIdx: number) => (
+              <React.Fragment key={pIdx}>
+                {part}
+                {pIdx < clozeParts.length - 1 && (
+                  <span className="inline-block mx-1">
+                    {fields[idx + pIdx] ? (
+                       <span className="text-emerald-600 font-bold border-b-2 border-emerald-500 px-2">{question.answers[pIdx]?.answer_text}</span>
+                    ) : (
+                       <DictationInput 
+                         expected={question.answers[pIdx]?.answer_text || ""} 
+                         placeholder="..." 
+                         onCorrect={() => setFieldComplete(idx + pIdx)}
+                       />
+                    )}
+                  </span>
+                )}
+              </React.Fragment>
+            ))}
+          </div>
+        ) : (
+          <div className="w-full">
             {fields[idx] ? (
-               <div className="w-full">
-                 <Input
-                   value={item.text}
-                   className="w-full py-6 px-4 text-base bg-emerald-500/10 text-emerald-700 font-medium border-emerald-500"
-                   readOnly
-                 />
-               </div>
+               <Input
+                 value={item.text}
+                 className="w-full py-6 px-4 text-base bg-emerald-500/10 text-emerald-700 font-medium border-emerald-500"
+                 readOnly
+               />
             ) : (
                <DictationInput 
                  expected={item.text} 
@@ -687,8 +848,19 @@ const QuestionDictationSection = ({
                  onCorrect={() => setFieldComplete(idx)}
                />
             )}
-         </div>
-      ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-4">
+      {expectedItems.map((item, idx) => {
+        const isFirstItemCloze = expectedItems[0].type === 'question' && expectedItems[0].text.includes("[___]");
+        if (isFirstItemCloze && item.type === 'answer') return null;
+        return renderItem(item, idx);
+      })}
       
       {isCompleted && question.translation && (
         <div className="mt-6 p-4 bg-primary/5 rounded-xl border border-primary/20">
@@ -704,6 +876,36 @@ const QuestionDictationSection = ({
           </Button>
         </div>
       )}
+    </div>
+  );
+};
+
+const QuestionVocabSidebar = ({ vocabWords, currentQuestionId }: { vocabWords: any[], currentQuestionId?: number }) => {
+  const currentVocab = useMemo(() => {
+    return vocabWords.filter(w => w.question_id === currentQuestionId);
+  }, [vocabWords, currentQuestionId]);
+
+  if (currentVocab.length === 0) return null;
+
+  return (
+    <div className="bg-card rounded-xl border p-4 shadow-sm border-primary/20 bg-primary/5">
+      <h3 className="font-bold text-sm mb-3 flex items-center gap-2 text-primary">
+        <Library className="w-4 h-4" /> Từ vựng trong câu
+      </h3>
+      <div className="space-y-3">
+        {currentVocab.map(w => (
+          <div key={w.id} className="text-sm border-b border-primary/10 pb-2 last:border-0">
+            <div className="flex justify-between items-baseline gap-2">
+              <span className="font-bold text-primary">{w.word}</span>
+              <span className="text-[10px] text-muted-foreground font-mono">{w.phonetic}</span>
+            </div>
+            <p className="text-foreground text-xs">{w.definition_vi}</p>
+            {w.example_sentence && (
+              <p className="text-[10px] text-muted-foreground italic mt-1 bg-background/50 p-1 rounded">"{w.example_sentence}"</p>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 };

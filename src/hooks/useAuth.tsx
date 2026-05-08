@@ -24,13 +24,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [profile, setProfile] = useState<{ full_name: string | null; avatar_url: string | null } | null>(null);
 
-  const fetchUserData = async (userId: string) => {
-    const [profileRes, roleRes] = await Promise.all([
-      supabase.from("profiles").select("full_name, avatar_url").eq("user_id", userId).single(),
-      supabase.from("user_roles").select("role").eq("user_id", userId).eq("role", "admin").maybeSingle(),
-    ]);
-    setProfile(profileRes.data);
-    setIsAdmin(!!roleRes.data);
+  const fetchUserData = async (userId: string, currentUser?: User) => {
+    try {
+      const [profileRes, roleRes] = await Promise.all([
+        supabase.from("profiles").select("full_name, avatar_url").eq("user_id", userId).maybeSingle(),
+        supabase.from("user_roles").select("role").eq("user_id", userId).eq("role", "admin").maybeSingle(),
+      ]);
+      
+      if (profileRes.data) {
+        setProfile(profileRes.data);
+      } else if (currentUser?.user_metadata) {
+        // Fallback to metadata for newly created users where profile row might not be ready
+        setProfile({
+          full_name: currentUser.user_metadata.full_name || null,
+          avatar_url: null
+        });
+      }
+      
+      setIsAdmin(!!roleRes.data);
+    } catch (err) {
+      console.error("Error fetching user data:", err);
+    }
   };
 
   useEffect(() => {
@@ -41,7 +55,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (session?.user) {
         // Use setTimeout to avoid Supabase client deadlock
-        setTimeout(() => fetchUserData(session.user.id), 0);
+        setTimeout(() => fetchUserData(session.user.id, session.user), 0);
       } else {
         setProfile(null);
         setIsAdmin(false);

@@ -10,6 +10,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import AuthCallback from "./pages/AuthCallback";
 import Dashboard from "./pages/Dashboard";
 import Courses from "./pages/Courses";
 import CourseDetail from "./pages/CourseDetail";
@@ -17,12 +18,12 @@ import LearnPage from "./pages/LearnPage";
 import QuizPage from "./pages/QuizPage";
 import QuizResult from "./pages/QuizResult";
 import VocabPage from "./pages/VocabPage";
-import ListeningPage from "./pages/ListeningPage";
 import DictationPage from "./pages/DictationPage";
 import FullTestList from "./pages/FullTestList";
 import FullTestExam from "./pages/FullTestExam";
 import FullTestResult from "./pages/FullTestResult";
 import Profile from "./pages/Profile";
+import VocabLessonPage from "./pages/VocabLessonPage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminCourses from "./pages/admin/AdminCourses";
 import AdminCourseNew from "./pages/admin/AdminCourseNew";
@@ -48,6 +49,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
 
             {/* Student (protected) */}
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
@@ -57,7 +59,7 @@ const App = () => (
             <Route path="/courses/:courseId/quiz/:quizId" element={<ProtectedRoute><QuizPage /></ProtectedRoute>} />
             <Route path="/courses/:courseId/quiz/:quizId/result" element={<ProtectedRoute><QuizResult /></ProtectedRoute>} />
             <Route path="/courses/:courseId/vocab" element={<ProtectedRoute><VocabPage /></ProtectedRoute>} />
-            <Route path="/courses/:courseId/listening/:quizId" element={<ProtectedRoute><ListeningPage /></ProtectedRoute>} />
+            <Route path="/courses/:courseId/vocab-lesson/:lessonId" element={<ProtectedRoute><VocabLessonPage /></ProtectedRoute>} />
             <Route path="/courses/:courseId/dictation/:quizId" element={<ProtectedRoute><DictationPage /></ProtectedRoute>} />
             <Route path="/courses/:courseId/fulltest" element={<ProtectedRoute><FullTestList /></ProtectedRoute>} />
             <Route path="/courses/:courseId/fulltest/:testId" element={<ProtectedRoute><FullTestExam /></ProtectedRoute>} />

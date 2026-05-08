@@ -2,10 +2,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Link, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
 import { useAuth } from "@/hooks/useAuth";
 import Logo from "@/components/Logo";
 
@@ -19,10 +18,13 @@ const Login = () => {
   const { user, isAdmin } = useAuth();
 
   // Redirect if already logged in
-  if (user) {
-    navigate(isAdmin ? "/admin/dashboard" : "/dashboard", { replace: true });
-    return null;
-  }
+  useEffect(() => {
+    if (user) {
+      navigate(isAdmin ? "/admin/dashboard" : "/dashboard", { replace: true });
+    }
+  }, [user, isAdmin, navigate]);
+
+  if (user) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,8 +40,11 @@ const Login = () => {
   };
 
   const handleGoogleLogin = async () => {
-    const { error } = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
     });
     if (error) {
       toast({ title: "Lỗi", description: String(error), variant: "destructive" });

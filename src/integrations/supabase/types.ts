@@ -915,6 +915,7 @@ export type Database = {
       vocab_quizzes: {
         Row: {
           category_id: number | null
+          lesson_id: number | null
           display_order: number
           id: number
           title: string
@@ -922,6 +923,7 @@ export type Database = {
         }
         Insert: {
           category_id?: number | null
+          lesson_id?: number | null
           display_order?: number
           id?: number
           title: string
@@ -929,6 +931,7 @@ export type Database = {
         }
         Update: {
           category_id?: number | null
+          lesson_id?: number | null
           display_order?: number
           id?: number
           title?: string

@@ -2,10 +2,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Link, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
 import { useAuth } from "@/hooks/useAuth";
 import Logo from "@/components/Logo";
 
@@ -17,12 +16,15 @@ const Register = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user, isAdmin } = useAuth();
-
+  
   // Redirect if already logged in
-  if (user) {
-    navigate(isAdmin ? "/admin/dashboard" : "/dashboard", { replace: true });
-    return null;
-  }
+  useEffect(() => {
+    if (user) {
+      navigate(isAdmin ? "/admin/dashboard" : "/dashboard", { replace: true });
+    }
+  }, [user, isAdmin, navigate]);
+
+  if (user) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,25 +43,40 @@ const Register = () => {
       }
     });
     
-    setLoading(false);
-    
     if (error) {
+      setLoading(false);
       toast({ title: "Đăng ký thất bại", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Đăng ký thành công!", description: "Vui lòng kiểm tra email (nếu yêu cầu) hoặc đăng nhập." });
+      // If we have a session, we can try to create the profile record if trigger is not ready
       if (data.session) {
-        // Automatically logged in
+        try {
+          await supabase.from("profiles").insert({
+            user_id: data.user!.id,
+            full_name: fullName,
+          });
+        } catch (err) {
+          console.error("Profile creation error (might already exist):", err);
+        }
+        
+        toast({ title: "Đăng ký thành công!", description: "Chào mừng bạn đến với L-English!" });
         navigate("/dashboard", { replace: true });
       } else {
-        // Need email confirmation or manual login
+        setLoading(false);
+        toast({ 
+          title: "Đăng ký thành công!", 
+          description: "Vui lòng kiểm tra email của bạn để xác nhận tài khoản trước khi đăng nhập." 
+        });
         navigate("/login");
       }
     }
   };
 
   const handleGoogleLogin = async () => {
-    const { error } = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
     });
     if (error) {
       toast({ title: "Lỗi", description: String(error), variant: "destructive" });

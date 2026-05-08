@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Edit, Trash2, Upload, Image, Music, Library, GripVertical, Check, ChevronRight, ArrowLeft, ArrowRight, FolderOpen, Folder } from "lucide-react";
+import { Plus, Edit, Trash2, Upload, Download, Image, Music, Library, GripVertical, Check, ChevronRight, ArrowLeft, ArrowRight, FolderOpen, Folder } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -32,6 +32,7 @@ interface QuizManagerProps {
   quizId: number;
   courseId: number;
   lessonType?: string;
+  lessonId?: number;
 }
 
 type ImageSwapSource =
@@ -106,6 +107,7 @@ const SortableQuestionItem = ({
   isSelected?: boolean;
   onToggleSelect?: (id: number) => void;
   showCheckbox?: boolean;
+  openVocab?: (q: any) => void;
 }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: `q-${q.id}`,
@@ -138,13 +140,18 @@ const SortableQuestionItem = ({
           <span className="text-muted-foreground">{q.answers.length} đáp án</span>
         </div>
       </div>
-      <Button size="icon" variant="ghost" className="opacity-0 group-hover:opacity-100 h-6 w-6" onClick={() => openEdit(q)}><Edit className="w-3 h-3" /></Button>
-      <Button size="icon" variant="ghost" className="opacity-0 group-hover:opacity-100 h-6 w-6" onClick={() => { if (confirm("Xóa câu hỏi?")) deleteQuestionMutation.mutate(q.id); }}><Trash2 className="w-3 h-3 text-destructive" /></Button>
+      <div className="flex gap-1">
+        <Button size="icon" variant="ghost" className="opacity-0 group-hover:opacity-100 h-6 w-6 text-blue-600" onClick={() => openVocab?.(q)} title="Quản lý từ vựng cho câu này"><Library className="w-3 h-3" /></Button>
+        <Button size="icon" variant="ghost" className="opacity-0 group-hover:opacity-100 h-6 w-6" onClick={() => openEdit(q)}><Edit className="w-3 h-3" /></Button>
+        <Button size="icon" variant="ghost" className="opacity-0 group-hover:opacity-100 h-6 w-6" onClick={() => { if (confirm("Xóa câu hỏi?")) deleteQuestionMutation.mutate(q.id); }}><Trash2 className="w-3 h-3 text-destructive" /></Button>
+      </div>
     </div>
   );
 };
 
-const QuizManager = ({ quizId, courseId, lessonType }: QuizManagerProps) => {
+import AdminLessonVocab from "./AdminLessonVocab";
+
+const QuizManager = ({ quizId, courseId, lessonType, lessonId }: QuizManagerProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const isDictation = lessonType === "dictation";
@@ -208,6 +215,14 @@ const QuizManager = ({ quizId, courseId, lessonType }: QuizManagerProps) => {
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const [isDraggingAudio, setIsDraggingAudio] = useState(false);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  
+  const [vocabDialogOpen, setVocabDialogOpen] = useState(false);
+  const [vocabTargetQ, setVocabTargetQ] = useState<any>(null);
+
+  const openVocab = (q: any) => {
+    setVocabTargetQ(q);
+    setVocabDialogOpen(true);
+  };
 
   const toggleSelect = (id: number) => {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
@@ -559,8 +574,8 @@ const QuizManager = ({ quizId, courseId, lessonType }: QuizManagerProps) => {
       for (let i = 0; i < rows.length; i++) {
         const cols = rows[i];
         if (isDictation) {
-          // Format for dictation: Question, A, B, C, D, Translation, AudioURL, ImageURL
-          const [questionText, a, b, c, d, translation, audioUrl, imageUrl] = cols.map(s => s?.trim());
+          // Format for dictation: Question, A, B, C, D, Translation, AudioURL, ImageURL, Vocabulary
+          const [questionText, a, b, c, d, translation, audioUrl, imageUrl, vocabText] = cols.map(s => s?.trim());
           
           const qOrder = questions.length + i;
           const finalAudioUrl = await autoImportMedia(audioUrl, quizFolder, `Q${qOrder + 1} - Audio`, "audio", `Q${qOrder + 1}`);
@@ -586,6 +601,31 @@ const QuizManager = ({ quizId, courseId, lessonType }: QuizManagerProps) => {
             }));
             if (answers.length > 0) {
               await supabase.from("answers").insert(answers);
+            }
+            
+            // Handle Vocabulary Import
+            if (vocabText) {
+              const { data: vQuiz } = await supabase.from("vocab_quizzes").select("id").eq("lesson_id", effectiveLessonId).maybeSingle();
+              if (vQuiz) {
+                const words = vocabText.split(';').map(v => v.trim()).filter(Boolean);
+                const vocabEntries = words.map((v, vIdx) => {
+                  const [word, def, phonetic, audio, example] = v.split('|').map(s => s.trim());
+                  return {
+                    vocab_quiz_id: vQuiz.id,
+                    question_id: qData.id,
+                    word: word || "",
+                    definition_vi: def || "",
+                    phonetic: phonetic || null,
+                    audio_male_url: audio || null,
+                    example_sentence: example || null,
+                    display_order: vIdx
+                  };
+                }).filter(v => v.word);
+                
+                if (vocabEntries.length > 0) {
+                  await supabase.from("vocab_questions").insert(vocabEntries);
+                }
+              }
             }
           }
         } else {
@@ -629,6 +669,7 @@ const QuizManager = ({ quizId, courseId, lessonType }: QuizManagerProps) => {
       queryClient.invalidateQueries({ queryKey: ["admin-course-modules", courseId] });
       setImportDialogOpen(false);
       setImportText("");
+      queryClient.invalidateQueries({ queryKey: ["lesson-vocab-words"] });
       toast({ title: "Import thành công!" });
     },
     onError: (e: any) => toast({ title: "Lỗi import", description: e.message, variant: "destructive" }),
@@ -677,6 +718,17 @@ const QuizManager = ({ quizId, courseId, lessonType }: QuizManagerProps) => {
     };
     reader.readAsText(file);
   };
+
+  // Helper to get lessonId (needed for vocab import)
+  const { data: lessonIdFromQuiz } = useQuery({
+    queryKey: ["lesson-id-from-quiz", quizId],
+    queryFn: async () => {
+      const { data } = await supabase.from("lessons").select("id").eq("quiz_id", quizId).single();
+      return data?.id;
+    },
+    enabled: !!isDictation
+  });
+  const effectiveLessonId = lessonId || lessonIdFromQuiz;
 
   const handleUploadWizardAudio = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -745,6 +797,77 @@ const QuizManager = ({ quizId, courseId, lessonType }: QuizManagerProps) => {
 
       return next;
     });
+  };
+
+  const exportQuestions = async () => {
+    if (questions.length === 0) return toast({ title: "Không có câu hỏi để export" });
+    
+    // Fetch vocabulary if it's dictation
+    let vocabByQuestion: Record<number, any[]> = {};
+    if (isDictation && effectiveLessonId) {
+      const { data: vQuiz } = await supabase.from("vocab_quizzes").select("id").eq("lesson_id", effectiveLessonId).maybeSingle();
+      if (vQuiz) {
+        const { data: vocabWords } = await supabase.from("vocab_questions").select("*").eq("vocab_quiz_id", vQuiz.id);
+        if (vocabWords) {
+          vocabWords.forEach(w => {
+            if (w.question_id) {
+              if (!vocabByQuestion[w.question_id]) vocabByQuestion[w.question_id] = [];
+              vocabByQuestion[w.question_id].push(w);
+            }
+          });
+        }
+      }
+    }
+
+    let header = "";
+    if (isDictation) {
+      header = "QuestionText,A,B,C,D,Translation,AudioURL,ImageURL,Vocabulary";
+    } else {
+      header = "QuestionText,A,B,C,D,Correct,Explanation,Translation,AudioURL,ImageURL";
+    }
+
+    const rows = questions.map((q: any) => {
+      const answers = q.answers || [];
+      const a = answers[0]?.answer_text || "";
+      const b = answers[1]?.answer_text || "";
+      const c = answers[2]?.answer_text || "";
+      const d = answers[3]?.answer_text || "";
+      
+      if (isDictation) {
+        const vocabList = vocabByQuestion[q.id] || [];
+        const vocabStr = vocabList.map(v => `${v.word}|${v.definition_vi}|${v.phonetic || ""}|${v.audio_male_url || ""}|${v.example_sentence || ""}`).join(";");
+        return [
+          `"${q.question_text || ""}"`,
+          `"${a}"`, `"${b}"`, `"${c}"`, `"${d}"`,
+          `"${q.translation || ""}"`,
+          `"${q.audio_url || ""}"`,
+          `"${q.image_url || ""}"`,
+          `"${vocabStr}"`
+        ].join(",");
+      } else {
+        const correctIdx = answers.findIndex((ans: any) => ans.is_correct);
+        const correct = correctIdx >= 0 ? "ABCD"[correctIdx] : "";
+        const explanation = answers[correctIdx]?.explanation || "";
+        return [
+          `"${q.question_text || ""}"`,
+          `"${a}"`, `"${b}"`, `"${c}"`, `"${d}"`,
+          `"${correct}"`,
+          `"${explanation}"`,
+          `"${q.translation || ""}"`,
+          `"${q.audio_url || ""}"`,
+          `"${q.image_url || ""}"`
+        ].join(",");
+      }
+    });
+
+    const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + [header, ...rows].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `quiz_${quizId}_questions.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const swapPoolImageWithQuestion = (poolIndex: number, questionId: number) => {
@@ -869,6 +992,7 @@ const QuizManager = ({ quizId, courseId, lessonType }: QuizManagerProps) => {
         </div>
         <div className="flex gap-1 flex-wrap">
           <Button size="sm" variant="outline" onClick={() => setImportDialogOpen(true)}><Upload className="w-3 h-3 mr-1" /> Import</Button>
+          <Button size="sm" variant="outline" onClick={exportQuestions}><Download className="w-3 h-3 mr-1" /> Export</Button>
           <Button size="sm" variant="outline" onClick={openNew}><Plus className="w-3 h-3 mr-1" /> Thêm câu</Button>
           {questions.length > 0 && (
             <Button size="sm" variant="default" onClick={openWizard} className="bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700">
@@ -887,6 +1011,7 @@ const QuizManager = ({ quizId, courseId, lessonType }: QuizManagerProps) => {
                 q={q}
                 index={i}
                 openEdit={openEdit}
+                openVocab={openVocab}
                 deleteQuestionMutation={deleteQuestionMutation}
                 isSelected={selectedIds.includes(q.id)}
                 onToggleSelect={toggleSelect}
@@ -1488,6 +1613,21 @@ const QuizManager = ({ quizId, courseId, lessonType }: QuizManagerProps) => {
               )}
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={vocabDialogOpen} onOpenChange={setVocabDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Quản lý từ vựng - Câu {questions.findIndex(q => q.id === vocabTargetQ?.id) + 1}</DialogTitle>
+          </DialogHeader>
+          {vocabTargetQ && (
+            <AdminLessonVocab 
+              lessonId={lessonId || 0} 
+              lessonTitle={vocabTargetQ.question_text || `Câu ${vocabTargetQ.id}`}
+              questionId={vocabTargetQ.id}
+            />
+          )}
         </DialogContent>
       </Dialog>
     </div>

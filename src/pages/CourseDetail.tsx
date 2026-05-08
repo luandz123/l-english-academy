@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { PlayCircle, FileText, CheckCircle, Lock, Headphones } from "lucide-react";
+import { PlayCircle, FileText, CheckCircle, Lock, Headphones, BookA } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
@@ -90,6 +90,17 @@ const CourseDetail = () => {
       return data || [];
     },
     enabled: !!user,
+  });
+
+  const { data: vocabQuizzes } = useQuery({
+    queryKey: ["course-vocab-quizzes", cid],
+    queryFn: async () => {
+      const lessonIds = modules?.flatMap((m: any) => m.lessons?.map((l: any) => l.id) || []) || [];
+      if (lessonIds.length === 0) return [];
+      const { data } = await supabase.from("vocab_quizzes").select("lesson_id, total_questions").in("lesson_id", lessonIds);
+      return data || [];
+    },
+    enabled: !!modules && modules.length > 0,
   });
 
   const handleEnroll = async () => {
@@ -210,21 +221,21 @@ const CourseDetail = () => {
                             const latestResult = (isTest || isDictation) ? quizResults?.find(r => r.quiz_id === (lesson.quiz_id || lesson.id)) : null;
                             
                             return (
-                              <Link
+                              <div
                                 key={`l-${lesson.id}`}
-                                to={destUrl}
-                                onClick={(e) => {
+                                onClick={() => {
                                   if (!canAccess) {
-                                    e.preventDefault();
                                     toast({
                                       title: "Nội dung có phí",
                                       description: "Vui lòng đăng ký khóa học để xem nội dung bài học này.",
                                       variant: "destructive"
                                     });
+                                    return;
                                   }
+                                  navigate(destUrl);
                                 }}
                                 className={cn(
-                                  "flex justify-between items-center px-4 py-3 rounded-xl border transition-all hover:bg-muted/50",
+                                  "flex justify-between items-center px-4 py-3 rounded-xl border transition-all hover:bg-muted/50 cursor-pointer",
                                   (isTest || isDictation) ? "bg-muted/10 border-border" : "border-transparent hover:border-border"
                                 )}
                               >
@@ -247,9 +258,21 @@ const CourseDetail = () => {
                                   </div>
                                 </div>
                                  <div className="flex items-center gap-3 shrink-0">
+                                  {vocabQuizzes?.find(vq => vq.lesson_id === lesson.id && vq.total_questions > 0) && (
+                                    <Button
+                                      variant="ghost"
+                                      className="text-[11px] h-7 font-bold text-primary bg-primary/10 hover:bg-primary/20 px-2 py-0 rounded-md flex items-center gap-1"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigate(`/courses/${cid}/vocab-lesson/${lesson.id}`);
+                                      }}
+                                    >
+                                      <BookA className="w-3 h-3" /> Từ vựng
+                                    </Button>
+                                  )}
                                   {!canAccess ? (
                                     <div className="flex items-center gap-1.5 shrink-0">
-                                      <Lock className="w-4 h-4 text-amber-500" />
+                                      <Lock className="w-3 h-3 text-amber-500" />
                                       <Badge variant="outline" className="text-[10px] text-amber-600 bg-amber-50 border-amber-200 h-5 px-1.5">
                                         VIP
                                       </Badge>
@@ -264,23 +287,32 @@ const CourseDetail = () => {
                                       {(isTest || isDictation) ? (
                                         <>
                                           {latestResult ? (
-                                            <div className="flex flex-col items-end hidden sm:flex">
+                                            <div className="flex flex-col items-end gap-1.5 hidden sm:flex">
                                               {isDictation ? (
-                                                <span className="text-xs font-bold text-purple-600 bg-purple-500/10 px-2 py-0.5 rounded-full">
-                                                  Đã làm: {latestResult.correct_answers || 0}
-                                                </span>
+                                                <div className="flex flex-col items-end gap-1 min-w-[100px]">
+                                                  <div className="flex justify-between w-full text-[10px] font-bold text-purple-600">
+                                                    <span>Tiến độ</span>
+                                                    <span>{Math.round(((latestResult.correct_answers || 0) / (latestResult.total_questions || 1)) * 100)}%</span>
+                                                  </div>
+                                                  <div className="w-full h-1.5 bg-purple-100 rounded-full overflow-hidden">
+                                                    <div 
+                                                      className="h-full bg-purple-500 transition-all duration-500" 
+                                                      style={{ width: `${((latestResult.correct_answers || 0) / (latestResult.total_questions || 1)) * 100}%` }}
+                                                    />
+                                                  </div>
+                                                </div>
                                               ) : (
-                                                <span className="text-xs font-bold text-success bg-success/10 px-2 py-0.5 rounded-full">
+                                                <span className="text-xs font-bold text-success bg-success/10 px-2 py-0.5 rounded-full border border-success/20">
                                                   Điểm: {latestResult.score}/10
                                                 </span>
                                               )}
                                             </div>
                                           ) : (
                                             <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full hidden sm:inline-block">
-                                              Chưa làm
+                                              Chưa học
                                             </span>
                                           )}
-                                          <span className="text-xs font-bold text-primary whitespace-nowrap ml-2">Tới bài</span>
+                                          <span className="text-xs font-bold text-primary whitespace-nowrap ml-2">Học ngay</span>
                                         </>
                                       ) : (
                                         lesson.duration_seconds > 0 && (
@@ -290,7 +322,7 @@ const CourseDetail = () => {
                                     </>
                                   )}
                                 </div>
-                              </Link>
+                              </div>
                             );
                           })}
                           {/* Removed standalone quizzes per user request */}

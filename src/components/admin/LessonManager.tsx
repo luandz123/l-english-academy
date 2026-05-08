@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import QuizManager from "./QuizManager";
 import LessonPracticeManager from "./LessonPracticeManager";
+import AdminLessonVocab from "./AdminLessonVocab";
 import {
   DndContext,
   closestCenter,
@@ -158,7 +159,7 @@ const SortableLessonItem = ({
                 <FileQuestion className="w-4 h-4 text-primary" />
                 <span className="text-sm font-semibold text-foreground">Quản lý câu hỏi</span>
               </div>
-              <QuizManager quizId={l.quiz_id} courseId={courseId} lessonType={l.lesson_type} />
+              <QuizManager quizId={l.quiz_id} courseId={courseId} lessonType={l.lesson_type} lessonId={l.id} />
             </div>
           )}
           {(l.lesson_type === "exam" || l.lesson_type === "practice" || l.lesson_type === "dictation") && !l.quiz_id && (
@@ -167,6 +168,8 @@ const SortableLessonItem = ({
               <CreateQuizForLesson lessonId={l.id} moduleId={l.module_id} courseId={courseId} quizzesCount={0} lessonTitle={l.title} />
             </div>
           )}
+          
+          <AdminLessonVocab lessonId={l.id} lessonTitle={l.title} />
         </div>
       )}
     </div>
