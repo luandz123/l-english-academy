@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import Logo from "@/components/Logo";
+import { signInWithGoogle } from "@/lib/googleOAuth";
 
 const Register = () => {
   const [email, setEmail] = useState("");
@@ -67,17 +68,9 @@ const Register = () => {
   };
 
   const handleGoogleLogin = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-        queryParams: {
-          prompt: "select_account",
-        },
-      },
-    });
+    const { error } = await signInWithGoogle();
     if (error) {
-      toast({ title: "Lỗi", description: String(error), variant: "destructive" });
+      toast({ title: "Lỗi đăng nhập Google", description: error.message, variant: "destructive" });
     }
   };
 
