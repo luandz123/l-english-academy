@@ -36,7 +36,34 @@ const AuthCallback = () => {
     };
 
     const handleAuthCallback = async () => {
-      // First try to get the session from the URL hash/code
+      const params = new URLSearchParams(window.location.search);
+      const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+      const oauthError = params.get("error_description") || hashParams.get("error_description");
+
+      if (oauthError) {
+        toast({
+          title: "Lỗi đăng nhập Google",
+          description: decodeURIComponent(oauthError.replace(/\+/g, " ")),
+          variant: "destructive",
+        });
+        navigate("/login", { replace: true });
+        return;
+      }
+
+      const code = params.get("code");
+      if (code) {
+        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(window.location.href);
+        if (exchangeError) {
+          toast({
+            title: "Lỗi đăng nhập Google",
+            description: exchangeError.message,
+            variant: "destructive",
+          });
+          navigate("/login", { replace: true });
+          return;
+        }
+      }
+
       const { data, error } = await supabase.auth.getSession();
       
       if (error) {
