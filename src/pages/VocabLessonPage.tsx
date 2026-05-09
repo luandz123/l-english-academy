@@ -27,6 +27,8 @@ export default function VocabLessonPage() {
   const [transcript, setTranscript] = useState("");
   const [showResult, setShowResult] = useState(false);
   const [wrongChars, setWrongChars] = useState<{ char: string, correct: boolean }[] | null>(null);
+  const [isFinished, setIsFinished] = useState(false);
+  const [quizId, setQuizId] = useState<number | null>(null);
 
   const currentIdx = indices[round];
 
@@ -44,13 +46,12 @@ export default function VocabLessonPage() {
     }
   });
 
-  const { data: questions = [] } = useQuery({
-    queryKey: ["vocab-lesson-questions", lessonId],
+  const { data: lessonData } = useQuery({
+    queryKey: ["vocab-lesson-details", lessonId],
     queryFn: async () => {
       const { data: lesson } = await supabase.from("lessons").select("quiz_id").eq("id", Number(lessonId)).single();
-      if (!lesson?.quiz_id) return [];
-      const { data } = await supabase.from("questions").select("id, display_order").eq("quiz_id", lesson.quiz_id).order("display_order");
-      return data || [];
+      if (lesson?.quiz_id) setQuizId(lesson.quiz_id);
+      return lesson;
     }
   });
 
@@ -95,8 +96,7 @@ export default function VocabLessonPage() {
         setRound((round + 1) as any);
         toast({ title: `Tuyệt vời! Chuyển sang Vòng ${round + 1}` });
       } else {
-        toast({ title: "Hoàn thành bài học từ vựng!" });
-        navigate(`/courses/${courseId}`);
+        setIsFinished(true);
       }
     }
   };
@@ -177,12 +177,12 @@ export default function VocabLessonPage() {
     }, 5000);
   };
 
-  if (isLoading) return <StudentLayout><Skeleton className="h-64 rounded-xl max-w-2xl mx-auto" /></StudentLayout>;
+  if (isLoading) return <StudentLayout><Skeleton className="h-64 rounded-3xl max-w-2xl mx-auto border-2 shadow-sm" /></StudentLayout>;
   if (!words || words.length === 0) return (
     <StudentLayout>
-      <div className="text-center py-20 bg-card rounded-xl shadow border max-w-2xl mx-auto">
-        <p className="text-muted-foreground mb-4">Bài học này chưa có từ vựng.</p>
-        <Button onClick={() => navigate(`/courses/${courseId}`)}>Quay lại khóa học</Button>
+      <div className="text-center py-24 card-duo max-w-2xl mx-auto bg-white border-2">
+        <p className="text-muted-foreground font-bold text-lg mb-6">Bài học này chưa có từ vựng.</p>
+        <Button className="btn-3d bg-white text-muted-foreground hover:bg-gray-50 border-border" onClick={() => navigate(`/courses/${courseId}`)}>Quay lại khóa học</Button>
       </div>
     </StudentLayout>
   );
@@ -191,22 +191,23 @@ export default function VocabLessonPage() {
 
   return (
     <StudentLayout>
-      <div className="max-w-2xl mx-auto flex flex-col min-h-[70vh]">
+      <div className="max-w-2xl mx-auto flex flex-col min-h-[70vh] gap-6">
         {/* Header Tabs */}
-        <div className="flex items-center justify-between mb-4 bg-card p-4 rounded-xl border shadow-sm">
-          <div className="flex items-center gap-2">
-            <Button size="icon" variant="ghost" className="rounded-full" onClick={() => navigate(`/courses/${courseId}`)}>
-              <XIcon className="w-5 h-5" />
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 card-duo bg-white p-5 border-2">
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <Button size="icon" variant="ghost" className="rounded-full hover:bg-muted" onClick={() => navigate(`/courses/${courseId}`)}>
+              <XIcon className="w-6 h-6 text-muted-foreground" />
             </Button>
-            <h1 className="font-bold text-lg hidden sm:block">Từ vựng</h1>
+            <h1 className="font-extrabold text-xl text-foreground">Từ vựng</h1>
           </div>
-          <div className="flex bg-muted p-1 rounded-lg gap-1">
+          <div className="flex gap-2 w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0 hide-scrollbar">
             {[1, 2, 3].map((r) => (
               <Button 
                 key={r}
-                variant={round === r ? "default" : "ghost"} 
-                size="sm" 
-                className="text-xs h-8 px-3"
+                className={cn(
+                  "font-bold text-sm px-6 h-12 flex-shrink-0",
+                  round === r ? "btn-3d btn-3d-blue" : "btn-3d bg-white text-muted-foreground border-border hover:bg-muted/30 hover:-translate-y-1 hover:shadow-[0_4px_0_var(--border)]"
+                )}
                 onClick={() => { setRound(r as any); setShowResult(false); setWrongChars(null); setIsFlipped(false); }}
               >
                 {r === 1 ? "1. Học" : r === 2 ? "2. Viết" : "3. Đọc"}
@@ -216,23 +217,26 @@ export default function VocabLessonPage() {
         </div>
 
         {/* Progress Bar */}
-        <div className="mb-6 space-y-2">
-          <div className="flex justify-between text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1">
+        <div className="space-y-3 px-2">
+          <div className="flex justify-between text-xs font-black text-muted-foreground uppercase tracking-widest px-1">
             <span>Tiến độ tổng quát</span>
-            <span>{Math.round(progress)}%</span>
+            <span className="text-[var(--duo-blue)]">{Math.round(progress)}%</span>
           </div>
-          <Progress value={progress} className="h-1.5" />
+          <div className="w-full bg-border h-4 rounded-full overflow-hidden relative">
+            <div className="absolute top-0 bottom-0 left-0 bg-[var(--duo-green)] transition-all duration-500 ease-out" style={{ width: `${progress}%` }} />
+            <div className="absolute top-1 bottom-1 left-0 bg-white/20 transition-all duration-500 ease-out mx-1 rounded-full" style={{ width: `calc(${progress}% - 8px)` }} />
+          </div>
         </div>
 
         {/* Interaction Card */}
-        <div className="flex-1 flex flex-col items-center justify-center bg-card rounded-3xl border-2 shadow-sm p-8 relative min-h-[500px]">
+        <div className="flex-1 flex flex-col items-center justify-center card-duo bg-white border-2 p-8 relative min-h-[500px]">
           
           {/* ROUND 1: FLASHCARDS */}
-          {round === 1 && word && (
-            <div className="w-full flex flex-col items-center space-y-10">
+          {!isFinished && round === 1 && word && (
+            <div className="w-full flex flex-col items-center space-y-12">
               <div 
                 className={cn(
-                  "w-full max-w-sm aspect-[4/5] perspective-1000 cursor-pointer group",
+                  "w-full max-w-sm aspect-[4/5] perspective-1000 cursor-pointer group select-none",
                   isFlipped ? "rotate-y-180" : ""
                 )}
                 onClick={() => {
@@ -247,29 +251,29 @@ export default function VocabLessonPage() {
                 <div className="relative w-full h-full transition-transform duration-500 preserve-3d">
                   {/* Front Side */}
                   <div className={cn(
-                    "absolute inset-0 backface-hidden bg-muted/30 rounded-3xl border-2 border-primary/20 flex flex-col items-center justify-center p-8 shadow-inner group-hover:border-primary/40 transition-all",
+                    "absolute inset-0 backface-hidden bg-white rounded-3xl border-4 border-border flex flex-col items-center justify-center p-10 shadow-[0_8px_0_var(--border)] group-hover:-translate-y-1 group-hover:shadow-[0_12px_0_var(--border)] group-active:translate-y-2 group-active:shadow-none transition-all",
                     isFlipped ? "opacity-0 invisible" : "opacity-100 visible"
                   )}>
-                    <h2 className="text-5xl font-extrabold text-foreground mb-4 select-none">{word.word}</h2>
-                    <p className="text-sm text-muted-foreground animate-pulse mt-12">Chạm để lật & nghe</p>
+                    <h2 className="text-5xl md:text-6xl font-black text-foreground mb-6 select-none drop-shadow-sm">{word.word}</h2>
+                    <div className="mt-12 px-6 py-2 bg-muted/50 border-2 rounded-full text-sm font-bold text-muted-foreground animate-pulse">Chạm để lật & nghe</div>
                   </div>
 
                   {/* Back Side */}
                   <div className={cn(
-                    "absolute inset-0 backface-hidden bg-primary/5 rounded-3xl border-2 border-primary/40 flex flex-col items-center justify-center p-8 shadow-md transform rotate-y-180 transition-all",
+                    "absolute inset-0 backface-hidden bg-[var(--duo-blue)]/5 rounded-3xl border-4 border-[var(--duo-blue)]/30 flex flex-col items-center justify-center p-8 shadow-[0_8px_0_transparent] transform rotate-y-180 transition-all",
                     isFlipped ? "opacity-100 visible" : "opacity-0 invisible"
                   )}>
-                    <div className="space-y-6 text-center animate-in zoom-in-95 duration-300">
+                    <div className="space-y-6 text-center animate-in zoom-in-95 duration-300 w-full">
                       <div>
-                        <h2 className="text-3xl font-bold text-primary mb-1">{word.word}</h2>
-                        <p className="text-xl text-muted-foreground font-mono bg-background/50 px-4 py-1 rounded-full inline-block">{word.phonetic}</p>
+                        <h2 className="text-4xl font-black text-[var(--duo-blue)] mb-3">{word.word}</h2>
+                        <p className="text-xl text-muted-foreground font-mono font-bold bg-white/60 border-2 border-[var(--duo-blue)]/20 px-4 py-1.5 rounded-xl inline-block">{word.phonetic}</p>
                       </div>
-                      <div className="h-px w-16 bg-primary/20 mx-auto"></div>
-                      <p className="text-3xl font-bold text-foreground">{word.definition_vi}</p>
+                      <div className="h-1.5 rounded-full w-20 bg-[var(--duo-blue)]/20 mx-auto my-4"></div>
+                      <p className="text-3xl font-extrabold text-foreground px-4">{word.definition_vi}</p>
                       {word.example_sentence && (
-                        <p className="text-sm text-muted-foreground italic bg-background/40 p-4 rounded-xl border border-primary/10">"{word.example_sentence}"</p>
+                        <p className="text-base font-bold text-foreground italic bg-white p-5 rounded-2xl border-2 border-dashed border-[var(--duo-blue)]/30 mt-4">"{word.example_sentence}"</p>
                       )}
-                      <p className="text-xs text-primary font-semibold animate-pulse pt-4">Chạm để sang từ tiếp theo</p>
+                      <p className="text-xs font-black uppercase tracking-widest text-[var(--duo-blue)] animate-pulse pt-6">Chạm để sang từ tiếp theo</p>
                     </div>
                   </div>
                 </div>
@@ -277,13 +281,13 @@ export default function VocabLessonPage() {
 
               {/* Navigation Footer */}
               <div className="flex items-center gap-6 w-full max-w-sm">
-                <Button variant="ghost" size="icon" className="rounded-full h-12 w-12 border" onClick={handleBack} disabled={currentIdx === 0}>
-                  <ChevronLeft className="w-6 h-6" />
+                <Button className="btn-3d bg-white rounded-full h-14 w-14 border-2 p-0 flex items-center justify-center" onClick={handleBack} disabled={currentIdx === 0}>
+                  <ChevronLeft className="w-6 h-6 text-muted-foreground" />
                 </Button>
-                <div className="flex-1 text-center font-bold text-muted-foreground text-sm">
+                <div className="flex-1 text-center font-black text-muted-foreground text-lg bg-muted/30 py-2 rounded-2xl border-2">
                   {currentIdx + 1} / {words.length}
                 </div>
-                <Button variant="ghost" size="icon" className="rounded-full h-12 w-12 border" onClick={handleNext}>
+                <Button className="btn-3d btn-3d-blue rounded-full h-14 w-14 p-0 flex items-center justify-center" onClick={handleNext}>
                   <ChevronRight className="w-6 h-6" />
                 </Button>
               </div>
@@ -291,42 +295,42 @@ export default function VocabLessonPage() {
           )}
 
           {/* ROUND 2: DICTATION */}
-          {round === 2 && word && (
-            <div className="w-full max-w-sm text-center space-y-10 animate-in fade-in duration-300">
+          {!isFinished && round === 2 && word && (
+            <div className="w-full max-w-sm text-center space-y-12 animate-in fade-in duration-300">
               <div 
-                className="w-24 h-24 bg-primary/10 rounded-full mx-auto flex items-center justify-center cursor-pointer hover:bg-primary/20 transition-all shadow-inner border-2 border-primary/20 active:scale-95"
+                className="w-32 h-32 bg-[var(--duo-blue)]/10 rounded-full mx-auto flex items-center justify-center cursor-pointer hover:bg-[var(--duo-blue)]/20 transition-all border-4 border-[var(--duo-blue)]/30 shadow-[0_6px_0_rgba(28,176,246,0.3)] active:translate-y-2 active:shadow-none"
                 onClick={() => playAudio(word.word, word.audio_male_url)}
               >
-                <Volume2 className="w-10 h-10 text-primary" />
+                <Volume2 className="w-14 h-14 text-[var(--duo-blue)]" />
               </div>
               
-              <div className="space-y-3">
-                <h3 className="text-3xl font-bold text-foreground">{word.definition_vi}</h3>
-                <p className="text-sm text-muted-foreground font-medium">Nghe và viết lại từ vựng này</p>
+              <div className="space-y-4">
+                <h3 className="text-4xl font-black text-foreground drop-shadow-sm">{word.definition_vi}</h3>
+                <p className="text-base font-bold text-muted-foreground bg-muted/50 inline-block px-4 py-1.5 rounded-full border-2">Nghe và viết lại từ vựng này</p>
               </div>
 
-              <div className="space-y-4">
-                <form onSubmit={handleDictationSubmit} className="flex gap-2 w-full">
+              <div className="space-y-6">
+                <form onSubmit={handleDictationSubmit} className="flex gap-3 w-full">
                   <Input 
                     autoFocus
-                    placeholder="Type what you hear..." 
+                    placeholder="Nhập từ bạn nghe..." 
                     value={dictationInput}
                     onChange={(e) => setDictationInput(e.target.value)}
-                    className="text-center text-xl font-bold h-14 rounded-2xl border-2 focus-visible:ring-primary shadow-sm"
+                    className="text-center text-2xl font-black h-16 rounded-2xl border-2 border-border shadow-[0_4px_0_transparent] focus-visible:border-[var(--duo-blue)] focus-visible:shadow-[0_4px_0_var(--duo-blue)] focus-visible:ring-0 transition-all"
                     readOnly={showResult}
                   />
-                  <Button type="submit" size="lg" className="h-14 w-14 rounded-2xl shrink-0 shadow-md" disabled={showResult || !dictationInput.trim()}>
-                    <ArrowRight className="w-6 h-6"/>
+                  <Button type="submit" className="btn-3d btn-3d-blue h-16 w-20 rounded-2xl shrink-0" disabled={showResult || !dictationInput.trim()}>
+                    <ArrowRight className="w-8 h-8"/>
                   </Button>
                 </form>
 
                 {/* Wrong Character Feedback */}
                 {wrongChars && (
-                  <div className="flex justify-center gap-1 bg-destructive/5 p-3 rounded-xl border border-destructive/10 animate-in slide-in-from-top-2">
+                  <div className="flex justify-center gap-1.5 bg-[var(--duo-red)]/5 p-4 rounded-2xl border-2 border-[var(--duo-red)]/30 animate-in slide-in-from-top-2">
                     {wrongChars.map((item, i) => (
                       <span key={i} className={cn(
-                        "text-xl font-mono font-bold",
-                        item.correct ? "text-success" : "text-destructive underline decoration-2"
+                        "text-2xl font-mono font-black",
+                        item.correct ? "text-[var(--duo-green)]" : "text-[var(--duo-red)] underline decoration-4 underline-offset-4"
                       )}>
                         {item.char}
                       </span>
@@ -335,99 +339,137 @@ export default function VocabLessonPage() {
                 )}
               </div>
 
-              <div className="flex gap-3 justify-center">
-                <Button variant="outline" size="sm" className="rounded-full px-4" onClick={() => { setDictationInput(word.word); setShowResult(true); setTimeout(handleNext, 1500); }} disabled={showResult}>
+              <div className="flex gap-4 justify-center pt-4">
+                <Button className="btn-3d bg-white text-muted-foreground hover:bg-gray-50 border-gray-200 h-12 px-6 font-bold" onClick={() => { setDictationInput(word.word); setShowResult(true); setTimeout(handleNext, 1500); }} disabled={showResult}>
                   Xem đáp án
                 </Button>
-                <Button variant="ghost" size="sm" className="rounded-full px-4" onClick={handleNext}>Bỏ qua</Button>
+                <Button className="btn-3d bg-white text-muted-foreground hover:bg-gray-50 border-gray-200 h-12 px-6 font-bold" onClick={handleNext}>Bỏ qua</Button>
               </div>
 
-              <div className="flex items-center justify-between pt-6 border-t">
-                <Button variant="ghost" size="sm" onClick={handleBack} disabled={currentIdx === 0} className="text-muted-foreground">
-                  <ChevronLeft className="w-4 h-4 mr-1" /> Trước
+              <div className="flex items-center justify-between pt-8 border-t-2">
+                <Button className="btn-3d bg-white h-12 px-5 font-bold" onClick={handleBack} disabled={currentIdx === 0}>
+                  <ChevronLeft className="w-5 h-5 mr-1" /> Trước
                 </Button>
-                <span className="text-xs font-bold text-muted-foreground">{currentIdx + 1} / {words.length}</span>
-                <Button variant="ghost" size="sm" onClick={handleNext} className="text-muted-foreground">
-                  Sau <ChevronRight className="w-4 h-4 ml-1" />
+                <span className="text-sm font-black text-muted-foreground bg-muted/30 px-4 py-1.5 rounded-xl border-2">{currentIdx + 1} / {words.length}</span>
+                <Button className="btn-3d btn-3d-blue h-12 px-5 font-bold" onClick={handleNext}>
+                  Sau <ChevronRight className="w-5 h-5 ml-1" />
                 </Button>
               </div>
 
               {showResult && (
-                <div className="absolute inset-0 bg-background/80 backdrop-blur-sm rounded-3xl flex flex-col items-center justify-center space-y-4 animate-in fade-in duration-300 z-10">
-                  <div className="w-20 h-20 bg-success/20 rounded-full flex items-center justify-center">
-                    <CheckCircle2 className="w-12 h-12 text-success" />
+                <div className="absolute inset-0 bg-white/90 backdrop-blur-sm rounded-3xl flex flex-col items-center justify-center space-y-6 animate-in fade-in zoom-in-95 duration-300 z-10 border-4 border-[var(--duo-green)]/30">
+                  <div className="w-28 h-28 bg-[var(--duo-green)]/10 rounded-full flex items-center justify-center border-4 border-[var(--duo-green)]/30 shadow-[0_4px_0_rgba(88,204,2,0.3)]">
+                    <CheckCircle2 className="w-14 h-14 text-[var(--duo-green)]" />
                   </div>
-                  <h2 className="text-4xl font-black text-success uppercase tracking-wider">{word.word}</h2>
-                  <p className="font-bold text-success/80">Chính xác!</p>
+                  <h2 className="text-5xl font-black text-[var(--duo-green)] uppercase tracking-wider drop-shadow-sm">{word.word}</h2>
+                  <p className="font-extrabold text-2xl text-[var(--duo-green)]/80">Chính xác!</p>
                 </div>
               )}
             </div>
           )}
 
           {/* ROUND 3: SPEAKING */}
-          {round === 3 && word && (
-            <div className="w-full max-w-sm text-center space-y-10 flex flex-col items-center animate-in fade-in duration-300">
-              <div className="space-y-4">
-                <div className="flex items-center justify-center gap-4">
-                  <h2 className="text-5xl font-black text-primary tracking-tight">{word.word}</h2>
-                  <Button variant="ghost" size="icon" className="rounded-full h-12 w-12 bg-primary/10 hover:bg-primary/20 transition-all shadow-sm" onClick={() => playAudio(word.word, word.audio_male_url)}>
-                    <Volume2 className="w-6 h-6 text-primary" />
+          {!isFinished && round === 3 && word && (
+            <div className="w-full max-w-sm text-center space-y-12 flex flex-col items-center animate-in fade-in duration-300">
+              <div className="space-y-5">
+                <div className="flex items-center justify-center gap-5">
+                  <h2 className="text-5xl font-black text-foreground drop-shadow-sm">{word.word}</h2>
+                  <Button className="btn-3d bg-[var(--duo-blue)]/10 border-2 border-[var(--duo-blue)]/30 rounded-full h-14 w-14 flex items-center justify-center hover:bg-[var(--duo-blue)]/20 shadow-[0_4px_0_rgba(28,176,246,0.3)] active:translate-y-1 active:shadow-none" onClick={() => playAudio(word.word, word.audio_male_url)}>
+                    <Volume2 className="w-7 h-7 text-[var(--duo-blue)]" />
                   </Button>
                 </div>
-                <p className="text-2xl text-muted-foreground font-mono tracking-widest">{word.phonetic}</p>
+                <p className="text-2xl text-muted-foreground font-mono font-bold tracking-widest bg-muted/50 inline-block px-5 py-2 rounded-2xl border-2">{word.phonetic}</p>
               </div>
 
-              <div className="flex flex-col items-center gap-5 py-4">
+              <div className="flex flex-col items-center gap-6 py-4">
                 <Button 
-                  size="lg" 
                   onClick={startListening} 
                   disabled={isListening || showResult}
                   className={cn(
-                    "w-36 h-36 rounded-full border-8 transition-all duration-300 shadow-xl relative",
-                    isListening ? "border-red-500 bg-red-100 text-red-500 animate-pulse scale-110" : "border-primary/10 bg-primary/5 text-primary hover:bg-primary/10 hover:scale-105"
+                    "w-40 h-40 rounded-full transition-all duration-300 relative",
+                    isListening ? "border-[var(--duo-red)] bg-[var(--duo-red)]/10 text-[var(--duo-red)] border-8 animate-pulse scale-110 shadow-lg" : "btn-3d btn-3d-blue shadow-[0_8px_0_#1899D6] active:translate-y-2 active:shadow-none hover:scale-105"
                   )}
                   variant="ghost"
                 >
-                  <Mic className={cn("w-14 h-14", isListening ? 'text-red-500' : 'text-primary')} />
-                  {isListening && <div className="absolute inset-0 rounded-full border-4 border-red-400 animate-ping opacity-50"></div>}
+                  <Mic className={cn("w-16 h-16", isListening ? 'text-[var(--duo-red)]' : 'text-white')} />
+                  {isListening && <div className="absolute inset-0 rounded-full border-4 border-[var(--duo-red)] animate-ping opacity-50"></div>}
                 </Button>
-                <p className="text-sm font-black uppercase tracking-widest text-muted-foreground h-6">
-                  {isListening ? "Listening..." : "Tap to Speak"}
+                <p className="text-base font-black uppercase tracking-widest text-[var(--duo-blue)] h-6 bg-[var(--duo-blue)]/10 px-4 py-1.5 rounded-full border-2 border-[var(--duo-blue)]/20">
+                  {isListening ? "Đang nghe..." : "Chạm để đọc"}
                 </p>
               </div>
 
-              <div className="w-full space-y-6 min-h-[160px] flex flex-col justify-center">
+              <div className="w-full space-y-8 min-h-[160px] flex flex-col justify-center">
                 {transcript ? (
-                  <div className="p-4 bg-muted/50 rounded-2xl border-2 border-primary/10 animate-in fade-in slide-in-from-top-4">
-                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-2">Máy nghe được:</p>
-                    <p className="text-xl font-black text-foreground italic">"{transcript}"</p>
+                  <div className="p-5 bg-white rounded-2xl border-4 border-border shadow-[0_4px_0_var(--border)] animate-in fade-in slide-in-from-top-4">
+                    <p className="text-xs text-muted-foreground font-black uppercase tracking-widest mb-3">Máy nghe được:</p>
+                    <p className="text-2xl font-black text-foreground italic">"{transcript}"</p>
                   </div>
                 ) : (
-                  <div className="h-[92px]"></div> 
+                  <div className="h-[104px]"></div> 
                 )}
                 
-                <div className="flex items-center justify-between w-full px-4">
-                  <Button variant="ghost" size="sm" onClick={handleBack} disabled={currentIdx === 0} className="font-bold text-muted-foreground">
-                    <ChevronLeft className="w-4 h-4 mr-1" /> Trước
+                <div className="flex items-center justify-between w-full px-2">
+                  <Button className="btn-3d bg-white h-12 px-5 font-bold" onClick={handleBack} disabled={currentIdx === 0}>
+                    <ChevronLeft className="w-5 h-5 mr-1" /> Trước
                   </Button>
-                  <Button variant="ghost" size="sm" onClick={handleNext} className="font-bold text-muted-foreground">
-                    Bỏ qua từ này <RotateCcw className="w-4 h-4 ml-2" />
+                  <Button className="btn-3d bg-white h-12 px-5 font-bold text-muted-foreground" onClick={handleNext}>
+                    Bỏ qua <RotateCcw className="w-5 h-5 ml-2" />
                   </Button>
                 </div>
               </div>
 
               {showResult && (
-                <div className="absolute inset-0 bg-background/80 backdrop-blur-sm rounded-3xl flex flex-col items-center justify-center space-y-4 animate-in fade-in duration-300 z-10">
-                  <div className="w-20 h-20 bg-success/20 rounded-full flex items-center justify-center">
-                    <CheckCircle2 className="w-12 h-12 text-success" />
+                <div className="absolute inset-0 bg-white/90 backdrop-blur-sm rounded-3xl flex flex-col items-center justify-center space-y-6 animate-in fade-in duration-300 z-10 border-4 border-[var(--duo-green)]/30">
+                  <div className="w-28 h-28 bg-[var(--duo-green)]/10 rounded-full flex items-center justify-center border-4 border-[var(--duo-green)]/30 shadow-[0_4px_0_rgba(88,204,2,0.3)]">
+                    <CheckCircle2 className="w-14 h-14 text-[var(--duo-green)]" />
                   </div>
-                  <h2 className="text-4xl font-black text-success uppercase tracking-widest">Excellent!</h2>
-                  <p className="font-bold text-success/80">Phát âm chuẩn xác</p>
+                  <h2 className="text-4xl font-black text-[var(--duo-green)] uppercase tracking-widest drop-shadow-sm">Excellent!</h2>
+                  <p className="font-extrabold text-2xl text-[var(--duo-green)]/80">Phát âm chuẩn xác</p>
                 </div>
               )}
             </div>
           )}
 
+          {/* FINISHED STATE */}
+          {isFinished && (
+            <div className="w-full text-center space-y-10 animate-in zoom-in-95 duration-300">
+              <div className="w-32 h-32 bg-[var(--duo-green)]/10 rounded-full mx-auto flex items-center justify-center border-4 border-[var(--duo-green)]/30 shadow-[0_6px_0_rgba(88,204,2,0.3)]">
+                <CheckCircle2 className="w-16 h-16 text-[var(--duo-green)]" />
+              </div>
+              <div className="space-y-4">
+                <h2 className="text-4xl font-black text-foreground drop-shadow-sm">Tuyệt vời!</h2>
+                <p className="text-xl text-muted-foreground font-bold">Bạn đã hoàn thành bài học từ vựng này.</p>
+              </div>
+              
+              <div className="flex flex-col gap-4 w-full max-w-sm mx-auto pt-4 border-t-2">
+                {quizId && (
+                  <Button 
+                    className="btn-3d btn-3d-blue w-full h-16 rounded-2xl text-xl"
+                    onClick={() => navigate(`/courses/${courseId}/dictation/${quizId}`, { state: { questionIds: filteredQuestionIds } })}
+                  >
+                    <Volume2 className="w-6 h-6 mr-3" /> Luyện nghe các câu này
+                  </Button>
+                )}
+                <Button 
+                  className="btn-3d bg-white text-muted-foreground hover:bg-gray-50 border-gray-200 w-full h-16 rounded-2xl text-xl font-bold"
+                  onClick={() => navigate(`/courses/${courseId}`)}
+                >
+                  <ChevronLeft className="w-6 h-6 mr-2" /> Quay về khóa học
+                </Button>
+                <Button 
+                  className="btn-3d bg-[var(--duo-yellow)] hover:bg-[#E5A800] border-[#E5A800] text-black w-full h-16 rounded-2xl text-xl font-bold mt-2"
+                  onClick={() => {
+                    setIsFinished(false);
+                    setRound(1);
+                    setIndices({ 1: 0, 2: 0, 3: 0 });
+                  }}
+                >
+                  <RotateCcw className="w-6 h-6 mr-3" /> Học lại từ đầu
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

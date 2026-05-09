@@ -111,10 +111,22 @@ const AdminCourseDetail = () => {
     queryFn: async () => {
       const { data } = await supabase
         .from("enrollments")
-        .select("*, profiles!inner(full_name)")
+        .select("*")
         .eq("course_id", id)
         .order("enrolled_at", { ascending: false });
-      return data ?? [];
+        
+      if (!data || data.length === 0) return [];
+      
+      const userIds = [...new Set(data.map(d => d.user_id))];
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, full_name")
+        .in("id", userIds);
+
+      return data.map(d => ({
+        ...d,
+        profiles: profiles?.find(p => p.id === d.user_id) || null
+      }));
     },
   });
 

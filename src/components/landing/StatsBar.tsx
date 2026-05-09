@@ -1,22 +1,24 @@
-import { Users, BookOpen, HelpCircle, Star } from "lucide-react";
+import { BookOpen, HelpCircle, Star, Trophy } from "lucide-react";
 
 const stats = [
-  { icon: Users, value: "10,000+", label: "Học viên" },
-  { icon: BookOpen, value: "5", label: "Khóa học" },
-  { icon: HelpCircle, value: "12,000+", label: "Câu hỏi" },
-  { icon: Star, value: "4.9★", label: "Đánh giá" },
+  { icon: BookOpen, value: "70+", label: "Bài giảng", color: "bg-[var(--duo-green)]", shadow: "shadow-[0_4px_0_var(--duo-green-dark)]", iconColor: "text-white" },
+  { icon: HelpCircle, value: "100+", label: "Bài thi", color: "bg-[var(--duo-blue)]", shadow: "shadow-[0_4px_0_var(--duo-blue-dark)]", iconColor: "text-white" },
+  { icon: Trophy, value: "3000+", label: "Từ vựng", color: "bg-[var(--duo-yellow)]", shadow: "shadow-[0_4px_0_var(--duo-yellow-dark)]", iconColor: "text-white" },
+  { icon: Star, value: "60+", label: "Đề thi", color: "bg-[var(--duo-purple)]", shadow: "shadow-[0_4px_0_var(--duo-purple-dark)]", iconColor: "text-white" },
 ];
 
 const StatsBar = () => {
   return (
-    <section className="bg-primary py-8">
+    <section className="py-10 bg-[#FAFAFA]">
       <div className="container mx-auto px-4">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
           {stats.map((s) => (
-            <div key={s.label} className="flex flex-col items-center text-center gap-2">
-              <s.icon className="w-7 h-7 text-primary-foreground/80" />
-              <p className="text-2xl md:text-3xl font-bold text-primary-foreground">{s.value}</p>
-              <p className="text-sm text-primary-foreground/80">{s.label}</p>
+            <div key={s.label} className="card-duo p-5 flex flex-col items-center text-center gap-3 hover:scale-[1.02] transition-transform">
+              <div className={`w-12 h-12 rounded-xl ${s.color} ${s.shadow} flex items-center justify-center`}>
+                <s.icon className={`w-6 h-6 ${s.iconColor}`} />
+              </div>
+              <p className="text-2xl md:text-3xl font-extrabold text-foreground">{s.value}</p>
+              <p className="text-sm font-bold text-muted-foreground">{s.label}</p>
             </div>
           ))}
         </div>

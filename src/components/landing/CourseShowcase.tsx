@@ -1,5 +1,4 @@
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -33,17 +32,17 @@ const CourseShowcase = () => {
   };
 
   return (
-    <section className="py-16 md:py-24 bg-background">
+    <section className="py-16 md:py-24 bg-white">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-3">Khóa học nổi bật</h2>
-          <p className="text-muted-foreground">Chất lượng đào tạo cam kết, lộ trình học bài bản với mức giá tốt nhất.</p>
+          <h2 className="text-3xl md:text-4xl font-extrabold text-foreground mb-3">Khóa Học Nổi Bật ⭐</h2>
+          <p className="text-muted-foreground font-medium">Chất lượng đào tạo cam kết, lộ trình học bài bản với mức giá tốt nhất.</p>
         </div>
 
         {isLoading ? (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {[1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-64 rounded-xl" />
+              <Skeleton key={i} className="h-64 rounded-2xl" />
             ))}
           </div>
         ) : (
@@ -51,42 +50,40 @@ const CourseShowcase = () => {
             {courses?.map((c, i) => (
               <div
                 key={c.id}
-                className="bg-card rounded-xl border shadow-sm card-hover flex flex-col animate-fade-in h-full overflow-hidden"
+                className="card-duo flex flex-col animate-fade-in h-full"
                 style={{ animationDelay: `${i * 0.1}s` }}
               >
-                <div className="aspect-video w-full bg-muted relative">
+                <div className="aspect-video w-full bg-muted relative overflow-hidden rounded-t-[14px]">
                   {c.thumbnail_url ? (
                     <img src={c.thumbnail_url} alt={c.title} className="w-full h-full object-cover transition-transform duration-300 hover:scale-105" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-muted-foreground uppercase font-bold text-xs">
+                    <div className="w-full h-full flex items-center justify-center text-muted-foreground uppercase font-bold text-xs bg-gradient-to-br from-[var(--duo-green)]/10 to-[var(--duo-blue)]/10">
                        L-ENGLISH
                     </div>
                   )}
-                </div>
-                <div className="p-6 flex-1 flex flex-col space-y-4">
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <Badge variant="secondary" className="bg-primary/10 text-primary">
-                        {courseTypeMap[c.course_type] || c.course_type}
-                      </Badge>
-                      {((c as any).is_free || !c.price || c.price === 0) && (
-                        <Badge variant="outline" className="text-[10px] font-bold text-emerald-600 bg-emerald-50 border-emerald-200 uppercase">
-                          FREE
-                        </Badge>
-                      )}
+                  {((c as any).is_free || !c.price || c.price === 0) && (
+                    <div className="absolute top-3 right-3">
+                      <span className="badge-duo badge-green">FREE</span>
                     </div>
-                    <h3 className="text-base font-bold text-foreground line-clamp-1">{c.title}</h3>
+                  )}
+                </div>
+                <div className="p-5 flex-1 flex flex-col space-y-3">
+                  <div>
+                    <span className="badge-duo badge-blue mb-2 inline-block">
+                      {courseTypeMap[c.course_type] || c.course_type}
+                    </span>
+                    <h3 className="text-base font-extrabold text-foreground line-clamp-1">{c.title}</h3>
                   </div>
-                  <p className="text-sm text-muted-foreground line-clamp-2">{c.subtitle}</p>
-                  <p className="text-xs text-muted-foreground mt-auto pt-2">
-                    Giảng viên: <span className="text-foreground font-medium">{c.instructor}</span>
+                  <p className="text-sm text-muted-foreground line-clamp-2 font-medium">{c.subtitle}</p>
+                  <p className="text-xs text-muted-foreground mt-auto pt-2 font-bold">
+                    Giảng viên: <span className="text-foreground">{c.instructor}</span>
                   </p>
                 </div>
-                <div className="px-6 pb-6 flex items-center justify-between mt-auto">
-                  <span className="font-bold text-primary">{formatPrice(c.price)}</span>
-                  <Button size="sm" variant="outline" asChild>
-                    <Link to={`/courses/${c.id}`}>Xem chi tiết</Link>
-                  </Button>
+                <div className="px-5 pb-5 flex items-center justify-between mt-auto">
+                  <span className="font-extrabold text-[var(--duo-green)]">{formatPrice(c.price)}</span>
+                  <Link to={`/courses/${c.id}`} className="btn-3d btn-3d-green text-xs py-2 px-4 inline-block">
+                    Xem chi tiết
+                  </Link>
                 </div>
               </div>
             ))}
@@ -94,9 +91,9 @@ const CourseShowcase = () => {
         )}
         
         <div className="mt-12 text-center">
-          <Button size="lg" asChild>
-            <Link to="/courses">Xem tất cả khóa học</Link>
-          </Button>
+          <Link to="/courses" className="btn-3d btn-3d-blue text-base py-3.5 px-8 inline-block">
+            Xem tất cả khóa học 📚
+          </Link>
         </div>
       </div>
     </section>
@@ -104,4 +101,3 @@ const CourseShowcase = () => {
 };
 
 export default CourseShowcase;
-

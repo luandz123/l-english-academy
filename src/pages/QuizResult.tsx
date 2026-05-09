@@ -1,7 +1,6 @@
 import StudentLayout from "@/components/StudentLayout";
 import { useParams, useLocation, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { CheckCircle, XCircle, ChevronLeft, LayoutGrid, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -78,18 +77,18 @@ const QuizResult = () => {
     return (
       <div className="h-screen flex flex-col bg-background overflow-hidden font-sans">
         {/* Sticky Header */}
-        <header className="h-16 border-b shrink-0 bg-card z-20 flex items-center justify-between px-4 lg:px-8 shadow-sm">
+        <header className="h-16 border-b-2 border-[var(--duo-gray)] shrink-0 bg-card z-20 flex items-center justify-between px-4 lg:px-8">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="icon" onClick={() => setShowDetails(false)}>
               <ChevronLeft className="w-5 h-5"/>
             </Button>
-            <h1 className="font-bold text-sm lg:text-base hidden sm:block truncate max-w-xs">{quiz?.title} - Chi tiết giải</h1>
+            <h1 className="font-extrabold text-sm lg:text-base hidden sm:block truncate max-w-xs">{quiz?.title} - Chi tiết giải</h1>
           </div>
           
           <div className="flex items-center gap-3 lg:gap-6">
-            <Button onClick={() => setShowDetails(false)} variant="outline" className="shadow-sm">
+            <button onClick={() => setShowDetails(false)} className="btn-3d btn-3d-white py-2 px-4 text-sm">
               Đóng xem giải
-            </Button>
+            </button>
           </div>
         </header>
 
@@ -97,13 +96,13 @@ const QuizResult = () => {
           {/* Main Content: List of all questions */}
           <div className="flex-1 h-full overflow-y-auto p-4 lg:p-8 space-y-8 scroll-smooth pb-32">
             {quiz?.audio_url && (
-              <div className="max-w-4xl mx-auto bg-gradient-to-r from-blue-500/10 to-violet-500/10 border border-blue-500/20 rounded-xl p-4 sticky top-0 z-10 backdrop-blur-sm shadow-sm">
+              <div className="max-w-4xl mx-auto bg-[#DDF4FF] border-2 border-[#A8E0FD] rounded-2xl p-4 sticky top-0 z-10 backdrop-blur-sm">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center shrink-0">
+                  <div className="w-10 h-10 rounded-xl bg-[var(--duo-blue)] shadow-[0_3px_0_var(--duo-blue-dark)] flex items-center justify-center shrink-0">
                     <span className="text-lg">🎧</span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-foreground mb-1">Audio bài thi</p>
+                    <p className="text-sm font-extrabold text-foreground mb-1">Audio bài thi</p>
                     <audio controls src={quiz.audio_url} className="w-full h-8" controlsList="nodownload" />
                   </div>
                 </div>
@@ -117,39 +116,39 @@ const QuizResult = () => {
                  const isCorrect = !!selectedOpt?.is_correct;
                  
                  return (
-                  <div key={q.id} id={`question-${i}`} className="max-w-4xl mx-auto bg-card border rounded-xl p-6 shadow-sm scroll-mt-6">
+                  <div key={q.id} id={`question-${i}`} className="max-w-4xl mx-auto card-duo p-6 scroll-mt-6">
                     <div className="mb-4 flex items-center justify-between">
-                      <span className="text-sm font-bold px-3 py-1 bg-muted rounded-full text-foreground/80">Câu {i + 1} / {totalQ}</span>
+                      <span className="badge-duo badge-blue">Câu {i + 1} / {totalQ}</span>
                       {selectedId ? (
                           isCorrect ? (
-                              <span className="flex items-center gap-1.5 text-sm font-semibold text-success bg-success/10 px-3 py-1 rounded-full"><CheckCircle className="w-4 h-4" /> Đúng</span>
+                              <span className="badge-duo badge-green flex items-center gap-1"><CheckCircle className="w-4 h-4" /> Đúng</span>
                           ) : (
-                              <span className="flex items-center gap-1.5 text-sm font-semibold text-destructive bg-destructive/10 px-3 py-1 rounded-full"><XCircle className="w-4 h-4" /> Sai</span>
+                              <span className="badge-duo badge-orange flex items-center gap-1"><XCircle className="w-4 h-4" /> Sai</span>
                           )
                       ) : (
-                          <span className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground bg-muted/50 px-3 py-1 rounded-full">Chưa làm</span>
+                          <span className="badge-duo badge-yellow">Chưa làm</span>
                       )}
                     </div>
 
-                    {q.image_url && <img src={q.image_url} alt="Question" className="max-w-full h-auto rounded-lg shadow-sm border mb-6" loading="lazy" />}
+                    {q.image_url && <img src={q.image_url} alt="Question" className="max-w-full h-auto rounded-xl border-2 border-[var(--duo-gray)] mb-6" loading="lazy" />}
                     {q.audio_url && <audio controls src={q.audio_url} className="w-full mb-6 rounded-lg" />}
 
-                    <p className="text-lg font-medium text-foreground mb-6 leading-relaxed bg-background p-4 rounded-xl">{q.question_text}</p>
+                    <p className="text-lg font-bold text-foreground mb-6 leading-relaxed bg-muted p-4 rounded-xl">{q.question_text}</p>
 
                     <div className="space-y-3">
                       {q.answers.map((opt: any, oi: number) => {
                         const isSelected = selectedId === opt.id;
                         const isOptCorrect = opt.is_correct;
                         
-                        let optClass = "border-border bg-card";
-                        let indicatorClass = "border-muted-foreground";
+                        let optClass = "border-[var(--duo-gray)] bg-white shadow-[0_2px_0_var(--duo-gray)]";
+                        let indicatorClass = "border-[var(--duo-gray-dark)] text-muted-foreground";
                         
                         if (isOptCorrect) {
-                           optClass = "border-success bg-success/5 shadow-sm";
-                           indicatorClass = "border-success bg-success text-success-foreground";
+                           optClass = "border-[var(--duo-green)] bg-[#E8F8D4] shadow-[0_3px_0_#C8EDA0]";
+                           indicatorClass = "border-[var(--duo-green)] bg-[var(--duo-green)] text-white";
                         } else if (isSelected && !isOptCorrect) {
-                           optClass = "border-destructive bg-destructive/5 shadow-sm";
-                           indicatorClass = "border-destructive bg-destructive text-destructive-foreground";
+                           optClass = "border-[var(--duo-red)] bg-red-50 shadow-[0_3px_0_#FFB3B3]";
+                           indicatorClass = "border-[var(--duo-red)] bg-[var(--duo-red)] text-white";
                         }
                         
                         return (
@@ -160,13 +159,12 @@ const QuizResult = () => {
                               optClass
                             )}
                           >
-                            <div className={cn("w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0", indicatorClass)}>
-                              {(isOptCorrect || isSelected) && <div className="w-2.5 h-2.5 bg-background rounded-full" />}
+                            <div className={cn("w-7 h-7 rounded-full border-2 flex items-center justify-center shrink-0 font-extrabold text-sm", indicatorClass)}>
+                              {isOptCorrect ? "✓" : isSelected ? "✗" : String.fromCharCode(65 + oi)}
                             </div>
-                            <span className="font-bold text-foreground min-w-[24px]">{String.fromCharCode(65 + oi)}.</span>
-                            <span className={cn("text-base flex-1", (isOptCorrect || isSelected) ? "font-medium" : "text-muted-foreground")}>{opt.answer_text}</span>
-                            {isOptCorrect && <span className="text-sm font-bold text-success ml-2">✅ Đáp án</span>}
-                            {isSelected && !isOptCorrect && <span className="text-sm font-bold text-destructive ml-2">❌ Bạn chọn</span>}
+                            <span className={cn("text-base flex-1 font-bold", (isOptCorrect || isSelected) ? "text-foreground" : "text-muted-foreground")}>{opt.answer_text}</span>
+                            {isOptCorrect && <span className="badge-duo badge-green text-[10px]">✅ Đáp án</span>}
+                            {isSelected && !isOptCorrect && <span className="badge-duo badge-orange text-[10px]">❌ Bạn chọn</span>}
                           </div>
                         );
                       })}
@@ -174,13 +172,13 @@ const QuizResult = () => {
                     
                     <div className="mt-6 space-y-3">
                         {correctOpt?.explanation && (
-                          <div className="p-4 bg-muted/50 border rounded-xl text-sm italic text-foreground">
+                          <div className="p-4 bg-[#E8F8D4] border-2 border-[#C8EDA0] rounded-xl text-sm font-medium text-foreground">
                             💡 <strong>Giải thích:</strong> {correctOpt.explanation}
                           </div>
                         )}
 
                         {q.translation && (
-                          <div className="p-4 bg-blue-500/5 border border-blue-500/20 rounded-xl text-sm text-blue-700 dark:text-blue-400">
+                          <div className="p-4 bg-[#DDF4FF] border-2 border-[#A8E0FD] rounded-xl text-sm font-medium text-[var(--duo-blue-dark)]">
                             🇻🇳 <strong>Dịch nghĩa:</strong> {q.translation}
                           </div>
                         )}
@@ -191,12 +189,12 @@ const QuizResult = () => {
           </div>
 
           {/* Right Sidebar: Grid (Desktop only) */}
-          <div className="hidden lg:flex w-80 flex-col border-l bg-card h-full relative z-10 shadow-[-4px_0_24px_rgba(0,0,0,0.02)]">
-             <div className="p-5 border-b bg-muted/20">
-                <h3 className="font-bold text-base mb-3 flex items-center gap-2"><LayoutGrid className="w-5 h-5 text-primary"/> Danh sách câu hỏi</h3>
-                <div className="flex flex-col gap-2 text-sm text-muted-foreground font-medium">
-                    <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-success block"></span> Đúng ({score})</span>
-                    <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-destructive block"></span> Sai ({totalQ - score})</span>
+          <div className="hidden lg:flex w-80 flex-col border-l-2 border-[var(--duo-gray)] bg-card h-full relative z-10">
+             <div className="p-5 border-b-2 border-[var(--duo-gray)]">
+                <h3 className="font-extrabold text-base mb-3 flex items-center gap-2"><LayoutGrid className="w-5 h-5 text-[var(--duo-green)]"/> Danh sách câu hỏi</h3>
+                <div className="flex flex-col gap-2 text-sm text-muted-foreground font-bold">
+                    <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-[var(--duo-green)] block"></span> Đúng ({score})</span>
+                    <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-[var(--duo-red)] block"></span> Sai ({totalQ - score})</span>
                     <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full border-2 border-muted-foreground block"></span> Chưa làm</span>
                 </div>
              </div>
@@ -206,12 +204,12 @@ const QuizResult = () => {
                    const isCorrect = q.answers?.find((o: any) => o.id === selectedId)?.is_correct;
                    const isAnswered = !!selectedId;
                    
-                   let btnClass = "border-muted bg-card text-muted-foreground hover:border-primary/50";
+                   let btnClass = "border-[var(--duo-gray)] bg-white text-muted-foreground hover:border-[var(--duo-blue)]";
                    if (isAnswered) {
                        if (isCorrect) {
-                           btnClass = "border-success bg-success text-success-foreground shadow-sm hover:shadow-md";
+                           btnClass = "border-[var(--duo-green)] bg-[var(--duo-green)] text-white shadow-[0_3px_0_var(--duo-green-dark)]";
                        } else {
-                           btnClass = "border-destructive bg-destructive text-destructive-foreground shadow-sm hover:shadow-md";
+                           btnClass = "border-[var(--duo-red)] bg-[var(--duo-red)] text-white shadow-[0_3px_0_#CC3333]";
                        }
                    }
 
@@ -220,7 +218,7 @@ const QuizResult = () => {
                         key={i}
                         onClick={() => { document.getElementById(`question-${i}`)?.scrollIntoView({ behavior: 'smooth' }); }}
                         className={cn(
-                          "w-11 h-11 rounded-xl text-sm font-bold transition-all flex items-center justify-center border-2 hover:-translate-y-0.5",
+                          "w-11 h-11 rounded-xl text-sm font-extrabold transition-all flex items-center justify-center border-2 hover:-translate-y-0.5",
                           btnClass
                         )}
                       >
@@ -233,22 +231,22 @@ const QuizResult = () => {
         </main>
 
         {/* Fixed Bottom Palette (Mobile only) */}
-        <footer className="h-16 border-t shrink-0 bg-card z-30 flex lg:hidden items-center justify-between px-4 sticky bottom-0">
-          <Button variant="secondary" onClick={() => setPaletteOpen(!paletteOpen)} className="font-medium gap-2 w-full justify-center h-10">
+        <footer className="h-16 border-t-2 border-[var(--duo-gray)] shrink-0 bg-card z-30 flex lg:hidden items-center justify-between px-4 sticky bottom-0">
+          <button onClick={() => setPaletteOpen(!paletteOpen)} className="btn-3d btn-3d-white w-full py-2.5 text-sm flex items-center justify-center gap-2">
              <LayoutGrid className="w-4 h-4" />
              Danh sách câu hỏi
-          </Button>
+          </button>
         </footer>
 
         {/* Absolute Expandable Palette List (Mobile only) */}
         {paletteOpen && (
-          <div className="absolute bottom-16 left-0 right-0 bg-card/95 backdrop-blur-xl border-t shadow-[0_-10px_40px_rgba(0,0,0,0.1)] z-20 max-h-[50vh] overflow-y-auto p-6 animate-in slide-in-from-bottom-5 lg:hidden">
+          <div className="absolute bottom-16 left-0 right-0 bg-card/95 backdrop-blur-xl border-t-2 border-[var(--duo-gray)] shadow-[0_-10px_40px_rgba(0,0,0,0.1)] z-20 max-h-[50vh] overflow-y-auto p-6 animate-in slide-in-from-bottom-5 lg:hidden">
              <div className="max-w-5xl mx-auto space-y-4">
                <div className="flex items-center justify-between">
-                  <h3 className="font-bold text-sm">Điều hướng nhanh</h3>
-                  <div className="flex flex-col gap-1 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-success block"></span> Đúng ({score})</span>
-                    <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-destructive block"></span> Sai ({totalQ - score})</span>
+                  <h3 className="font-extrabold text-sm">Điều hướng nhanh</h3>
+                  <div className="flex flex-col gap-1 text-xs text-muted-foreground font-bold">
+                    <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-[var(--duo-green)] block"></span> Đúng ({score})</span>
+                    <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-[var(--duo-red)] block"></span> Sai ({totalQ - score})</span>
                   </div>
                </div>
                <div className="flex flex-wrap gap-2">
@@ -257,12 +255,12 @@ const QuizResult = () => {
                    const isCorrect = q.answers?.find((o: any) => o.id === selectedId)?.is_correct;
                    const isAnswered = !!selectedId;
                    
-                   let btnClass = "border-muted bg-card text-muted-foreground hover:border-primary/50";
+                   let btnClass = "border-[var(--duo-gray)] bg-white text-muted-foreground hover:border-[var(--duo-blue)]";
                    if (isAnswered) {
                        if (isCorrect) {
-                           btnClass = "border-success bg-success text-success-foreground shadow-sm";
+                           btnClass = "border-[var(--duo-green)] bg-[var(--duo-green)] text-white shadow-[0_2px_0_var(--duo-green-dark)]";
                        } else {
-                           btnClass = "border-destructive bg-destructive text-destructive-foreground shadow-sm";
+                           btnClass = "border-[var(--duo-red)] bg-[var(--duo-red)] text-white shadow-[0_2px_0_#CC3333]";
                        }
                    }
 
@@ -275,7 +273,7 @@ const QuizResult = () => {
                          setPaletteOpen(false); 
                        }}
                        className={cn(
-                         "w-10 h-10 rounded-lg text-sm font-semibold transition-all flex items-center justify-center border-2",
+                         "w-10 h-10 rounded-xl text-sm font-extrabold transition-all flex items-center justify-center border-2",
                          btnClass
                        )}
                      >
@@ -291,36 +289,50 @@ const QuizResult = () => {
     );
   }
 
+  // Determine score emoji and message
+  const getScoreDisplay = () => {
+    if (percentage >= 80) return { emoji: "🏆", text: "Xuất sắc!", color: "text-[var(--duo-green)]", bg: "bg-[#E8F8D4]", border: "border-[#C8EDA0]" };
+    if (percentage >= 60) return { emoji: "👍", text: "Khá tốt!", color: "text-[var(--duo-blue)]", bg: "bg-[#DDF4FF]", border: "border-[#A8E0FD]" };
+    if (percentage >= 40) return { emoji: "💪", text: "Cố gắng thêm!", color: "text-[var(--duo-yellow)]", bg: "bg-[#FFF8E0]", border: "border-[#FFE680]" };
+    return { emoji: "📚", text: "Hãy ôn tập lại!", color: "text-[var(--duo-orange)]", bg: "bg-[#FFF0E0]", border: "border-[#FFCC80]" };
+  };
+
+  const scoreDisplay = getScoreDisplay();
+
   return (
     <StudentLayout>
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Score card */}
-        <div className="bg-card rounded-xl border p-8 text-center space-y-4 shadow-sm">
-          <h1 className="text-2xl font-bold text-foreground">🏆 KẾT QUẢ BÀI THI</h1>
-          <div className="text-4xl font-extrabold text-primary">{score} / {total}</div>
-          <Progress value={percentage} className="h-3 max-w-xs mx-auto" />
-          <p className="text-lg font-semibold text-foreground">{percentage}%</p>
-          <div className="flex justify-center gap-6 text-sm">
-            <span className="text-success font-medium">✅ Đúng: {score}</span>
-            <span className="text-destructive font-medium">❌ Sai: {total - score}</span>
+        <div className="card-duo p-8 text-center space-y-5">
+          <div className="text-6xl mb-2">{scoreDisplay.emoji}</div>
+          <h1 className="text-2xl font-extrabold text-foreground">KẾT QUẢ BÀI THI</h1>
+          <p className={`text-lg font-extrabold ${scoreDisplay.color}`}>{scoreDisplay.text}</p>
+          <div className={`text-5xl font-extrabold ${scoreDisplay.color}`}>{score} / {total}</div>
+          <div className="progress-duo max-w-xs mx-auto">
+            <div className="progress-duo-fill" style={{ width: `${percentage}%` }} />
+          </div>
+          <p className="text-lg font-extrabold text-foreground">{percentage}%</p>
+          <div className="flex justify-center gap-6 text-sm font-bold">
+            <span className="badge-duo badge-green">✅ Đúng: {score}</span>
+            <span className="badge-duo badge-orange">❌ Sai: {total - score}</span>
           </div>
         </div>
 
         <div className="flex flex-wrap gap-3 justify-center">
-          <Button variant="outline" asChild>
-            <Link to={`/courses/${courseId}`}>← Quay về khóa học</Link>
-          </Button>
-          <Button variant="default" asChild>
-            <Link to={`/courses/${courseId}/quiz/${quizId}`}>🔄 Làm lại</Link>
-          </Button>
+          <Link to={`/courses/${courseId}`} className="btn-3d btn-3d-white py-2.5 px-5 text-sm inline-block">
+            ← Quay về khóa học
+          </Link>
+          <Link to={`/courses/${courseId}/quiz/${quizId}`} className="btn-3d btn-3d-blue py-2.5 px-5 text-sm inline-block">
+            🔄 Làm lại
+          </Link>
           {loadingQ ? (
-            <Button disabled variant="secondary">
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Đang tải giải...
-            </Button>
+            <button disabled className="btn-3d btn-3d-white py-2.5 px-5 text-sm opacity-50 flex items-center gap-2">
+              <Loader2 className="w-4 h-4 animate-spin" /> Đang tải giải...
+            </button>
           ) : questions.length > 0 ? (
-            <Button onClick={() => setShowDetails(true)} variant="secondary" className="shadow-sm">
+            <button onClick={() => setShowDetails(true)} className="btn-3d btn-3d-green py-2.5 px-5 text-sm">
               👁 Xem giải chi tiết
-            </Button>
+            </button>
           ) : null}
         </div>
       </div>

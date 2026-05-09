@@ -14,7 +14,7 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['"Be Vietnam Pro"', 'sans-serif'],
+        sans: ['"Nunito Sans"', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",

@@ -1,8 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { Progress } from "@/components/ui/progress";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -100,12 +98,15 @@ const FullTestExam = () => {
 
   if (!started) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="bg-card rounded-xl border p-8 max-w-lg text-center space-y-4">
-          <h1 className="text-xl font-bold text-foreground">📋 {testInfo?.title ?? `Đề số ${testId}`}</h1>
-          <p className="text-sm text-muted-foreground">200 câu hỏi · 120 phút · 7 Parts</p>
-          <p className="text-xs text-muted-foreground">Part 1-4: Listening · Part 5-7: Reading</p>
-          <Button size="lg" onClick={() => setStarted(true)}>🚀 Bắt đầu thi</Button>
+      <div className="min-h-screen bg-[#FAFAFA] flex items-center justify-center p-4">
+        <div className="card-duo p-8 max-w-lg text-center space-y-5">
+          <div className="w-20 h-20 rounded-2xl bg-[var(--duo-blue)] shadow-[0_4px_0_var(--duo-blue-dark)] flex items-center justify-center mx-auto">
+            <span className="text-3xl">📋</span>
+          </div>
+          <h1 className="text-xl font-extrabold text-foreground">{testInfo?.title ?? `Đề số ${testId}`}</h1>
+          <p className="text-sm text-muted-foreground font-bold">200 câu hỏi · 120 phút · 7 Parts</p>
+          <p className="text-xs text-muted-foreground font-medium">Part 1-4: Listening · Part 5-7: Reading</p>
+          <button className="btn-3d btn-3d-green w-full py-3.5 text-base" onClick={() => setStarted(true)}>🚀 BẮT ĐẦU THI</button>
         </div>
       </div>
     );
@@ -117,27 +118,29 @@ const FullTestExam = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <div className="bg-card border-b p-3 flex items-center gap-4 flex-wrap">
+      <div className="bg-card border-b-2 border-[var(--duo-gray)] p-3 flex items-center gap-4 flex-wrap">
         <div className="flex gap-1">
           {partNames.map((name, i) => (
             <button key={i} onClick={() => goToPart(i)}
-              className={cn("px-3 py-1.5 text-xs font-medium rounded-lg transition-colors",
-                currentPart === i ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"
+              className={cn("px-3 py-1.5 text-xs font-extrabold rounded-xl transition-all border-2",
+                currentPart === i 
+                  ? "bg-[var(--duo-green)] text-white border-[var(--duo-green)] shadow-[0_2px_0_var(--duo-green-dark)]" 
+                  : "bg-white text-muted-foreground border-[var(--duo-gray)] hover:border-[var(--duo-blue)]"
               )}>{name}</button>
           ))}
         </div>
-        <span className="text-xs text-muted-foreground ml-auto">{answeredCount}/200 đã trả lời</span>
-        <span className="text-sm font-mono font-bold text-destructive">⏱ {hours}:{String(mins).padStart(2, "0")}:{String(secs).padStart(2, "0")}</span>
+        <span className="text-xs font-bold text-muted-foreground ml-auto">{answeredCount}/200 đã trả lời</span>
+        <span className="text-sm font-mono font-extrabold text-[var(--duo-red)] bg-red-50 border-2 border-red-200 px-3 py-1 rounded-xl">⏱ {hours}:{String(mins).padStart(2, "0")}:{String(secs).padStart(2, "0")}</span>
       </div>
 
       <div className="flex flex-1">
-        <div className="hidden lg:block w-64 border-r bg-card p-3 overflow-y-auto">
+        <div className="hidden lg:block w-64 border-r-2 border-[var(--duo-gray)] bg-card p-3 overflow-y-auto">
           <div className="space-y-3">
             {partNames.map((name, pi) => {
               const { start, end } = getPartRange(pi);
               return (
                 <div key={pi}>
-                  <p className="text-xs font-semibold text-muted-foreground mb-1">{name}</p>
+                  <p className="text-xs font-extrabold text-muted-foreground mb-1">{name}</p>
                   <div className="grid grid-cols-6 gap-1">
                     {Array.from({ length: end - start + 1 }, (_, i) => {
                       const qIdx = start + i;
@@ -146,8 +149,10 @@ const FullTestExam = () => {
                           setCurrentPart(pi); 
                           document.getElementById(`question-${qIdx}`)?.scrollIntoView({ behavior: 'smooth' }); 
                         }}
-                          className={cn("w-7 h-7 text-xs rounded font-medium border-2 transition-all hover:border-primary/50",
-                            answers[qIdx] !== undefined ? "bg-primary text-primary-foreground border-primary" : "bg-card text-muted-foreground border-muted"
+                          className={cn("w-7 h-7 text-xs rounded-lg font-extrabold border-2 transition-all hover:border-[var(--duo-blue)]",
+                            answers[qIdx] !== undefined 
+                              ? "bg-[var(--duo-green)] text-white border-[var(--duo-green)] shadow-[0_2px_0_var(--duo-green-dark)]" 
+                              : "bg-white text-muted-foreground border-[var(--duo-gray)]"
                           )}>{qIdx + 1}</button>
                       );
                     })}
@@ -156,24 +161,24 @@ const FullTestExam = () => {
               );
             })}
           </div>
-          <Button className="w-full mt-4" size="sm" onClick={submit} disabled={submitting}>
-            {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Nộp bài"}
-          </Button>
+          <button className="btn-3d btn-3d-green w-full py-2.5 mt-4 text-sm" onClick={submit} disabled={submitting}>
+            {submitting ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : "Nộp bài"}
+          </button>
         </div>
 
         <div className="flex-1 h-[calc(100vh-120px)] overflow-y-auto p-4 lg:p-8 space-y-8 scroll-smooth pb-32">
           {allQuestions.map((q, qIdx) => (
-            <div key={qIdx} id={`question-${qIdx}`} className="max-w-4xl mx-auto bg-card border rounded-xl p-6 shadow-sm scroll-mt-6">
+            <div key={qIdx} id={`question-${qIdx}`} className="max-w-4xl mx-auto card-duo p-6 scroll-mt-6">
               <div className="mb-4 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold px-3 py-1 bg-muted rounded-full text-foreground/80">Câu {qIdx + 1} / 200</span>
-                  <span className="text-xs text-muted-foreground font-semibold px-2 py-1 bg-primary/10 text-primary rounded">
+                  <span className="badge-duo badge-blue">Câu {qIdx + 1} / 200</span>
+                  <span className="badge-duo badge-green text-[10px]">
                     {partNames[q.part]}
                   </span>
                 </div>
               </div>
               
-              <p className="text-lg font-medium text-foreground mb-6 leading-relaxed bg-background p-4 rounded-xl">{q.text}</p>
+              <p className="text-lg font-bold text-foreground mb-6 leading-relaxed bg-muted p-4 rounded-xl">{q.text}</p>
               
               <div className="grid gap-3">
                 {q.options.map((opt, oi) => {
@@ -181,13 +186,14 @@ const FullTestExam = () => {
                   return (
                     <button key={oi} onClick={() => setAnswers(prev => ({ ...prev, [qIdx]: oi }))}
                       className={cn("w-full text-left p-4 rounded-xl border-2 text-sm transition-all flex items-center group",
-                        checked ? "border-primary bg-primary/10 text-primary font-medium shadow-sm" : "border-border bg-card text-foreground hover:border-primary/50 hover:bg-muted/20"
+                        checked 
+                          ? "border-[var(--duo-green)] bg-[#E8F8D4] shadow-[0_3px_0_#C8EDA0] font-bold" 
+                          : "border-[var(--duo-gray)] bg-white text-foreground hover:border-[var(--duo-blue)] shadow-[0_2px_0_var(--duo-gray)]"
                       )}>
-                      <div className={cn("w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors mr-3", checked ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground group-hover:border-primary")}>
-                        {checked && <div className="w-2.5 h-2.5 bg-background rounded-full" />}
+                      <div className={cn("w-7 h-7 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors mr-3 font-extrabold text-sm", checked ? "border-[var(--duo-green)] bg-[var(--duo-green)] text-white" : "border-[var(--duo-gray-dark)] group-hover:border-[var(--duo-blue)]")}>
+                        {checked ? "✓" : String.fromCharCode(65 + oi)}
                       </div>
-                      <span className="font-bold mr-2">{String.fromCharCode(65 + oi)}.</span>
-                      <span className="flex-1">{opt}</span>
+                      <span className="flex-1 font-bold">{opt}</span>
                     </button>
                   );
                 })}

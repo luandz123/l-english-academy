@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, Link, useLocation } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import StudentLayout from "@/components/StudentLayout";
-import { Loader2, ArrowLeft, CheckCircle, ChevronRight, Volume2, SkipForward, Play, RefreshCcw, Library, ArrowRight } from "lucide-react";
+import { Loader2, ArrowLeft, CheckCircle, ChevronRight, Volume2, SkipForward, Play, RefreshCcw, Library, ArrowRight, FileQuestion } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -50,31 +50,66 @@ const playSound = (type: "correct" | "error") => {
 };
 
 const findErrorIndex = (input: string, expected: string): number => {
-  let i = 0; // input index
-  let j = 0; // expected index
+  const normI = input.toLowerCase();
+  const normE = expected.toLowerCase();
+  
+  let i = 0;
+  let j = 0;
 
-  while (i < input.length && j < expected.length) {
-    if (!isAlphanumeric(expected[j])) {
+  while (i < normI.length && j < normE.length) {
+    if (!isAlphanumeric(normE[j])) {
       j++;
       continue;
     }
-    if (!isAlphanumeric(input[i])) {
+    if (!isAlphanumeric(normI[i])) {
       i++;
       continue;
     }
-    if (normalizeChar(input[i]) !== normalizeChar(expected[j])) {
-      return i; // found mismatch!
+    if (normI[i] !== normE[j]) {
+      return i;
     }
     i++;
     j++;
   }
   
-  if (i < input.length) {
-    // excess characters in input when expected is already matched
-    return i;
+  if (i < normI.length) return i;
+  return -1;
+};
+
+const getFirstErrorWordInfo = (input: string, expected: string) => {
+  const errIdx = findErrorIndex(input, expected);
+  if (errIdx === -1) return null;
+
+  // Find start and end of the word in input
+  let start = errIdx;
+  while (start > 0 && !/\s/.test(input[start - 1])) {
+    start--;
+  }
+  let end = errIdx;
+  while (end < input.length && !/\s/.test(input[end])) {
+    end++;
+  }
+  const inputWord = input.substring(start, end);
+
+  // Find corresponding word in expected
+  // This is tricky, let's use word-based splitting for the hint
+  const inputWords = input.trim().split(/\s+/);
+  const expectedWords = expected.trim().split(/\s+/);
+  
+  let errorWordIdx = 0;
+  let charCount = 0;
+  for (let i = 0; i < inputWords.length; i++) {
+    charCount += inputWords[i].length + 1; // +1 for space
+    if (charCount > start) {
+      errorWordIdx = i;
+      break;
+    }
   }
 
-  return -1; // incomplete or correct
+  return {
+    endIndex: end,
+    correctWord: expectedWords[errorWordIdx] || expectedWords[expectedWords.length - 1]
+  };
 };
 
 const isFullMatch = (input: string, expected: string): boolean => {
@@ -99,13 +134,14 @@ const DictationInput = ({
   const [shake, setShake] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const [errorWord, setErrorWord] = useState<string | null>(null);
+
   const getHintText = () => {
+    if (errorWord) {
+      return `Gợi ý từ sai: "${errorWord}"`;
+    }
     if (mistakeCount === 1) {
       return `Gợi ý: Bắt đầu bằng chữ "${expected[0]}"`;
-    }
-    if (mistakeCount === 2) {
-      const halfLen = Math.ceil(expected.length / 2);
-      return `Gợi ý: ${expected.substring(0, halfLen)}${".".repeat(expected.length - halfLen)}`;
     }
     return `Đáp án: ${expected}`;
   };
@@ -114,14 +150,32 @@ const DictationInput = ({
     if (e.key === "Enter") {
       if (e.nativeEvent?.isComposing) return;
       
-      const errIdx = findErrorIndex(value, expected);
-      if (errIdx !== -1 || !isFullMatch(value, expected)) {
+      const errorInfo = getFirstErrorWordInfo(value, expected);
+      if (errorInfo) {
         playSound("error");
         setShake(true);
         setTimeout(() => setShake(false), 300);
         setMistakeCount(prev => prev + 1);
+        setErrorWord(errorInfo.correctWord);
         setShowHint(true);
+        
+        // Jump cursor to end of error word
+        setTimeout(() => {
+          if (inputRef.current) {
+            inputRef.current.focus();
+            inputRef.current.setSelectionRange(errorInfo.endIndex, errorInfo.endIndex);
+          }
+        }, 0);
       } else {
+        if (!isFullMatch(value, expected)) {
+           // This case should be handled by getFirstErrorWordInfo mostly, but as fallback:
+           playSound("error");
+           setShake(true);
+           setTimeout(() => setShake(false), 300);
+           setMistakeCount(prev => prev + 1);
+           setShowHint(true);
+           return;
+        }
         playSound("correct");
         setStatus("correct");
         setShowHint(false);
@@ -142,7 +196,7 @@ const DictationInput = ({
   }, [value, expected]);
 
   return (
-    <div className="w-full relative flex flex-col gap-1">
+    <div className="w-full relative flex flex-col gap-2">
       <div className="w-full relative">
         <Input
           ref={inputRef}
@@ -153,21 +207,21 @@ const DictationInput = ({
           }}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
-          className={`w-full py-6 px-4 text-base transition-colors ${
+          className={`w-full py-6 px-5 text-lg rounded-2xl border-2 transition-all shadow-sm ${
             status === "correct" 
-              ? "border-emerald-500 bg-emerald-500/10 text-emerald-700 font-medium" 
-              : "border-primary/20 bg-background"
-          } ${shake ? "animate-[dictation-shake_0.3s_ease-in-out]" : ""}`}
+              ? "border-[var(--duo-green)] bg-[var(--duo-green)]/10 text-[var(--duo-green)] font-extrabold focus-visible:ring-[var(--duo-green)]/20" 
+              : "border-border bg-white font-bold focus-visible:border-[var(--duo-blue)] focus-visible:ring-4 focus-visible:ring-[var(--duo-blue)]/20"
+          } ${shake ? "animate-[dictation-shake_0.3s_ease-in-out] border-[var(--duo-red)] bg-[var(--duo-red)]/5 text-[var(--duo-red)]" : ""}`}
           readOnly={status === "correct"}
         />
         {status === "correct" && (
-          <CheckCircle className="w-5 h-5 text-emerald-500 absolute right-3 top-1/2 -translate-y-1/2" />
+          <CheckCircle className="w-6 h-6 text-[var(--duo-green)] absolute right-4 top-1/2 -translate-y-1/2" />
         )}
       </div>
       {showHint && (
         <div className={cn(
-          "text-sm font-medium px-3 py-2 rounded-lg border transition-all animate-in fade-in slide-in-from-top-1",
-          mistakeCount >= 3 ? "text-amber-600 bg-amber-50 border-amber-200" : "text-red-500 bg-red-500/10 border-red-500/20"
+          "text-sm font-extrabold px-4 py-3 rounded-xl border-2 transition-all animate-in fade-in slide-in-from-top-1 shadow-sm",
+          mistakeCount >= 3 ? "text-[var(--duo-orange)] bg-[var(--duo-orange)]/10 border-[var(--duo-orange)]/30" : "text-[var(--duo-red)] bg-[var(--duo-red)]/10 border-[var(--duo-red)]/30"
         )}>
           {getHintText()}
         </div>
@@ -179,6 +233,8 @@ const DictationInput = ({
 
 const DictationPage = () => {
   const { courseId, quizId } = useParams();
+  const location = useLocation();
+  const passedQuestionIds = location.state?.questionIds as number[] | undefined;
   // Get lessonId for navigation
   const { data: lessonData } = useQuery({
     queryKey: ["lesson-from-quiz", quizId],
@@ -215,6 +271,7 @@ const DictationPage = () => {
   const [activeQuestionIndices, setActiveQuestionIndices] = useState<number[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [sessionDone, setSessionDone] = useState<Set<number>>(new Set());
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
   // 1. Fetch Quiz data (list of questions & answers)
   const { data: quizData, isLoading: quizLoading } = useQuery({
@@ -446,9 +503,23 @@ const DictationPage = () => {
   useEffect(() => {
     const qs = quizData?.questions || [];
     if (qs.length > 0 && activeQuestionIndices.length === 0 && !started) {
-      setActiveQuestionIndices(qs.map((_, i) => i));
+      if (passedQuestionIds && passedQuestionIds.length > 0) {
+        const indices = qs
+          .map((q, i) => passedQuestionIds.includes(q.id) ? i : -1)
+          .filter(i => i !== -1);
+        
+        if (indices.length > 0) {
+          setActiveQuestionIndices(indices);
+          setCurrentIndex(indices[0]);
+          setStarted(true);
+        } else {
+          setActiveQuestionIndices(qs.map((_, i) => i));
+        }
+      } else {
+        setActiveQuestionIndices(qs.map((_, i) => i));
+      }
     }
-  }, [quizData?.questions?.length, started]);
+  }, [quizData?.questions, started, passedQuestionIds]);
 
   if (quizLoading || resultLoading) {
     return (
@@ -499,27 +570,27 @@ const DictationPage = () => {
   if (!started) {
     return (
       <StudentLayout>
-        <div className="max-w-3xl mx-auto bg-card rounded-xl border p-8 space-y-6">
-          <div className="flex items-center gap-4 border-b pb-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-              <ArrowLeft className="w-5 h-5" />
+        <div className="max-w-3xl mx-auto card-duo p-8 lg:p-10 space-y-8 bg-white">
+          <div className="flex items-center gap-4 border-b-2 pb-6">
+            <Button variant="ghost" size="icon" className="hover:bg-muted rounded-full" onClick={() => navigate(-1)}>
+              <ArrowLeft className="w-6 h-6 text-muted-foreground" />
             </Button>
             <div>
-              <h1 className="text-xl font-bold text-foreground">Bắt đầu: {quizData.quiz.title}</h1>
-              <p className="text-sm text-muted-foreground">Chọn các câu hỏi bạn muốn luyện tập hôm nay</p>
+              <h1 className="text-2xl font-extrabold text-foreground">{quizData.quiz.title} 🎧</h1>
+              <p className="text-base font-bold text-muted-foreground mt-1">Chọn các câu hỏi bạn muốn luyện tập hôm nay</p>
             </div>
           </div>
           
-          <div className="bg-muted/30 border rounded-lg p-4 max-h-[50vh] overflow-y-auto">
-             <div className="flex justify-between items-center mb-4">
-                <span className="font-semibold text-sm">Danh sách câu hỏi ({questions.length} câu)</span>
-                 <div className="flex gap-2">
+          <div className="bg-muted/20 border-2 rounded-2xl p-6 max-h-[50vh] overflow-y-auto">
+             <div className="flex justify-between items-center mb-6">
+                <span className="font-extrabold text-lg">Danh sách câu hỏi ({questions.length} câu)</span>
+                 <div className="flex gap-3">
                     {completedQuestionIds.size > 0 && (
-                      <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => resetAllMutation.mutate()}>
+                      <Button size="sm" className="btn-3d bg-white text-[var(--duo-red)] hover:bg-red-50 border-[var(--duo-red)]/30 font-bold" onClick={() => resetAllMutation.mutate()}>
                         <RefreshCcw className="w-4 h-4 mr-2" /> Làm lại từ đầu
                       </Button>
                     )}
-                    <Button variant="outline" size="sm" onClick={() => setActiveQuestionIndices(activeQuestionIndices.length === questions.length ? [] : questions.map((_, i) => i))}>
+                    <Button className="btn-3d bg-white text-[var(--duo-blue)] hover:bg-blue-50 border-[var(--duo-blue)]/30 font-bold" size="sm" onClick={() => setActiveQuestionIndices(activeQuestionIndices.length === questions.length ? [] : questions.map((_, i) => i))}>
                       {activeQuestionIndices.length === questions.length ? "Bỏ chọn tất cả" : "Chọn tất cả"}
                     </Button>
                  </div>
@@ -527,17 +598,17 @@ const DictationPage = () => {
               
               {/* Filtered Vocab Info */}
               {activeQuestionIndices.length > 0 && (
-                <div className="mb-4 p-3 bg-blue-50 border border-blue-100 rounded-lg flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-blue-700">
-                    <Library className="w-4 h-4" />
-                    <span className="text-sm font-medium">
+                <div className="mb-6 p-4 bg-[var(--duo-blue)]/10 border-2 border-[var(--duo-blue)]/20 rounded-2xl flex items-center justify-between shadow-sm">
+                  <div className="flex items-center gap-3 text-[var(--duo-blue)]">
+                    <Library className="w-5 h-5" />
+                    <span className="text-base font-extrabold">
                       Các câu đã chọn có {vocabWords.filter(w => activeQuestionIndices.map(idx => questions[idx].id).includes(w.question_id)).length} từ vựng
                     </span>
                   </div>
                   <Button 
                     variant="link" 
                     size="sm" 
-                    className="text-blue-700 font-bold"
+                    className="text-[var(--duo-blue)] font-extrabold text-base hover:text-[var(--duo-blue)]/80 p-0"
                     onClick={() => {
                       const selectedIds = activeQuestionIndices.map(idx => questions[idx].id);
                       if (lessonId) {
@@ -547,26 +618,27 @@ const DictationPage = () => {
                       }
                     }}
                   >
-                    Học từ vựng của các câu này <ArrowRight className="w-4 h-4 ml-1" />
+                    Học từ vựng ngay <ArrowRight className="w-5 h-5 ml-1" />
                   </Button>
                 </div>
               )}
-             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                {questions.map((q: any, idx: number) => (
-                 <label key={q.id} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${activeQuestionIndices.includes(idx) ? 'bg-primary/5 border-primary/50' : 'bg-background hover:bg-muted'}`}>
+                 <label key={q.id} className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${activeQuestionIndices.includes(idx) ? 'bg-[var(--duo-blue)]/10 border-[var(--duo-blue)] shadow-[0_2px_0_var(--duo-blue)] -translate-y-0.5' : 'bg-white border-border hover:bg-muted/50 hover:border-border/80'}`}>
                    <Checkbox 
                      checked={activeQuestionIndices.includes(idx)}
                      onCheckedChange={() => handleToggleQuestion(idx)}
+                     className={activeQuestionIndices.includes(idx) ? "data-[state=checked]:bg-[var(--duo-blue)] data-[state=checked]:border-[var(--duo-blue)]" : ""}
                    />
-                   <span className="text-sm font-medium">Câu số {idx + 1} {completedQuestionIds.has(q.id) && <CheckCircle className="w-3 h-3 text-emerald-500 inline ml-1" />}</span>
+                   <span className="text-base font-bold text-foreground">Câu số {idx + 1} {completedQuestionIds.has(q.id) && <CheckCircle className="w-4 h-4 text-[var(--duo-green)] inline ml-1" />}</span>
                  </label>
                ))}
              </div>
           </div>
           
-          <div className="flex justify-end pt-4">
-             <Button onClick={startDictation} disabled={activeQuestionIndices.length === 0} className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-md">
-               <Play className="w-4 h-4 mr-2" /> Bắt đầu luyện ({activeQuestionIndices.length} câu)
+          <div className="flex justify-end pt-4 border-t-2">
+             <Button onClick={startDictation} disabled={activeQuestionIndices.length === 0} className="btn-3d btn-3d-green text-lg px-8 py-6 h-auto w-full sm:w-auto">
+               <Play className="w-5 h-5 mr-2" /> Bắt đầu luyện ({activeQuestionIndices.length} câu)
              </Button>
           </div>
         </div>
@@ -574,22 +646,101 @@ const DictationPage = () => {
     );
   }
 
-  if (!currentQuestion) return null;
+  if (isSubmitted) {
+    return (
+      <StudentLayout>
+        <div className="max-w-4xl mx-auto space-y-8">
+          <div className="card-duo p-10 text-center space-y-6 bg-white">
+            <div className="w-24 h-24 bg-[var(--duo-green)]/10 rounded-full mx-auto flex items-center justify-center border-4 border-[var(--duo-green)]/20 shadow-sm">
+              <CheckCircle className="w-12 h-12 text-[var(--duo-green)]" />
+            </div>
+            <h1 className="text-3xl lg:text-4xl font-black text-foreground">Tuyệt vời! 🎉</h1>
+            <p className="text-lg font-bold text-muted-foreground">Bạn đã hoàn thành phiên luyện nghe.</p>
+            
+            <div className="flex flex-col sm:flex-row justify-center gap-4 pt-6 border-t-2">
+              <Button 
+                className="btn-3d bg-[var(--duo-orange)] hover:bg-[var(--duo-orange)]/90 border-[#E58700] text-white py-6 px-8 text-lg h-auto"
+                onClick={() => {
+                  if (lessonId) {
+                    navigate(`/courses/${courseId}/vocab-lesson/${lessonId}`, { state: { questionIds: activeQuestionIndices.map(idx => questions[idx].id) } });
+                  }
+                }}
+              >
+                <Library className="w-5 h-5 mr-2" /> Học từ vựng các câu này
+              </Button>
+              <Button 
+                className="btn-3d btn-3d-blue py-6 px-8 text-lg h-auto"
+                onClick={() => {
+                   setIsSubmitted(false);
+                   setCurrentIndex(activeQuestionIndices[0]);
+                }}
+              >
+                <RefreshCcw className="w-5 h-5 mr-2" /> Luyện nghe tiếp
+              </Button>
+              <Button 
+                className="btn-3d bg-white text-foreground hover:bg-gray-50 border-border py-6 px-8 text-lg h-auto"
+                onClick={() => navigate(`/courses/${courseId}`)}
+              >
+                Quay về khóa học
+              </Button>
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            <h2 className="text-2xl font-extrabold px-2 text-foreground">Chi tiết đáp án 📖</h2>
+            {activeQuestionIndices.map((idx) => {
+              const q = questions[idx];
+              return (
+                <div key={q.id} className="card-duo p-6 space-y-5 bg-white border-2">
+                  <div className="flex items-center justify-between border-b-2 pb-4">
+                    <span className="text-xl font-extrabold text-[var(--duo-blue)]">Câu {idx + 1}</span>
+                    {q.audio_url && (
+                      <Button className="btn-3d bg-white text-[var(--duo-blue)] hover:bg-[var(--duo-blue)]/5 border-[var(--duo-blue)]/30 font-bold px-4" size="sm" onClick={() => new Audio(q.audio_url).play()}>
+                        <Volume2 className="w-5 h-5 mr-2" /> Nghe lại
+                      </Button>
+                    )}
+                  </div>
+                  <div className="space-y-4">
+                    <div className="p-5 bg-muted/20 rounded-2xl border-2 text-lg font-medium text-foreground leading-relaxed">
+                      {q.question_text?.replace("[___]", "_____")}
+                    </div>
+                    <div className="grid gap-3">
+                      {q.answers.map((ans: any, aIdx: number) => (
+                        <div key={ans.id} className="flex gap-4 items-center p-4 bg-[var(--duo-green)]/10 border-2 border-[var(--duo-green)]/20 rounded-xl">
+                          <span className="w-8 h-8 rounded-lg bg-white border-2 border-[var(--duo-green)] text-[var(--duo-green)] flex items-center justify-center text-sm font-extrabold shadow-sm shrink-0">
+                            {String.fromCharCode(65 + aIdx)}
+                          </span>
+                          <span className="text-foreground font-bold text-lg">{ans.answer_text}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </StudentLayout>
+    );
+  }
 
   // State per dictation page
   return (
     <StudentLayout>
-      <div className="max-w-5xl mx-auto space-y-6">
+      <div className="max-w-6xl mx-auto space-y-6">
         
         {/* Header & Back */}
-        <div className="flex items-center justify-between bg-card p-4 rounded-xl border">
+        <div className="flex items-center justify-between bg-white card-duo p-5 border-2">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-              <ArrowLeft className="w-5 h-5" />
+            <Button variant="ghost" size="icon" className="hover:bg-muted rounded-full" onClick={() => navigate(-1)}>
+              <ArrowLeft className="w-6 h-6 text-muted-foreground" />
             </Button>
             <div>
-              <h1 className="text-xl font-bold text-foreground">{quizData.quiz.title}</h1>
-              <p className="text-sm text-muted-foreground">Luyện nghe điền từ • {completedQuestionIds.size}/{questions.length} hoàn thành</p>
+              <h1 className="text-xl font-extrabold text-foreground">{quizData.quiz.title}</h1>
+              <p className="text-sm font-bold text-[var(--duo-green)] flex items-center gap-2 mt-1">
+                <span className="w-2 h-2 rounded-full bg-[var(--duo-green)] inline-block animate-pulse"></span>
+                Luyện nghe điền từ • {completedQuestionIds.size}/{questions.length} hoàn thành
+              </p>
             </div>
           </div>
         </div>
@@ -597,35 +748,35 @@ const DictationPage = () => {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           
           {/* Main Workspace */}
-          <div className="lg:col-span-3 bg-card rounded-xl border p-6 flex flex-col space-y-6">
+          <div className="lg:col-span-3 card-duo p-8 flex flex-col space-y-6 bg-white min-h-[60vh]">
             
-            <div className="flex justify-between items-center pb-4 border-b">
-              <h2 className="text-lg font-bold text-foreground">Câu {currentIndex + 1}</h2>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <kbd className="px-2 py-1 bg-muted rounded border text-xs">Ctrl</kbd>
+            <div className="flex justify-between items-center pb-5 border-b-2">
+              <h2 className="text-2xl font-extrabold text-[var(--duo-blue)]">Câu {currentIndex + 1}</h2>
+              <div className="flex items-center gap-3 text-sm font-bold text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-lg border">
+                <kbd className="px-2 py-0.5 bg-white rounded border shadow-sm text-xs font-mono">Ctrl</kbd>
                 Phát / Dừng Audio
               </div>
             </div>
 
             {/* Audio Block */}
             {currentQuestion.audio_url && (
-              <div className="w-full bg-primary/5 p-6 rounded-xl border border-primary/20 flex flex-col items-center gap-4">
+              <div className="w-full bg-[var(--duo-blue)]/5 p-6 rounded-2xl border-2 border-[var(--duo-blue)]/20 flex flex-col items-center gap-4">
                 <audio 
                   ref={audioRef} 
                   src={currentQuestion.audio_url} 
                   controls 
-                  className="w-full max-w-md h-10"
+                  className="w-full max-w-lg h-12 rounded-full shadow-sm"
                   autoPlay
                 />
-                <div className="flex items-center gap-2 bg-background border rounded-lg p-1">
+                <div className="flex items-center gap-2 bg-white border-2 rounded-xl p-1 shadow-sm">
                   {[0.5, 0.75, 1, 1.25, 1.5].map((speed) => (
                     <Button
                       key={speed}
                       variant="ghost"
                       size="sm"
                       className={cn(
-                        "h-7 px-2 text-xs font-bold",
-                        audioRef.current?.playbackRate === speed ? "bg-primary text-primary-foreground" : ""
+                        "h-8 px-3 text-sm font-extrabold rounded-lg transition-colors",
+                        audioRef.current?.playbackRate === speed ? "bg-[var(--duo-blue)] text-white shadow-[0_2px_0_#1899D6]" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                       )}
                       onClick={() => {
                         if (audioRef.current) {
@@ -644,7 +795,7 @@ const DictationPage = () => {
             )}
 
             {/* Dictation Inputs */}
-            <div className="space-y-6 overflow-y-auto w-full max-w-2xl mx-auto flex-1">
+            <div className="space-y-6 overflow-y-auto w-full max-w-3xl mx-auto flex-1">
               <QuestionDictationSection 
                 key={`q-${currentQuestion.id}-${sessionDone.has(currentQuestion.id)}`}
                 question={currentQuestion} 
@@ -656,29 +807,28 @@ const DictationPage = () => {
             </div>
 
             {/* Bottom Actions */}
-            <div className="pt-4 border-t flex items-center justify-between gap-3 mt-auto flex-wrap">
-               <span className="text-sm font-semibold text-emerald-600">
+            <div className="pt-6 border-t-2 flex items-center justify-between gap-4 mt-auto flex-wrap">
+               <span className="text-base font-extrabold text-[var(--duo-green)] bg-[var(--duo-green)]/10 px-4 py-2 rounded-xl border border-[var(--duo-green)]/20">
                  Đã xong {completedQuestionIds.size}/{questions.length} câu
                </span>
-               <div className="flex gap-2">
+               <div className="flex gap-3">
                  {sessionDone.has(currentQuestion.id) ? (
                    <Button 
                      onClick={() => handleNext(true)} 
-                     className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold px-8 shadow-lg animate-in zoom-in-95 duration-300"
+                     className="btn-3d btn-3d-green text-lg px-8 py-6 h-auto animate-in zoom-in-95 duration-300"
                    >
-                     Tiếp tục câu sau <ChevronRight className="w-4 h-4 ml-2" />
+                     Tiếp tục <ChevronRight className="w-5 h-5 ml-2" />
                    </Button>
                  ) : (
-                   <Button variant="outline" onClick={() => handleNext(false)}>
-                     <SkipForward className="w-4 h-4 mr-2" /> Bỏ qua
+                   <Button className="btn-3d bg-white text-muted-foreground hover:bg-gray-50 border-gray-200 text-lg px-6 py-6 h-auto" onClick={() => handleNext(false)}>
+                     <SkipForward className="w-5 h-5 mr-2" /> Bỏ qua
                    </Button>
                  )}
                  <Button 
-                   variant="secondary" 
-                   onClick={() => navigate(`/courses/${courseId}/quiz/${quizId}/result`, { state: { score: completedQuestionIds.size, total: questions.length, resultId: targetResultId } })}
-                   className="shadow-sm border font-medium"
+                   className="btn-3d btn-3d-blue text-lg px-6 py-6 h-auto"
+                   onClick={() => setIsSubmitted(true)}
                  >
-                   <CheckCircle className="w-4 h-4 mr-2" /> Nộp bài
+                   <CheckCircle className="w-5 h-5 mr-2" /> Nộp bài
                  </Button>
                </div>
             </div>
@@ -688,9 +838,9 @@ const DictationPage = () => {
           <div className="hidden lg:block lg:col-span-1 space-y-6">
              <QuestionVocabSidebar vocabWords={vocabWords} currentQuestionId={currentQuestion?.id} />
              
-             <div className="bg-card rounded-xl border p-4 max-h-[80vh] overflow-y-auto">
-                <h3 className="font-semibold text-sm mb-4 text-foreground">Danh sách câu hỏi</h3>
-                <div className="grid grid-cols-4 gap-2">
+             <div className="card-duo p-5 bg-white max-h-[80vh] overflow-y-auto">
+                <h3 className="font-extrabold text-lg mb-5 text-foreground flex items-center gap-2"><FileQuestion className="w-5 h-5 text-[var(--duo-blue)]" /> Câu hỏi</h3>
+                <div className="grid grid-cols-4 gap-3">
                   {activeQuestionIndices.map((idx: number) => {
                     const q = questions[idx];
                     const isDone = completedQuestionIds.has(q.id);
@@ -699,9 +849,10 @@ const DictationPage = () => {
                       <button
                         key={q.id}
                         onClick={() => setCurrentIndex(idx)}
-                        className={`aspect-square flex items-center justify-center rounded-lg text-sm font-semibold transition-all
-                          ${isCurrent ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : ''}
-                          ${isDone ? 'bg-emerald-500 text-white' : 'bg-muted text-muted-foreground hover:bg-muted/80'}
+                        className={`aspect-square flex items-center justify-center rounded-xl text-lg font-extrabold transition-all border-2
+                          ${isCurrent ? 'border-[var(--duo-blue)] bg-[var(--duo-blue)]/10 text-[var(--duo-blue)] shadow-[0_2px_0_var(--duo-blue)] -translate-y-0.5' : ''}
+                          ${isDone && !isCurrent ? 'bg-[var(--duo-green)] border-[#46A302] text-white shadow-[0_2px_0_#46A302]' : ''}
+                          ${!isDone && !isCurrent ? 'bg-white border-border text-muted-foreground hover:bg-muted/50 hover:shadow-sm' : ''}
                         `}
                       >
                         {idx + 1}
@@ -713,20 +864,20 @@ const DictationPage = () => {
           </div>
 
           {/* Mobile Navigator Trigger */}
-          <div className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-40">
+          <div className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-[90%] max-w-sm">
             <Sheet>
               <SheetTrigger asChild>
-                <Button className="rounded-full shadow-2xl px-6 h-12 bg-primary text-primary-foreground font-bold border-4 border-background">
-                  <Library className="w-4 h-4 mr-2" /> Danh sách câu & Từ vựng
+                <Button className="btn-3d btn-3d-blue w-full rounded-2xl h-14 text-base shadow-2xl shadow-[var(--duo-blue)]/30">
+                  <Library className="w-5 h-5 mr-2" /> Danh sách câu & Từ vựng
                 </Button>
               </SheetTrigger>
-              <SheetContent side="bottom" className="h-[70vh] rounded-t-3xl border-t-0 p-0 overflow-hidden bg-background">
-                <div className="h-full overflow-y-auto p-6 space-y-6">
+              <SheetContent side="bottom" className="h-[80vh] rounded-t-3xl border-t-4 border-[var(--duo-blue)] p-0 overflow-hidden bg-muted/10">
+                <div className="h-full overflow-y-auto p-6 space-y-8 bg-white">
                   <QuestionVocabSidebar vocabWords={vocabWords} currentQuestionId={currentQuestion?.id} />
                   
                   <div className="space-y-4">
-                    <h3 className="font-bold text-lg text-foreground">Danh sách câu hỏi</h3>
-                    <div className="grid grid-cols-5 sm:grid-cols-8 gap-2">
+                    <h3 className="font-extrabold text-xl text-foreground flex items-center gap-2"><FileQuestion className="w-5 h-5 text-[var(--duo-blue)]" /> Danh sách câu hỏi</h3>
+                    <div className="grid grid-cols-5 sm:grid-cols-6 gap-3 pt-2">
                       {activeQuestionIndices.map((idx: number) => {
                         const q = questions[idx];
                         const isDone = completedQuestionIds.has(q.id);
@@ -735,9 +886,10 @@ const DictationPage = () => {
                           <SheetClose asChild key={q.id}>
                             <button
                               onClick={() => setCurrentIndex(idx)}
-                              className={`aspect-square flex items-center justify-center rounded-xl text-sm font-bold transition-all
-                                ${isCurrent ? 'ring-2 ring-primary ring-offset-4 ring-offset-background' : ''}
-                                ${isDone ? 'bg-emerald-500 text-white' : 'bg-muted text-muted-foreground'}
+                              className={`aspect-square flex items-center justify-center rounded-xl text-base font-extrabold transition-all border-2
+                                ${isCurrent ? 'border-[var(--duo-blue)] bg-[var(--duo-blue)]/10 text-[var(--duo-blue)] shadow-[0_2px_0_var(--duo-blue)] -translate-y-0.5' : ''}
+                                ${isDone && !isCurrent ? 'bg-[var(--duo-green)] border-[#46A302] text-white shadow-[0_2px_0_#46A302]' : ''}
+                                ${!isDone && !isCurrent ? 'bg-white border-border text-muted-foreground hover:bg-muted/50' : ''}
                               `}
                             >
                               {idx + 1}
@@ -806,28 +958,30 @@ const QuestionDictationSection = ({
     const clozeParts = isCloze ? item.text.split("[___]") : [];
     
     return (
-      <div key={`field-${idx}`} className="flex gap-3 items-start">
-        <div className={`mt-3 w-8 h-8 rounded-full shrink-0 flex items-center justify-center font-bold text-sm
-           ${fields[idx] ? 'bg-emerald-500 text-white' : 'bg-primary/10 text-primary'}
+      <div key={`field-${idx}`} className="flex gap-4 items-start">
+        <div className={`mt-4 w-10 h-10 rounded-xl shrink-0 flex items-center justify-center font-extrabold text-base border-2
+           ${fields[idx] ? 'bg-[var(--duo-green)] text-white border-[#46A302] shadow-[0_2px_0_#46A302]' : 'bg-[var(--duo-blue)]/10 text-[var(--duo-blue)] border-[var(--duo-blue)]/20 shadow-sm'}
         `}>
           {item.type === 'question' ? 'Q' : String.fromCharCode(65 + (idx - (expectedItems[0].type === 'question' ? 1 : 0)))}
         </div>
         
         {isCloze ? (
-          <div className="flex-1 bg-muted/30 p-6 rounded-xl border leading-loose text-lg font-medium">
+          <div className="flex-1 bg-white p-6 rounded-2xl border-2 leading-[3] text-xl font-bold shadow-sm">
             {clozeParts.map((part: any, pIdx: number) => (
               <React.Fragment key={pIdx}>
                 {part}
                 {pIdx < clozeParts.length - 1 && (
-                  <span className="inline-block mx-1">
+                  <span className="inline-block mx-2 align-middle">
                     {fields[idx + pIdx] ? (
-                       <span className="text-emerald-600 font-bold border-b-2 border-emerald-500 px-2">{question.answers[pIdx]?.answer_text}</span>
+                       <span className="text-[var(--duo-green)] font-black border-b-4 border-[var(--duo-green)] px-2">{question.answers[pIdx]?.answer_text}</span>
                     ) : (
-                       <DictationInput 
-                         expected={question.answers[pIdx]?.answer_text || ""} 
-                         placeholder="..." 
-                         onCorrect={() => setFieldComplete(idx + pIdx)}
-                       />
+                       <div className="min-w-[120px] inline-block -my-3">
+                         <DictationInput 
+                           expected={question.answers[pIdx]?.answer_text || ""} 
+                           placeholder="..." 
+                           onCorrect={() => setFieldComplete(idx + pIdx)}
+                         />
+                       </div>
                     )}
                   </span>
                 )}
@@ -835,11 +989,11 @@ const QuestionDictationSection = ({
             ))}
           </div>
         ) : (
-          <div className="w-full">
+          <div className="w-full flex-1">
             {fields[idx] ? (
                <Input
                  value={item.text}
-                 className="w-full py-6 px-4 text-base bg-emerald-500/10 text-emerald-700 font-medium border-emerald-500"
+                 className="w-full py-6 px-5 text-lg bg-[var(--duo-green)]/10 text-[var(--duo-green)] font-extrabold border-2 border-[var(--duo-green)] rounded-2xl"
                  readOnly
                />
             ) : (
@@ -856,7 +1010,7 @@ const QuestionDictationSection = ({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {expectedItems.map((item, idx) => {
         const isFirstItemCloze = expectedItems[0].type === 'question' && expectedItems[0].text.includes("[___]");
         if (isFirstItemCloze && item.type === 'answer') return null;
@@ -864,16 +1018,16 @@ const QuestionDictationSection = ({
       })}
       
       {isCompleted && question.translation && (
-        <div className="mt-6 p-4 bg-primary/5 rounded-xl border border-primary/20">
-          <p className="text-sm font-semibold text-primary mb-2">🇻🇳 Dịch nghĩa:</p>
-          <p className="text-sm text-foreground whitespace-pre-wrap">{question.translation}</p>
+        <div className="mt-8 p-5 bg-[var(--duo-blue)]/5 rounded-2xl border-2 border-[var(--duo-blue)]/20 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-500">
+          <p className="text-sm font-extrabold text-[var(--duo-blue)] mb-2 uppercase tracking-wide">🇻🇳 Dịch nghĩa:</p>
+          <p className="text-lg font-bold text-foreground whitespace-pre-wrap">{question.translation}</p>
         </div>
       )}
       
       {isCompleted && (
-        <div className="mt-6 flex justify-center">
-          <Button variant="outline" size="sm" onClick={onRedo} className="text-muted-foreground">
-            <RefreshCcw className="w-3.5 h-3.5 mr-2" /> Làm lại câu này
+        <div className="mt-8 flex justify-center">
+          <Button className="btn-3d bg-white text-muted-foreground hover:text-foreground hover:bg-gray-50 border-gray-200" size="sm" onClick={onRedo}>
+            <RefreshCcw className="w-4 h-4 mr-2" /> Làm lại câu này
           </Button>
         </div>
       )}
@@ -889,20 +1043,20 @@ const QuestionVocabSidebar = ({ vocabWords, currentQuestionId }: { vocabWords: a
   if (currentVocab.length === 0) return null;
 
   return (
-    <div className="bg-card rounded-xl border p-4 shadow-sm border-primary/20 bg-primary/5">
-      <h3 className="font-bold text-sm mb-3 flex items-center gap-2 text-primary">
-        <Library className="w-4 h-4" /> Từ vựng trong câu
+    <div className="card-duo p-5 bg-[var(--duo-orange)]/5 border-2 border-[var(--duo-orange)]/20 shadow-sm">
+      <h3 className="font-extrabold text-lg mb-4 flex items-center gap-2 text-[var(--duo-orange)]">
+        <Library className="w-5 h-5" /> Từ vựng trong câu
       </h3>
-      <div className="space-y-3">
+      <div className="space-y-4">
         {currentVocab.map(w => (
-          <div key={w.id} className="text-sm border-b border-primary/10 pb-2 last:border-0">
-            <div className="flex justify-between items-baseline gap-2">
-              <span className="font-bold text-primary">{w.word}</span>
-              <span className="text-[10px] text-muted-foreground font-mono">{w.phonetic}</span>
+          <div key={w.id} className="text-sm border-b-2 border-[var(--duo-orange)]/10 pb-3 last:border-0 bg-white p-3 rounded-xl shadow-sm">
+            <div className="flex justify-between items-baseline gap-2 mb-1">
+              <span className="font-extrabold text-[var(--duo-orange)] text-base">{w.word}</span>
+              <span className="text-xs text-muted-foreground font-mono font-bold bg-muted px-1.5 py-0.5 rounded-md">{w.phonetic}</span>
             </div>
-            <p className="text-foreground text-xs">{w.definition_vi}</p>
+            <p className="text-foreground text-sm font-bold">{w.definition_vi}</p>
             {w.example_sentence && (
-              <p className="text-[10px] text-muted-foreground italic mt-1 bg-background/50 p-1 rounded">"{w.example_sentence}"</p>
+              <p className="text-xs font-medium text-muted-foreground italic mt-2 bg-muted/50 p-2 rounded-lg border">"{w.example_sentence}"</p>
             )}
           </div>
         ))}

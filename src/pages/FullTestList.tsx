@@ -1,7 +1,5 @@
 import StudentLayout from "@/components/StudentLayout";
 import { useParams, Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Lock, CheckCircle, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -57,24 +55,27 @@ const FullTestList = () => {
     return acc;
   }, {});
 
-  if (isLoading) return <StudentLayout><Skeleton className="h-64 rounded-xl" /></StudentLayout>;
+  if (isLoading) return <StudentLayout><Skeleton className="h-64 rounded-2xl" /></StudentLayout>;
 
   return (
     <StudentLayout>
-      <div className="max-w-4xl mx-auto space-y-4">
-        <h1 className="text-2xl font-bold text-foreground">📋 Bộ đề Full Test TOEIC</h1>
+      <div className="max-w-4xl mx-auto space-y-6">
+        <div>
+          <h1 className="text-2xl font-extrabold text-foreground">📋 Bộ đề Full Test TOEIC</h1>
+          <p className="text-sm text-muted-foreground font-medium mt-1">Luyện thi thật với bộ đề chuẩn format TOEIC</p>
+        </div>
 
-        <Accordion type="multiple" defaultValue={Object.keys(grouped).map((_, i) => `cat-${i}`)} className="space-y-2">
+        <Accordion type="multiple" defaultValue={Object.keys(grouped).map((_, i) => `cat-${i}`)} className="space-y-3">
           {Object.entries(grouped).map(([cat, catTests], ci) => (
-            <AccordionItem key={cat} value={`cat-${ci}`} className="bg-card rounded-lg border">
-              <AccordionTrigger className="px-4 py-3 hover:no-underline">
+            <AccordionItem key={cat} value={`cat-${ci}`} className="card-duo border-2 border-[var(--duo-gray)] overflow-hidden">
+              <AccordionTrigger className="px-5 py-4 hover:no-underline hover:bg-muted/50">
                 <div className="flex items-center gap-3">
-                  <span className="font-semibold text-sm text-foreground">{categoryMap[cat] || cat}</span>
-                  <Badge variant="secondary" className="text-xs">{catTests.length} đề</Badge>
+                  <span className="font-extrabold text-sm text-foreground">{categoryMap[cat] || cat}</span>
+                  <span className="badge-duo badge-blue">{catTests.length} đề</span>
                 </div>
               </AccordionTrigger>
-              <AccordionContent className="px-4 pb-3">
-                <div className="space-y-1">
+              <AccordionContent className="px-5 pb-4">
+                <div className="space-y-2">
                   {catTests.map((test: any) => {
                     const now = new Date();
                     const released = !test.release_date || new Date(test.release_date) <= now;
@@ -82,31 +83,31 @@ const FullTestList = () => {
                     const score = resultMap.get(test.id);
 
                     return (
-                      <div key={test.id} className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/50 transition-colors">
+                      <div key={test.id} className="flex items-center gap-3 px-4 py-3 rounded-xl border-2 border-[var(--duo-gray)] bg-white hover:border-[var(--duo-green)] transition-all group">
                         {!released ? (
-                          <Lock className="w-4 h-4 text-muted-foreground shrink-0" />
+                          <Lock className="w-5 h-5 text-[var(--duo-yellow)] shrink-0" />
                         ) : done ? (
-                          <CheckCircle className="w-4 h-4 text-success shrink-0" />
+                          <CheckCircle className="w-5 h-5 text-[var(--duo-green)] shrink-0" />
                         ) : (
-                          <span className="w-4 h-4 rounded-full border-2 border-muted-foreground shrink-0" />
+                          <span className="w-5 h-5 rounded-full border-2 border-muted-foreground shrink-0" />
                         )}
-                        <span className="text-sm text-foreground flex-1">{test.title}</span>
-                        <span className="text-xs text-muted-foreground">{test.total_questions} câu</span>
-                        {done && score && <Badge className="bg-accent text-accent-foreground text-xs">{score} điểm</Badge>}
+                        <span className="text-sm font-bold text-foreground flex-1">{test.title}</span>
+                        <span className="text-xs font-bold text-muted-foreground">{test.total_questions} câu</span>
+                        {done && score && <span className="badge-duo badge-green">{score} điểm</span>}
                         {!released && test.release_date && (
-                          <span className="text-xs text-warning flex items-center gap-1">
+                          <span className="badge-duo badge-yellow flex items-center gap-1">
                             <Clock className="w-3 h-3" /> {new Date(test.release_date).toLocaleDateString("vi-VN")}
                           </span>
                         )}
                         {released && !done && (
-                          <Button size="sm" variant="outline" className="text-xs h-7" asChild>
-                            <Link to={`/courses/${courseId}/fulltest/${test.id}`}>Làm bài</Link>
-                          </Button>
+                          <Link to={`/courses/${courseId}/fulltest/${test.id}`} className="btn-3d btn-3d-green py-1.5 px-3 text-xs">
+                            Làm bài
+                          </Link>
                         )}
                         {done && (
-                          <Button size="sm" variant="ghost" className="text-xs h-7" asChild>
-                            <Link to={`/courses/${courseId}/fulltest/${test.id}/result`}>Xem lại</Link>
-                          </Button>
+                          <Link to={`/courses/${courseId}/fulltest/${test.id}/result`} className="btn-3d btn-3d-white py-1.5 px-3 text-xs">
+                            Xem lại
+                          </Link>
                         )}
                       </div>
                     );

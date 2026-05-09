@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, BookOpen, User, LogOut, Menu, X, Sun, Moon, ChevronRight } from "lucide-react";
+import { LayoutDashboard, BookOpen, User, LogOut, Menu, X, Sun, Moon, ChevronRight, Flame } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -8,9 +8,9 @@ import { Button } from "@/components/ui/button";
 
 
 const navItems = [
-  { to: "/dashboard", label: "Tổng quan", icon: LayoutDashboard },
-  { to: "/courses", label: "Khóa học của tôi", icon: BookOpen },
-  { to: "/profile", label: "Hồ sơ cá nhân", icon: User },
+  { to: "/dashboard", label: "Tổng quan", icon: LayoutDashboard, color: "text-[var(--duo-green)]" },
+  { to: "/courses", label: "Khóa học", icon: BookOpen, color: "text-[var(--duo-blue)]" },
+  { to: "/profile", label: "Hồ sơ", icon: User, color: "text-[var(--duo-purple)]" },
 ];
 
 const StudentLayout = ({ children }: { children: React.ReactNode }) => {
@@ -62,27 +62,34 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
       {sidebarOpen && <div className="fixed inset-0 z-40 bg-foreground/20 md:hidden" onClick={() => setSidebarOpen(false)} />}
 
       <aside className={cn(
-        "fixed md:static z-50 inset-y-0 left-0 w-64 bg-card border-r flex flex-col transition-transform duration-300",
+        "fixed md:static z-50 inset-y-0 left-0 w-[260px] bg-card border-r-2 border-[var(--duo-gray)] flex flex-col transition-transform duration-300",
         sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
       )}>
-        <div className="p-4 border-b flex items-center gap-2">
+        {/* Logo + close */}
+        <div className="p-4 border-b-2 border-[var(--duo-gray)] flex items-center gap-2">
           <Logo imgClassName="w-8 h-8" />
           <Button variant="ghost" size="icon" className="ml-auto md:hidden" onClick={() => setSidebarOpen(false)}>
             <X className="w-4 h-4" />
           </Button>
         </div>
 
-
-        <div className="p-4 border-b">
+        {/* User profile card */}
+        <div className="p-4 border-b-2 border-[var(--duo-gray)]">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold shadow-inner">{initials}</div>
-            <div className="min-w-0">
-              <p className="text-sm font-bold text-foreground truncate">{displayName}</p>
-              <p className="text-[10px] text-muted-foreground truncate">{user?.email}</p>
+            <div className="w-12 h-12 rounded-full bg-[var(--duo-green)] flex items-center justify-center text-white font-extrabold text-lg shadow-[0_3px_0_var(--duo-green-dark)]">
+              {initials}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-extrabold text-foreground truncate">{displayName}</p>
+              <div className="flex items-center gap-1 mt-0.5">
+                <Flame className="w-3.5 h-3.5 text-[var(--duo-orange)]" />
+                <span className="text-xs font-bold text-[var(--duo-orange)]">Đang học</span>
+              </div>
             </div>
           </div>
         </div>
 
+        {/* Navigation */}
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
             const active = location.pathname === item.to;
@@ -92,11 +99,13 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
                 to={item.to}
                 onClick={() => setSidebarOpen(false)}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all group",
-                  active ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all group",
+                  active
+                    ? "bg-[var(--duo-green)] text-white shadow-[0_3px_0_var(--duo-green-dark)]"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground border-2 border-transparent hover:border-[var(--duo-gray)]"
                 )}
               >
-                <item.icon className={cn("w-4 h-4", active ? "" : "group-hover:scale-110 transition-transform")} />
+                <item.icon className={cn("w-5 h-5", active ? "text-white" : item.color, "group-hover:scale-110 transition-transform")} />
                 {item.label}
               </Link>
             );
@@ -104,36 +113,37 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
           {isAdmin && (
             <Link
               to="/admin/dashboard"
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-muted-foreground hover:bg-muted hover:text-foreground transition-colors border-2 border-transparent hover:border-[var(--duo-gray)]"
             >
-              <LayoutDashboard className="w-4 h-4" />
+              <LayoutDashboard className="w-5 h-5 text-[var(--duo-orange)]" />
               Admin Panel
             </Link>
           )}
         </nav>
 
-        <div className="p-3 border-t space-y-2">
+        {/* Bottom actions */}
+        <div className="p-3 border-t-2 border-[var(--duo-gray)] space-y-1">
           <Button 
             variant="ghost" 
             size="sm" 
             onClick={toggleDarkMode}
-            className="w-full justify-start gap-3 px-3 text-muted-foreground hover:text-foreground"
+            className="w-full justify-start gap-3 px-4 py-3 h-auto text-muted-foreground hover:text-foreground font-bold rounded-xl"
           >
-            {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            {isDark ? <Sun className="w-5 h-5 text-[var(--duo-yellow)]" /> : <Moon className="w-5 h-5 text-[var(--duo-purple)]" />}
             {isDark ? "Giao diện sáng" : "Giao diện tối"}
           </Button>
           <button
             onClick={handleSignOut}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-red-50 hover:text-red-600 transition-colors w-full"
+            className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-muted-foreground hover:bg-red-50 hover:text-[var(--duo-red)] transition-all w-full border-2 border-transparent hover:border-red-200"
           >
-            <LogOut className="w-4 h-4" />
+            <LogOut className="w-5 h-5" />
             Đăng xuất
           </button>
         </div>
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="sticky top-0 z-30 h-14 bg-card/80 backdrop-blur-md border-b flex items-center px-4 gap-4">
+        <header className="sticky top-0 z-30 h-16 bg-card/95 backdrop-blur-md border-b-2 border-[var(--duo-gray)] flex items-center px-4 gap-4">
           <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setSidebarOpen(true)}>
             <Menu className="w-5 h-5" />
           </Button>
@@ -148,8 +158,8 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
                 <Link 
                   to={crumb.path} 
                   className={cn(
-                    "text-xs font-medium truncate max-w-[120px] transition-colors",
-                    i === breadcrumbs.length - 1 ? "text-foreground font-bold" : "text-muted-foreground hover:text-foreground"
+                    "text-xs font-bold truncate max-w-[120px] transition-colors",
+                    i === breadcrumbs.length - 1 ? "text-foreground" : "text-muted-foreground hover:text-foreground"
                   )}
                 >
                   {crumb.label}
@@ -158,8 +168,11 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
             ))}
           </div>
           
-          <div className="ml-auto flex items-center gap-2">
-             <h2 className="text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded md:block hidden uppercase tracking-wider">L-English Academy</h2>
+          <div className="ml-auto flex items-center gap-3">
+            <div className="hidden md:flex items-center gap-1.5 bg-[#FFF8E0] px-3 py-1.5 rounded-full border-2 border-[#FFE680]">
+              <Flame className="w-4 h-4 text-[var(--duo-orange)]" />
+              <span className="text-xs font-extrabold text-[#B38600]">L-English</span>
+            </div>
           </div>
         </header>
         <main className="flex-1 p-4 md:p-6 overflow-x-hidden">{children}</main>

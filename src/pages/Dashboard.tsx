@@ -1,8 +1,7 @@
 import StudentLayout from "@/components/StudentLayout";
-import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { PlayCircle, ClipboardCheck, Star, Clock } from "lucide-react";
+import { PlayCircle, ClipboardCheck, Star, Clock, Flame } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -58,10 +57,10 @@ const Dashboard = () => {
     : "0";
 
   const stats = [
-    { icon: PlayCircle, label: "Bài giảng đã xem", value: `${completedLessons}`, color: "text-primary" },
-    { icon: ClipboardCheck, label: "Bài thi đã làm", value: `${totalQuizzes}`, color: "text-accent" },
-    { icon: Star, label: "Điểm trung bình", value: `${avgScore}/10`, color: "text-warning" },
-    { icon: Clock, label: "Khóa đã đăng ký", value: `${enrollments?.length || 0}`, color: "text-success" },
+    { icon: PlayCircle, label: "Bài giảng đã xem", value: `${completedLessons}`, color: "bg-[var(--duo-green)]", shadow: "shadow-[0_4px_0_var(--duo-green-dark)]" },
+    { icon: ClipboardCheck, label: "Bài thi đã làm", value: `${totalQuizzes}`, color: "bg-[var(--duo-blue)]", shadow: "shadow-[0_4px_0_var(--duo-blue-dark)]" },
+    { icon: Star, label: "Điểm trung bình", value: `${avgScore}/10`, color: "bg-[var(--duo-yellow)]", shadow: "shadow-[0_4px_0_var(--duo-yellow-dark)]" },
+    { icon: Clock, label: "Khóa đã đăng ký", value: `${enrollments?.length || 0}`, color: "bg-[var(--duo-purple)]", shadow: "shadow-[0_4px_0_var(--duo-purple-dark)]" },
   ];
 
   const courseTypeMap: Record<string, string> = {
@@ -75,83 +74,99 @@ const Dashboard = () => {
   return (
     <StudentLayout>
       <div className="space-y-6 max-w-6xl">
-        {/* Welcome */}
-        <div className="bg-gradient-to-r from-primary to-primary-dark rounded-xl p-6 text-primary-foreground">
-          <h1 className="text-xl md:text-2xl font-bold">Xin chào, {displayName}! 👋</h1>
-          <p className="text-primary-foreground/80 text-sm mt-1">Tiếp tục học nhé!</p>
+        {/* Welcome banner */}
+        <div className="card-duo p-0 overflow-hidden">
+          <div className="bg-[var(--duo-green)] p-6 flex items-center justify-between">
+            <div>
+              <h1 className="text-xl md:text-2xl font-extrabold text-white">Xin chào, {displayName}! 👋</h1>
+              <p className="text-white/80 text-sm mt-1 font-bold">Tiếp tục hành trình học tập nào! 🚀</p>
+            </div>
+            <div className="hidden sm:flex items-center gap-2 bg-white/20 rounded-2xl px-4 py-2">
+              <Flame className="w-6 h-6 text-[var(--duo-yellow)]" />
+              <span className="text-white font-extrabold text-lg">{completedLessons}</span>
+            </div>
+          </div>
         </div>
 
         {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {stats.map((s) => (
-            <div key={s.label} className="bg-card rounded-xl border p-4 space-y-2">
-              <s.icon className={`w-5 h-5 ${s.color}`} />
-              <p className="text-2xl font-bold text-foreground">{s.value}</p>
-              <p className="text-xs text-muted-foreground">{s.label}</p>
+            <div key={s.label} className="card-duo p-4 space-y-3">
+              <div className={`w-10 h-10 rounded-xl ${s.color} ${s.shadow} flex items-center justify-center`}>
+                <s.icon className="w-5 h-5 text-white" />
+              </div>
+              <p className="text-2xl font-extrabold text-foreground">{s.value}</p>
+              <p className="text-xs font-bold text-muted-foreground">{s.label}</p>
             </div>
           ))}
         </div>
 
         {/* My courses */}
         <div>
-          <h2 className="text-lg font-bold text-foreground mb-4">Khóa học của tôi</h2>
+          <h2 className="text-lg font-extrabold text-foreground mb-4">Khóa học của tôi 📚</h2>
           {enrollLoading ? (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[1, 2, 3].map(i => <Skeleton key={i} className="h-40 rounded-xl" />)}
+              {[1, 2, 3].map(i => <Skeleton key={i} className="h-40 rounded-2xl" />)}
             </div>
           ) : enrollments && enrollments.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {enrollments.map((e: any) => (
-                <div key={e.id} className="bg-card rounded-xl border shadow-sm flex flex-col card-hover h-full overflow-hidden">
-                  <div className="aspect-video w-full bg-muted relative">
+                <div key={e.id} className="card-duo flex flex-col h-full">
+                  <div className="aspect-video w-full bg-muted relative rounded-t-[14px] overflow-hidden">
                     {e.courses?.thumbnail_url ? (
                       <img src={e.courses.thumbnail_url} alt={e.courses.title} className="w-full h-full object-cover" />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-muted-foreground uppercase font-bold text-xs">
+                      <div className="w-full h-full flex items-center justify-center text-muted-foreground uppercase font-bold text-xs bg-gradient-to-br from-[var(--duo-green)]/10 to-[var(--duo-blue)]/10">
                         {e.courses?.title?.substring(0, 20)}...
                       </div>
                     )}
                   </div>
                   <div className="p-4 space-y-2 flex-1 flex flex-col">
                     <div className="flex items-start justify-between gap-2">
-                       <h3 className="font-bold text-foreground text-sm line-clamp-2 flex-1 leading-tight">{e.courses?.title}</h3>
-                       <span className="text-[10px] text-muted-foreground shrink-0 bg-muted px-1.5 py-0.5 rounded">{courseTypeMap[e.courses?.course_type] || ""}</span>
+                       <h3 className="font-extrabold text-foreground text-sm line-clamp-2 flex-1 leading-tight">{e.courses?.title}</h3>
+                       <span className="badge-duo badge-blue text-[9px] shrink-0">{courseTypeMap[e.courses?.course_type] || ""}</span>
                     </div>
                     <div className="mt-auto pt-2">
-                      <p className="text-[10px] text-muted-foreground">
+                      <p className="text-[10px] text-muted-foreground font-bold">
                         {e.expires_at ? `📅 Hạn: ${new Date(e.expires_at).toLocaleDateString("vi-VN")}` : "♾️ Vĩnh viễn"}
                       </p>
-                      <Button size="sm" className="w-full h-8 text-xs mt-3" asChild>
-                        <Link to={`/courses/${e.course_id}`}>Tiếp tục học →</Link>
-                      </Button>
+                      <Link to={`/courses/${e.course_id}`} className="btn-3d btn-3d-green w-full py-2 text-xs mt-3 block text-center">
+                        Tiếp tục học →
+                      </Link>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="bg-card rounded-xl border p-8 text-center">
-              <p className="text-muted-foreground">Bạn chưa đăng ký khóa học nào.</p>
-              <Button className="mt-3" asChild><Link to="/courses">Xem khóa học</Link></Button>
+            <div className="card-duo p-8 text-center">
+              <p className="text-muted-foreground font-medium">Bạn chưa đăng ký khóa học nào.</p>
+              <Link to="/courses" className="btn-3d btn-3d-green py-2.5 px-6 mt-4 inline-block text-sm">
+                Xem khóa học
+              </Link>
             </div>
           )}
         </div>
 
         {/* Recent quiz results */}
         <div>
-          <h2 className="text-lg font-bold text-foreground mb-4">Kết quả bài thi gần đây</h2>
+          <h2 className="text-lg font-extrabold text-foreground mb-4">Kết quả bài thi gần đây 📝</h2>
           {quizResults && quizResults.length > 0 ? (
-            <div className="bg-card rounded-xl border divide-y">
-              {quizResults.map((r: any) => (
-                <div key={r.id} className="px-4 py-3 flex items-center justify-between text-sm">
-                  <span className="text-foreground">{r.quizzes?.title || `Quiz #${r.quiz_id}`}</span>
-                  <span className="font-medium text-primary">{r.correct_answers}/{r.total_questions} đúng</span>
-                </div>
-              ))}
+            <div className="card-duo divide-y-2 divide-[var(--duo-gray)]">
+              {quizResults.map((r: any) => {
+                const pct = r.total_questions > 0 ? (r.correct_answers / r.total_questions) * 100 : 0;
+                const scoreColor = pct >= 80 ? "badge-green" : pct >= 50 ? "badge-yellow" : "badge-orange";
+                return (
+                  <div key={r.id} className="px-5 py-4 flex items-center justify-between">
+                    <span className="text-foreground font-bold text-sm">{r.quizzes?.title || `Quiz #${r.quiz_id}`}</span>
+                    <span className={`badge-duo ${scoreColor}`}>{r.correct_answers}/{r.total_questions} đúng</span>
+                  </div>
+                );
+              })}
             </div>
           ) : (
-            <div className="bg-card rounded-xl border p-6 text-center">
-              <p className="text-sm text-muted-foreground">Bạn chưa làm bài thi nào.</p>
+            <div className="card-duo p-6 text-center">
+              <p className="text-sm text-muted-foreground font-medium">Bạn chưa làm bài thi nào.</p>
             </div>
           )}
         </div>

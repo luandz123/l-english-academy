@@ -24,7 +24,7 @@ const Navbar = () => {
   const initials = displayName.charAt(0).toUpperCase();
 
   return (
-    <nav className="sticky top-0 z-50 bg-card/95 backdrop-blur-sm border-b shadow-sm">
+    <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b-2 border-[var(--duo-gray)]">
       <div className="container mx-auto flex items-center justify-between h-16 px-4">
         <Link to="/">
           <Logo />
@@ -32,34 +32,34 @@ const Navbar = () => {
 
 
         <div className="hidden md:flex items-center gap-8">
-          <Link to="/" className="text-sm font-medium text-foreground hover:text-primary transition-colors">Trang chủ</Link>
-          <Link to="/courses" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">Khóa học</Link>
-          <a href="#about" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">Về chúng tôi</a>
-          <a href="#contact" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">Liên hệ</a>
+          <Link to="/" className="text-sm font-bold text-foreground hover:text-[var(--duo-green)] transition-colors">Trang chủ</Link>
+          <Link to="/courses" className="text-sm font-bold text-muted-foreground hover:text-[var(--duo-green)] transition-colors">Khóa học</Link>
+          <a href="#about" className="text-sm font-bold text-muted-foreground hover:text-[var(--duo-green)] transition-colors">Về chúng tôi</a>
+          <a href="#contact" className="text-sm font-bold text-muted-foreground hover:text-[var(--duo-green)] transition-colors">Liên hệ</a>
         </div>
 
         {user ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors">
-                <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center text-xs font-bold text-primary-foreground">
+              <button className="flex items-center gap-2 px-3 py-1.5 rounded-full border-2 border-[var(--duo-gray)] hover:border-[var(--duo-green)] transition-colors bg-white shadow-[0_2px_0_var(--duo-gray)] hover:shadow-[0_3px_0_var(--duo-gray)]">
+                <div className="w-7 h-7 rounded-full bg-[var(--duo-green)] flex items-center justify-center text-xs font-extrabold text-white shadow-[0_2px_0_var(--duo-green-dark)]">
                   {initials}
                 </div>
-                <span className="text-sm font-medium text-foreground hidden sm:inline">{displayName}</span>
+                <span className="text-sm font-bold text-foreground hidden sm:inline">{displayName}</span>
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem onClick={() => navigate("/dashboard")}>
-                <User className="w-4 h-4 mr-2" />
+            <DropdownMenuContent align="end" className="w-48 rounded-xl border-2 border-[var(--duo-gray)] shadow-[0_4px_0_var(--duo-gray)]">
+              <DropdownMenuItem onClick={() => navigate("/dashboard")} className="font-bold rounded-lg">
+                <User className="w-4 h-4 mr-2 text-[var(--duo-blue)]" />
                 Dashboard
               </DropdownMenuItem>
               {isAdmin && (
-                <DropdownMenuItem onClick={() => navigate("/admin/dashboard")}>
+                <DropdownMenuItem onClick={() => navigate("/admin/dashboard")} className="font-bold rounded-lg">
                   Admin Panel
                 </DropdownMenuItem>
               )}
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
+              <DropdownMenuItem onClick={handleSignOut} className="text-[var(--duo-red)] font-bold rounded-lg">
                 <LogOut className="w-4 h-4 mr-2" />
                 Đăng xuất
               </DropdownMenuItem>
@@ -67,12 +67,12 @@ const Navbar = () => {
           </DropdownMenu>
         ) : (
           <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm" asChild>
-              <Link to="/login">Đăng nhập</Link>
-            </Button>
-            <Button size="sm" asChild>
-              <Link to="/register">Đăng ký</Link>
-            </Button>
+            <Link to="/login" className="btn-3d btn-3d-white text-sm py-2 px-5">
+              Đăng nhập
+            </Link>
+            <Link to="/register" className="btn-3d btn-3d-green text-sm py-2 px-5">
+              Đăng ký
+            </Link>
           </div>
         )}
       </div>
