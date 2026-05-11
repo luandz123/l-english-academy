@@ -13,10 +13,10 @@
     --card-foreground: 0 0% 11%;
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 11%;
-    --primary: 100 95% 40%;
+    --primary: 346 91% 50%;
     --primary-foreground: 0 0% 100%;
-    --primary-dark: 100 95% 28%;
-    --primary-light: 100 60% 92%;
+    --primary-dark: 346 91% 35%;
+    --primary-light: 346 91% 95%;
     --secondary: 200 100% 54%;
     --secondary-foreground: 0 0% 100%;
     --muted: 0 0% 95%;
@@ -28,25 +28,25 @@
     --destructive-foreground: 0 0% 100%;
     --warning: 30 100% 50%;
     --warning-foreground: 0 0% 100%;
-    --success: 100 95% 40%;
+    --success: 346 91% 50%;
     --success-foreground: 0 0% 100%;
     --border: 0 0% 90%;
     --input: 0 0% 90%;
-    --ring: 100 95% 40%;
+    --ring: 346 91% 50%;
     --radius: 1rem;
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 0 0% 11%;
-    --sidebar-primary: 100 95% 40%;
+    --sidebar-primary: 346 91% 50%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 100 60% 92%;
-    --sidebar-accent-foreground: 100 95% 28%;
+    --sidebar-accent: 346 91% 95%;
+    --sidebar-accent-foreground: 346 91% 35%;
     --sidebar-border: 0 0% 92%;
-    --sidebar-ring: 100 95% 40%;
+    --sidebar-ring: 346 91% 50%;
 
     /* Custom Duolingo colors */
-    --duo-green: #58CC02;
-    --duo-green-dark: #46A302;
-    --duo-green-light: #89E219;
+    --duo-green: #f40c44;
+    --duo-green-dark: #ac0830;
+    --duo-green-light: #f85077;
     --duo-blue: #1CB0F6;
     --duo-blue-dark: #1899D6;
     --duo-yellow: #FFC800;
@@ -66,7 +66,7 @@
     --card-foreground: 0 0% 95%;
     --popover: 0 0% 12%;
     --popover-foreground: 0 0% 95%;
-    --primary: 100 95% 40%;
+    --primary: 346 91% 50%;
     --primary-foreground: 0 0% 100%;
     --secondary: 200 100% 54%;
     --secondary-foreground: 0 0% 100%;
@@ -78,15 +78,15 @@
     --destructive-foreground: 0 0% 95%;
     --border: 0 0% 20%;
     --input: 0 0% 20%;
-    --ring: 100 95% 40%;
+    --ring: 346 91% 50%;
     --sidebar-background: 0 0% 10%;
     --sidebar-foreground: 0 0% 90%;
-    --sidebar-primary: 100 95% 40%;
+    --sidebar-primary: 346 91% 50%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 100 40% 15%;
-    --sidebar-accent-foreground: 100 95% 60%;
+    --sidebar-accent: 346 40% 15%;
+    --sidebar-accent-foreground: 346 91% 60%;
     --sidebar-border: 0 0% 18%;
-    --sidebar-ring: 100 95% 40%;
+    --sidebar-ring: 346 91% 50%;
   }
 }
 
@@ -232,9 +232,9 @@
     border: 2px solid;
   }
   .badge-green {
-    background: #E8F8D4;
+    background: #FFEBEF;
     color: var(--duo-green-dark);
-    border-color: #C8EDA0;
+    border-color: #FFD6DF;
   }
   .badge-blue {
     background: #DDF4FF;

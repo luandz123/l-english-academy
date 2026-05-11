@@ -41,13 +41,13 @@ const FullTestResult = () => {
   return (
     <StudentLayout>
       <div className="max-w-3xl mx-auto space-y-6">
-        <div className="card-duo p-8 text-center space-y-5">
+        <div className="card-duo p-5 sm:p-8 text-center space-y-4 sm:space-y-5">
           <div className="text-6xl mb-2">{getScoreEmoji()}</div>
           <h1 className="text-2xl font-extrabold text-foreground">KẾT QUẢ BỘ ĐỀ</h1>
           <div className="text-5xl font-extrabold text-[var(--duo-green)]">{totalScore}</div>
           <p className="text-sm text-muted-foreground font-bold">Điểm TOEIC ước tính (trên 990)</p>
 
-          <div className="grid grid-cols-2 gap-6 max-w-md mx-auto pt-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 max-w-md mx-auto pt-4">
             <div className="card-duo p-4 space-y-2">
               <p className="text-sm font-extrabold text-foreground">🎧 Listening</p>
               <div className="progress-duo">
@@ -67,7 +67,7 @@ const FullTestResult = () => {
           <p className="text-sm text-muted-foreground font-bold">Tổng đúng: {correct}/{total} · Thời gian: {timeMin}:{String(timeSec).padStart(2, "0")}</p>
         </div>
 
-        <div className="flex gap-3 justify-center">
+        <div className="flex flex-col sm:flex-row gap-3 justify-center w-full max-w-sm mx-auto sm:max-w-none">
           <Link to={`/courses/${courseId}/fulltest`} className="btn-3d btn-3d-white py-2.5 px-5 text-sm inline-block">
             ← Quay về danh sách
           </Link>

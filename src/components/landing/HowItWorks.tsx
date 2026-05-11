@@ -1,9 +1,9 @@
 import { BookOpen, Search, Trophy } from "lucide-react";
 
 const steps = [
-  { icon: Search, title: "Liên hệ tư vấn", desc: "Liên hệ Admin qua Zalo để được tư vấn khóa học và tạo tài khoản dùng thử miễn phí.", color: "bg-[var(--duo-green)]", shadow: "shadow-[0_4px_0_var(--duo-green-dark)]", numBg: "bg-[var(--duo-green)]" },
-  { icon: BookOpen, title: "Học tập chất lượng", desc: "Truy cập kho bài giảng video, bài tập và bộ đề thi chất lượng gốc như các trung tâm lớn.", color: "bg-[var(--duo-blue)]", shadow: "shadow-[0_4px_0_var(--duo-blue-dark)]", numBg: "bg-[var(--duo-blue)]" },
-  { icon: Trophy, title: "Tiết kiệm & Hiệu quả", desc: "Đạt mục tiêu tiếng Anh với mức chi phí siêu rẻ nhưng chất lượng cam kết hàng đầu.", color: "bg-[var(--duo-yellow)]", shadow: "shadow-[0_4px_0_var(--duo-yellow-dark)]", numBg: "bg-[var(--duo-yellow)]" },
+  { icon: Search, title: "Test trình độ", desc: "Xác định mục tiêu TOEIC và nhận lộ trình học cá nhân hóa ngay sau bài test đầu vào.", color: "bg-[var(--duo-green)]", shadow: "shadow-[0_4px_0_var(--duo-green-dark)]", numBg: "bg-[var(--duo-green)]" },
+  { icon: BookOpen, title: "Luyện đề thực tế", desc: "Thực hành giải 500+ bộ đề TOEIC sát đề thật với giải thích chi tiết từng câu.", color: "bg-[var(--duo-blue)]", shadow: "shadow-[0_4px_0_var(--duo-blue-dark)]", numBg: "bg-[var(--duo-blue)]" },
+  { icon: Trophy, title: "Bứt phá mục tiêu", desc: "Tự tin đi thi và đạt điểm số mơ ước với kỹ năng làm bài chuyên nghiệp.", color: "bg-[var(--duo-yellow)]", shadow: "shadow-[0_4px_0_var(--duo-yellow-dark)]", numBg: "bg-[var(--duo-yellow)]" },
 ];
 
 const HowItWorks = () => {

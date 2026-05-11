@@ -1,10 +1,10 @@
 import { BookOpen, HelpCircle, Star, Trophy } from "lucide-react";
 
 const stats = [
-  { icon: BookOpen, value: "70+", label: "Bài giảng", color: "bg-[var(--duo-green)]", shadow: "shadow-[0_4px_0_var(--duo-green-dark)]", iconColor: "text-white" },
-  { icon: HelpCircle, value: "100+", label: "Bài thi", color: "bg-[var(--duo-blue)]", shadow: "shadow-[0_4px_0_var(--duo-blue-dark)]", iconColor: "text-white" },
-  { icon: Trophy, value: "3000+", label: "Từ vựng", color: "bg-[var(--duo-yellow)]", shadow: "shadow-[0_4px_0_var(--duo-yellow-dark)]", iconColor: "text-white" },
-  { icon: Star, value: "60+", label: "Đề thi", color: "bg-[var(--duo-purple)]", shadow: "shadow-[0_4px_0_var(--duo-purple-dark)]", iconColor: "text-white" },
+  { icon: BookOpen, value: "150+", label: "Bài giảng", color: "bg-[var(--duo-green)]", shadow: "shadow-[0_4px_0_var(--duo-green-dark)]", iconColor: "text-white" },
+  { icon: HelpCircle, value: "500+", label: "Bộ đề TOEIC", color: "bg-[var(--duo-blue)]", shadow: "shadow-[0_4px_0_var(--duo-blue-dark)]", iconColor: "text-white" },
+  { icon: Trophy, value: "2000+", label: "Từ vựng cốt lõi", color: "bg-[var(--duo-yellow)]", shadow: "shadow-[0_4px_0_var(--duo-yellow-dark)]", iconColor: "text-white" },
+  { icon: Star, value: "10k+", label: "Câu hỏi luyện tập", color: "bg-[var(--duo-purple)]", shadow: "shadow-[0_4px_0_var(--duo-purple-dark)]", iconColor: "text-white" },
 ];
 
 const StatsBar = () => {

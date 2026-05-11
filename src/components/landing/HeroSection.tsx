@@ -15,17 +15,16 @@ const HeroSection = () => {
       <div className="container mx-auto px-4 py-16 md:py-24 relative">
         <div className="grid md:grid-cols-2 gap-12 items-center">
           <div className="space-y-6 animate-fade-in">
-            <div className="inline-flex items-center gap-2 bg-[#E8F8D4] border-2 border-[#C8EDA0] rounded-full px-4 py-1.5">
-              <span className="text-sm font-bold text-[var(--duo-green-dark)]">🎮 Học như chơi game!</span>
+            <div className="inline-flex items-center gap-2 bg-[#FFEBEF] border-2 border-[#FFD6DF] rounded-full px-4 py-1.5">
+              <span className="text-sm font-bold text-[var(--duo-green-dark)]">🚀 Hệ thống luyện TOEIC Gamification đầu tiên</span>
             </div>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight text-foreground">
-              Học Tiếng Anh{" "}
-              <span className="text-gradient">Vui Như</span>{" "}
-              <span className="text-[var(--duo-green)]">Chơi Game!</span>
+              Chinh phục <span className="text-[var(--duo-green)]">TOEIC 990</span> <br/> 
+              Theo Cách <span className="text-gradient">Vui Nhất!</span>
             </h1>
-            <p className="text-lg font-bold text-[var(--duo-blue)]">Chất lượng gốc từ các khóa nổi tiếng nhưng giá siêu rẻ.</p>
+            <p className="text-lg font-bold text-[var(--duo-blue)]">Học hiệu quả hơn 3 lần với phương pháp của Duolingo.</p>
             <p className="text-muted-foreground leading-relaxed font-medium">
-              Hơn 70 bài giảng video · 100+ bài thi online · 3000+ từ vựng · 60+ bộ đề full test. Học thông minh, tiết kiệm tối đa cùng L-English.
+              Sở hữu kho đề thi TOEIC đồ sộ nhất Việt Nam với hơn 500+ bộ đề sát thực tế, 2000+ từ vựng cốt lõi và bài giảng giải thích chi tiết 100%. Tiết kiệm 90% chi phí học tập.
             </p>
             <div className="flex flex-wrap gap-4 pt-2">
               <Link to={user ? "/courses" : "/login"} className="btn-3d btn-3d-green text-base px-8 py-3.5 inline-block">

@@ -35,8 +35,8 @@ const CourseShowcase = () => {
     <section className="py-16 md:py-24 bg-white">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-extrabold text-foreground mb-3">Khóa Học Nổi Bật ⭐</h2>
-          <p className="text-muted-foreground font-medium">Chất lượng đào tạo cam kết, lộ trình học bài bản với mức giá tốt nhất.</p>
+          <h2 className="text-3xl md:text-4xl font-extrabold text-foreground mb-3">Luyện Thi TOEIC 🏆</h2>
+          <p className="text-muted-foreground font-medium">Lộ trình bài bản từ 0 - 990+, cam kết chất lượng đầu ra với chi phí tốt nhất.</p>
         </div>
 
         {isLoading ? (

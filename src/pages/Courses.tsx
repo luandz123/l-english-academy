@@ -52,8 +52,8 @@ const Courses = () => {
     <StudentLayout>
       <div className="space-y-8 max-w-6xl mx-auto pb-10 px-1">
         <div>
-          <h1 className="text-2xl font-extrabold text-foreground">Khóa Học 📚</h1>
-          <p className="text-sm text-muted-foreground mt-1 font-medium">Danh sách tất cả khóa học trên L-English</p>
+          <h1 className="text-2xl font-extrabold text-foreground">Hệ Thống Luyện Thi 📚</h1>
+          <p className="text-sm text-muted-foreground mt-1 font-medium">Khám phá kho đề thi và lộ trình luyện TOEIC chuyên sâu</p>
         </div>
         {isLoading ? (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">

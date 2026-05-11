@@ -94,7 +94,7 @@ const QuizResult = () => {
 
         <main className="flex-1 flex overflow-hidden w-full h-[calc(100vh-64px)]">
           {/* Main Content: List of all questions */}
-          <div className="flex-1 h-full overflow-y-auto p-4 lg:p-8 space-y-8 scroll-smooth pb-32">
+          <div className="flex-1 h-full overflow-y-auto p-3 sm:p-4 lg:p-8 space-y-5 sm:space-y-8 scroll-smooth pb-32">
             {quiz?.audio_url && (
               <div className="max-w-4xl mx-auto bg-[#DDF4FF] border-2 border-[#A8E0FD] rounded-2xl p-4 sticky top-0 z-10 backdrop-blur-sm">
                 <div className="flex items-center gap-3">
@@ -116,7 +116,7 @@ const QuizResult = () => {
                  const isCorrect = !!selectedOpt?.is_correct;
                  
                  return (
-                  <div key={q.id} id={`question-${i}`} className="max-w-4xl mx-auto card-duo p-6 scroll-mt-6">
+                  <div key={q.id} id={`question-${i}`} className="max-w-4xl mx-auto card-duo p-4 sm:p-6 scroll-mt-6">
                     <div className="mb-4 flex items-center justify-between">
                       <span className="badge-duo badge-blue">Câu {i + 1} / {totalQ}</span>
                       {selectedId ? (
@@ -144,7 +144,7 @@ const QuizResult = () => {
                         let indicatorClass = "border-[var(--duo-gray-dark)] text-muted-foreground";
                         
                         if (isOptCorrect) {
-                           optClass = "border-[var(--duo-green)] bg-[#E8F8D4] shadow-[0_3px_0_#C8EDA0]";
+                           optClass = "border-[var(--duo-green)] bg-[#FFEBEF] shadow-[0_3px_0_#FFD6DF]";
                            indicatorClass = "border-[var(--duo-green)] bg-[var(--duo-green)] text-white";
                         } else if (isSelected && !isOptCorrect) {
                            optClass = "border-[var(--duo-red)] bg-red-50 shadow-[0_3px_0_#FFB3B3]";
@@ -155,11 +155,11 @@ const QuizResult = () => {
                           <div
                             key={opt.id}
                             className={cn(
-                              "flex items-center gap-4 w-full p-4 rounded-xl border-2 transition-all group",
+                              "flex items-center gap-3 sm:gap-4 w-full p-3 sm:p-4 rounded-xl border-2 transition-all group",
                               optClass
                             )}
                           >
-                            <div className={cn("w-7 h-7 rounded-full border-2 flex items-center justify-center shrink-0 font-extrabold text-sm", indicatorClass)}>
+                            <div className={cn("w-6 h-6 sm:w-7 sm:h-7 rounded-full border-2 flex items-center justify-center shrink-0 font-extrabold text-sm", indicatorClass)}>
                               {isOptCorrect ? "✓" : isSelected ? "✗" : String.fromCharCode(65 + oi)}
                             </div>
                             <span className={cn("text-base flex-1 font-bold", (isOptCorrect || isSelected) ? "text-foreground" : "text-muted-foreground")}>{opt.answer_text}</span>
@@ -172,7 +172,7 @@ const QuizResult = () => {
                     
                     <div className="mt-6 space-y-3">
                         {correctOpt?.explanation && (
-                          <div className="p-4 bg-[#E8F8D4] border-2 border-[#C8EDA0] rounded-xl text-sm font-medium text-foreground">
+                          <div className="p-4 bg-[#FFEBEF] border-2 border-[#FFD6DF] rounded-xl text-sm font-medium text-foreground">
                             💡 <strong>Giải thích:</strong> {correctOpt.explanation}
                           </div>
                         )}
@@ -291,7 +291,7 @@ const QuizResult = () => {
 
   // Determine score emoji and message
   const getScoreDisplay = () => {
-    if (percentage >= 80) return { emoji: "🏆", text: "Xuất sắc!", color: "text-[var(--duo-green)]", bg: "bg-[#E8F8D4]", border: "border-[#C8EDA0]" };
+    if (percentage >= 80) return { emoji: "🏆", text: "Xuất sắc!", color: "text-[var(--duo-green)]", bg: "bg-[#FFEBEF]", border: "border-[#FFD6DF]" };
     if (percentage >= 60) return { emoji: "👍", text: "Khá tốt!", color: "text-[var(--duo-blue)]", bg: "bg-[#DDF4FF]", border: "border-[#A8E0FD]" };
     if (percentage >= 40) return { emoji: "💪", text: "Cố gắng thêm!", color: "text-[var(--duo-yellow)]", bg: "bg-[#FFF8E0]", border: "border-[#FFE680]" };
     return { emoji: "📚", text: "Hãy ôn tập lại!", color: "text-[var(--duo-orange)]", bg: "bg-[#FFF0E0]", border: "border-[#FFCC80]" };
@@ -303,7 +303,7 @@ const QuizResult = () => {
     <StudentLayout>
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Score card */}
-        <div className="card-duo p-8 text-center space-y-5">
+        <div className="card-duo p-5 sm:p-8 text-center space-y-4 sm:space-y-5">
           <div className="text-6xl mb-2">{scoreDisplay.emoji}</div>
           <h1 className="text-2xl font-extrabold text-foreground">KẾT QUẢ BÀI THI</h1>
           <p className={`text-lg font-extrabold ${scoreDisplay.color}`}>{scoreDisplay.text}</p>
@@ -312,7 +312,7 @@ const QuizResult = () => {
             <div className="progress-duo-fill" style={{ width: `${percentage}%` }} />
           </div>
           <p className="text-lg font-extrabold text-foreground">{percentage}%</p>
-          <div className="flex justify-center gap-6 text-sm font-bold">
+          <div className="flex justify-center gap-4 sm:gap-6 text-sm font-bold">
             <span className="badge-duo badge-green">✅ Đúng: {score}</span>
             <span className="badge-duo badge-orange">❌ Sai: {total - score}</span>
           </div>

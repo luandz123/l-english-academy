@@ -464,7 +464,7 @@ const LearnPage = () => {
                           {!canStudy ? (
                             <Lock className="w-4 h-4 text-amber-500 shrink-0" />
                           ) : (
-                            canStudy && !enrollment && <span className="badge-duo text-[9px] py-0.5 px-1.5 shrink-0" style={{ backgroundColor: 'var(--duo-green)', color: 'white', borderColor: '#46A302' }}>FREE</span>
+                            canStudy && !enrollment && <span className="badge-duo text-[9px] py-0.5 px-1.5 shrink-0" style={{ backgroundColor: 'var(--duo-green)', color: 'white', borderColor: '#ac0830' }}>FREE</span>
                           )}
                         </button>
                       );

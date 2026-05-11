@@ -1,24 +1,24 @@
 const testimonials = [
   {
     name: "Nguyễn Thị Mai",
-    score: "Tiết kiệm 2 triệu đồng",
+    score: "TOEIC 850+ (Tăng 300đ)",
     avatar: "👩‍🎓",
     stars: 5,
-    quote: "Mình từng định mua khóa học ở trung tâm lớn với giá 3 triệu, nhưng khi học ở L-English chất lượng bài giảng y hệt mà giá chỉ bằng 1/5. Thật sự bất ngờ!",
+    quote: "Lộ trình học cực kỳ sát đề thi thật. Mình chỉ ôn luyện trên app 2 tháng đã tăng từ 550 lên 850. Giải thích chi tiết giúp mình hiểu sâu vấn đề.",
   },
   {
     name: "Trần Minh Đức",
-    score: "Chất lượng tuyệt vời",
+    score: "TOEIC 750+ (Tiết kiệm 5tr)",
     avatar: "👨‍💼",
     stars: 5,
-    quote: "Hệ thống bài tập và đề thi online cực kỳ mượt mà. Nội dung bám sát đề thi thật, giúp mình tiết kiệm rất nhiều thời gian và tiền bạc.",
+    quote: "Không cần đến trung tâm đắt đỏ, chỉ cần chăm chỉ luyện đề trên L-English là đủ. App mượt, đề cập nhật liên tục, thực sự quá hời cho một khóa học.",
   },
   {
     name: "Lê Hoàng Anh",
-    score: "Học mọi lúc mọi nơi",
+    score: "TOEIC 915+ (Xuất sắc)",
     avatar: "👩‍💻",
     stars: 5,
-    quote: "Kiến thức cô đọng, dễ hiểu. Giá rẻ không có nghĩa là chất lượng thấp, ngược lại mình thấy L-English đầu tư rất kỹ vào nội dung.",
+    quote: "Bộ từ vựng cốt lõi và phần luyện nghe cực kỳ hiệu quả. Mình thích nhất là tính năng gamification giúp việc học không còn nhàm chán.",
   },
 ];
 

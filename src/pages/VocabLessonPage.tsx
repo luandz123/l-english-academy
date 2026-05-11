@@ -229,7 +229,7 @@ export default function VocabLessonPage() {
         </div>
 
         {/* Interaction Card */}
-        <div className="flex-1 flex flex-col items-center justify-center card-duo bg-white border-2 p-8 relative min-h-[500px]">
+        <div className="flex-1 flex flex-col items-center justify-center card-duo bg-white border-2 p-4 sm:p-8 relative min-h-[400px] sm:min-h-[500px]">
           
           {/* ROUND 1: FLASHCARDS */}
           {!isFinished && round === 1 && word && (
@@ -251,27 +251,27 @@ export default function VocabLessonPage() {
                 <div className="relative w-full h-full transition-transform duration-500 preserve-3d">
                   {/* Front Side */}
                   <div className={cn(
-                    "absolute inset-0 backface-hidden bg-white rounded-3xl border-4 border-border flex flex-col items-center justify-center p-10 shadow-[0_8px_0_var(--border)] group-hover:-translate-y-1 group-hover:shadow-[0_12px_0_var(--border)] group-active:translate-y-2 group-active:shadow-none transition-all",
+                    "absolute inset-0 backface-hidden bg-white rounded-3xl border-4 border-border flex flex-col items-center justify-center p-6 sm:p-10 shadow-[0_8px_0_var(--border)] group-hover:-translate-y-1 group-hover:shadow-[0_12px_0_var(--border)] group-active:translate-y-2 group-active:shadow-none transition-all",
                     isFlipped ? "opacity-0 invisible" : "opacity-100 visible"
                   )}>
-                    <h2 className="text-5xl md:text-6xl font-black text-foreground mb-6 select-none drop-shadow-sm">{word.word}</h2>
+                    <h2 className="text-4xl md:text-6xl font-black text-foreground mb-6 select-none drop-shadow-sm">{word.word}</h2>
                     <div className="mt-12 px-6 py-2 bg-muted/50 border-2 rounded-full text-sm font-bold text-muted-foreground animate-pulse">Chạm để lật & nghe</div>
                   </div>
 
                   {/* Back Side */}
                   <div className={cn(
-                    "absolute inset-0 backface-hidden bg-[var(--duo-blue)]/5 rounded-3xl border-4 border-[var(--duo-blue)]/30 flex flex-col items-center justify-center p-8 shadow-[0_8px_0_transparent] transform rotate-y-180 transition-all",
+                    "absolute inset-0 backface-hidden bg-[var(--duo-blue)]/5 rounded-3xl border-4 border-[var(--duo-blue)]/30 flex flex-col items-center justify-center p-5 sm:p-8 shadow-[0_8px_0_transparent] transform rotate-y-180 transition-all",
                     isFlipped ? "opacity-100 visible" : "opacity-0 invisible"
                   )}>
                     <div className="space-y-6 text-center animate-in zoom-in-95 duration-300 w-full">
                       <div>
-                        <h2 className="text-4xl font-black text-[var(--duo-blue)] mb-3">{word.word}</h2>
+                        <h2 className="text-3xl sm:text-4xl font-black text-[var(--duo-blue)] mb-3">{word.word}</h2>
                         <p className="text-xl text-muted-foreground font-mono font-bold bg-white/60 border-2 border-[var(--duo-blue)]/20 px-4 py-1.5 rounded-xl inline-block">{word.phonetic}</p>
                       </div>
                       <div className="h-1.5 rounded-full w-20 bg-[var(--duo-blue)]/20 mx-auto my-4"></div>
-                      <p className="text-3xl font-extrabold text-foreground px-4">{word.definition_vi}</p>
+                      <p className="text-2xl sm:text-3xl font-extrabold text-foreground px-4">{word.definition_vi}</p>
                       {word.example_sentence && (
-                        <p className="text-base font-bold text-foreground italic bg-white p-5 rounded-2xl border-2 border-dashed border-[var(--duo-blue)]/30 mt-4">"{word.example_sentence}"</p>
+                        <p className="text-sm sm:text-base font-bold text-foreground italic bg-white p-4 sm:p-5 rounded-2xl border-2 border-dashed border-[var(--duo-blue)]/30 mt-4">"{word.example_sentence}"</p>
                       )}
                       <p className="text-xs font-black uppercase tracking-widest text-[var(--duo-blue)] animate-pulse pt-6">Chạm để sang từ tiếp theo</p>
                     </div>
@@ -305,7 +305,7 @@ export default function VocabLessonPage() {
               </div>
               
               <div className="space-y-4">
-                <h3 className="text-4xl font-black text-foreground drop-shadow-sm">{word.definition_vi}</h3>
+                <h3 className="text-3xl sm:text-4xl font-black text-foreground drop-shadow-sm">{word.definition_vi}</h3>
                 <p className="text-base font-bold text-muted-foreground bg-muted/50 inline-block px-4 py-1.5 rounded-full border-2">Nghe và viết lại từ vựng này</p>
               </div>
 
@@ -316,7 +316,7 @@ export default function VocabLessonPage() {
                     placeholder="Nhập từ bạn nghe..." 
                     value={dictationInput}
                     onChange={(e) => setDictationInput(e.target.value)}
-                    className="text-center text-2xl font-black h-16 rounded-2xl border-2 border-border shadow-[0_4px_0_transparent] focus-visible:border-[var(--duo-blue)] focus-visible:shadow-[0_4px_0_var(--duo-blue)] focus-visible:ring-0 transition-all"
+                    className="text-center text-xl sm:text-2xl font-black h-16 rounded-2xl border-2 border-border shadow-[0_4px_0_transparent] focus-visible:border-[var(--duo-blue)] focus-visible:shadow-[0_4px_0_var(--duo-blue)] focus-visible:ring-0 transition-all"
                     readOnly={showResult}
                   />
                   <Button type="submit" className="btn-3d btn-3d-blue h-16 w-20 rounded-2xl shrink-0" disabled={showResult || !dictationInput.trim()}>
@@ -339,11 +339,11 @@ export default function VocabLessonPage() {
                 )}
               </div>
 
-              <div className="flex gap-4 justify-center pt-4">
-                <Button className="btn-3d bg-white text-muted-foreground hover:bg-gray-50 border-gray-200 h-12 px-6 font-bold" onClick={() => { setDictationInput(word.word); setShowResult(true); setTimeout(handleNext, 1500); }} disabled={showResult}>
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center pt-4">
+                <Button className="btn-3d bg-white text-muted-foreground hover:bg-gray-50 border-gray-200 h-12 px-6 font-bold w-full sm:w-auto" onClick={() => { setDictationInput(word.word); setShowResult(true); setTimeout(handleNext, 1500); }} disabled={showResult}>
                   Xem đáp án
                 </Button>
-                <Button className="btn-3d bg-white text-muted-foreground hover:bg-gray-50 border-gray-200 h-12 px-6 font-bold" onClick={handleNext}>Bỏ qua</Button>
+                <Button className="btn-3d bg-white text-muted-foreground hover:bg-gray-50 border-gray-200 h-12 px-6 font-bold w-full sm:w-auto" onClick={handleNext}>Bỏ qua</Button>
               </div>
 
               <div className="flex items-center justify-between pt-8 border-t-2">
@@ -373,7 +373,7 @@ export default function VocabLessonPage() {
             <div className="w-full max-w-sm text-center space-y-12 flex flex-col items-center animate-in fade-in duration-300">
               <div className="space-y-5">
                 <div className="flex items-center justify-center gap-5">
-                  <h2 className="text-5xl font-black text-foreground drop-shadow-sm">{word.word}</h2>
+                  <h2 className="text-4xl sm:text-5xl font-black text-foreground drop-shadow-sm">{word.word}</h2>
                   <Button className="btn-3d bg-[var(--duo-blue)]/10 border-2 border-[var(--duo-blue)]/30 rounded-full h-14 w-14 flex items-center justify-center hover:bg-[var(--duo-blue)]/20 shadow-[0_4px_0_rgba(28,176,246,0.3)] active:translate-y-1 active:shadow-none" onClick={() => playAudio(word.word, word.audio_male_url)}>
                     <Volume2 className="w-7 h-7 text-[var(--duo-blue)]" />
                   </Button>
@@ -386,12 +386,12 @@ export default function VocabLessonPage() {
                   onClick={startListening} 
                   disabled={isListening || showResult}
                   className={cn(
-                    "w-40 h-40 rounded-full transition-all duration-300 relative",
+                    "w-32 h-32 sm:w-40 sm:h-40 rounded-full transition-all duration-300 relative",
                     isListening ? "border-[var(--duo-red)] bg-[var(--duo-red)]/10 text-[var(--duo-red)] border-8 animate-pulse scale-110 shadow-lg" : "btn-3d btn-3d-blue shadow-[0_8px_0_#1899D6] active:translate-y-2 active:shadow-none hover:scale-105"
                   )}
                   variant="ghost"
                 >
-                  <Mic className={cn("w-16 h-16", isListening ? 'text-[var(--duo-red)]' : 'text-white')} />
+                  <Mic className={cn("w-12 h-12 sm:w-16 sm:h-16", isListening ? 'text-[var(--duo-red)]' : 'text-white')} />
                   {isListening && <div className="absolute inset-0 rounded-full border-4 border-[var(--duo-red)] animate-ping opacity-50"></div>}
                 </Button>
                 <p className="text-base font-black uppercase tracking-widest text-[var(--duo-blue)] h-6 bg-[var(--duo-blue)]/10 px-4 py-1.5 rounded-full border-2 border-[var(--duo-blue)]/20">

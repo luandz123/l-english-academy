@@ -49,67 +49,56 @@ const playSound = (type: "correct" | "error") => {
   }
 };
 
-const findErrorIndex = (input: string, expected: string): number => {
-  const normI = input.toLowerCase();
-  const normE = expected.toLowerCase();
-  
-  let i = 0;
-  let j = 0;
-
-  while (i < normI.length && j < normE.length) {
-    if (!isAlphanumeric(normE[j])) {
-      j++;
-      continue;
-    }
-    if (!isAlphanumeric(normI[i])) {
-      i++;
-      continue;
-    }
-    if (normI[i] !== normE[j]) {
-      return i;
-    }
-    i++;
-    j++;
+const getWords = (text: string) => {
+  const words = [];
+  const regex = /[\p{L}0-9]+/gu;
+  let match;
+  while ((match = regex.exec(text)) !== null) {
+    words.push({
+      text: match[0],
+      start: match.index,
+      end: match.index + match[0].length
+    });
   }
-  
-  if (i < normI.length) return i;
-  return -1;
+  return words;
 };
 
 const getFirstErrorWordInfo = (input: string, expected: string) => {
-  const errIdx = findErrorIndex(input, expected);
-  if (errIdx === -1) return null;
+  const inputWords = getWords(input);
+  const expectedWords = getWords(expected);
 
-  // Find start and end of the word in input
-  let start = errIdx;
-  while (start > 0 && !/\s/.test(input[start - 1])) {
-    start--;
-  }
-  let end = errIdx;
-  while (end < input.length && !/\s/.test(input[end])) {
-    end++;
-  }
-  const inputWord = input.substring(start, end);
+  for (let i = 0; i < expectedWords.length; i++) {
+    const eWord = expectedWords[i];
+    const iWord = inputWords[i];
 
-  // Find corresponding word in expected
-  // This is tricky, let's use word-based splitting for the hint
-  const inputWords = input.trim().split(/\s+/);
-  const expectedWords = expected.trim().split(/\s+/);
-  
-  let errorWordIdx = 0;
-  let charCount = 0;
-  for (let i = 0; i < inputWords.length; i++) {
-    charCount += inputWords[i].length + 1; // +1 for space
-    if (charCount > start) {
-      errorWordIdx = i;
-      break;
+    if (!iWord) {
+      return {
+        endIndex: input.length,
+        correctWord: eWord.text,
+        isMissing: true
+      };
+    }
+
+    if (iWord.text.toLowerCase() !== eWord.text.toLowerCase()) {
+      return {
+        endIndex: iWord.end,
+        correctWord: eWord.text,
+        inputWord: iWord.text,
+        isMissing: false
+      };
     }
   }
 
-  return {
-    endIndex: end,
-    correctWord: expectedWords[errorWordIdx] || expectedWords[expectedWords.length - 1]
-  };
+  if (inputWords.length > expectedWords.length) {
+    return {
+      endIndex: inputWords[expectedWords.length].end,
+      correctWord: "",
+      inputWord: inputWords[expectedWords.length].text,
+      isExtra: true
+    };
+  }
+
+  return null;
 };
 
 const isFullMatch = (input: string, expected: string): boolean => {
@@ -134,16 +123,36 @@ const DictationInput = ({
   const [shake, setShake] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const [errorWord, setErrorWord] = useState<string | null>(null);
+  const [errorDetails, setErrorDetails] = useState<{ correctWord: string, inputWord?: string, isMissing?: boolean, isExtra?: boolean } | null>(null);
 
   const getHintText = () => {
-    if (errorWord) {
-      return `Gợi ý từ sai: "${errorWord}"`;
+    if (errorDetails) {
+      return (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <span className="text-base">
+              {errorDetails.isMissing ? (
+                <>Gợi ý từ tiếp theo: <span className="text-[var(--duo-blue)] bg-white px-2 py-0.5 rounded-lg border-2 border-[var(--duo-blue)]/20 font-bold">"{errorDetails.correctWord}"</span></>
+              ) : errorDetails.isExtra ? (
+                <>Từ bị thừa: <span className="text-[var(--duo-red)] bg-white px-2 py-0.5 rounded-lg border-2 border-[var(--duo-red)]/20 line-through">"{errorDetails.inputWord}"</span></>
+              ) : (
+                <>Sửa <span className="text-[var(--duo-red)] bg-white px-2 py-0.5 rounded-lg border-2 border-[var(--duo-red)]/20 line-through">"{errorDetails.inputWord}"</span> thành <span className="text-[var(--duo-green)] bg-white px-2 py-0.5 rounded-lg border-2 border-[var(--duo-green)]/20 font-bold">"{errorDetails.correctWord}"</span></>
+              )}
+            </span>
+          </div>
+          <div className="text-xs opacity-80 font-extrabold border-t border-border pt-2 flex items-center gap-2">
+            <span className="bg-muted-foreground/20 text-foreground px-1.5 py-0.5 rounded text-[10px] uppercase">Đáp án đầy đủ</span>
+            <span className="text-sm">{expected}</span>
+          </div>
+        </div>
+      );
     }
-    if (mistakeCount === 1) {
-      return `Gợi ý: Bắt đầu bằng chữ "${expected[0]}"`;
-    }
-    return `Đáp án: ${expected}`;
+    return (
+      <div className="flex items-center gap-2">
+        <span className="bg-[var(--duo-green)] text-white px-1.5 py-0.5 rounded text-[10px] uppercase">Đáp án</span>
+        <span className="text-base">{expected}</span>
+      </div>
+    );
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -156,7 +165,12 @@ const DictationInput = ({
         setShake(true);
         setTimeout(() => setShake(false), 300);
         setMistakeCount(prev => prev + 1);
-        setErrorWord(errorInfo.correctWord);
+        setErrorDetails({
+          correctWord: errorInfo.correctWord,
+          inputWord: errorInfo.inputWord,
+          isMissing: errorInfo.isMissing,
+          isExtra: errorInfo.isExtra
+        });
         setShowHint(true);
         
         // Jump cursor to end of error word
@@ -168,11 +182,11 @@ const DictationInput = ({
         }, 0);
       } else {
         if (!isFullMatch(value, expected)) {
-           // This case should be handled by getFirstErrorWordInfo mostly, but as fallback:
            playSound("error");
            setShake(true);
            setTimeout(() => setShake(false), 300);
            setMistakeCount(prev => prev + 1);
+           setErrorDetails(null); // Reset error word to show full answer only
            setShowHint(true);
            return;
         }
@@ -203,11 +217,11 @@ const DictationInput = ({
           value={value}
           onChange={(e) => {
             setValue(e.target.value);
-            if (showHint && mistakeCount < 3) setShowHint(false);
+            if (showHint) setShowHint(false);
           }}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
-          className={`w-full py-6 px-5 text-lg rounded-2xl border-2 transition-all shadow-sm ${
+          className={`w-full py-4 sm:py-6 px-4 sm:px-5 text-base sm:text-lg rounded-2xl border-2 transition-all shadow-sm ${
             status === "correct" 
               ? "border-[var(--duo-green)] bg-[var(--duo-green)]/10 text-[var(--duo-green)] font-extrabold focus-visible:ring-[var(--duo-green)]/20" 
               : "border-border bg-white font-bold focus-visible:border-[var(--duo-blue)] focus-visible:ring-4 focus-visible:ring-[var(--duo-blue)]/20"
@@ -570,8 +584,8 @@ const DictationPage = () => {
   if (!started) {
     return (
       <StudentLayout>
-        <div className="max-w-3xl mx-auto card-duo p-8 lg:p-10 space-y-8 bg-white">
-          <div className="flex items-center gap-4 border-b-2 pb-6">
+        <div className="max-w-3xl mx-auto card-duo p-5 sm:p-8 lg:p-10 space-y-6 sm:space-y-8 bg-white">
+          <div className="flex items-center gap-4 border-b-2 pb-4 sm:pb-6">
             <Button variant="ghost" size="icon" className="hover:bg-muted rounded-full" onClick={() => navigate(-1)}>
               <ArrowLeft className="w-6 h-6 text-muted-foreground" />
             </Button>
@@ -622,7 +636,7 @@ const DictationPage = () => {
                   </Button>
                 </div>
               )}
-             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                {questions.map((q: any, idx: number) => (
                  <label key={q.id} className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${activeQuestionIndices.includes(idx) ? 'bg-[var(--duo-blue)]/10 border-[var(--duo-blue)] shadow-[0_2px_0_var(--duo-blue)] -translate-y-0.5' : 'bg-white border-border hover:bg-muted/50 hover:border-border/80'}`}>
                    <Checkbox 
@@ -649,9 +663,9 @@ const DictationPage = () => {
   if (isSubmitted) {
     return (
       <StudentLayout>
-        <div className="max-w-4xl mx-auto space-y-8">
-          <div className="card-duo p-10 text-center space-y-6 bg-white">
-            <div className="w-24 h-24 bg-[var(--duo-green)]/10 rounded-full mx-auto flex items-center justify-center border-4 border-[var(--duo-green)]/20 shadow-sm">
+        <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8">
+          <div className="card-duo p-6 sm:p-10 text-center space-y-5 sm:space-y-6 bg-white">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 bg-[var(--duo-green)]/10 rounded-full mx-auto flex items-center justify-center border-4 border-[var(--duo-green)]/20 shadow-sm">
               <CheckCircle className="w-12 h-12 text-[var(--duo-green)]" />
             </div>
             <h1 className="text-3xl lg:text-4xl font-black text-foreground">Tuyệt vời! 🎉</h1>
@@ -748,9 +762,9 @@ const DictationPage = () => {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           
           {/* Main Workspace */}
-          <div className="lg:col-span-3 card-duo p-8 flex flex-col space-y-6 bg-white min-h-[60vh]">
+          <div className="lg:col-span-3 card-duo p-4 sm:p-6 md:p-8 flex flex-col space-y-5 sm:space-y-6 bg-white min-h-[60vh]">
             
-            <div className="flex justify-between items-center pb-5 border-b-2">
+            <div className="flex justify-between items-center pb-4 sm:pb-5 border-b-2">
               <h2 className="text-2xl font-extrabold text-[var(--duo-blue)]">Câu {currentIndex + 1}</h2>
               <div className="flex items-center gap-3 text-sm font-bold text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-lg border">
                 <kbd className="px-2 py-0.5 bg-white rounded border shadow-sm text-xs font-mono">Ctrl</kbd>
@@ -760,7 +774,7 @@ const DictationPage = () => {
 
             {/* Audio Block */}
             {currentQuestion.audio_url && (
-              <div className="w-full bg-[var(--duo-blue)]/5 p-6 rounded-2xl border-2 border-[var(--duo-blue)]/20 flex flex-col items-center gap-4">
+              <div className="w-full bg-[var(--duo-blue)]/5 p-4 sm:p-6 rounded-2xl border-2 border-[var(--duo-blue)]/20 flex flex-col items-center gap-4">
                 <audio 
                   ref={audioRef} 
                   src={currentQuestion.audio_url} 
@@ -768,7 +782,7 @@ const DictationPage = () => {
                   className="w-full max-w-lg h-12 rounded-full shadow-sm"
                   autoPlay
                 />
-                <div className="flex items-center gap-2 bg-white border-2 rounded-xl p-1 shadow-sm">
+                <div className="flex flex-wrap justify-center items-center gap-2 bg-white border-2 rounded-xl p-1 sm:p-1.5 shadow-sm">
                   {[0.5, 0.75, 1, 1.25, 1.5].map((speed) => (
                     <Button
                       key={speed}
@@ -807,25 +821,25 @@ const DictationPage = () => {
             </div>
 
             {/* Bottom Actions */}
-            <div className="pt-6 border-t-2 flex items-center justify-between gap-4 mt-auto flex-wrap">
-               <span className="text-base font-extrabold text-[var(--duo-green)] bg-[var(--duo-green)]/10 px-4 py-2 rounded-xl border border-[var(--duo-green)]/20">
+            <div className="pt-6 border-t-2 flex flex-col sm:flex-row items-center justify-between gap-4 mt-auto">
+               <span className="text-sm sm:text-base font-extrabold text-[var(--duo-green)] bg-[var(--duo-green)]/10 px-4 py-2 rounded-xl border border-[var(--duo-green)]/20 w-full sm:w-auto text-center">
                  Đã xong {completedQuestionIds.size}/{questions.length} câu
                </span>
-               <div className="flex gap-3">
+               <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
                  {sessionDone.has(currentQuestion.id) ? (
                    <Button 
                      onClick={() => handleNext(true)} 
-                     className="btn-3d btn-3d-green text-lg px-8 py-6 h-auto animate-in zoom-in-95 duration-300"
+                     className="btn-3d btn-3d-green text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 h-auto w-full sm:w-auto animate-in zoom-in-95 duration-300"
                    >
                      Tiếp tục <ChevronRight className="w-5 h-5 ml-2" />
                    </Button>
                  ) : (
-                   <Button className="btn-3d bg-white text-muted-foreground hover:bg-gray-50 border-gray-200 text-lg px-6 py-6 h-auto" onClick={() => handleNext(false)}>
+                   <Button className="btn-3d bg-white text-muted-foreground hover:bg-gray-50 border-gray-200 text-base sm:text-lg px-6 py-5 sm:py-6 h-auto w-full sm:w-auto" onClick={() => handleNext(false)}>
                      <SkipForward className="w-5 h-5 mr-2" /> Bỏ qua
                    </Button>
                  )}
                  <Button 
-                   className="btn-3d btn-3d-blue text-lg px-6 py-6 h-auto"
+                   className="btn-3d btn-3d-blue text-base sm:text-lg px-6 py-5 sm:py-6 h-auto w-full sm:w-auto"
                    onClick={() => setIsSubmitted(true)}
                  >
                    <CheckCircle className="w-5 h-5 mr-2" /> Nộp bài
@@ -851,7 +865,7 @@ const DictationPage = () => {
                         onClick={() => setCurrentIndex(idx)}
                         className={`aspect-square flex items-center justify-center rounded-xl text-lg font-extrabold transition-all border-2
                           ${isCurrent ? 'border-[var(--duo-blue)] bg-[var(--duo-blue)]/10 text-[var(--duo-blue)] shadow-[0_2px_0_var(--duo-blue)] -translate-y-0.5' : ''}
-                          ${isDone && !isCurrent ? 'bg-[var(--duo-green)] border-[#46A302] text-white shadow-[0_2px_0_#46A302]' : ''}
+                          ${isDone && !isCurrent ? 'bg-[var(--duo-green)] border-[#ac0830] text-white shadow-[0_2px_0_#ac0830]' : ''}
                           ${!isDone && !isCurrent ? 'bg-white border-border text-muted-foreground hover:bg-muted/50 hover:shadow-sm' : ''}
                         `}
                       >
@@ -888,7 +902,7 @@ const DictationPage = () => {
                               onClick={() => setCurrentIndex(idx)}
                               className={`aspect-square flex items-center justify-center rounded-xl text-base font-extrabold transition-all border-2
                                 ${isCurrent ? 'border-[var(--duo-blue)] bg-[var(--duo-blue)]/10 text-[var(--duo-blue)] shadow-[0_2px_0_var(--duo-blue)] -translate-y-0.5' : ''}
-                                ${isDone && !isCurrent ? 'bg-[var(--duo-green)] border-[#46A302] text-white shadow-[0_2px_0_#46A302]' : ''}
+                                ${isDone && !isCurrent ? 'bg-[var(--duo-green)] border-[#ac0830] text-white shadow-[0_2px_0_#ac0830]' : ''}
                                 ${!isDone && !isCurrent ? 'bg-white border-border text-muted-foreground hover:bg-muted/50' : ''}
                               `}
                             >
@@ -958,24 +972,24 @@ const QuestionDictationSection = ({
     const clozeParts = isCloze ? item.text.split("[___]") : [];
     
     return (
-      <div key={`field-${idx}`} className="flex gap-4 items-start">
-        <div className={`mt-4 w-10 h-10 rounded-xl shrink-0 flex items-center justify-center font-extrabold text-base border-2
-           ${fields[idx] ? 'bg-[var(--duo-green)] text-white border-[#46A302] shadow-[0_2px_0_#46A302]' : 'bg-[var(--duo-blue)]/10 text-[var(--duo-blue)] border-[var(--duo-blue)]/20 shadow-sm'}
+      <div key={`field-${idx}`} className="flex gap-3 sm:gap-4 items-start">
+        <div className={`mt-2 sm:mt-4 w-10 h-10 rounded-xl shrink-0 flex items-center justify-center font-extrabold text-base border-2
+           ${fields[idx] ? 'bg-[var(--duo-green)] text-white border-[#ac0830] shadow-[0_2px_0_#ac0830]' : 'bg-[var(--duo-blue)]/10 text-[var(--duo-blue)] border-[var(--duo-blue)]/20 shadow-sm'}
         `}>
           {item.type === 'question' ? 'Q' : String.fromCharCode(65 + (idx - (expectedItems[0].type === 'question' ? 1 : 0)))}
         </div>
         
         {isCloze ? (
-          <div className="flex-1 bg-white p-6 rounded-2xl border-2 leading-[3] text-xl font-bold shadow-sm">
+          <div className="flex-1 bg-white p-4 sm:p-6 rounded-2xl border-2 leading-[2.5] sm:leading-[3] text-lg sm:text-xl font-bold shadow-sm">
             {clozeParts.map((part: any, pIdx: number) => (
               <React.Fragment key={pIdx}>
                 {part}
                 {pIdx < clozeParts.length - 1 && (
                   <span className="inline-block mx-2 align-middle">
                     {fields[idx + pIdx] ? (
-                       <span className="text-[var(--duo-green)] font-black border-b-4 border-[var(--duo-green)] px-2">{question.answers[pIdx]?.answer_text}</span>
+                       <span className="text-[var(--duo-green)] font-black border-b-4 border-[var(--duo-green)] px-1 sm:px-2">{question.answers[pIdx]?.answer_text}</span>
                     ) : (
-                       <div className="min-w-[120px] inline-block -my-3">
+                       <div className="min-w-[100px] sm:min-w-[120px] inline-block -my-3">
                          <DictationInput 
                            expected={question.answers[pIdx]?.answer_text || ""} 
                            placeholder="..." 
@@ -993,7 +1007,7 @@ const QuestionDictationSection = ({
             {fields[idx] ? (
                <Input
                  value={item.text}
-                 className="w-full py-6 px-5 text-lg bg-[var(--duo-green)]/10 text-[var(--duo-green)] font-extrabold border-2 border-[var(--duo-green)] rounded-2xl"
+                 className="w-full py-4 sm:py-6 px-4 sm:px-5 text-base sm:text-lg bg-[var(--duo-green)]/10 text-[var(--duo-green)] font-extrabold border-2 border-[var(--duo-green)] rounded-2xl"
                  readOnly
                />
             ) : (

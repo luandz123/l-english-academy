@@ -120,11 +120,11 @@ const QuizPage = () => {
   if (!started) {
     return (
       <StudentLayout>
-        <div className="max-w-lg mx-auto mt-12 relative">
+        <div className="max-w-lg mx-auto mt-6 sm:mt-12 px-4 sm:px-0 relative">
           <button className="flex items-center gap-1 text-sm font-bold text-muted-foreground hover:text-foreground mb-6 transition-colors" onClick={() => navigate(`/courses/${courseId}`)}>
             <ChevronLeft className="w-4 h-4" /> Quay lại khóa học
           </button>
-          <div className="card-duo p-8 text-center space-y-5">
+          <div className="card-duo p-5 sm:p-8 text-center space-y-5">
             <div className="w-20 h-20 rounded-2xl bg-[var(--duo-orange)] shadow-[0_4px_0_#CC7700] flex items-center justify-center mx-auto">
               <span className="text-3xl">📝</span>
             </div>
@@ -174,7 +174,7 @@ const QuizPage = () => {
       <main className="flex-1 flex overflow-hidden w-full h-[calc(100vh-64px)]">
         
         {/* Main Content: List of all questions */}
-        <div className="flex-1 h-full overflow-y-auto p-4 lg:p-8 space-y-8 scroll-smooth pb-32">
+        <div className="flex-1 h-full overflow-y-auto p-3 sm:p-4 lg:p-8 space-y-5 sm:space-y-8 scroll-smooth pb-32">
           {/* Quiz-level audio player */}
           {quiz?.audio_url && (
             <div className="max-w-4xl mx-auto bg-[#DDF4FF] border-2 border-[#A8E0FD] rounded-2xl p-4 sticky top-0 z-10 backdrop-blur-sm">
@@ -190,7 +190,7 @@ const QuizPage = () => {
             </div>
           )}
           {questions.map((q: any, i: number) => (
-            <div key={q.id} id={`question-${i}`} className="max-w-4xl mx-auto card-duo p-6 scroll-mt-6">
+            <div key={q.id} id={`question-${i}`} className="max-w-4xl mx-auto card-duo p-4 sm:p-6 scroll-mt-6">
               <div className="mb-4 flex items-center justify-between">
                 <span className="badge-duo badge-blue">Câu {i + 1} / {totalQ}</span>
               </div>
@@ -209,13 +209,13 @@ const QuizPage = () => {
                       key={opt.id}
                       onClick={() => selectAnswer(i, opt.id)}
                       className={cn(
-                        "flex items-center gap-4 w-full p-4 rounded-xl border-2 transition-all cursor-pointer group",
+                        "flex items-center gap-3 sm:gap-4 w-full p-3 sm:p-4 rounded-xl border-2 transition-all cursor-pointer group",
                         checked
-                          ? "border-[var(--duo-green)] bg-[#E8F8D4] shadow-[0_3px_0_#C8EDA0]"
+                          ? "border-[var(--duo-green)] bg-[#FFEBEF] shadow-[0_3px_0_#FFD6DF]"
                           : "border-[var(--duo-gray)] bg-white hover:border-[var(--duo-blue)] shadow-[0_2px_0_var(--duo-gray)]"
                       )}
                     >
-                      <div className={cn("w-7 h-7 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors font-extrabold text-sm", checked ? "border-[var(--duo-green)] bg-[var(--duo-green)] text-white" : "border-[var(--duo-gray-dark)] group-hover:border-[var(--duo-blue)]")}>
+                      <div className={cn("w-6 h-6 sm:w-7 sm:h-7 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors font-extrabold text-sm", checked ? "border-[var(--duo-green)] bg-[var(--duo-green)] text-white" : "border-[var(--duo-gray-dark)] group-hover:border-[var(--duo-blue)]")}>
                         {checked ? "✓" : String.fromCharCode(65 + oi)}
                       </div>
                       {isListeningMode ? (

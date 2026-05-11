@@ -187,7 +187,7 @@ const FullTestExam = () => {
                     <button key={oi} onClick={() => setAnswers(prev => ({ ...prev, [qIdx]: oi }))}
                       className={cn("w-full text-left p-4 rounded-xl border-2 text-sm transition-all flex items-center group",
                         checked 
-                          ? "border-[var(--duo-green)] bg-[#E8F8D4] shadow-[0_3px_0_#C8EDA0] font-bold" 
+                          ? "border-[var(--duo-green)] bg-[#FFEBEF] shadow-[0_3px_0_#FFD6DF] font-bold" 
                           : "border-[var(--duo-gray)] bg-white text-foreground hover:border-[var(--duo-blue)] shadow-[0_2px_0_var(--duo-gray)]"
                       )}>
                       <div className={cn("w-7 h-7 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors mr-3 font-extrabold text-sm", checked ? "border-[var(--duo-green)] bg-[var(--duo-green)] text-white" : "border-[var(--duo-gray-dark)] group-hover:border-[var(--duo-blue)]")}>
