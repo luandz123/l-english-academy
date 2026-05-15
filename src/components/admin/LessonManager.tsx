@@ -249,7 +249,7 @@ const LessonManager = ({ moduleId, courseId, lessons, quizzes }: LessonManagerPr
           title: `Quiz - ${lessonTitle}`,
           total_questions: 0,
           module_id: moduleId,
-          display_order: quizzes.length,
+          display_order: quizzes.length > 0 ? Math.max(...quizzes.map((q: any) => q.display_order)) + 1 : 0,
         }).select("id").single();
         if (quizError) throw quizError;
         quizId = quizData.id;
@@ -257,13 +257,12 @@ const LessonManager = ({ moduleId, courseId, lessons, quizzes }: LessonManagerPr
 
       const payload: any = {
         title: lessonTitle,
-        description: lessonDescription,
         lesson_type: lessonType,
         video_url: lessonType === "video" && contentMode === "video" ? videoUrl : null,
         pdf_url: lessonType === "video" && contentMode === "pdf" ? pdfUrl : null,
         duration_seconds: durationUnit === "minutes" ? (Number(durationVal) || 0) * 60 : (Number(durationVal) || 0),
         module_id: moduleId,
-        display_order: editingLesson ? editingLesson.display_order : lessons.length,
+        display_order: editingLesson ? editingLesson.display_order : (lessons.length > 0 ? Math.max(...lessons.map((l: any) => l.display_order)) + 1 : 0),
       };
       if (quizId) payload.quiz_id = quizId;
 
@@ -280,6 +279,9 @@ const LessonManager = ({ moduleId, courseId, lessons, quizzes }: LessonManagerPr
       setDialogOpen(false);
       toast({ title: editingLesson ? "Đã cập nhật bài học" : "Đã tạo bài học" });
     },
+    onError: (error: any) => {
+      toast({ title: "Lỗi", description: error.message, variant: "destructive" });
+    },
   });
 
   const deleteLessonMutation = useMutation({
@@ -290,6 +292,9 @@ const LessonManager = ({ moduleId, courseId, lessons, quizzes }: LessonManagerPr
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-course-modules", courseId] });
       toast({ title: "Đã xóa bài học" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Lỗi", description: error.message, variant: "destructive" });
     },
   });
 
@@ -323,6 +328,9 @@ const LessonManager = ({ moduleId, courseId, lessons, quizzes }: LessonManagerPr
       setQuizDialogOpen(false);
       toast({ title: editingQuiz ? "Đã cập nhật quiz" : "Đã tạo quiz" });
     },
+    onError: (error: any) => {
+      toast({ title: "Lỗi", description: error.message, variant: "destructive" });
+    },
   });
 
   const deleteQuizMutation = useMutation({
@@ -333,6 +341,9 @@ const LessonManager = ({ moduleId, courseId, lessons, quizzes }: LessonManagerPr
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-course-modules", courseId] });
       toast({ title: "Đã xóa quiz" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Lỗi", description: error.message, variant: "destructive" });
     },
   });
 
@@ -599,7 +610,7 @@ const CreateQuizForLesson = ({ lessonId, moduleId, courseId, quizzesCount, lesso
         title: `Quiz - ${lessonTitle}`,
         total_questions: 0,
         module_id: moduleId,
-        display_order: quizzesCount,
+        display_order: quizzesCount || 0,
       }).select("id").single();
       if (error) throw error;
       await supabase.from("lessons").update({ quiz_id: data.id }).eq("id", lessonId);

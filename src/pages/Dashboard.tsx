@@ -57,7 +57,7 @@ const Dashboard = () => {
     : "0";
 
   const stats = [
-    { icon: PlayCircle, label: "Bài giảng đã xem", value: `${completedLessons}`, color: "bg-[var(--duo-green)]", shadow: "shadow-[0_4px_0_var(--duo-green-dark)]" },
+    { icon: PlayCircle, label: "Bài giảng đã xem", value: `${completedLessons}`, color: "bg-[var(--duo-correct)]", shadow: "shadow-[0_4px_0_var(--duo-correct-dark)]" },
     { icon: ClipboardCheck, label: "Bài thi đã làm", value: `${totalQuizzes}`, color: "bg-[var(--duo-blue)]", shadow: "shadow-[0_4px_0_var(--duo-blue-dark)]" },
     { icon: Star, label: "Điểm trung bình", value: `${avgScore}/10`, color: "bg-[var(--duo-yellow)]", shadow: "shadow-[0_4px_0_var(--duo-yellow-dark)]" },
     { icon: Clock, label: "Khóa đã đăng ký", value: `${enrollments?.length || 0}`, color: "bg-[var(--duo-purple)]", shadow: "shadow-[0_4px_0_var(--duo-purple-dark)]" },
@@ -76,7 +76,7 @@ const Dashboard = () => {
       <div className="space-y-6 max-w-6xl">
         {/* Welcome banner */}
         <div className="card-duo p-0 overflow-hidden">
-          <div className="bg-[var(--duo-green)] p-6 flex items-center justify-between">
+          <div className="bg-[var(--duo-correct)] p-6 flex items-center justify-between">
             <div>
               <h1 className="text-xl md:text-2xl font-extrabold text-white">Xin chào, {displayName}! 👋</h1>
               <p className="text-white/80 text-sm mt-1 font-bold">Tiếp tục hành trình học tập nào! 🚀</p>
@@ -116,7 +116,7 @@ const Dashboard = () => {
                     {e.courses?.thumbnail_url ? (
                       <img src={e.courses.thumbnail_url} alt={e.courses.title} className="w-full h-full object-cover" />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-muted-foreground uppercase font-bold text-xs bg-gradient-to-br from-[var(--duo-green)]/10 to-[var(--duo-blue)]/10">
+                      <div className="w-full h-full flex items-center justify-center text-muted-foreground uppercase font-bold text-xs bg-gradient-to-br from-[var(--duo-correct)]/10 to-[var(--duo-blue)]/10">
                         {e.courses?.title?.substring(0, 20)}...
                       </div>
                     )}
@@ -130,7 +130,7 @@ const Dashboard = () => {
                       <p className="text-[10px] text-muted-foreground font-bold">
                         {e.expires_at ? `📅 Hạn: ${new Date(e.expires_at).toLocaleDateString("vi-VN")}` : "♾️ Vĩnh viễn"}
                       </p>
-                      <Link to={`/courses/${e.course_id}`} className="btn-3d btn-3d-green w-full py-2 text-xs mt-3 block text-center">
+                      <Link to={`/courses/${e.course_id}`} className="btn-3d btn-3d-primary w-full py-2 text-xs mt-3 block text-center">
                         Tiếp tục học →
                       </Link>
                     </div>
@@ -141,7 +141,7 @@ const Dashboard = () => {
           ) : (
             <div className="card-duo p-8 text-center">
               <p className="text-muted-foreground font-medium">Bạn chưa đăng ký khóa học nào.</p>
-              <Link to="/courses" className="btn-3d btn-3d-green py-2.5 px-6 mt-4 inline-block text-sm">
+              <Link to="/courses" className="btn-3d btn-3d-primary py-2.5 px-6 mt-4 inline-block text-sm">
                 Xem khóa học
               </Link>
             </div>

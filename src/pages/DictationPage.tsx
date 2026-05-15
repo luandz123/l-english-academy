@@ -11,43 +11,12 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-
+import { useSound } from "@/hooks/useSound";
 // Utils for dictation checking
 const normalizeChar = (c: string) => c.toLowerCase();
 const isAlphanumeric = (c: string) => /[\p{L}0-9]/u.test(c);
 
-const playSound = (type: "correct" | "error") => {
-  try {
-    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioContextClass) return;
-    const ctx = new AudioContextClass();
-    const osc = ctx.createOscillator();
-    const gainNode = ctx.createGain();
-    
-    osc.connect(gainNode);
-    gainNode.connect(ctx.destination);
-    
-    if (type === "correct") {
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(600, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.1);
-      gainNode.gain.setValueAtTime(0.1, ctx.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
-      osc.start(ctx.currentTime);
-      osc.stop(ctx.currentTime + 0.15);
-    } else {
-      osc.type = "sawtooth";
-      osc.frequency.setValueAtTime(250, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(150, ctx.currentTime + 0.2);
-      gainNode.gain.setValueAtTime(0.1, ctx.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
-      osc.start(ctx.currentTime);
-      osc.stop(ctx.currentTime + 0.2);
-    }
-  } catch (e) {
-    console.error("Audio error", e);
-  }
-};
+
 
 const getWords = (text: string) => {
   const words = [];
@@ -110,11 +79,13 @@ const isFullMatch = (input: string, expected: string): boolean => {
 const DictationInput = ({ 
   expected, 
   placeholder, 
-  onCorrect 
+  onCorrect,
+  autoFocus
 }: { 
   expected: string, 
   placeholder: string,
-  onCorrect: () => void 
+  onCorrect: () => void,
+  autoFocus?: boolean
 }) => {
   const [value, setValue] = useState("");
   const [status, setStatus] = useState<"typing" | "correct">("typing");
@@ -122,6 +93,7 @@ const DictationInput = ({
   const [showHint, setShowHint] = useState(false);
   const [shake, setShake] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const { playSound } = useSound();
 
   const [errorDetails, setErrorDetails] = useState<{ correctWord: string, inputWord?: string, isMissing?: boolean, isExtra?: boolean } | null>(null);
 
@@ -136,7 +108,7 @@ const DictationInput = ({
               ) : errorDetails.isExtra ? (
                 <>Từ bị thừa: <span className="text-[var(--duo-red)] bg-white px-2 py-0.5 rounded-lg border-2 border-[var(--duo-red)]/20 line-through">"{errorDetails.inputWord}"</span></>
               ) : (
-                <>Sửa <span className="text-[var(--duo-red)] bg-white px-2 py-0.5 rounded-lg border-2 border-[var(--duo-red)]/20 line-through">"{errorDetails.inputWord}"</span> thành <span className="text-[var(--duo-green)] bg-white px-2 py-0.5 rounded-lg border-2 border-[var(--duo-green)]/20 font-bold">"{errorDetails.correctWord}"</span></>
+                <>Sửa <span className="text-[var(--duo-red)] bg-white px-2 py-0.5 rounded-lg border-2 border-[var(--duo-red)]/20 line-through">"{errorDetails.inputWord}"</span> thành <span className="text-[var(--duo-correct)] bg-white px-2 py-0.5 rounded-lg border-2 border-[var(--duo-correct)]/20 font-bold">"{errorDetails.correctWord}"</span></>
               )}
             </span>
           </div>
@@ -149,7 +121,7 @@ const DictationInput = ({
     }
     return (
       <div className="flex items-center gap-2">
-        <span className="bg-[var(--duo-green)] text-white px-1.5 py-0.5 rounded text-[10px] uppercase">Đáp án</span>
+        <span className="bg-[var(--duo-correct)] text-white px-1.5 py-0.5 rounded text-[10px] uppercase">Đáp án</span>
         <span className="text-base">{expected}</span>
       </div>
     );
@@ -161,7 +133,7 @@ const DictationInput = ({
       
       const errorInfo = getFirstErrorWordInfo(value, expected);
       if (errorInfo) {
-        playSound("error");
+        playSound("incorrect");
         setShake(true);
         setTimeout(() => setShake(false), 300);
         setMistakeCount(prev => prev + 1);
@@ -182,7 +154,7 @@ const DictationInput = ({
         }, 0);
       } else {
         if (!isFullMatch(value, expected)) {
-           playSound("error");
+           playSound("incorrect");
            setShake(true);
            setTimeout(() => setShake(false), 300);
            setMistakeCount(prev => prev + 1);
@@ -200,14 +172,21 @@ const DictationInput = ({
   };
 
   useEffect(() => {
-    if (isFullMatch(value, expected)) {
+    if (autoFocus && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [autoFocus]);
+
+  useEffect(() => {
+    if (isFullMatch(value, expected) && status !== "correct") {
+       playSound("correct");
        setStatus("correct");
        setValue(expected);
        onCorrect();
-    } else if (status === "correct") {
+    } else if (!isFullMatch(value, expected) && status === "correct") {
        setStatus("typing");
     }
-  }, [value, expected]);
+  }, [value, expected, status, onCorrect, playSound]);
 
   return (
     <div className="w-full relative flex flex-col gap-2">
@@ -223,13 +202,13 @@ const DictationInput = ({
           placeholder={placeholder}
           className={`w-full py-4 sm:py-6 px-4 sm:px-5 text-base sm:text-lg rounded-2xl border-2 transition-all shadow-sm ${
             status === "correct" 
-              ? "border-[var(--duo-green)] bg-[var(--duo-green)]/10 text-[var(--duo-green)] font-extrabold focus-visible:ring-[var(--duo-green)]/20" 
+              ? "border-[var(--duo-correct)] bg-[var(--duo-correct)]/10 text-[var(--duo-correct)] font-extrabold focus-visible:ring-[var(--duo-correct)]/20 animate-[dictation-correct_0.5s_ease-in-out]" 
               : "border-border bg-white font-bold focus-visible:border-[var(--duo-blue)] focus-visible:ring-4 focus-visible:ring-[var(--duo-blue)]/20"
           } ${shake ? "animate-[dictation-shake_0.3s_ease-in-out] border-[var(--duo-red)] bg-[var(--duo-red)]/5 text-[var(--duo-red)]" : ""}`}
           readOnly={status === "correct"}
         />
         {status === "correct" && (
-          <CheckCircle className="w-6 h-6 text-[var(--duo-green)] absolute right-4 top-1/2 -translate-y-1/2" />
+          <CheckCircle className="w-6 h-6 text-[var(--duo-correct)] absolute right-4 top-1/2 -translate-y-1/2" />
         )}
       </div>
       {showHint && (
@@ -276,6 +255,11 @@ const DictationPage = () => {
           25% { transform: translateX(-5px); }
           75% { transform: translateX(5px); }
         }
+        @keyframes dictation-correct {
+          0% { transform: scale(1); }
+          50% { transform: scale(1.02); }
+          100% { transform: scale(1); }
+        }
       `;
       document.head.appendChild(style);
     }
@@ -286,6 +270,7 @@ const DictationPage = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [sessionDone, setSessionDone] = useState<Set<number>>(new Set());
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const { playSound } = useSound();
 
   // 1. Fetch Quiz data (list of questions & answers)
   const { data: quizData, isLoading: quizLoading } = useQuery({
@@ -644,14 +629,14 @@ const DictationPage = () => {
                      onCheckedChange={() => handleToggleQuestion(idx)}
                      className={activeQuestionIndices.includes(idx) ? "data-[state=checked]:bg-[var(--duo-blue)] data-[state=checked]:border-[var(--duo-blue)]" : ""}
                    />
-                   <span className="text-base font-bold text-foreground">Câu số {idx + 1} {completedQuestionIds.has(q.id) && <CheckCircle className="w-4 h-4 text-[var(--duo-green)] inline ml-1" />}</span>
+                   <span className="text-base font-bold text-foreground">Câu số {idx + 1} {completedQuestionIds.has(q.id) && <CheckCircle className="w-4 h-4 text-[var(--duo-correct)] inline ml-1" />}</span>
                  </label>
                ))}
              </div>
           </div>
           
           <div className="flex justify-end pt-4 border-t-2">
-             <Button onClick={startDictation} disabled={activeQuestionIndices.length === 0} className="btn-3d btn-3d-green text-lg px-8 py-6 h-auto w-full sm:w-auto">
+             <Button onClick={startDictation} disabled={activeQuestionIndices.length === 0} className="btn-3d btn-3d-primary text-lg px-8 py-6 h-auto w-full sm:w-auto">
                <Play className="w-5 h-5 mr-2" /> Bắt đầu luyện ({activeQuestionIndices.length} câu)
              </Button>
           </div>
@@ -665,8 +650,8 @@ const DictationPage = () => {
       <StudentLayout>
         <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8">
           <div className="card-duo p-6 sm:p-10 text-center space-y-5 sm:space-y-6 bg-white">
-            <div className="w-20 h-20 sm:w-24 sm:h-24 bg-[var(--duo-green)]/10 rounded-full mx-auto flex items-center justify-center border-4 border-[var(--duo-green)]/20 shadow-sm">
-              <CheckCircle className="w-12 h-12 text-[var(--duo-green)]" />
+            <div className="w-20 h-20 sm:w-24 sm:h-24 bg-[var(--duo-correct)]/10 rounded-full mx-auto flex items-center justify-center border-4 border-[var(--duo-correct)]/20 shadow-sm">
+              <CheckCircle className="w-12 h-12 text-[var(--duo-correct)]" />
             </div>
             <h1 className="text-3xl lg:text-4xl font-black text-foreground">Tuyệt vời! 🎉</h1>
             <p className="text-lg font-bold text-muted-foreground">Bạn đã hoàn thành phiên luyện nghe.</p>
@@ -720,8 +705,8 @@ const DictationPage = () => {
                     </div>
                     <div className="grid gap-3">
                       {q.answers.map((ans: any, aIdx: number) => (
-                        <div key={ans.id} className="flex gap-4 items-center p-4 bg-[var(--duo-green)]/10 border-2 border-[var(--duo-green)]/20 rounded-xl">
-                          <span className="w-8 h-8 rounded-lg bg-white border-2 border-[var(--duo-green)] text-[var(--duo-green)] flex items-center justify-center text-sm font-extrabold shadow-sm shrink-0">
+                        <div key={ans.id} className="flex gap-4 items-center p-4 bg-[var(--duo-correct)]/10 border-2 border-[var(--duo-correct)]/20 rounded-xl">
+                          <span className="w-8 h-8 rounded-lg bg-white border-2 border-[var(--duo-correct)] text-[var(--duo-correct)] flex items-center justify-center text-sm font-extrabold shadow-sm shrink-0">
                             {String.fromCharCode(65 + aIdx)}
                           </span>
                           <span className="text-foreground font-bold text-lg">{ans.answer_text}</span>
@@ -751,8 +736,8 @@ const DictationPage = () => {
             </Button>
             <div>
               <h1 className="text-xl font-extrabold text-foreground">{quizData.quiz.title}</h1>
-              <p className="text-sm font-bold text-[var(--duo-green)] flex items-center gap-2 mt-1">
-                <span className="w-2 h-2 rounded-full bg-[var(--duo-green)] inline-block animate-pulse"></span>
+              <p className="text-sm font-bold text-[var(--duo-correct)] flex items-center gap-2 mt-1">
+                <span className="w-2 h-2 rounded-full bg-[var(--duo-correct)] inline-block animate-pulse"></span>
                 Luyện nghe điền từ • {completedQuestionIds.size}/{questions.length} hoàn thành
               </p>
             </div>
@@ -822,14 +807,14 @@ const DictationPage = () => {
 
             {/* Bottom Actions */}
             <div className="pt-6 border-t-2 flex flex-col sm:flex-row items-center justify-between gap-4 mt-auto">
-               <span className="text-sm sm:text-base font-extrabold text-[var(--duo-green)] bg-[var(--duo-green)]/10 px-4 py-2 rounded-xl border border-[var(--duo-green)]/20 w-full sm:w-auto text-center">
+               <span className="text-sm sm:text-base font-extrabold text-[var(--duo-correct)] bg-[var(--duo-correct)]/10 px-4 py-2 rounded-xl border border-[var(--duo-correct)]/20 w-full sm:w-auto text-center">
                  Đã xong {completedQuestionIds.size}/{questions.length} câu
                </span>
                <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
                  {sessionDone.has(currentQuestion.id) ? (
                    <Button 
                      onClick={() => handleNext(true)} 
-                     className="btn-3d btn-3d-green text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 h-auto w-full sm:w-auto animate-in zoom-in-95 duration-300"
+                     className="btn-3d btn-3d-primary text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 h-auto w-full sm:w-auto animate-in zoom-in-95 duration-300"
                    >
                      Tiếp tục <ChevronRight className="w-5 h-5 ml-2" />
                    </Button>
@@ -840,7 +825,10 @@ const DictationPage = () => {
                  )}
                  <Button 
                    className="btn-3d btn-3d-blue text-base sm:text-lg px-6 py-5 sm:py-6 h-auto w-full sm:w-auto"
-                   onClick={() => setIsSubmitted(true)}
+                   onClick={() => {
+                     playSound("complete");
+                     setIsSubmitted(true);
+                   }}
                  >
                    <CheckCircle className="w-5 h-5 mr-2" /> Nộp bài
                  </Button>
@@ -865,7 +853,7 @@ const DictationPage = () => {
                         onClick={() => setCurrentIndex(idx)}
                         className={`aspect-square flex items-center justify-center rounded-xl text-lg font-extrabold transition-all border-2
                           ${isCurrent ? 'border-[var(--duo-blue)] bg-[var(--duo-blue)]/10 text-[var(--duo-blue)] shadow-[0_2px_0_var(--duo-blue)] -translate-y-0.5' : ''}
-                          ${isDone && !isCurrent ? 'bg-[var(--duo-green)] border-[#ac0830] text-white shadow-[0_2px_0_#ac0830]' : ''}
+                          ${isDone && !isCurrent ? 'bg-[var(--duo-correct)] border-[var(--duo-correct-dark)] text-white shadow-[0_2px_0_var(--duo-correct-dark)]' : ''}
                           ${!isDone && !isCurrent ? 'bg-white border-border text-muted-foreground hover:bg-muted/50 hover:shadow-sm' : ''}
                         `}
                       >
@@ -902,7 +890,7 @@ const DictationPage = () => {
                               onClick={() => setCurrentIndex(idx)}
                               className={`aspect-square flex items-center justify-center rounded-xl text-base font-extrabold transition-all border-2
                                 ${isCurrent ? 'border-[var(--duo-blue)] bg-[var(--duo-blue)]/10 text-[var(--duo-blue)] shadow-[0_2px_0_var(--duo-blue)] -translate-y-0.5' : ''}
-                                ${isDone && !isCurrent ? 'bg-[var(--duo-green)] border-[#ac0830] text-white shadow-[0_2px_0_#ac0830]' : ''}
+                                ${isDone && !isCurrent ? 'bg-[var(--duo-correct)] border-[var(--duo-correct-dark)] text-white shadow-[0_2px_0_var(--duo-correct-dark)]' : ''}
                                 ${!isDone && !isCurrent ? 'bg-white border-border text-muted-foreground hover:bg-muted/50' : ''}
                               `}
                             >
@@ -938,6 +926,7 @@ const QuestionDictationSection = ({
   onRedo: () => void 
 }) => {
   const [fields, setFields] = useState<boolean[]>([]);
+  const [focusedIndex, setFocusedIndex] = useState(0);
   
   const expectedItems = useMemo(() => {
     const items = [];
@@ -954,6 +943,7 @@ const QuestionDictationSection = ({
 
   useEffect(() => {
     setFields(new Array(expectedItems.length).fill(isDoneInSession));
+    setFocusedIndex(0);
   }, [expectedItems.length, isDoneInSession]);
 
   const setFieldComplete = (idx: number) => {
@@ -962,6 +952,9 @@ const QuestionDictationSection = ({
       next[idx] = true;
       if (next.every(Boolean) && !isCompleted) {
         onComplete();
+      } else {
+        // Move focus to next field if current is done
+        setFocusedIndex(idx + 1);
       }
       return next;
     });
@@ -974,7 +967,7 @@ const QuestionDictationSection = ({
     return (
       <div key={`field-${idx}`} className="flex gap-3 sm:gap-4 items-start">
         <div className={`mt-2 sm:mt-4 w-10 h-10 rounded-xl shrink-0 flex items-center justify-center font-extrabold text-base border-2
-           ${fields[idx] ? 'bg-[var(--duo-green)] text-white border-[#ac0830] shadow-[0_2px_0_#ac0830]' : 'bg-[var(--duo-blue)]/10 text-[var(--duo-blue)] border-[var(--duo-blue)]/20 shadow-sm'}
+           ${fields[idx] ? 'bg-[var(--duo-correct)] text-white border-[var(--duo-correct-dark)] shadow-[0_2px_0_var(--duo-correct-dark)]' : 'bg-[var(--duo-blue)]/10 text-[var(--duo-blue)] border-[var(--duo-blue)]/20 shadow-sm'}
         `}>
           {item.type === 'question' ? 'Q' : String.fromCharCode(65 + (idx - (expectedItems[0].type === 'question' ? 1 : 0)))}
         </div>
@@ -987,13 +980,14 @@ const QuestionDictationSection = ({
                 {pIdx < clozeParts.length - 1 && (
                   <span className="inline-block mx-2 align-middle">
                     {fields[idx + pIdx] ? (
-                       <span className="text-[var(--duo-green)] font-black border-b-4 border-[var(--duo-green)] px-1 sm:px-2">{question.answers[pIdx]?.answer_text}</span>
+                       <span className="text-[var(--duo-correct)] font-black border-b-4 border-[var(--duo-correct)] px-1 sm:px-2">{question.answers[pIdx]?.answer_text}</span>
                     ) : (
                        <div className="min-w-[100px] sm:min-w-[120px] inline-block -my-3">
                          <DictationInput 
                            expected={question.answers[pIdx]?.answer_text || ""} 
                            placeholder="..." 
                            onCorrect={() => setFieldComplete(idx + pIdx)}
+                           autoFocus={focusedIndex === idx + pIdx}
                          />
                        </div>
                     )}
@@ -1007,7 +1001,7 @@ const QuestionDictationSection = ({
             {fields[idx] ? (
                <Input
                  value={item.text}
-                 className="w-full py-4 sm:py-6 px-4 sm:px-5 text-base sm:text-lg bg-[var(--duo-green)]/10 text-[var(--duo-green)] font-extrabold border-2 border-[var(--duo-green)] rounded-2xl"
+                 className="w-full py-4 sm:py-6 px-4 sm:px-5 text-base sm:text-lg bg-[var(--duo-correct)]/10 text-[var(--duo-correct)] font-extrabold border-2 border-[var(--duo-correct)] rounded-2xl"
                  readOnly
                />
             ) : (
@@ -1015,6 +1009,7 @@ const QuestionDictationSection = ({
                  expected={item.text} 
                  placeholder={item.placeholder || "Nghe và điền..."} 
                  onCorrect={() => setFieldComplete(idx)}
+                 autoFocus={focusedIndex === idx}
                />
             )}
           </div>

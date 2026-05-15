@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Loader2 } from "lucide-react";
+import { useSound } from "@/hooks/useSound";
 
 const partNames = ["PART 1", "PART 2", "PART 3", "PART 4", "PART 5", "PART 6", "PART 7"];
 const partQuestions = [6, 25, 39, 30, 30, 16, 54];
@@ -34,6 +35,7 @@ const FullTestExam = () => {
   const [currentPart, setCurrentPart] = useState(0);
   const [timeLeft, setTimeLeft] = useState(120 * 60);
   const [submitting, setSubmitting] = useState(false);
+  const { playSound } = useSound();
 
   const { data: testInfo } = useQuery({
     queryKey: ["full-test-info", testId],
@@ -71,6 +73,7 @@ const FullTestExam = () => {
 
   const submit = async () => {
     setSubmitting(true);
+    playSound("complete");
     const correct = Math.floor(answeredCount * 0.7 + Math.random() * answeredCount * 0.15);
     const listeningCorrect = Math.floor(correct * 0.48);
     const readingCorrect = correct - listeningCorrect;
@@ -106,7 +109,7 @@ const FullTestExam = () => {
           <h1 className="text-xl font-extrabold text-foreground">{testInfo?.title ?? `Đề số ${testId}`}</h1>
           <p className="text-sm text-muted-foreground font-bold">200 câu hỏi · 120 phút · 7 Parts</p>
           <p className="text-xs text-muted-foreground font-medium">Part 1-4: Listening · Part 5-7: Reading</p>
-          <button className="btn-3d btn-3d-green w-full py-3.5 text-base" onClick={() => setStarted(true)}>🚀 BẮT ĐẦU THI</button>
+          <button className="btn-3d btn-3d-primary w-full py-3.5 text-base" onClick={() => setStarted(true)}>🚀 BẮT ĐẦU THI</button>
         </div>
       </div>
     );
@@ -124,7 +127,7 @@ const FullTestExam = () => {
             <button key={i} onClick={() => goToPart(i)}
               className={cn("px-3 py-1.5 text-xs font-extrabold rounded-xl transition-all border-2",
                 currentPart === i 
-                  ? "bg-[var(--duo-green)] text-white border-[var(--duo-green)] shadow-[0_2px_0_var(--duo-green-dark)]" 
+                  ? "bg-[var(--duo-correct)] text-white border-[var(--duo-correct)] shadow-[0_2px_0_var(--duo-correct-dark)]" 
                   : "bg-white text-muted-foreground border-[var(--duo-gray)] hover:border-[var(--duo-blue)]"
               )}>{name}</button>
           ))}
@@ -151,7 +154,7 @@ const FullTestExam = () => {
                         }}
                           className={cn("w-7 h-7 text-xs rounded-lg font-extrabold border-2 transition-all hover:border-[var(--duo-blue)]",
                             answers[qIdx] !== undefined 
-                              ? "bg-[var(--duo-green)] text-white border-[var(--duo-green)] shadow-[0_2px_0_var(--duo-green-dark)]" 
+                              ? "bg-[var(--duo-correct)] text-white border-[var(--duo-correct)] shadow-[0_2px_0_var(--duo-correct-dark)]" 
                               : "bg-white text-muted-foreground border-[var(--duo-gray)]"
                           )}>{qIdx + 1}</button>
                       );
@@ -161,7 +164,7 @@ const FullTestExam = () => {
               );
             })}
           </div>
-          <button className="btn-3d btn-3d-green w-full py-2.5 mt-4 text-sm" onClick={submit} disabled={submitting}>
+          <button className="btn-3d btn-3d-primary w-full py-2.5 mt-4 text-sm" onClick={submit} disabled={submitting}>
             {submitting ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : "Nộp bài"}
           </button>
         </div>
@@ -184,13 +187,16 @@ const FullTestExam = () => {
                 {q.options.map((opt, oi) => {
                   const checked = answers[qIdx] === oi;
                   return (
-                    <button key={oi} onClick={() => setAnswers(prev => ({ ...prev, [qIdx]: oi }))}
+                    <button key={oi} onClick={() => {
+                        playSound("click");
+                        setAnswers(prev => ({ ...prev, [qIdx]: oi }));
+                      }}
                       className={cn("w-full text-left p-4 rounded-xl border-2 text-sm transition-all flex items-center group",
                         checked 
-                          ? "border-[var(--duo-green)] bg-[#FFEBEF] shadow-[0_3px_0_#FFD6DF] font-bold" 
+                          ? "border-[var(--duo-correct)] bg-[var(--duo-correct)]/10 shadow-[0_3px_0_var(--duo-correct-dark)]/20 font-bold" 
                           : "border-[var(--duo-gray)] bg-white text-foreground hover:border-[var(--duo-blue)] shadow-[0_2px_0_var(--duo-gray)]"
                       )}>
-                      <div className={cn("w-7 h-7 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors mr-3 font-extrabold text-sm", checked ? "border-[var(--duo-green)] bg-[var(--duo-green)] text-white" : "border-[var(--duo-gray-dark)] group-hover:border-[var(--duo-blue)]")}>
+                      <div className={cn("w-7 h-7 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors mr-3 font-extrabold text-sm", checked ? "border-[var(--duo-correct)] bg-[var(--duo-correct)] text-white" : "border-[var(--duo-gray-dark)] group-hover:border-[var(--duo-blue)]")}>
                         {checked ? "✓" : String.fromCharCode(65 + oi)}
                       </div>
                       <span className="flex-1 font-bold">{opt}</span>

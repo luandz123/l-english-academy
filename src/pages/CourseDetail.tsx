@@ -148,7 +148,7 @@ const CourseDetail = () => {
               {course.thumbnail_url ? (
                 <img src={course.thumbnail_url} alt={course.title} className="w-full h-full object-cover transition-transform hover:scale-105 duration-700" />
               ) : (
-                <div className="w-full h-full bg-gradient-to-br from-[var(--duo-green)]/10 to-[var(--duo-blue)]/10 flex items-center justify-center text-muted-foreground uppercase font-bold text-xs tracking-widest">
+                <div className="w-full h-full bg-gradient-to-br from-[var(--duo-correct)]/10 to-[var(--duo-blue)]/10 flex items-center justify-center text-muted-foreground uppercase font-bold text-xs tracking-widest">
                   L-English
                 </div>
               )}
@@ -165,7 +165,7 @@ const CourseDetail = () => {
                 
                 <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm font-bold text-muted-foreground">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-[var(--duo-green)] flex items-center justify-center text-white shadow-[0_2px_0_var(--duo-green-dark)]">
+                    <div className="w-8 h-8 rounded-full bg-[var(--duo-correct)] flex items-center justify-center text-white shadow-[0_2px_0_var(--duo-correct-dark)]">
                       <span className="font-extrabold text-xs">{course.instructor?.charAt(0) || "I"}</span>
                     </div>
                     <span>{course.instructor}</span>
@@ -179,11 +179,11 @@ const CourseDetail = () => {
               
               <div className="pt-2">
                 {enrollment || (course as any).is_free ? (
-                  <Link to={getLessonLink()} className="btn-3d btn-3d-green text-base px-8 py-3.5 inline-block">
+                  <Link to={getLessonLink()} className="btn-3d btn-3d-primary text-base px-8 py-3.5 inline-block">
                     {enrollment ? "Tiếp tục học 🚀" : "Vào học miễn phí ✨"}
                   </Link>
                 ) : (
-                  <button onClick={handleEnroll} className="btn-3d btn-3d-green text-base px-8 py-3.5">
+                  <button onClick={handleEnroll} className="btn-3d btn-3d-primary text-base px-8 py-3.5">
                     Đăng ký khóa học 🔓
                   </button>
                 )}
@@ -194,7 +194,7 @@ const CourseDetail = () => {
 
         <Tabs defaultValue="content" className="w-full">
           <TabsList className="bg-transparent p-0 h-auto gap-2 flex-wrap">
-            <TabsTrigger value="content" className="data-[state=active]:bg-[var(--duo-green)] data-[state=active]:text-white data-[state=active]:shadow-[0_3px_0_var(--duo-green-dark)] px-5 py-2.5 rounded-xl font-bold text-sm border-2 border-[var(--duo-gray)] data-[state=active]:border-[var(--duo-green)]">
+            <TabsTrigger value="content" className="data-[state=active]:bg-[var(--duo-correct)] data-[state=active]:text-white data-[state=active]:shadow-[0_3px_0_var(--duo-correct-dark)] px-5 py-2.5 rounded-xl font-bold text-sm border-2 border-[var(--duo-gray)] data-[state=active]:border-[var(--duo-correct)]">
               📖 Nội dung
             </TabsTrigger>
             <TabsTrigger value="overview" className="data-[state=active]:bg-[var(--duo-blue)] data-[state=active]:text-white data-[state=active]:shadow-[0_3px_0_var(--duo-blue-dark)] px-5 py-2.5 rounded-xl font-bold text-sm border-2 border-[var(--duo-gray)] data-[state=active]:border-[var(--duo-blue)]">
@@ -260,7 +260,7 @@ const CourseDetail = () => {
                                   className={cn(
                                     "flex justify-between items-center px-4 py-3.5 rounded-xl transition-all cursor-pointer group",
                                     (isTest || isDictation) 
-                                      ? "border-2 border-[var(--duo-gray)] bg-white hover:border-[var(--duo-green)] shadow-[0_2px_0_var(--duo-gray)] hover:shadow-[0_3px_0_var(--duo-gray)]" 
+                                      ? "border-2 border-[var(--duo-gray)] bg-white hover:border-[var(--duo-correct)] shadow-[0_2px_0_var(--duo-gray)] hover:shadow-[0_3px_0_var(--duo-gray)]" 
                                       : "hover:bg-muted/50 border-2 border-transparent"
                                   )}
                                 >
@@ -279,7 +279,7 @@ const CourseDetail = () => {
                                       </div>
                                     )}
                                     <div className="flex flex-col">
-                                      <span className="text-[15px] text-foreground font-bold group-hover:text-[var(--duo-green)] transition-colors line-clamp-1">{lesson.title}</span>
+                                      <span className="text-[15px] text-foreground font-bold group-hover:text-[var(--duo-correct)] transition-colors line-clamp-1">{lesson.title}</span>
                                       {isTest && <span className="text-xs font-bold text-muted-foreground mt-0.5">Bài {lesson.lesson_type === "exam" ? "thi online" : "luyện tập"}</span>}
                                       {isDictation && <span className="text-xs font-bold text-muted-foreground mt-0.5">Luyện nghe điền từ</span>}
                                     </div>
@@ -334,7 +334,7 @@ const CourseDetail = () => {
                                               Chưa học
                                             </span>
                                           )}
-                                          <div className="ml-1 w-8 h-8 rounded-full bg-muted flex items-center justify-center group-hover:bg-[var(--duo-green)] group-hover:text-white text-muted-foreground transition-colors">
+                                          <div className="ml-1 w-8 h-8 rounded-full bg-muted flex items-center justify-center group-hover:bg-[var(--duo-correct)] group-hover:text-white text-muted-foreground transition-colors">
                                             <ChevronRight className="w-4 h-4" />
                                           </div>
                                         </>
@@ -343,7 +343,7 @@ const CourseDetail = () => {
                                           {lesson.duration_seconds > 0 && (
                                             <span className="text-xs font-bold text-muted-foreground whitespace-nowrap">{Math.round(lesson.duration_seconds / 60)} phút</span>
                                           )}
-                                          <div className="w-8 h-8 rounded-full flex items-center justify-center text-muted-foreground group-hover:text-[var(--duo-green)] transition-colors">
+                                          <div className="w-8 h-8 rounded-full flex items-center justify-center text-muted-foreground group-hover:text-[var(--duo-correct)] transition-colors">
                                             <ChevronRight className="w-4 h-4" />
                                           </div>
                                         </div>
@@ -371,7 +371,7 @@ const CourseDetail = () => {
           <TabsContent value="overview" className="mt-6">
             <div className="card-duo p-8 max-w-3xl">
               <h3 className="font-extrabold text-xl text-foreground mb-6 flex items-center gap-2">
-                <BookA className="w-5 h-5 text-[var(--duo-green)]" /> Về khóa học này
+                <BookA className="w-5 h-5 text-[var(--duo-correct)]" /> Về khóa học này
               </h3>
               <div className="prose prose-slate max-w-none text-[15px] leading-relaxed text-muted-foreground">
                 {course.description || "Chưa có mô tả chi tiết cho khóa học này."}

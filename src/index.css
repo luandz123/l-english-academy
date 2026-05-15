@@ -28,7 +28,7 @@
     --destructive-foreground: 0 0% 100%;
     --warning: 30 100% 50%;
     --warning-foreground: 0 0% 100%;
-    --success: 346 91% 50%;
+    --success: 142 76% 45%;
     --success-foreground: 0 0% 100%;
     --border: 0 0% 90%;
     --input: 0 0% 90%;
@@ -47,6 +47,9 @@
     --duo-green: #f40c44;
     --duo-green-dark: #ac0830;
     --duo-green-light: #f85077;
+    --duo-correct: #58cc02;
+    --duo-correct-dark: #46a302;
+    --duo-correct-light: #84d842;
     --duo-blue: #1CB0F6;
     --duo-blue-dark: #1899D6;
     --duo-yellow: #FFC800;
@@ -126,19 +129,33 @@
     padding: 12px 24px;
     font-size: 15px;
   }
-  .btn-3d-green {
+  .btn-3d-primary {
     background-color: var(--duo-green);
     box-shadow: 0 4px 0 var(--duo-green-dark);
     color: white;
   }
-  .btn-3d-green:hover {
+  .btn-3d-primary:hover {
     background-color: var(--duo-green-light);
     transform: translateY(-1px);
     box-shadow: 0 5px 0 var(--duo-green-dark);
   }
-  .btn-3d-green:active {
+  .btn-3d-primary:active {
     transform: translateY(2px);
     box-shadow: 0 2px 0 var(--duo-green-dark);
+  }
+  .btn-3d-green {
+    background-color: var(--duo-correct);
+    box-shadow: 0 4px 0 var(--duo-correct-dark);
+    color: white;
+  }
+  .btn-3d-green:hover {
+    background-color: var(--duo-correct-light);
+    transform: translateY(-1px);
+    box-shadow: 0 5px 0 var(--duo-correct-dark);
+  }
+  .btn-3d-green:active {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 var(--duo-correct-dark);
   }
   .btn-3d-blue {
     background-color: var(--duo-blue);
@@ -204,7 +221,7 @@
   }
   .progress-duo-fill {
     height: 100%;
-    background: linear-gradient(90deg, var(--duo-green), var(--duo-green-light));
+    background: linear-gradient(90deg, var(--duo-correct), var(--duo-correct-light));
     border-radius: 999px;
     transition: width 0.8s ease;
     position: relative;
@@ -232,9 +249,9 @@
     border: 2px solid;
   }
   .badge-green {
-    background: #FFEBEF;
-    color: var(--duo-green-dark);
-    border-color: #FFD6DF;
+    background: #E8F5E9;
+    color: var(--duo-correct-dark);
+    border-color: #C8E6C9;
   }
   .badge-blue {
     background: #DDF4FF;

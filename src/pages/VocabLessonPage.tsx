@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { useSound } from "@/hooks/useSound";
 
 export default function VocabLessonPage() {
   const { courseId, lessonId } = useParams();
@@ -29,6 +30,7 @@ export default function VocabLessonPage() {
   const [wrongChars, setWrongChars] = useState<{ char: string, correct: boolean }[] | null>(null);
   const [isFinished, setIsFinished] = useState(false);
   const [quizId, setQuizId] = useState<number | null>(null);
+  const { playSound } = useSound();
 
   const currentIdx = indices[round];
 
@@ -96,6 +98,7 @@ export default function VocabLessonPage() {
         setRound((round + 1) as any);
         toast({ title: `Tuyệt vời! Chuyển sang Vòng ${round + 1}` });
       } else {
+        playSound("complete");
         setIsFinished(true);
       }
     }
@@ -118,10 +121,12 @@ export default function VocabLessonPage() {
     const correct = word?.word.toLowerCase() || "";
 
     if (input === correct) {
+      playSound("correct");
       setShowResult(true);
       setWrongChars(null);
       setTimeout(handleNext, 1200);
     } else {
+      playSound("incorrect");
       // Highlight wrong characters
       const chars = correct.split("").map((c, i) => ({
         char: c,
@@ -161,6 +166,7 @@ export default function VocabLessonPage() {
       
       if (currentResult.toLowerCase().includes(word?.word.toLowerCase() || "") && !hasPassed) {
         hasPassed = true;
+        playSound("correct");
         setShowResult(true);
         recognition.stop();
         setTimeout(handleNext, 1500);
@@ -223,7 +229,7 @@ export default function VocabLessonPage() {
             <span className="text-[var(--duo-blue)]">{Math.round(progress)}%</span>
           </div>
           <div className="w-full bg-border h-4 rounded-full overflow-hidden relative">
-            <div className="absolute top-0 bottom-0 left-0 bg-[var(--duo-green)] transition-all duration-500 ease-out" style={{ width: `${progress}%` }} />
+            <div className="absolute top-0 bottom-0 left-0 bg-[var(--duo-correct)] transition-all duration-500 ease-out" style={{ width: `${progress}%` }} />
             <div className="absolute top-1 bottom-1 left-0 bg-white/20 transition-all duration-500 ease-out mx-1 rounded-full" style={{ width: `calc(${progress}% - 8px)` }} />
           </div>
         </div>
@@ -330,7 +336,7 @@ export default function VocabLessonPage() {
                     {wrongChars.map((item, i) => (
                       <span key={i} className={cn(
                         "text-2xl font-mono font-black",
-                        item.correct ? "text-[var(--duo-green)]" : "text-[var(--duo-red)] underline decoration-4 underline-offset-4"
+                        item.correct ? "text-[var(--duo-correct)]" : "text-[var(--duo-red)] underline decoration-4 underline-offset-4"
                       )}>
                         {item.char}
                       </span>
@@ -357,12 +363,12 @@ export default function VocabLessonPage() {
               </div>
 
               {showResult && (
-                <div className="absolute inset-0 bg-white/90 backdrop-blur-sm rounded-3xl flex flex-col items-center justify-center space-y-6 animate-in fade-in zoom-in-95 duration-300 z-10 border-4 border-[var(--duo-green)]/30">
-                  <div className="w-28 h-28 bg-[var(--duo-green)]/10 rounded-full flex items-center justify-center border-4 border-[var(--duo-green)]/30 shadow-[0_4px_0_rgba(88,204,2,0.3)]">
-                    <CheckCircle2 className="w-14 h-14 text-[var(--duo-green)]" />
+                <div className="absolute inset-0 bg-white/90 backdrop-blur-sm rounded-3xl flex flex-col items-center justify-center space-y-6 animate-in fade-in zoom-in-95 duration-300 z-10 border-4 border-[var(--duo-correct)]/30">
+                  <div className="w-28 h-28 bg-[var(--duo-correct)]/10 rounded-full flex items-center justify-center border-4 border-[var(--duo-correct)]/30 shadow-[0_4px_0_var(--duo-correct-dark)]/20">
+                    <CheckCircle2 className="w-14 h-14 text-[var(--duo-correct)]" />
                   </div>
-                  <h2 className="text-5xl font-black text-[var(--duo-green)] uppercase tracking-wider drop-shadow-sm">{word.word}</h2>
-                  <p className="font-extrabold text-2xl text-[var(--duo-green)]/80">Chính xác!</p>
+                  <h2 className="text-5xl font-black text-[var(--duo-correct)] uppercase tracking-wider drop-shadow-sm">{word.word}</h2>
+                  <p className="font-extrabold text-2xl text-[var(--duo-correct)]/80">Chính xác!</p>
                 </div>
               )}
             </div>
@@ -420,12 +426,12 @@ export default function VocabLessonPage() {
               </div>
 
               {showResult && (
-                <div className="absolute inset-0 bg-white/90 backdrop-blur-sm rounded-3xl flex flex-col items-center justify-center space-y-6 animate-in fade-in duration-300 z-10 border-4 border-[var(--duo-green)]/30">
-                  <div className="w-28 h-28 bg-[var(--duo-green)]/10 rounded-full flex items-center justify-center border-4 border-[var(--duo-green)]/30 shadow-[0_4px_0_rgba(88,204,2,0.3)]">
-                    <CheckCircle2 className="w-14 h-14 text-[var(--duo-green)]" />
+                <div className="absolute inset-0 bg-white/90 backdrop-blur-sm rounded-3xl flex flex-col items-center justify-center space-y-6 animate-in fade-in duration-300 z-10 border-4 border-[var(--duo-correct)]/30">
+                  <div className="w-28 h-28 bg-[var(--duo-correct)]/10 rounded-full flex items-center justify-center border-4 border-[var(--duo-correct)]/30 shadow-[0_4px_0_var(--duo-correct-dark)]/20">
+                    <CheckCircle2 className="w-14 h-14 text-[var(--duo-correct)]" />
                   </div>
-                  <h2 className="text-4xl font-black text-[var(--duo-green)] uppercase tracking-widest drop-shadow-sm">Excellent!</h2>
-                  <p className="font-extrabold text-2xl text-[var(--duo-green)]/80">Phát âm chuẩn xác</p>
+                  <h2 className="text-4xl font-black text-[var(--duo-correct)] uppercase tracking-widest drop-shadow-sm">Excellent!</h2>
+                  <p className="font-extrabold text-2xl text-[var(--duo-correct)]/80">Phát âm chuẩn xác</p>
                 </div>
               )}
             </div>
@@ -434,8 +440,8 @@ export default function VocabLessonPage() {
           {/* FINISHED STATE */}
           {isFinished && (
             <div className="w-full text-center space-y-10 animate-in zoom-in-95 duration-300">
-              <div className="w-32 h-32 bg-[var(--duo-green)]/10 rounded-full mx-auto flex items-center justify-center border-4 border-[var(--duo-green)]/30 shadow-[0_6px_0_rgba(88,204,2,0.3)]">
-                <CheckCircle2 className="w-16 h-16 text-[var(--duo-green)]" />
+              <div className="w-32 h-32 bg-[var(--duo-correct)]/10 rounded-full mx-auto flex items-center justify-center border-4 border-[var(--duo-correct)]/30 shadow-[0_6px_0_var(--duo-correct-dark)]/20">
+                <CheckCircle2 className="w-16 h-16 text-[var(--duo-correct)]" />
               </div>
               <div className="space-y-4">
                 <h2 className="text-4xl font-black text-foreground drop-shadow-sm">Tuyệt vời!</h2>

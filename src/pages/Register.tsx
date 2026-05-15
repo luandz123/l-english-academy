@@ -103,7 +103,7 @@ const Register = () => {
               <Label htmlFor="password" className="font-bold">Mật khẩu</Label>
               <Input id="password" type="password" placeholder="Nhập mật khẩu (tối thiểu 6 ký tự)" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} autoComplete="new-password" className="h-12 rounded-xl border-2 border-[var(--duo-gray)] font-medium focus:border-[var(--duo-blue)] transition-colors" />
             </div>
-            <button type="submit" className="btn-3d btn-3d-green w-full py-3.5" disabled={loading}>
+            <button type="submit" className="btn-3d btn-3d-primary w-full py-3.5" disabled={loading}>
               {loading ? "Đang xử lý..." : "ĐĂNG KÝ"}
             </button>
           </form>

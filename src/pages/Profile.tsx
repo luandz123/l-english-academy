@@ -119,7 +119,7 @@ const Profile = () => {
                 <Label className="font-bold">Email</Label>
                 <Input value={user?.email || ""} disabled className="h-12 rounded-xl border-2 border-[var(--duo-gray)] font-medium bg-muted" />
               </div>
-              <button onClick={handleUpdateProfile} disabled={saving} className="btn-3d btn-3d-green py-2.5 px-6 text-sm">
+              <button onClick={handleUpdateProfile} disabled={saving} className="btn-3d btn-3d-primary py-2.5 px-6 text-sm">
                 {saving ? "Đang lưu..." : "Cập nhật"}
               </button>
             </div>
@@ -185,7 +185,7 @@ const Profile = () => {
                 <Label className="font-bold">Xác nhận mật khẩu mới</Label>
                 <Input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="h-12 rounded-xl border-2 border-[var(--duo-gray)] font-medium" />
               </div>
-              <button onClick={handleChangePassword} className="btn-3d btn-3d-green py-2.5 px-6 text-sm">
+              <button onClick={handleChangePassword} className="btn-3d btn-3d-primary py-2.5 px-6 text-sm">
                 Đổi mật khẩu
               </button>
             </div>

@@ -102,8 +102,8 @@ const Courses = () => {
                     </div>
                   </div>
                   <div className="px-5 pb-5 flex items-center justify-between">
-                    <span className="font-extrabold text-sm text-[var(--duo-green)]">{formatPrice(c.price)}</span>
-                    <Link to={`/courses/${c.id}`} className="btn-3d btn-3d-green text-xs py-2 px-4 inline-block">
+                    <span className="font-extrabold text-sm text-[var(--duo-correct)]">{formatPrice(c.price)}</span>
+                    <Link to={`/courses/${c.id}`} className="btn-3d btn-3d-primary text-xs py-2 px-4 inline-block">
                       {isEnrolled ? "Tiếp tục" : "Xem chi tiết"}
                     </Link>
                   </div>

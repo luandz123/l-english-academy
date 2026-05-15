@@ -100,7 +100,7 @@ const FullTestList = () => {
                           </span>
                         )}
                         {released && !done && (
-                          <Link to={`/courses/${courseId}/fulltest/${test.id}`} className="btn-3d btn-3d-green py-1.5 px-3 text-xs">
+                          <Link to={`/courses/${courseId}/fulltest/${test.id}`} className="btn-3d btn-3d-primary py-1.5 px-3 text-xs">
                             Làm bài
                           </Link>
                         )}

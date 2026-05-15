@@ -286,7 +286,7 @@ const LearnPage = () => {
                   
                   {latestResult && (
                     <div className="flex flex-col items-center justify-center gap-2 mb-6">
-                      <span className="text-lg font-extrabold text-[var(--duo-green)] bg-[var(--duo-green)]/10 px-6 py-3 rounded-2xl border-2 border-[var(--duo-green)]/20">
+                      <span className="text-lg font-extrabold text-[var(--duo-correct)] bg-[var(--duo-correct)]/10 px-6 py-3 rounded-2xl border-2 border-[var(--duo-correct)]/20">
                         Điểm gần nhất: {latestResult.score}/10 ⭐
                       </span>
                       <span className="text-sm font-bold text-muted-foreground">
@@ -295,7 +295,7 @@ const LearnPage = () => {
                     </div>
                   )}
 
-                  <Button className="btn-3d btn-3d-blue w-full sm:w-auto text-lg px-10 py-6 h-auto" onClick={() => navigate(`/courses/${courseId}/quiz/${quizId}`)}>
+                  <Button className="btn-3d btn-3d-primary w-full sm:w-auto text-lg px-10 py-6 h-auto" onClick={() => navigate(`/courses/${courseId}/quiz/${quizId}`)}>
                     {latestResult ? "Làm lại bài thi 🔄" : "Bắt đầu làm bài 🚀"}
                   </Button>
                 </div>
@@ -324,7 +324,7 @@ const LearnPage = () => {
                     </div>
                   )}
 
-                  <Button className="btn-3d w-full sm:w-auto text-lg px-10 py-6 h-auto" style={{ backgroundColor: 'var(--duo-purple)', borderColor: '#A855F7', color: 'white' }} onClick={() => navigate(`/courses/${courseId}/dictation/${quizId}`)}>
+                  <Button className="btn-3d w-full sm:w-auto text-lg px-10 py-6 h-auto" style={{ backgroundColor: '#A855F7', borderColor: '#9333EA', color: 'white' }} onClick={() => navigate(`/courses/${courseId}/dictation/${quizId}`)}>
                     {latestResult ? "Tiếp tục luyện nghe 🎧" : "Bắt đầu bài tập này 🚀"}
                   </Button>
                 </div>
@@ -390,7 +390,7 @@ const LearnPage = () => {
                     placeholder="Nhập ghi chú của bạn ở đây... ✍️"
                     className="flex-1 min-h-[120px] rounded-2xl border-2 border-border p-4 text-base font-medium resize-none focus:outline-none focus:border-[var(--duo-blue)] focus:ring-4 focus:ring-[var(--duo-blue)]/20 transition-all bg-muted/10"
                   />
-                  <Button className="btn-3d btn-3d-blue px-8 h-auto self-end sm:self-auto text-lg" onClick={() => noteMutation.mutate()} disabled={noteMutation.isPending}>Lưu Ghi Chú 💾</Button>
+                  <Button className="btn-3d btn-3d-primary px-8 h-auto self-end sm:self-auto text-lg" onClick={() => noteMutation.mutate()} disabled={noteMutation.isPending}>Lưu Ghi Chú 💾</Button>
                 </div>
                 {savedNotes.map((n: any) => (
                   <div key={n.id} className="card-duo p-5 bg-white">
@@ -409,10 +409,10 @@ const LearnPage = () => {
             <h2 className="text-lg font-extrabold text-foreground flex items-center gap-2 mb-3">📋 Nội dung khóa học</h2>
             <div className="flex items-center justify-between text-sm font-bold text-muted-foreground mb-2">
               <span>{completedCount}/{totalLessons} bài</span>
-              <span className="text-[var(--duo-green)]">{progressPct}%</span>
+              <span className="text-[var(--duo-correct)]">{progressPct}%</span>
             </div>
             <div className="progress-duo h-3 bg-muted border-2">
-              <div className="h-full bg-[var(--duo-green)] transition-all rounded-full" style={{ width: `${progressPct}%` }} />
+              <div className="h-full bg-[var(--duo-correct)] transition-all rounded-full" style={{ width: `${progressPct}%` }} />
             </div>
           </div>
           <Accordion type="multiple" defaultValue={modules.map((_: any, i: number) => `part-${i}`)} className="p-4 space-y-4">
@@ -452,7 +452,7 @@ const LearnPage = () => {
                             isCurrent ? "bg-[var(--duo-blue)]/10 text-[var(--duo-blue)] border-[var(--duo-blue)]/30 shadow-[0_2px_0_var(--duo-blue)] -translate-y-0.5" : "text-muted-foreground border-transparent hover:bg-muted/50"
                           } cursor-pointer`}
                         >
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 border-2 ${isCurrent ? 'bg-[var(--duo-blue)] text-white border-[var(--duo-blue)]' : done ? 'bg-[var(--duo-green)] text-white border-[var(--duo-green)]' : 'bg-muted border-border text-muted-foreground'}`}>
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 border-2 ${isCurrent ? 'bg-[var(--duo-blue)] text-white border-[var(--duo-blue)]' : done ? 'bg-[var(--duo-correct)] text-white border-[var(--duo-correct)]' : 'bg-muted border-border text-muted-foreground'}`}>
                             {done ? <Check className="w-4 h-4" /> : isVideo ? <PlayCircle className="w-4 h-4" /> : isDictation ? <Headphones className="w-4 h-4" /> : <FileQuestion className="w-4 h-4" />}
                           </div>
                           
@@ -464,7 +464,7 @@ const LearnPage = () => {
                           {!canStudy ? (
                             <Lock className="w-4 h-4 text-amber-500 shrink-0" />
                           ) : (
-                            canStudy && !enrollment && <span className="badge-duo text-[9px] py-0.5 px-1.5 shrink-0" style={{ backgroundColor: 'var(--duo-green)', color: 'white', borderColor: '#ac0830' }}>FREE</span>
+                            canStudy && !enrollment && <span className="badge-duo text-[9px] py-0.5 px-1.5 shrink-0" style={{ backgroundColor: 'var(--duo-correct)', color: 'white', borderColor: 'var(--duo-correct-dark)' }}>FREE</span>
                           )}
                         </button>
                       );
@@ -519,7 +519,7 @@ const LearnPage = () => {
                     <div className="flex gap-3 pt-6">
                       {practiceCurrentQ > 0 && <Button className="btn-3d bg-white text-foreground hover:bg-gray-50 border-gray-200 flex-1 py-6 text-base h-auto" onClick={() => setPracticeCurrentQ(p => p - 1)}>← Quay lại</Button>}
                       {practiceCurrentQ < practiceQuestions.length - 1 ? (
-                        <Button className="btn-3d btn-3d-blue flex-1 py-6 text-base h-auto" onClick={() => setPracticeCurrentQ(p => p + 1)} disabled={!practiceAnswers[practiceCurrentQ]}>Tiếp tục →</Button>
+                        <Button className="btn-3d btn-3d-primary flex-1 py-6 text-base h-auto" onClick={() => setPracticeCurrentQ(p => p + 1)} disabled={!practiceAnswers[practiceCurrentQ]}>Tiếp tục →</Button>
                       ) : (
                         <Button className="btn-3d btn-3d-green flex-1 py-6 text-base h-auto" onClick={() => setPracticeSubmitted(true)} disabled={!practiceAnswers[practiceCurrentQ]}>Nộp bài 🏁</Button>
                       )}
@@ -528,11 +528,11 @@ const LearnPage = () => {
                 ) : (
                   <div className="space-y-6">
                     <div className="text-center space-y-3 mb-8">
-                      <div className="w-24 h-24 bg-[var(--duo-green)]/10 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-[var(--duo-green)]/20">
-                        <CheckCircle className="w-12 h-12 text-[var(--duo-green)]" />
+                      <div className="w-24 h-24 bg-[var(--duo-correct)]/10 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-[var(--duo-correct)]/20 shadow-[0_4px_0_var(--duo-correct-dark)]/20">
+                        <CheckCircle className="w-12 h-12 text-[var(--duo-correct)]" />
                       </div>
                       <h4 className="text-3xl font-extrabold text-foreground">Hoàn thành! 🎉</h4>
-                      <p className="text-lg font-extrabold text-[var(--duo-green)] bg-[var(--duo-green)]/10 inline-block px-6 py-3 rounded-2xl border-2 border-[var(--duo-green)]/20 shadow-sm mt-2">
+                      <p className="text-lg font-extrabold text-[var(--duo-correct)] bg-[var(--duo-correct)]/10 inline-block px-6 py-3 rounded-2xl border-2 border-[var(--duo-correct)]/20 shadow-sm mt-2">
                         Đúng {practiceQuestions.filter((q: any, i: number) => practiceAnswers[i] === q.answers.find((a: any) => a.is_correct)?.id).length}/{practiceQuestions.length} câu
                       </p>
                     </div>
@@ -543,18 +543,18 @@ const LearnPage = () => {
                         const correct = q.answers.find((a: any) => a.is_correct);
                         const isCorrect = selected === correct?.id;
                         return (
-                          <div key={q.id} className={`p-5 rounded-2xl border-2 bg-white ${isCorrect ? "border-[var(--duo-green)]/30" : "border-[var(--duo-red)]/30"}`}>
+                          <div key={q.id} className={`p-5 rounded-2xl border-2 bg-white ${isCorrect ? "border-[var(--duo-correct)]/30" : "border-[var(--duo-red)]/30"}`}>
                             <p className="text-base font-extrabold mb-4 text-foreground">Câu {i + 1}: {q.question_text}</p>
                             
                             <div className="space-y-3">
                               <p className="text-sm font-bold flex items-start gap-3 text-muted-foreground">
                                 <span className="w-auto px-2 py-1 h-6 rounded-md bg-muted flex items-center justify-center border text-xs shrink-0">Bạn chọn</span>
                                 <span className="flex-1 mt-0.5">{q.answers.find((a: any) => a.id === selected)?.answer_text || "Chưa chọn"}</span>
-                                {isCorrect ? <Check className="w-5 h-5 text-[var(--duo-green)] shrink-0" /> : <X className="w-5 h-5 text-[var(--duo-red)] shrink-0" />}
+                                {isCorrect ? <Check className="w-5 h-5 text-[var(--duo-correct)] shrink-0" /> : <X className="w-5 h-5 text-[var(--duo-red)] shrink-0" />}
                               </p>
                               {!isCorrect && (
-                                <p className="text-sm font-bold flex items-start gap-3 text-[var(--duo-green)] bg-[var(--duo-green)]/5 p-2 rounded-lg border border-[var(--duo-green)]/10">
-                                  <span className="w-auto px-2 py-1 h-6 rounded-md bg-[var(--duo-green)]/10 border-[var(--duo-green)]/20 flex items-center justify-center border text-xs text-[var(--duo-green)] shrink-0">Đúng</span>
+                                <p className="text-sm font-bold flex items-start gap-3 text-[var(--duo-correct)] bg-[var(--duo-correct)]/5 p-2 rounded-lg border border-[var(--duo-correct)]/10">
+                                  <span className="w-auto px-2 py-1 h-6 rounded-md bg-[var(--duo-correct)]/10 border-[var(--duo-correct)]/20 flex items-center justify-center border text-xs text-[var(--duo-correct)] shrink-0">Đúng</span>
                                   <span className="flex-1 mt-0.5">{correct?.answer_text}</span>
                                 </p>
                               )}
@@ -572,7 +572,7 @@ const LearnPage = () => {
                     </div>
                     
                     <div className="pt-6 border-t-2 mt-8">
-                      <Button className="btn-3d btn-3d-blue w-full py-6 text-lg h-auto" onClick={() => setActivePractice(null)}>Đóng và học tiếp 🚀</Button>
+                      <Button className="btn-3d btn-3d-primary w-full py-6 text-lg h-auto" onClick={() => setActivePractice(null)}>Đóng và học tiếp 🚀</Button>
                     </div>
                   </div>
                 )}

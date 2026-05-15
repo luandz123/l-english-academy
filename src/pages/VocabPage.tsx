@@ -112,7 +112,7 @@ const VocabPage = () => {
         <div className="max-w-md mx-auto mt-12 card-duo p-10 text-center space-y-6 bg-white border-2">
           <h1 className="text-3xl font-black text-foreground">🎉 Hoàn thành!</h1>
           <div className="bg-muted/30 p-6 rounded-2xl border-2">
-             <p className="text-xl font-bold text-foreground">Điểm: <span className="text-[var(--duo-green)] font-black">{correctCount}/{vocabWords.length}</span> ({pct}%)</p>
+             <p className="text-xl font-bold text-foreground">Điểm: <span className="text-[var(--duo-correct)] font-black">{correctCount}/{vocabWords.length}</span> ({pct}%)</p>
           </div>
           <p className="text-5xl tracking-widest drop-shadow-sm">{"⭐".repeat(stars)}</p>
           <div className="flex flex-col gap-3 justify-center mt-6">
@@ -136,7 +136,7 @@ const VocabPage = () => {
           <Button size="icon" variant="ghost" className="hover:bg-muted/50 rounded-full" onClick={() => setView("days")}><XIcon className="w-6 h-6 text-muted-foreground"/></Button>
         </div>
         <div className="w-full bg-border h-3">
-          <div className="h-full bg-[var(--duo-green)] transition-all duration-500 ease-out rounded-r-full" style={{ width: `${progress}%` }} />
+          <div className="h-full bg-[var(--duo-correct)] transition-all duration-500 ease-out rounded-r-full" style={{ width: `${progress}%` }} />
         </div>
 
         <div className="flex-1 flex flex-col items-center justify-center p-6">
@@ -216,7 +216,7 @@ const VocabPage = () => {
                   disabled={showResult}
                   className={cn(
                     "p-5 rounded-2xl border-2 text-lg font-bold transition-all text-left flex items-center gap-4",
-                    showResult && opt === word.definition_vi ? "border-[var(--duo-green)] bg-[var(--duo-green)]/10 text-[var(--duo-green)] shadow-[0_4px_0_var(--duo-green)] -translate-y-1" :
+                    showResult && opt === word.definition_vi ? "border-[var(--duo-correct)] bg-[var(--duo-correct)]/10 text-[var(--duo-correct)] shadow-[0_4px_0_var(--duo-correct)] -translate-y-1" :
                     showResult && opt === selectedAnswer && opt !== word.definition_vi ? "border-[var(--duo-red)] bg-[var(--duo-red)]/10 text-[var(--duo-red)] shadow-[0_4px_0_var(--duo-red)] -translate-y-1" :
                     !showResult ? "border-border bg-white text-foreground hover:border-[var(--duo-blue)] hover:bg-[var(--duo-blue)]/5 hover:shadow-[0_4px_0_var(--duo-blue)] hover:-translate-y-1 shadow-[0_4px_0_var(--border)] active:translate-y-0 active:shadow-none" : "border-border bg-white text-foreground opacity-50 shadow-[0_4px_0_var(--border)]"
                   )}

@@ -71,11 +71,11 @@ const Login = () => {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password" className="font-bold">Mật khẩu</Label>
-                <a href="#" className="text-xs font-bold text-[var(--duo-green)] hover:underline">Quên mật khẩu?</a>
+                <Link to="/forgot-password" className="text-xs font-bold text-[var(--duo-green)] hover:underline">Quên mật khẩu?</Link>
               </div>
               <Input id="password" type="password" placeholder="Nhập mật khẩu" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" className="h-12 rounded-xl border-2 border-[var(--duo-gray)] font-medium focus:border-[var(--duo-blue)] transition-colors" />
             </div>
-            <button type="submit" className="btn-3d btn-3d-green w-full py-3.5" disabled={loading}>
+            <button type="submit" className="btn-3d btn-3d-primary w-full py-3.5" disabled={loading}>
               {loading ? "Đang đăng nhập..." : "ĐĂNG NHẬP"}
             </button>
           </form>

@@ -193,6 +193,9 @@ const ModuleManager = ({ courseId, modules }: ModuleManagerProps) => {
       setModuleDesc("");
       toast({ title: editingModule ? "Đã cập nhật module" : "Đã tạo module" });
     },
+    onError: (error: any) => {
+      toast({ title: "Lỗi", description: error.message, variant: "destructive" });
+    },
   });
 
   const deleteMutation = useMutation({
@@ -203,6 +206,9 @@ const ModuleManager = ({ courseId, modules }: ModuleManagerProps) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-course-modules", courseId] });
       toast({ title: "Đã xóa module" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Lỗi", description: error.message, variant: "destructive" });
     },
   });
 

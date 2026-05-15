@@ -73,6 +73,62 @@ const QuizResult = () => {
 
   const totalQ = questions.length;
 
+  // Grouping logic (Shared with QuizPage)
+  const groupedQuestions = (() => {
+    if (!questions) return [];
+    const groups: any[] = [];
+    let currentGroup: any = null;
+
+    questions.forEach((q: any, idx: number) => {
+      const isPart34 = q.question_type === "part3" || q.question_type === "part4";
+      const isPart67 = q.question_type === "part6" || q.question_type === "part7";
+      
+      let passageText = "";
+      let cleanQuestionText = q.question_text;
+      
+      if (q.question_text.includes("[PASSAGE]")) {
+        const parts = q.question_text.split("[ENDPASSAGE]");
+        passageText = parts[0].replace("[PASSAGE]", "");
+        cleanQuestionText = parts[1] || "";
+      }
+
+      let shouldStartNew = false;
+      if (!currentGroup) {
+        shouldStartNew = true;
+      } else if (isPart34) {
+        if (q.audio_url && q.audio_url !== currentGroup.audio_url) {
+          shouldStartNew = true;
+        } else if (currentGroup.questions.length >= 3) {
+          shouldStartNew = true;
+        }
+      } else if (isPart67) {
+        if (passageText) {
+          shouldStartNew = true;
+        } else if (currentGroup.questions.length >= 4 && q.question_type === "part6") {
+          shouldStartNew = true;
+        }
+      } else {
+        shouldStartNew = true;
+      }
+
+      if (shouldStartNew) {
+        currentGroup = {
+          id: groups.length,
+          type: q.question_type,
+          passage: passageText,
+          audio_url: q.audio_url,
+          image_url: q.image_url,
+          questions: []
+        };
+        groups.push(currentGroup);
+      }
+
+      currentGroup.questions.push({ ...q, originalIdx: idx, cleanText: cleanQuestionText });
+    });
+
+    return groups;
+  })();
+
   if (showDetails) {
     return (
       <div className="h-screen flex flex-col bg-background overflow-hidden font-sans">
@@ -95,105 +151,129 @@ const QuizResult = () => {
         <main className="flex-1 flex overflow-hidden w-full h-[calc(100vh-64px)]">
           {/* Main Content: List of all questions */}
           <div className="flex-1 h-full overflow-y-auto p-3 sm:p-4 lg:p-8 space-y-5 sm:space-y-8 scroll-smooth pb-32">
-            {quiz?.audio_url && (
-              <div className="max-w-4xl mx-auto bg-[#DDF4FF] border-2 border-[#A8E0FD] rounded-2xl p-4 sticky top-0 z-10 backdrop-blur-sm">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-[var(--duo-blue)] shadow-[0_3px_0_var(--duo-blue-dark)] flex items-center justify-center shrink-0">
-                    <span className="text-lg">🎧</span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-extrabold text-foreground mb-1">Audio bài thi</p>
-                    <audio controls src={quiz.audio_url} className="w-full h-8" controlsList="nodownload" />
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            {questions.map((q: any, i: number) => {
-                 const selectedId = dbUserAnswers.length > 0 ? selectedByQuestionId[q.id] : stateAnswers[i];
-                 const selectedOpt = q.answers?.find((o: any) => o.id === selectedId);
-                 const correctOpt = q.answers?.find((o: any) => o.is_correct === true);
-                 const isCorrect = !!selectedOpt?.is_correct;
-                 
-                 return (
-                  <div key={q.id} id={`question-${i}`} className="max-w-4xl mx-auto card-duo p-4 sm:p-6 scroll-mt-6">
-                    <div className="mb-4 flex items-center justify-between">
-                      <span className="badge-duo badge-blue">Câu {i + 1} / {totalQ}</span>
-                      {selectedId ? (
-                          isCorrect ? (
-                              <span className="badge-duo badge-green flex items-center gap-1"><CheckCircle className="w-4 h-4" /> Đúng</span>
-                          ) : (
-                              <span className="badge-duo badge-orange flex items-center gap-1"><XCircle className="w-4 h-4" /> Sai</span>
-                          )
-                      ) : (
-                          <span className="badge-duo badge-yellow">Chưa làm</span>
+            {/* Main Content: Group-based view in Review Mode */}
+            <div className="flex-1 h-full overflow-y-auto p-3 sm:p-4 lg:p-8 space-y-5 sm:space-y-8 scroll-smooth pb-32">
+              {groupedQuestions.map((group: any, gIdx: number) => (
+                <div key={gIdx} className="max-w-4xl mx-auto space-y-6 mb-12">
+                  {/* Group context: Passage or shared Audio */}
+                  {(group.passage || group.audio_url || group.image_url) && (
+                    <div className="card-duo p-5 sm:p-8 bg-[#DDF4FF]/30 border-[#A8E0FD] space-y-6">
+                      {group.image_url && (
+                        <img src={group.image_url} alt="Passage Context" className="max-w-full h-auto rounded-xl border-2 border-[var(--duo-gray)] mx-auto" />
+                      )}
+                      {group.audio_url && (
+                        <div className="flex items-center gap-4 bg-white/80 p-4 rounded-2xl border-2 border-[var(--duo-blue)]/20 shadow-sm">
+                          <div className="w-12 h-12 rounded-xl bg-[var(--duo-blue)] flex items-center justify-center text-white text-xl shrink-0">🎧</div>
+                          <div className="flex-1">
+                            <p className="text-sm font-extrabold text-[var(--duo-blue)] mb-1">Audio hội thoại / bài nói</p>
+                            <audio controls src={group.audio_url} className="w-full h-9" controlsList="nodownload" />
+                          </div>
+                        </div>
+                      )}
+                      {group.passage && (
+                        <div className="prose prose-sm max-w-none text-foreground font-medium leading-relaxed bg-white/50 p-6 rounded-2xl border-2 border-[var(--duo-gray)] shadow-inner whitespace-pre-wrap">
+                          {group.passage}
+                        </div>
                       )}
                     </div>
+                  )}
 
-                    {q.image_url && <img src={q.image_url} alt="Question" className="max-w-full h-auto rounded-xl border-2 border-[var(--duo-gray)] mb-6" loading="lazy" />}
-                    {q.audio_url && <audio controls src={q.audio_url} className="w-full mb-6 rounded-lg" />}
-
-                    <p className="text-lg font-bold text-foreground mb-6 leading-relaxed bg-muted p-4 rounded-xl">{q.question_text}</p>
-
-                    <div className="space-y-3">
-                      {q.answers.map((opt: any, oi: number) => {
-                        const isSelected = selectedId === opt.id;
-                        const isOptCorrect = opt.is_correct;
-                        
-                        let optClass = "border-[var(--duo-gray)] bg-white shadow-[0_2px_0_var(--duo-gray)]";
-                        let indicatorClass = "border-[var(--duo-gray-dark)] text-muted-foreground";
-                        
-                        if (isOptCorrect) {
-                           optClass = "border-[var(--duo-green)] bg-[#FFEBEF] shadow-[0_3px_0_#FFD6DF]";
-                           indicatorClass = "border-[var(--duo-green)] bg-[var(--duo-green)] text-white";
-                        } else if (isSelected && !isOptCorrect) {
-                           optClass = "border-[var(--duo-red)] bg-red-50 shadow-[0_3px_0_#FFB3B3]";
-                           indicatorClass = "border-[var(--duo-red)] bg-[var(--duo-red)] text-white";
-                        }
-                        
-                        return (
-                          <div
-                            key={opt.id}
-                            className={cn(
-                              "flex items-center gap-3 sm:gap-4 w-full p-3 sm:p-4 rounded-xl border-2 transition-all group",
-                              optClass
-                            )}
-                          >
-                            <div className={cn("w-6 h-6 sm:w-7 sm:h-7 rounded-full border-2 flex items-center justify-center shrink-0 font-extrabold text-sm", indicatorClass)}>
-                              {isOptCorrect ? "✓" : isSelected ? "✗" : String.fromCharCode(65 + oi)}
-                            </div>
-                            <span className={cn("text-base flex-1 font-bold", (isOptCorrect || isSelected) ? "text-foreground" : "text-muted-foreground")}>{opt.answer_text}</span>
-                            {isOptCorrect && <span className="badge-duo badge-green text-[10px]">✅ Đáp án</span>}
-                            {isSelected && !isOptCorrect && <span className="badge-duo badge-orange text-[10px]">❌ Bạn chọn</span>}
-                          </div>
-                        );
-                      })}
-                    </div>
+                  {/* Questions in group */}
+                  {group.questions.map((q: any) => {
+                    const selectedId = dbUserAnswers.length > 0 ? selectedByQuestionId[q.id] : stateAnswers[q.originalIdx];
+                    const selectedOpt = q.answers?.find((o: any) => o.id === selectedId);
+                    const correctOpt = q.answers?.find((o: any) => o.is_correct === true);
+                    const isCorrect = !!selectedOpt?.is_correct;
                     
-                    <div className="mt-6 space-y-3">
-                        {correctOpt?.explanation && (
-                          <div className="p-4 bg-[#FFEBEF] border-2 border-[#FFD6DF] rounded-xl text-sm font-medium text-foreground">
-                            💡 <strong>Giải thích:</strong> {correctOpt.explanation}
-                          </div>
+                    return (
+                      <div key={q.id} id={`question-${q.originalIdx}`} className="card-duo p-5 sm:p-7 space-y-6 relative overflow-hidden">
+                        {/* Status ribbon */}
+                        <div className={cn(
+                          "absolute top-0 right-0 px-4 py-1 text-[10px] font-extrabold uppercase tracking-widest rounded-bl-xl",
+                          selectedId ? (isCorrect ? "bg-[var(--duo-correct)] text-white" : "bg-[var(--duo-red)] text-white") : "bg-muted text-muted-foreground"
+                        )}>
+                          {selectedId ? (isCorrect ? "Đúng" : "Sai") : "Chưa làm"}
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <span className="badge-duo badge-blue">Câu {q.originalIdx + 1} / {totalQ}</span>
+                          {q.question_type && <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest bg-muted px-2 py-0.5 rounded-full mr-12">{q.question_type}</span>}
+                        </div>
+
+                        {q.image_url && q.image_url !== group.image_url && (
+                          <img src={q.image_url} alt="Question" className="max-w-full h-auto rounded-xl border-2 border-[var(--duo-gray)] mb-4" />
+                        )}
+                        {q.audio_url && q.audio_url !== group.audio_url && (
+                          <audio controls src={q.audio_url} className="w-full mb-4" />
                         )}
 
-                        {q.translation && (
-                          <div className="p-4 bg-[#DDF4FF] border-2 border-[#A8E0FD] rounded-xl text-sm font-medium text-[var(--duo-blue-dark)]">
-                            🇻🇳 <strong>Dịch nghĩa:</strong> {q.translation}
-                          </div>
+                        {q.cleanText && (
+                          <p className="text-lg font-bold text-foreground leading-relaxed p-4 bg-muted/40 rounded-2xl border-l-4 border-[var(--duo-blue)]">
+                            {q.cleanText}
+                          </p>
                         )}
-                    </div>
-                  </div>
-                 );
-            })}
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {q.answers.map((opt: any, oi: number) => {
+                            const isSelected = selectedId === opt.id;
+                            const isOptCorrect = opt.is_correct;
+                            const isPart2 = q.question_type === "part2";
+                            const isListeningPart = q.question_type === "part1" || q.question_type === "part2" || q.question_type === "part3" || q.question_type === "part4";
+
+                            if (isPart2 && oi === 3) return null;
+
+                            let optClass = "border-[var(--duo-gray)] bg-white shadow-[0_2px_0_var(--duo-gray)]";
+                            let indicatorClass = "border-[var(--duo-gray-dark)] text-muted-foreground";
+                            
+                            if (isOptCorrect) {
+                              optClass = "border-[var(--duo-correct)] bg-[var(--duo-correct)]/10 shadow-[0_3px_0_var(--duo-correct-dark)]/20";
+                              indicatorClass = "border-[var(--duo-correct)] bg-[var(--duo-correct)] text-white";
+                            } else if (isSelected && !isOptCorrect) {
+                              optClass = "border-[var(--duo-red)] bg-red-50 shadow-[0_3px_0_#FFB3B3]";
+                              indicatorClass = "border-[var(--duo-red)] bg-[var(--duo-red)] text-white";
+                            }
+                            
+                            return (
+                              <div key={opt.id} className={cn("flex items-center gap-3 w-full p-4 rounded-xl border-2 transition-all", optClass)}>
+                                <div className={cn("w-7 h-7 rounded-full border-2 flex items-center justify-center shrink-0 font-extrabold text-sm", indicatorClass)}>
+                                  {isOptCorrect ? "✓" : isSelected ? "✗" : String.fromCharCode(65 + oi)}
+                                </div>
+                                {isListeningPart && !opt.answer_text ? (
+                                  <span className="text-base flex-1 text-muted-foreground/30 italic font-medium select-none tracking-widest">••••••••</span>
+                                ) : (
+                                  <span className={cn("text-base flex-1 font-bold", (isOptCorrect || isSelected) ? "text-foreground" : "text-muted-foreground")}>{opt.answer_text}</span>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                        
+                        <div className="mt-4 space-y-3 pt-4 border-t border-dashed border-[var(--duo-gray)]">
+                          {correctOpt?.explanation && (
+                            <div className="p-4 bg-[var(--duo-correct)]/5 border-2 border-[var(--duo-correct)]/20 rounded-xl text-sm font-medium text-foreground">
+                              💡 <strong>Giải thích:</strong> {correctOpt.explanation}
+                            </div>
+                          )}
+                          {q.translation && (
+                            <div className="p-4 bg-[#DDF4FF]/50 border-2 border-[#A8E0FD]/50 rounded-xl text-sm font-medium text-[var(--duo-blue-dark)]">
+                              🇻🇳 <strong>Dịch nghĩa:</strong> {q.translation}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Right Sidebar: Grid (Desktop only) */}
           <div className="hidden lg:flex w-80 flex-col border-l-2 border-[var(--duo-gray)] bg-card h-full relative z-10">
              <div className="p-5 border-b-2 border-[var(--duo-gray)]">
-                <h3 className="font-extrabold text-base mb-3 flex items-center gap-2"><LayoutGrid className="w-5 h-5 text-[var(--duo-green)]"/> Danh sách câu hỏi</h3>
+                <h3 className="font-extrabold text-base mb-3 flex items-center gap-2"><LayoutGrid className="w-5 h-5 text-[var(--duo-correct)]"/> Danh sách câu hỏi</h3>
                 <div className="flex flex-col gap-2 text-sm text-muted-foreground font-bold">
-                    <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-[var(--duo-green)] block"></span> Đúng ({score})</span>
+                    <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-[var(--duo-correct)] block"></span> Đúng ({score})</span>
                     <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-[var(--duo-red)] block"></span> Sai ({totalQ - score})</span>
                     <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full border-2 border-muted-foreground block"></span> Chưa làm</span>
                 </div>
@@ -207,7 +287,7 @@ const QuizResult = () => {
                    let btnClass = "border-[var(--duo-gray)] bg-white text-muted-foreground hover:border-[var(--duo-blue)]";
                    if (isAnswered) {
                        if (isCorrect) {
-                           btnClass = "border-[var(--duo-green)] bg-[var(--duo-green)] text-white shadow-[0_3px_0_var(--duo-green-dark)]";
+                           btnClass = "border-[var(--duo-correct)] bg-[var(--duo-correct)] text-white shadow-[0_3px_0_var(--duo-correct-dark)]";
                        } else {
                            btnClass = "border-[var(--duo-red)] bg-[var(--duo-red)] text-white shadow-[0_3px_0_#CC3333]";
                        }
@@ -245,7 +325,7 @@ const QuizResult = () => {
                <div className="flex items-center justify-between">
                   <h3 className="font-extrabold text-sm">Điều hướng nhanh</h3>
                   <div className="flex flex-col gap-1 text-xs text-muted-foreground font-bold">
-                    <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-[var(--duo-green)] block"></span> Đúng ({score})</span>
+                    <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-[var(--duo-correct)] block"></span> Đúng ({score})</span>
                     <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-[var(--duo-red)] block"></span> Sai ({totalQ - score})</span>
                   </div>
                </div>
@@ -258,7 +338,7 @@ const QuizResult = () => {
                    let btnClass = "border-[var(--duo-gray)] bg-white text-muted-foreground hover:border-[var(--duo-blue)]";
                    if (isAnswered) {
                        if (isCorrect) {
-                           btnClass = "border-[var(--duo-green)] bg-[var(--duo-green)] text-white shadow-[0_2px_0_var(--duo-green-dark)]";
+                           btnClass = "border-[var(--duo-correct)] bg-[var(--duo-correct)] text-white shadow-[0_2px_0_var(--duo-correct-dark)]";
                        } else {
                            btnClass = "border-[var(--duo-red)] bg-[var(--duo-red)] text-white shadow-[0_2px_0_#CC3333]";
                        }
@@ -291,7 +371,7 @@ const QuizResult = () => {
 
   // Determine score emoji and message
   const getScoreDisplay = () => {
-    if (percentage >= 80) return { emoji: "🏆", text: "Xuất sắc!", color: "text-[var(--duo-green)]", bg: "bg-[#FFEBEF]", border: "border-[#FFD6DF]" };
+    if (percentage >= 80) return { emoji: "🏆", text: "Xuất sắc!", color: "text-[var(--duo-correct)]", bg: "bg-[var(--duo-correct)]/10", border: "border-[var(--duo-correct)]/20" };
     if (percentage >= 60) return { emoji: "👍", text: "Khá tốt!", color: "text-[var(--duo-blue)]", bg: "bg-[#DDF4FF]", border: "border-[#A8E0FD]" };
     if (percentage >= 40) return { emoji: "💪", text: "Cố gắng thêm!", color: "text-[var(--duo-yellow)]", bg: "bg-[#FFF8E0]", border: "border-[#FFE680]" };
     return { emoji: "📚", text: "Hãy ôn tập lại!", color: "text-[var(--duo-orange)]", bg: "bg-[#FFF0E0]", border: "border-[#FFCC80]" };
@@ -330,7 +410,7 @@ const QuizResult = () => {
               <Loader2 className="w-4 h-4 animate-spin" /> Đang tải giải...
             </button>
           ) : questions.length > 0 ? (
-            <button onClick={() => setShowDetails(true)} className="btn-3d btn-3d-green py-2.5 px-5 text-sm">
+            <button onClick={() => setShowDetails(true)} className="btn-3d btn-3d-primary py-2.5 px-5 text-sm">
               👁 Xem giải chi tiết
             </button>
           ) : null}
