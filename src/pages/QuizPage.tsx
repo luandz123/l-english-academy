@@ -282,7 +282,7 @@ const QuizPage = () => {
                     <audio controls src={q.audio_url} className="w-full mb-4" />
                   )}
 
-                  {q.cleanText && (
+                  {q.cleanText && q.question_type !== "part2" && (
                     <p className="text-lg font-bold text-foreground leading-relaxed p-4 bg-muted/40 rounded-2xl border-l-4 border-[var(--duo-blue)]">
                       {q.cleanText}
                     </p>
@@ -291,11 +291,13 @@ const QuizPage = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {q.answers.map((opt: any, oi: number) => {
                       const checked = answers[q.originalIdx] === opt.id;
-                      const isListeningPart = q.question_type === "part1" || q.question_type === "part2" || q.question_type === "part3" || q.question_type === "part4";
                       const isPart2 = q.question_type === "part2";
                       
                       // Skip D for Part 2
                       if (isPart2 && oi === 3) return null;
+
+                      // Hide text for Part 1 and Part 2 (force listening)
+                      const hideText = q.question_type === "part1" || q.question_type === "part2";
 
                       return (
                         <label
@@ -311,7 +313,7 @@ const QuizPage = () => {
                           <div className={cn("w-7 h-7 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors font-extrabold text-sm", checked ? "border-[var(--duo-correct)] bg-[var(--duo-correct)] text-white" : "border-[var(--duo-gray-dark)] group-hover:border-[var(--duo-blue)]")}>
                             {checked ? "✓" : String.fromCharCode(65 + oi)}
                           </div>
-                          {isListeningPart && !opt.answer_text ? (
+                          {hideText ? (
                             <span className="text-base flex-1 text-muted-foreground/30 italic font-medium select-none tracking-widest">••••••••</span>
                           ) : (
                             <span className={cn("text-base flex-1 font-bold", checked ? "text-foreground" : "text-muted-foreground")}>{opt.answer_text}</span>

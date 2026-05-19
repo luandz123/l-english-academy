@@ -9,6 +9,13 @@ import { Plus, Edit, Trash2, Upload, Download, Image, Music, Library, GripVertic
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   DndContext,
@@ -195,6 +202,7 @@ const QuizManager = ({ quizId, courseId, lessonType, lessonId }: QuizManagerProp
   const [editingQ, setEditingQ] = useState<any>(null);
   const [qText, setQText] = useState("");
   const [qTranslation, setQTranslation] = useState("");
+  const [qDictationKeywords, setQDictationKeywords] = useState("");
   const [qImageUrl, setQImageUrl] = useState("");
   const [qAudioUrl, setQAudioUrl] = useState("");
   const [qType, setQType] = useState("multiple_choice");
@@ -369,6 +377,7 @@ const QuizManager = ({ quizId, courseId, lessonType, lessonId }: QuizManagerProp
     setEditingQ(null);
     setQText("");
     setQTranslation("");
+    setQDictationKeywords("");
     setQImageUrl("");
     setQAudioUrl("");
     setQType("multiple_choice");
@@ -385,6 +394,7 @@ const QuizManager = ({ quizId, courseId, lessonType, lessonId }: QuizManagerProp
     setEditingQ(q);
     setQText(q.question_text);
     setQTranslation(q.translation || "");
+    setQDictationKeywords(q.dictation_keywords || "");
     setQImageUrl(q.image_url || "");
     setQAudioUrl(q.audio_url || "");
     setQType(q.question_type || "multiple_choice");
@@ -431,6 +441,7 @@ const QuizManager = ({ quizId, courseId, lessonType, lessonId }: QuizManagerProp
           await supabase.from("questions").update({
             question_text: qText,
             translation: qTranslation || null,
+            dictation_keywords: qDictationKeywords || null,
             image_url: finalImageUrl || null,
             audio_url: finalAudioUrl || null,
             question_type: qType,
@@ -443,6 +454,7 @@ const QuizManager = ({ quizId, courseId, lessonType, lessonId }: QuizManagerProp
             quiz_id: quizId,
             question_text: qText,
             translation: qTranslation || null,
+            dictation_keywords: qDictationKeywords || null,
             image_url: finalImageUrl || null,
             audio_url: finalAudioUrl || null,
             question_type: qType,
@@ -577,6 +589,8 @@ const QuizManager = ({ quizId, courseId, lessonType, lessonId }: QuizManagerProp
       const parsedRows = parseQuotesCSV(importText);
       if (parsedRows.length < 2) throw new Error("Cần ít nhất header + 1 dòng dữ liệu");
       
+      const headerColNames = parsedRows[0].map((h: string) => h.toLowerCase().trim());
+      
       const courseTitle = courseData?.title || "Khóa học chưa rõ";
       const quizTitle = quizData?.title || `Bài tập ${quizId}`;
       const quizFolder = `/${courseTitle}/${quizTitle}`;
@@ -584,25 +598,54 @@ const QuizManager = ({ quizId, courseId, lessonType, lessonId }: QuizManagerProp
       for (let i = 0; i < rows.length; i++) {
         const cols = rows[i];
         if (isDictation) {
-          // Format for dictation: Question, A, B, C, D, Translation, AudioURL, ImageURL, Vocabulary
-          const [questionText, a, b, c, d, translation, audioUrl, imageUrl, vocabText] = cols.map(s => s?.trim());
+          let questionText, translation, audioUrl, imageUrl, vocabText, dictationKeywords;
+          let answersArr: string[] = [];
+
+          if (headerColNames.includes("answers")) {
+            questionText = cols[headerColNames.indexOf("question_text")]?.trim();
+            const ansStr = cols[headerColNames.indexOf("answers")]?.trim() || "";
+            answersArr = ansStr.split("|").map(s => s.trim()).filter(Boolean);
+            translation = cols[headerColNames.indexOf("translation")]?.trim();
+            audioUrl = cols[headerColNames.indexOf("audio_url")]?.trim();
+            imageUrl = cols[headerColNames.indexOf("image_url")]?.trim();
+            vocabText = cols[headerColNames.indexOf("vocabulary")]?.trim();
+            if (headerColNames.includes("dictation_keywords")) {
+              dictationKeywords = cols[headerColNames.indexOf("dictation_keywords")]?.trim();
+            }
+          } else {
+            // Backward compatibility
+            const [q, a, b, c, d, tr, au, im, vo, dk] = cols.map(s => s?.trim());
+            questionText = q;
+            answersArr = [a, b, c, d].filter(Boolean) as string[];
+            translation = tr;
+            audioUrl = au;
+            imageUrl = im;
+            vocabText = vo;
+            dictationKeywords = dk;
+          }
+
+          // If questionText is provided, treat it as the first answer for dictation
+          if (questionText && questionText !== "Audio dictation") {
+            answersArr.unshift(questionText);
+          }
           
           const qOrder = questions.length + i;
-          const finalAudioUrl = await autoImportMedia(audioUrl, quizFolder, `Q${qOrder + 1} - Audio`, "audio", `Q${qOrder + 1}`);
-          const finalImageUrl = await autoImportMedia(imageUrl, quizFolder, `Q${qOrder + 1} - Image`, "image", `Q${qOrder + 1}`);
+          const finalAudioUrl = await autoImportMedia(audioUrl || "", quizFolder, `Q${qOrder + 1} - Audio`, "audio", `Q${qOrder + 1}`);
+          const finalImageUrl = await autoImportMedia(imageUrl || "", quizFolder, `Q${qOrder + 1} - Image`, "image", `Q${qOrder + 1}`);
 
           const { data: qData } = await supabase.from("questions").insert({
             quiz_id: quizId,
-            question_text: questionText || '', // Empty if no question
+            question_text: "Audio dictation", // Standardized to skip separate rendering
             question_type: "multiple_choice",
             display_order: qOrder,
             translation: translation || null,
+            dictation_keywords: dictationKeywords || null,
             audio_url: finalAudioUrl || null,
             image_url: finalImageUrl || null,
           }).select("id").single();
 
           if (qData) {
-            const answers = [a, b, c, d].filter(text => text && text.length > 0).map((text, idx) => ({
+            const answers = answersArr.map((text, idx) => ({
               question_id: qData.id,
               answer_text: text,
               is_correct: true, // Always true for dictation filling
@@ -628,14 +671,14 @@ const QuizManager = ({ quizId, courseId, lessonType, lessonId }: QuizManagerProp
               if (vQuiz) {
                 const words = vocabText.split(';').map(v => v.trim()).filter(Boolean);
                 const vocabEntries = words.map((v, vIdx) => {
-                  const [word, def, phonetic, audio, example] = v.split('|').map(s => s.trim());
+                  const [word, def, phonetic, example] = v.split('|').map(s => s.trim());
                   return {
                     vocab_quiz_id: vQuiz.id,
                     question_id: qData.id,
                     word: word || "",
                     definition_vi: def || "",
                     phonetic: phonetic || null,
-                    audio_male_url: audio || null,
+                    audio_male_url: null, // Removed from import
                     example_sentence: example || null,
                     display_order: vIdx
                   };
@@ -658,8 +701,14 @@ const QuizManager = ({ quizId, courseId, lessonType, lessonId }: QuizManagerProp
             questionText = "";
             qType = "part1";
           } else if (importPart === "part2") {
-            // Part 2: question_text, audio_url, a, b, c, correct, translation, vocabulary
-            [questionText, audioUrl, a, b, c, correct, translation, vocabText] = cols.map(s => s?.trim());
+            // Part 2: question_text, audio_url, a, b, c, correct, translation, vocabulary (8 cols)
+            // Or: question_text, a, b, c, correct, translation, vocabulary (7 cols)
+            if (cols.length === 7) {
+              [questionText, a, b, c, correct, translation, vocabText] = cols.map(s => s?.trim());
+              audioUrl = "";
+            } else {
+              [questionText, audioUrl, a, b, c, correct, translation, vocabText] = cols.map(s => s?.trim());
+            }
             d = "";
             qType = "part2";
           } else if (importPart === "part3" || importPart === "part4") {
@@ -708,20 +757,29 @@ const QuizManager = ({ quizId, courseId, lessonType, lessonId }: QuizManagerProp
             }));
             await supabase.from("answers").insert(answers);
 
-            // Handle Vocabulary Import (column 11)
-            if (vocabText) {
-              const { data: vQuiz } = await supabase.from("vocab_quizzes").select("id").eq("lesson_id", effectiveLessonId).maybeSingle();
+            // Handle Vocabulary Import
+            if (vocabText && effectiveLessonId) {
+              let vQuiz = (await supabase.from("vocab_quizzes").select("id").eq("lesson_id", effectiveLessonId).maybeSingle()).data;
+              if (!vQuiz) {
+                const { data: newVQ } = await supabase.from("vocab_quizzes").insert({
+                  title: `Từ vựng - ${quizTitle}`,
+                  lesson_id: effectiveLessonId,
+                  display_order: 0,
+                  total_questions: 0
+                }).select("id").single();
+                vQuiz = newVQ;
+              }
               if (vQuiz) {
                 const words = vocabText.split(';').map(v => v.trim()).filter(Boolean);
                 const vocabEntries = words.map((v, vIdx) => {
-                  const [word, def, phonetic, audio, example] = v.split('|').map(s => s.trim());
+                  const [word, def, phonetic, example] = v.split('|').map(s => s.trim());
                   return {
                     vocab_quiz_id: vQuiz.id,
                     question_id: qData.id,
                     word: word || "",
                     definition_vi: def || "",
                     phonetic: phonetic || null,
-                    audio_male_url: audio || null,
+                    audio_male_url: null, // Removed from import
                     example_sentence: example || null,
                     display_order: vIdx
                   };
@@ -908,7 +966,7 @@ const QuizManager = ({ quizId, courseId, lessonType, lessonId }: QuizManagerProp
 
     let header = "";
     if (isDictation) {
-      header = "QuestionText,A,B,C,D,Translation,AudioURL,ImageURL,Vocabulary";
+      header = "QuestionText,A,B,C,D,Translation,AudioURL,ImageURL,Vocabulary,Dictation_Keywords";
     } else {
       header = "QuestionText,A,B,C,D,Correct,Explanation,Translation,AudioURL,ImageURL";
     }
@@ -1130,6 +1188,16 @@ const QuizManager = ({ quizId, courseId, lessonType, lessonId }: QuizManagerProp
                 placeholder="Nội dung dịch nghĩa để hiện ở phần xem đáp án"
               />
             </div>
+            {isDictation && (
+              <div className="space-y-2">
+                <Label>Keywords (Dùng cho Chế độ điền Keyword, cách nhau bằng dấu phẩy)</Label>
+                <Input 
+                  value={qDictationKeywords} 
+                  onChange={(e) => setQDictationKeywords(e.target.value)} 
+                  placeholder="Ví dụ: going, school, tomorrow" 
+                />
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-4">
               {!isDictation && (
                 <div className="space-y-2">
@@ -1253,54 +1321,87 @@ const QuizManager = ({ quizId, courseId, lessonType, lessonId }: QuizManagerProp
               </Select>
             </div>
 
-            <p className="text-[11px] text-muted-foreground leading-relaxed">
-              {isDictation ? (
-                <>
-                  Format: <code>question_text, answer_1, answer_2, answer_3, answer_4, translation, audio_url, image_url, vocabulary</code>
-                  <br />Dòng đầu tiên là header. Hỗ trợ CSV (dấu phẩy) hoặc TSV (tab).
-                </>
-              ) : importPart === "part1" ? (
-                <>
-                  Format: <code>image_url, audio_url, a, b, c, d, correct(A/B/C/D), translation, vocabulary</code>
-                  <br />- <i>Lưu ý:</i> Đáp án A, B, C, D nên để trống văn bản (chỉ hiện nút chọn).
-                </>
-              ) : importPart === "part2" ? (
-                <>
-                  Format: <code>question_text, audio_url, a, b, c, correct(A/B/C), translation, vocabulary</code>
-                  <br />- <i>Lưu ý:</i> Chỉ có 3 đáp án A, B, C.
-                </>
-              ) : (importPart === "part3" || importPart === "part4") ? (
-                <>
-                  Format: <code>audio_url, question_text, a, b, c, d, correct, translation, vocabulary</code>
-                  <br />- <i>Mẹo:</i> Các câu cùng Audio sẽ tự động được nhóm lại khi làm bài.
-                </>
-              ) : importPart === "part6" ? (
-                <>
-                  Format: <code>passage, question_text, a, b, c, d, correct, explanation, translation, vocabulary</code>
-                  <br />- <i>Mẹo:</i> Điền đoạn văn vào cột đầu tiên cho câu đầu của nhóm.
-                </>
-              ) : importPart === "part7" ? (
-                <>
-                  Format: <code>passage, image_url, question_text, a, b, c, d, correct, explanation, translation, vocabulary</code>
-                </>
-              ) : (
-                <>
-                  Format: <code>question_text, a, b, c, d, correct, explanation, translation, audio_url, image_url, vocabulary</code>
-                </>
-              )}
-            </p>
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-100 dark:border-blue-800 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-blue-700 dark:text-blue-400">💡 Hướng dẫn & Prompt ChatGPT</span>
+                <Button 
+                  size="sm" 
+                  variant="ghost" 
+                  className="h-7 text-[10px] text-blue-600"
+                  onClick={() => {
+                    const prompts: Record<string, string> = {
+                      dictation: "Hãy giúp tôi chuyển nội dung bài nghe điền từ sang định dạng TSV (Tab-separated values). Header: question_text, answers, translation, audio_url, vocabulary, dictation_keywords.\nQuy tắc:\n- Hệ thống hỗ trợ 1 Audio cho nhiều câu điền từ.\n- Cột question_text hoặc answers đều chứa nội dung câu cần nghe (Full Transcript).\n- Nếu có nhiều câu trong cùng 1 audio, hãy liệt kê chúng cách nhau bằng dấu '|' ở cột answers.\n- vocabulary: 'từ|nghĩa|phiên âm|ví dụ', cách nhau bằng ';'.\n- dictation_keywords: danh sách từ khóa cần điền, cách nhau bằng dấu phẩy (nếu có).",
+                      part1: "Hãy giúp tôi chuyển nội dung TOEIC Part 1 sang định dạng TSV. Header: image_url, audio_url, a, b, c, d, correct, translation, vocabulary.\nQuy tắc:\n- a,b,c,d để trống.\n- correct: A/B/C/D.\n- vocabulary: 'từ|nghĩa|phiên âm|ví dụ', nhiều từ cách nhau bằng ';'.",
+                      part2: "Hãy giúp tôi chuyển nội dung TOEIC Part 2 sang định dạng TSV. Header: question_text, audio_url, a, b, c, correct, translation, vocabulary.\nQuy tắc:\n- Chỉ có 3 đáp án A, B, C.\n- BẮT BUỘC có audio_url cho mỗi câu (Đây là phần nghe, chữ sẽ bị ẩn khi làm bài).\n- vocabulary: 'từ|nghĩa|phiên âm|ví dụ', nhiều từ cách nhau bằng ';'.",
+                      part34: "Hãy giúp tôi chuyển nội dung TOEIC Part 3/4 sang định dạng TSV. Header: audio_url, question_text, a, b, c, d, correct, translation, vocabulary.\nQuy tắc:\n- Các câu chung audio sẽ được tự động nhóm lại.\n- vocabulary: 'từ|nghĩa|phiên âm|ví dụ', nhiều từ cách nhau bằng ';'.",
+                      part6: "Hãy giúp tôi chuyển nội dung TOEIC Part 6 sang định dạng TSV. Header: passage, question_text, a, b, c, d, correct, explanation, translation, vocabulary.\nQuy tắc:\n- Cột passage chỉ điền ở câu đầu tiên của nhóm câu hỏi.\n- vocabulary: 'từ|nghĩa|phiên âm|ví dụ', nhiều từ cách nhau bằng ';'.",
+                      part7: "Hãy giúp tôi chuyển nội dung TOEIC Part 7 sang định dạng TSV. Header: passage, image_url, question_text, a, b, c, d, correct, explanation, translation, vocabulary.\nQuy tắc:\n- vocabulary: 'từ|nghĩa|phiên âm|ví dụ', nhiều từ cách nhau bằng ';'.",
+                      auto: "Hãy giúp tôi chuyển nội dung trắc nghiệm sang định dạng TSV. Header: question_text, a, b, c, d, correct, explanation, translation, audio_url, image_url, vocabulary.\nQuy tắc:\n- vocabulary: 'từ|nghĩa|phiên âm|ví dụ', nhiều từ cách nhau bằng ';'."
+                    };
+                    const key = isDictation ? "dictation" : (importPart === "part3" || importPart === "part4") ? "part34" : importPart;
+                    navigator.clipboard.writeText(prompts[key] || prompts.auto);
+                    toast({ title: "Đã sao chép prompt cho ChatGPT" });
+                  }}
+                >
+                  <Plus className="w-3 h-3 mr-1" /> Copy Prompt
+                </Button>
+              </div>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                {isDictation ? (
+                  <>
+                    <b>Luyện nghe điền từ (1 audio - N câu):</b>
+                    <br />• Cột <code>question_text</code> hoặc <code>answers</code> đều là nội dung cần điền.
+                    <br />• Nếu có nhiều câu, hãy viết cách nhau bằng dấu <code>|</code> (Ví dụ: Câu 1 | Câu 2).
+                    <br />• <b>Format:</b> <code>question_text, answers, translation, audio_url, vocabulary, dictation_keywords</code>
+                  </>
+                ) : importPart === "part1" ? (
+                  <>
+                    <b>Format:</b> <code>image_url, audio_url, a, b, c, d, correct(A/B/C/D), translation, vocabulary</code>
+                    <br />• Đáp án A, B, C, D nên để trống (chỉ hiện nút chọn).
+                  </>
+                ) : importPart === "part2" ? (
+                  <>
+                    <b>Format:</b> <code>question_text, audio_url, a, b, c, correct(A/B/C), translation, vocabulary</code>
+                    <br />• <b>Lưu ý:</b> Đây là phần Nghe (Listening). Nội dung câu hỏi và đáp án sẽ bị <b>ẩn</b> khi làm bài (giống thi thật).
+                  </>
+                ) : (importPart === "part3" || importPart === "part4") ? (
+                  <>
+                    <b>Format:</b> <code>audio_url, question_text, a, b, c, d, correct, translation, vocabulary</code>
+                    <br />• Các câu cùng Audio sẽ tự động được nhóm lại.
+                  </>
+                ) : importPart === "part6" ? (
+                  <>
+                    <b>Format:</b> <code>passage, question_text, a, b, c, d, correct, explanation, translation, vocabulary</code>
+                    <br />• Điền nội dung <b>passage</b> vào cột đầu tiên cho câu đầu của nhóm.
+                  </>
+                ) : importPart === "part7" ? (
+                  <>
+                    <b>Format:</b> <code>passage, image_url, question_text, a, b, c, d, correct, explanation, translation, vocabulary</code>
+                  </>
+                ) : (
+                  <>
+                    <b>Format:</b> <code>question_text, a, b, c, d, correct, explanation, translation, audio_url, image_url, vocabulary</code>
+                  </>
+                )}
+                <br />
+                <span className="text-blue-600 dark:text-blue-400 font-medium">
+                  • Cột vocabulary: <code>từ|nghĩa|phiên âm|ví dụ</code> (nhiều từ cách nhau bằng <code>;</code>)
+                </span>
+              </p>
+            </div>
+
             <div className="flex gap-2">
               <input ref={fileInputRef} type="file" accept=".csv,.tsv,.txt" onChange={handleFileImport} className="text-sm" />
               <Button size="sm" variant="outline" onClick={() => {
                 let template = "";
                 if (isDictation) {
-                  template = "question_text\tanswer_1\tanswer_2\tanswer_3\tanswer_4\ttranslation\taudio_url\timage_url\tvocabulary\nWhat is shown ...\tin the picture?\tand the video?\t\t\tCái gì xuất hiện trong hình và video?\thttps://example.com/audio.mp3\thttps://example.com/image.jpg\tshow|cho thấy|/ʃoʊ/||She shows me the picture";
+                  template = "question_text\tanswers\ttranslation\taudio_url\tvocabulary\tdictation_keywords\nSentence 1\tSentence 2 | Sentence 3\tDịch nghĩa cả đoạn...\thttps://example.com/audio.mp3\tword|nghĩa|/phonetic/|example\tkeyword1, keyword2";
                 } else if (importPart === "part1") {
-                  template = "image_url\taudio_url\ta\tb\tc\td\tcorrect\ttranslation\tvocabulary\nhttps://img.com/1.jpg\thttps://aud.com/1.mp3\t\t\t\t\tA\tBức tranh mô tả...\t";
+                  template = "image_url\taudio_url\ta\tb\tc\td\tcorrect\ttranslation\tvocabulary\nhttps://img.com/1.jpg\thttps://aud.com/1.mp3\t\t\t\t\tA\tBức tranh mô tả...\tread|đọc|/riːd/|He is reading a book";
                 } else if (importPart === "part2") {
-                  template = "question_text\taudio_url\ta\tb\tc\tcorrect\ttranslation\tvocabulary\nWhere is the office?\thttps://aud.com/2.mp3\tNext to the bank\tAt 5 PM\tBy bus\tA\tVăn phòng ở đâu?\t";
+                  template = "question_text\taudio_url\ta\tb\tc\tcorrect\ttranslation\tvocabulary\nWhen are you moving to your new office?\thttps://example.com/audio.mp3\tThe office printer is over there.\tThe water bill is high this month.\tThe schedule is being revised.\tC\tKhi nào bạn chuyển đến văn phòng mới?\toffice|văn phòng|/ˈɑːfɪs/|The office is closed";
                 } else if (importPart === "part3" || importPart === "part4") {
-                  template = "audio_url\tquestion_text\ta\tb\tc\td\tcorrect\ttranslation\tvocabulary\nhttps://aud.com/3.mp3\tQuestion 1\tA\tB\tC\tD\tA\t\t\nhttps://aud.com/3.mp3\tQuestion 2\tA\tB\tC\tD\tB\t\t\nhttps://aud.com/3.mp3\tQuestion 3\tA\tB\tC\tD\tC\t\t";
+                  template = "audio_url\tquestion_text\ta\tb\tc\td\tcorrect\ttranslation\tvocabulary\nhttps://aud.com/3.mp3\tQuestion 1\tA\tB\tC\tD\tA\t\tword|nghĩa|/phonetic/|example\nhttps://aud.com/3.mp3\tQuestion 2\tA\tB\tC\tD\tB\t\t\nhttps://aud.com/3.mp3\tQuestion 3\tA\tB\tC\tD\tC\t\t";
                 } else if (importPart === "part6") {
                   template = "passage\tquestion_text\ta\tb\tc\td\tcorrect\texplanation\ttranslation\tvocabulary\nDear all, [passage text...]\tQuestion 15\tA\tB\tC\tD\tA\t\t\t\n\tQuestion 16\tA\tB\tC\tD\tB\t\t\t";
                 } else {
@@ -1314,8 +1415,8 @@ const QuizManager = ({ quizId, courseId, lessonType, lessonId }: QuizManagerProp
               }}>📥 Tải template mẫu</Button>
             </div>
             <Textarea value={importText} onChange={(e) => setImportText(e.target.value)} rows={8} placeholder="Dán dữ liệu ở đây..." className="font-mono text-xs" />
-            <Button onClick={() => importMutation.mutate()} disabled={importMutation.isPending || !importText.trim()}>
-              {importMutation.isPending ? "Đang import..." : `Import (${(importText.trim().split("\n").length - 1)} câu)`}
+            <Button onClick={() => importMutation.mutate()} disabled={importMutation.isPending || !importText.trim()} className="w-full">
+              {importMutation.isPending ? "Đang import..." : `Bắt đầu Import (${Math.max(0, importText.trim().split("\n").length - 1)} câu)`}
             </Button>
           </div>
         </DialogContent>

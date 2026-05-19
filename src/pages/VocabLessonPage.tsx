@@ -22,7 +22,6 @@ export default function VocabLessonPage() {
   const [round, setRound] = useState<1 | 2 | 3>(1);
   // Persist index for each round separately
   const [indices, setIndices] = useState<Record<number, number>>({ 1: 0, 2: 0, 3: 0 });
-  const [isFlipped, setIsFlipped] = useState(false);
   const [dictationInput, setDictationInput] = useState("");
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState("");
@@ -84,7 +83,6 @@ export default function VocabLessonPage() {
   };
 
   const handleNext = () => {
-    setIsFlipped(false);
     setDictationInput("");
     setTranscript("");
     setShowResult(false);
@@ -106,7 +104,6 @@ export default function VocabLessonPage() {
 
   const handleBack = () => {
     if (currentIdx > 0) {
-      setIsFlipped(false);
       setDictationInput("");
       setTranscript("");
       setShowResult(false);
@@ -146,8 +143,9 @@ export default function VocabLessonPage() {
 
     const recognition = new SpeechRecognition();
     recognition.lang = 'en-US';
-    recognition.continuous = true;
+    recognition.continuous = false;
     recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
 
     let hasPassed = false;
 
@@ -164,7 +162,10 @@ export default function VocabLessonPage() {
       
       setTranscript(currentResult);
       
-      if (currentResult.toLowerCase().includes(word?.word.toLowerCase() || "") && !hasPassed) {
+      const normalizedTranscript = currentResult.toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "").trim();
+      const targetWord = word?.word.toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "").trim() || "";
+
+      if (normalizedTranscript.includes(targetWord) && !hasPassed) {
         hasPassed = true;
         playSound("correct");
         setShowResult(true);
@@ -173,14 +174,22 @@ export default function VocabLessonPage() {
       }
     };
 
-    recognition.onerror = () => setIsListening(false);
+    recognition.onerror = (event: any) => {
+      console.error("Speech Recognition Error:", event.error);
+      setIsListening(false);
+    };
+    
     recognition.onend = () => setIsListening(false);
 
     recognition.start();
 
+    // Safety timeout
     setTimeout(() => {
-      if (!hasPassed) recognition.stop();
-    }, 5000);
+      if (!hasPassed) {
+        recognition.stop();
+        setIsListening(false);
+      }
+    }, 6000);
   };
 
   if (isLoading) return <StudentLayout><Skeleton className="h-64 rounded-3xl max-w-2xl mx-auto border-2 shadow-sm" /></StudentLayout>;
@@ -214,7 +223,7 @@ export default function VocabLessonPage() {
                   "font-bold text-sm px-6 h-12 flex-shrink-0",
                   round === r ? "btn-3d btn-3d-blue" : "btn-3d bg-white text-muted-foreground border-border hover:bg-muted/30 hover:-translate-y-1 hover:shadow-[0_4px_0_var(--border)]"
                 )}
-                onClick={() => { setRound(r as any); setShowResult(false); setWrongChars(null); setIsFlipped(false); }}
+                onClick={() => { setRound(r as any); setShowResult(false); setWrongChars(null); }}
               >
                 {r === 1 ? "1. Học" : r === 2 ? "2. Viết" : "3. Đọc"}
               </Button>
@@ -237,52 +246,36 @@ export default function VocabLessonPage() {
         {/* Interaction Card */}
         <div className="flex-1 flex flex-col items-center justify-center card-duo bg-white border-2 p-4 sm:p-8 relative min-h-[400px] sm:min-h-[500px]">
           
-          {/* ROUND 1: FLASHCARDS */}
+          {/* ROUND 1: LEARN */}
           {!isFinished && round === 1 && word && (
-            <div className="w-full flex flex-col items-center space-y-12">
-              <div 
-                className={cn(
-                  "w-full max-w-sm aspect-[4/5] perspective-1000 cursor-pointer group select-none",
-                  isFlipped ? "rotate-y-180" : ""
-                )}
-                onClick={() => {
-                  if (!isFlipped) {
-                    setIsFlipped(true);
-                    playAudio(word.word, word.audio_male_url);
-                  } else {
-                    handleNext();
-                  }
-                }}
-              >
-                <div className="relative w-full h-full transition-transform duration-500 preserve-3d">
-                  {/* Front Side */}
-                  <div className={cn(
-                    "absolute inset-0 backface-hidden bg-white rounded-3xl border-4 border-border flex flex-col items-center justify-center p-6 sm:p-10 shadow-[0_8px_0_var(--border)] group-hover:-translate-y-1 group-hover:shadow-[0_12px_0_var(--border)] group-active:translate-y-2 group-active:shadow-none transition-all",
-                    isFlipped ? "opacity-0 invisible" : "opacity-100 visible"
-                  )}>
-                    <h2 className="text-4xl md:text-6xl font-black text-foreground mb-6 select-none drop-shadow-sm">{word.word}</h2>
-                    <div className="mt-12 px-6 py-2 bg-muted/50 border-2 rounded-full text-sm font-bold text-muted-foreground animate-pulse">Chạm để lật & nghe</div>
-                  </div>
-
-                  {/* Back Side */}
-                  <div className={cn(
-                    "absolute inset-0 backface-hidden bg-[var(--duo-blue)]/5 rounded-3xl border-4 border-[var(--duo-blue)]/30 flex flex-col items-center justify-center p-5 sm:p-8 shadow-[0_8px_0_transparent] transform rotate-y-180 transition-all",
-                    isFlipped ? "opacity-100 visible" : "opacity-0 invisible"
-                  )}>
-                    <div className="space-y-6 text-center animate-in zoom-in-95 duration-300 w-full">
-                      <div>
-                        <h2 className="text-3xl sm:text-4xl font-black text-[var(--duo-blue)] mb-3">{word.word}</h2>
-                        <p className="text-xl text-muted-foreground font-mono font-bold bg-white/60 border-2 border-[var(--duo-blue)]/20 px-4 py-1.5 rounded-xl inline-block">{word.phonetic}</p>
-                      </div>
-                      <div className="h-1.5 rounded-full w-20 bg-[var(--duo-blue)]/20 mx-auto my-4"></div>
-                      <p className="text-2xl sm:text-3xl font-extrabold text-foreground px-4">{word.definition_vi}</p>
-                      {word.example_sentence && (
-                        <p className="text-sm sm:text-base font-bold text-foreground italic bg-white p-4 sm:p-5 rounded-2xl border-2 border-dashed border-[var(--duo-blue)]/30 mt-4">"{word.example_sentence}"</p>
-                      )}
-                      <p className="text-xs font-black uppercase tracking-widest text-[var(--duo-blue)] animate-pulse pt-6">Chạm để sang từ tiếp theo</p>
-                    </div>
-                  </div>
+            <div className="w-full flex flex-col items-center space-y-8 animate-in fade-in zoom-in-95 duration-500">
+              <div className="w-full max-w-sm bg-white rounded-3xl border-4 border-border p-8 sm:p-10 shadow-[0_8px_0_var(--border)] flex flex-col items-center text-center space-y-6">
+                <div>
+                  <h2 className="text-5xl md:text-6xl font-black text-foreground mb-2 select-none drop-shadow-sm">{word.word}</h2>
+                  <p className="text-xl text-[var(--duo-blue)] font-mono font-bold bg-[var(--duo-blue)]/5 border-2 border-[var(--duo-blue)]/20 px-4 py-1.5 rounded-xl inline-block mt-2">
+                    {word.phonetic}
+                  </p>
                 </div>
+
+                <div 
+                  className="w-20 h-20 bg-[var(--duo-blue)]/10 rounded-full flex items-center justify-center cursor-pointer hover:bg-[var(--duo-blue)]/20 transition-all border-4 border-[var(--duo-blue)]/30 shadow-[0_4px_0_rgba(28,176,246,0.3)] active:translate-y-1 active:shadow-none"
+                  onClick={() => playAudio(word.word, word.audio_male_url)}
+                >
+                  <Volume2 className="w-10 h-10 text-[var(--duo-blue)]" />
+                </div>
+
+                <div className="h-1 rounded-full w-20 bg-muted/50 mx-auto"></div>
+
+                <div className="space-y-2">
+                  <p className="text-2xl sm:text-3xl font-extrabold text-foreground">{word.definition_vi}</p>
+                </div>
+
+                {word.example_sentence && (
+                  <div className="w-full text-left p-4 rounded-2xl bg-muted/30 border-2 border-dashed border-border mt-4">
+                    <p className="text-xs font-black uppercase text-muted-foreground mb-1 tracking-widest">Ví dụ:</p>
+                    <p className="text-sm sm:text-base font-medium text-foreground italic">"{word.example_sentence}"</p>
+                  </div>
+                )}
               </div>
 
               {/* Navigation Footer */}
@@ -293,8 +286,8 @@ export default function VocabLessonPage() {
                 <div className="flex-1 text-center font-black text-muted-foreground text-lg bg-muted/30 py-2 rounded-2xl border-2">
                   {currentIdx + 1} / {words.length}
                 </div>
-                <Button className="btn-3d btn-3d-blue rounded-full h-14 w-14 p-0 flex items-center justify-center" onClick={handleNext}>
-                  <ChevronRight className="w-6 h-6" />
+                <Button className="btn-3d btn-3d-blue h-14 px-8 rounded-2xl font-black text-lg" onClick={handleNext}>
+                  Tiếp tục <ArrowRight className="w-5 h-5 ml-2" />
                 </Button>
               </div>
             </div>

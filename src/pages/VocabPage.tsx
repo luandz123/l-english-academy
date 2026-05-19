@@ -20,7 +20,6 @@ const VocabPage = () => {
   const [showResult, setShowResult] = useState(false);
   const [correctCount, setCorrectCount] = useState(0);
   const [shuffledOptions, setShuffledOptions] = useState<string[]>([]);
-  const [isFlipped, setIsFlipped] = useState(false);
 
   const { data: categories, isLoading } = useQuery({
     queryKey: ["vocab-categories", cid],
@@ -60,6 +59,16 @@ const VocabPage = () => {
     enabled: selectedQuiz !== null,
   });
 
+  const playAudio = (text: string, audioUrl?: string | null) => {
+    if (audioUrl) {
+       new Audio(audioUrl).play().catch(e => console.error("Audio block", e));
+    } else {
+       const utterance = new SpeechSynthesisUtterance(text);
+       utterance.lang = "en-US";
+       window.speechSynthesis.speak(utterance);
+    }
+  };
+
   const shuffleOptions = (word: any) => {
     const opts = [word.definition_vi, word.wrong_answer_1, word.wrong_answer_2, word.wrong_answer_3].filter(Boolean);
     return opts.sort(() => Math.random() - 0.5);
@@ -71,7 +80,6 @@ const VocabPage = () => {
     setSelectedAnswer(null);
     setShowResult(false);
     setCorrectCount(0);
-    setIsFlipped(false);
     setView(mode);
   };
 
@@ -90,7 +98,6 @@ const VocabPage = () => {
       setCurrentQ(prev => prev + 1);
       setSelectedAnswer(null);
       setShowResult(false);
-      setIsFlipped(false);
     }
   };
 
@@ -140,38 +147,36 @@ const VocabPage = () => {
         </div>
 
         <div className="flex-1 flex flex-col items-center justify-center p-6">
-          <div 
-            className="w-full max-w-sm aspect-[3/4] card-duo bg-white border-4 border-border shadow-[0_8px_0_var(--border)] cursor-pointer flex flex-col items-center justify-center p-8 text-center transition-all hover:-translate-y-1 hover:shadow-[0_12px_0_var(--border)] relative overflow-hidden group select-none active:translate-y-2 active:shadow-none" 
-            onClick={() => setIsFlipped(!isFlipped)}
-          >
-            {!isFlipped ? (
-               <>
-               <div className="absolute top-5 right-5 p-3 bg-muted/50 rounded-full hover:bg-[var(--duo-blue)] hover:text-white transition-colors border-2 border-transparent hover:border-[var(--duo-blue)]" onClick={(e) => { e.stopPropagation(); }}>
-                  <Volume2 className="w-6 h-6" />
-               </div>
-               <h2 className="text-4xl md:text-5xl font-black text-foreground mb-4 drop-shadow-sm">{word.word}</h2>
-               <div className="mt-12 px-6 py-2 bg-muted/30 border-2 rounded-full text-sm font-bold text-muted-foreground animate-pulse">Chạm để lật thẻ</div>
-               </>
-            ) : (
-               <div className="flex flex-col items-center justify-center w-full h-full animate-in fade-in zoom-in-95 duration-300">
-                 <h2 className="text-3xl font-black text-[var(--duo-blue)] mb-3">{word.word}</h2>
-                 <p className="text-xl text-muted-foreground mb-6 font-mono font-bold bg-muted/50 border-2 px-4 py-1.5 rounded-xl">{word.phonetic}</p>
-                 <div className="w-16 h-1.5 rounded-full bg-border my-2"></div>
-                 <p className="text-2xl font-extrabold text-foreground mb-6 mt-4">{word.definition_vi}</p>
-                 {word.example_sentence && (
-                   <div className="bg-[var(--duo-blue)]/5 p-5 rounded-2xl border-2 border-dashed border-[var(--duo-blue)]/30 w-full mt-auto">
-                      <p className="text-base font-bold text-foreground italic leading-relaxed">"{word.example_sentence}"</p>
-                   </div>
-                 )}
-               </div>
+          <div className="w-full max-w-sm bg-white rounded-3xl border-4 border-border p-8 sm:p-10 shadow-[0_8px_0_var(--border)] flex flex-col items-center text-center space-y-6">
+            <div className="w-full flex flex-col items-center">
+              <h2 className="text-4xl md:text-5xl font-black text-foreground mb-2 drop-shadow-sm">{word.word}</h2>
+              <p className="text-xl text-[var(--duo-blue)] font-mono font-bold bg-[var(--duo-blue)]/5 border-2 border-[var(--duo-blue)]/20 px-4 py-1.5 rounded-xl inline-block mt-2">{word.phonetic}</p>
+            </div>
+
+            <div 
+              className="w-20 h-20 bg-[var(--duo-blue)]/10 rounded-full flex items-center justify-center cursor-pointer hover:bg-[var(--duo-blue)]/20 transition-all border-4 border-[var(--duo-blue)]/30 shadow-[0_4px_0_rgba(28,176,246,0.3)] active:translate-y-1 active:shadow-none"
+              onClick={() => playAudio(word.word, word.audio_male_url)}
+            >
+              <Volume2 className="w-10 h-10 text-[var(--duo-blue)]" />
+            </div>
+
+            <div className="h-1 rounded-full w-20 bg-muted/50 mx-auto"></div>
+            
+            <p className="text-2xl font-extrabold text-foreground">{word.definition_vi}</p>
+
+            {word.example_sentence && (
+              <div className="bg-[var(--duo-blue)]/5 p-4 rounded-2xl border-2 border-dashed border-[var(--duo-blue)]/30 w-full text-left">
+                <p className="text-xs font-black uppercase text-muted-foreground mb-1 tracking-widest">Ví dụ:</p>
+                <p className="text-base font-bold text-foreground italic leading-relaxed">"{word.example_sentence}"</p>
+              </div>
             )}
           </div>
           
           <div className="flex gap-4 w-full max-w-sm mt-10">
-             <Button className="btn-3d bg-white flex-1 h-16 text-lg border-2 border-[var(--duo-red)]/30 text-[var(--duo-red)] hover:bg-[var(--duo-red)]/5 group font-extrabold" onClick={(e) => { e.stopPropagation(); setIsFlipped(false); nextQuestion(); }}>
+             <Button className="btn-3d bg-white flex-1 h-16 text-lg border-2 border-[var(--duo-red)]/30 text-[var(--duo-red)] hover:bg-[var(--duo-red)]/5 group font-extrabold" onClick={(e) => { e.stopPropagation(); nextQuestion(); }}>
                 <XIcon className="w-6 h-6 mr-2 group-hover:scale-110 transition-transform" /> Chưa thuộc
              </Button>
-             <Button className="btn-3d btn-3d-green flex-1 h-16 text-lg group font-extrabold" onClick={(e) => { e.stopPropagation(); setIsFlipped(false); setCorrectCount(prev=>prev+1); nextQuestion(); }}>
+             <Button className="btn-3d btn-3d-green flex-1 h-16 text-lg group font-extrabold" onClick={(e) => { e.stopPropagation(); setCorrectCount(prev=>prev+1); nextQuestion(); }}>
                 <Check className="w-6 h-6 mr-2 group-hover:scale-110 transition-transform" /> Đã thuộc
              </Button>
           </div>

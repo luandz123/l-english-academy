@@ -509,6 +509,7 @@ export type Database = {
       questions: {
         Row: {
           audio_url: string | null
+          dictation_keywords: string | null
           display_order: number
           id: number
           image_url: string | null
@@ -519,6 +520,7 @@ export type Database = {
         }
         Insert: {
           audio_url?: string | null
+          dictation_keywords?: string | null
           display_order?: number
           id?: number
           image_url?: string | null
@@ -529,6 +531,7 @@ export type Database = {
         }
         Update: {
           audio_url?: string | null
+          dictation_keywords?: string | null
           display_order?: number
           id?: number
           image_url?: string | null
