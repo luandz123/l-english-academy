@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";
-import { Plus, Search, Edit, Eye, Trash2 } from "lucide-react";
+import { Plus, Search, Edit, Eye, Trash2, EyeOff, Unlock, Lock } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -35,6 +35,37 @@ const AdminCourses = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-courses"] });
       toast({ title: "Đã xóa khóa học" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Lỗi", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const toggleActiveMutation = useMutation({
+    mutationFn: async ({ id, isActive }: { id: number; isActive: boolean }) => {
+      const { error } = await supabase.from("courses").update({ is_active: isActive }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-courses"] });
+      toast({ title: "Đã cập nhật trạng thái khóa học" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Lỗi", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const toggleFreeMutation = useMutation({
+    mutationFn: async ({ id, isFree }: { id: number; isFree: boolean }) => {
+      const { error } = await (supabase.from("courses") as any).update({ is_free: isFree }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-courses"] });
+      toast({ title: "Đã cập nhật chế độ học thử" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Lỗi", description: error.message, variant: "destructive" });
     },
   });
 
@@ -76,12 +107,13 @@ const AdminCourses = () => {
                     <th className="text-left p-3 font-semibold text-foreground">Loại</th>
                     <th className="text-center p-3 font-semibold text-foreground">Giá</th>
                     <th className="text-center p-3 font-semibold text-foreground">Thời hạn</th>
+                    <th className="text-center p-3 font-semibold text-foreground">Học thử</th>
                     <th className="text-center p-3 font-semibold text-foreground">Trạng thái</th>
                     <th className="text-center p-3 font-semibold text-foreground">Hành động</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((c, i) => (
+                  {filtered.map((c: any, i) => (
                     <tr key={c.id} className="border-b last:border-0 hover:bg-muted/30">
                       <td className="p-3 text-muted-foreground">{i + 1}</td>
                       <td className="p-3 font-medium text-foreground">{c.title}</td>
@@ -89,9 +121,25 @@ const AdminCourses = () => {
                       <td className="p-3 text-center text-foreground">{c.price ? `${c.price.toLocaleString()}đ` : "Miễn phí"}</td>
                       <td className="p-3 text-center text-muted-foreground">{c.duration_months ? `${c.duration_months} tháng` : "Vĩnh viễn"}</td>
                       <td className="p-3 text-center">
-                        <Badge variant={c.is_active ? "default" : "secondary"} className={c.is_active ? "bg-success text-success-foreground" : ""}>
-                          {c.is_active ? "Hoạt động" : "Nháp"}
-                        </Badge>
+                        <Button 
+                          size="icon" 
+                          variant="ghost" 
+                          className={`h-8 w-8 ${c.is_free ? 'text-emerald-600' : 'text-muted-foreground'}`}
+                          onClick={() => toggleFreeMutation.mutate({ id: c.id, isFree: !c.is_free })}
+                          title={c.is_free ? "Khóa học miễn phí" : "Khóa học trả phí"}
+                        >
+                          {c.is_free ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+                        </Button>
+                      </td>
+                      <td className="p-3 text-center">
+                        <button 
+                          onClick={() => toggleActiveMutation.mutate({ id: c.id, isActive: !c.is_active })}
+                          className="hover:scale-105 transition-transform"
+                        >
+                          <Badge variant={c.is_active ? "default" : "secondary"} className={c.is_active ? "bg-emerald-500 text-white" : ""}>
+                            {c.is_active ? "Hoạt động" : "Tạm dừng"}
+                          </Badge>
+                        </button>
                       </td>
                       <td className="p-3 text-center">
                         <div className="flex items-center justify-center gap-1">

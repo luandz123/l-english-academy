@@ -3,17 +3,135 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Edit, Trash2, GripVertical, ChevronDown, ChevronRight } from "lucide-react";
+import { Plus, Edit, Trash2, GripVertical, ChevronDown, ChevronRight, Eye, EyeOff, Unlock, Lock } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import LessonManager from "./LessonManager";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 interface ModuleManagerProps {
   courseId: number;
   modules: any[];
 }
+
+const SortableModuleItem = ({
+  mod,
+  expandedModules,
+  toggleExpand,
+  openEdit,
+  deleteMutation,
+  courseId,
+  queryClient,
+  toast,
+}: {
+  mod: any;
+  expandedModules: Set<number>;
+  toggleExpand: (id: number) => void;
+  openEdit: (mod: any) => void;
+  deleteMutation: any;
+  courseId: number;
+  queryClient: any;
+  toast: any;
+}) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: mod.id,
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 50 : undefined,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="bg-card rounded-xl border">
+      <div className="p-3 border-b flex items-center justify-between">
+        <div className="flex items-center gap-2 flex-1">
+          <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing touch-none p-1 hover:bg-muted rounded">
+            <GripVertical className="w-4 h-4 text-muted-foreground" />
+          </button>
+          <button onClick={() => toggleExpand(mod.id)} className="flex items-center gap-2 text-left flex-1">
+            {expandedModules.has(mod.id) ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+            <span className={`font-semibold text-sm ${mod.is_published === false ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
+              {mod.title}
+            </span>
+            <span className="text-xs text-muted-foreground ml-2">
+              ({(mod.lessons ?? []).length} bài · {(mod.quizzes ?? []).length} quiz)
+            </span>
+          </button>
+        </div>
+        <div className="flex items-center gap-1">
+          <Button 
+            size="icon" 
+            variant="ghost" 
+            className={`h-8 w-8 ${mod.is_free ? 'text-emerald-600' : 'text-muted-foreground'}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              const newStatus = !mod.is_free;
+              (supabase.from("modules") as any).update({ is_free: newStatus }).eq("id", mod.id).then(({ error }: any) => {
+                if (error) {
+                  toast({ title: "Lỗi", description: error.message, variant: "destructive" });
+                  return;
+                }
+                queryClient.invalidateQueries({ queryKey: ["admin-course-modules", courseId] });
+                toast({ title: newStatus ? "Đã bật học thử cho module" : "Đã tắt học thử cho module" });
+              });
+            }}
+            title={mod.is_free ? "Module miễn phí" : "Module trả phí"}
+          >
+            {mod.is_free ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+          </Button>
+          <Button 
+            size="icon" 
+            variant="ghost" 
+            className={`h-8 w-8 ${mod.is_published === false ? 'text-muted-foreground' : 'text-primary'}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              const newStatus = mod.is_published === false ? true : false;
+              supabase.from("modules").update({ is_published: newStatus } as any).eq("id", mod.id).then(({ error }: any) => {
+                if (error) {
+                  toast({ title: "Lỗi", description: error.message, variant: "destructive" });
+                  return;
+                }
+                queryClient.invalidateQueries({ queryKey: ["admin-course-modules", courseId] });
+                toast({ title: newStatus ? "Đã hiện module" : "Đã ẩn module" });
+              });
+            }}
+            title={mod.is_published === false ? "Hiện module" : "Ẩn module"}
+          >
+            {mod.is_published === false ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+          </Button>
+          <Button size="icon" variant="ghost" onClick={() => openEdit(mod)}><Edit className="w-4 h-4" /></Button>
+          <Button size="icon" variant="ghost" onClick={() => { if (confirm("Xóa module này?")) deleteMutation.mutate(mod.id); }}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+        </div>
+      </div>
+      {expandedModules.has(mod.id) && (
+        <div className="p-3">
+          <LessonManager moduleId={mod.id} courseId={courseId} lessons={mod.lessons ?? []} quizzes={mod.quizzes ?? []} />
+        </div>
+      )}
+    </div>
+  );
+};
 
 const ModuleManager = ({ courseId, modules }: ModuleManagerProps) => {
   const { toast } = useToast();
@@ -24,12 +142,36 @@ const ModuleManager = ({ courseId, modules }: ModuleManagerProps) => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [expandedModules, setExpandedModules] = useState<Set<number>>(new Set());
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
   const toggleExpand = (id: number) => {
     setExpandedModules(prev => {
       const next = new Set(prev);
       next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = modules.findIndex((m: any) => m.id === active.id);
+    const newIndex = modules.findIndex((m: any) => m.id === over.id);
+    const reordered = arrayMove(modules, oldIndex, newIndex);
+
+    // Optimistic update
+    queryClient.setQueryData(["admin-course-modules", courseId], reordered);
+
+    // Save to DB
+    for (let i = 0; i < reordered.length; i++) {
+      await supabase.from("modules").update({ display_order: i }).eq("id", reordered[i].id);
+    }
+    queryClient.invalidateQueries({ queryKey: ["admin-course-modules", courseId] });
+    toast({ title: "Đã sắp xếp lại" });
   };
 
   const saveMutation = useMutation({
@@ -51,6 +193,9 @@ const ModuleManager = ({ courseId, modules }: ModuleManagerProps) => {
       setModuleDesc("");
       toast({ title: editingModule ? "Đã cập nhật module" : "Đã tạo module" });
     },
+    onError: (error: any) => {
+      toast({ title: "Lỗi", description: error.message, variant: "destructive" });
+    },
   });
 
   const deleteMutation = useMutation({
@@ -61,6 +206,9 @@ const ModuleManager = ({ courseId, modules }: ModuleManagerProps) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-course-modules", courseId] });
       toast({ title: "Đã xóa module" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Lỗi", description: error.message, variant: "destructive" });
     },
   });
 
@@ -85,29 +233,25 @@ const ModuleManager = ({ courseId, modules }: ModuleManagerProps) => {
         <Button size="sm" onClick={openNew}><Plus className="w-4 h-4 mr-1" /> Thêm Part</Button>
       </div>
 
-      {modules.map((mod: any) => (
-        <div key={mod.id} className="bg-card rounded-xl border">
-          <div className="p-3 border-b flex items-center justify-between">
-            <button onClick={() => toggleExpand(mod.id)} className="flex items-center gap-2 text-left flex-1">
-              {expandedModules.has(mod.id) ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-              <GripVertical className="w-4 h-4 text-muted-foreground" />
-              <span className="font-semibold text-sm text-foreground">{mod.title}</span>
-              <span className="text-xs text-muted-foreground ml-2">
-                ({(mod.lessons ?? []).length} bài · {(mod.quizzes ?? []).length} quiz)
-              </span>
-            </button>
-            <div className="flex gap-1">
-              <Button size="icon" variant="ghost" onClick={() => openEdit(mod)}><Edit className="w-4 h-4" /></Button>
-              <Button size="icon" variant="ghost" onClick={() => { if (confirm("Xóa module này?")) deleteMutation.mutate(mod.id); }}><Trash2 className="w-4 h-4 text-destructive" /></Button>
-            </div>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={modules.map((m: any) => m.id)} strategy={verticalListSortingStrategy}>
+          <div className="space-y-3">
+            {modules.map((mod: any) => (
+              <SortableModuleItem
+                key={mod.id}
+                mod={mod}
+                expandedModules={expandedModules}
+                toggleExpand={toggleExpand}
+                openEdit={openEdit}
+                deleteMutation={deleteMutation}
+                courseId={courseId}
+                queryClient={queryClient}
+                toast={toast}
+              />
+            ))}
           </div>
-          {expandedModules.has(mod.id) && (
-            <div className="p-3">
-              <LessonManager moduleId={mod.id} courseId={courseId} lessons={mod.lessons ?? []} quizzes={mod.quizzes ?? []} />
-            </div>
-          )}
-        </div>
-      ))}
+        </SortableContext>
+      </DndContext>
 
       {modules.length === 0 && <p className="text-sm text-muted-foreground">Chưa có module nào. Hãy tạo Part đầu tiên.</p>}
 

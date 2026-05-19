@@ -1,0 +1,622 @@
+import { useState, useRef } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
+import { Trash2, Download, Upload, Plus, Copy, Search, Pencil } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+export default function AdminLessonVocab({ lessonId, lessonTitle, questionId }: { lessonId: number, lessonTitle: string, questionId?: number }) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [importOpen, setImportOpen] = useState(false);
+  const [importText, setImportText] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [addOpen, setAddOpen] = useState(false);
+  const [newWord, setNewWord] = useState({ word: "", definition_vi: "", phonetic: "", audio_url: "", example_sentence: "" });
+  const [editOpen, setEditOpen] = useState(false);
+  const [editingWord, setEditingWord] = useState<{ id: number, word: string, definition_vi: string, phonetic: string, audio_url: string, example_sentence: string } | null>(null);
+
+  const [copyOpen, setCopyOpen] = useState(false);
+  const [searchLesson, setSearchLesson] = useState("");
+  const [selectedLessonId, setSelectedLessonId] = useState<number | null>(null);
+  const [selectedWords, setSelectedWords] = useState<number[]>([]);
+  const [selectedDeleteIds, setSelectedDeleteIds] = useState<number[]>([]);
+
+  const { data: quiz, isLoading: isQuizLoading } = useQuery({
+    queryKey: ["lesson-vocab-quiz", lessonId],
+    queryFn: async () => {
+      const { data } = await supabase.from("vocab_quizzes").select("*").eq("lesson_id", lessonId).maybeSingle();
+      return data;
+    }
+  });
+
+  const { data: words, isLoading: isWordsLoading } = useQuery({
+    queryKey: ["lesson-vocab-words", quiz?.id, questionId],
+    queryFn: async () => {
+      if (!quiz?.id) return [];
+      let query = supabase.from("vocab_questions").select("*").eq("vocab_quiz_id", quiz.id);
+      if (questionId) {
+        query = query.eq("question_id", questionId);
+      }
+      const { data } = await query.order("display_order");
+      return data || [];
+    },
+    enabled: !!quiz?.id
+  });
+  
+  const { data: allLessons } = useQuery({
+    queryKey: ["all-lessons-for-copy"],
+    queryFn: async () => {
+      const { data } = await supabase.from("lessons").select("id, title, module_id").order("id", { ascending: false });
+      return data || [];
+    },
+    enabled: copyOpen
+  });
+
+  const { data: otherLessonWords } = useQuery({
+    queryKey: ["lesson-words", selectedLessonId],
+    queryFn: async () => {
+      const { data: q } = await supabase.from("vocab_quizzes").select("id").eq("lesson_id", selectedLessonId).maybeSingle();
+      if (!q) return [];
+      const { data } = await supabase.from("vocab_questions").select("*").eq("vocab_quiz_id", q.id).order("display_order");
+      return data || [];
+    },
+    enabled: !!selectedLessonId
+  });
+
+  const getOrCreateQuiz = async () => {
+    if (quiz) return quiz;
+    const { data, error } = await supabase.from("vocab_quizzes").insert({
+      title: `Từ vựng - ${lessonTitle}`,
+      lesson_id: lessonId,
+      display_order: 0,
+      total_questions: 0
+    }).select("*").single();
+    if (error) throw error;
+    queryClient.invalidateQueries({ queryKey: ["lesson-vocab-quiz", lessonId] });
+    return data;
+  };
+
+  const importMutation = useMutation({
+    mutationFn: async () => {
+      if (!importText.trim()) throw new Error("Chưa có dữ liệu");
+      
+      const q = await getOrCreateQuiz();
+      
+      const lines = importText.split('\n').map(l => l.trim()).filter(Boolean);
+      
+      const newQuestions = lines.map((line, lineIdx) => {
+        // Simple CSV parser that handles quotes
+        const row: string[] = [];
+        let inQuotes = false;
+        let currentField = "";
+        
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i];
+          if (char === '"') {
+            inQuotes = !inQuotes;
+          } else if ((char === ',' || char === '\t') && !inQuotes) {
+            row.push(currentField.trim());
+            currentField = "";
+          } else {
+            currentField += char;
+          }
+        }
+        row.push(currentField.trim());
+
+        // Skip header
+        if (lineIdx === 0 && row[0].toLowerCase().includes("word")) return null;
+        
+        // Map based on column count
+        let word, def, phonetic, audio_url, example, qNum;
+        
+        if (row.length === 5) {
+          // Format: Word, Definition, Phonetic, Example, Question #
+          [word, def, phonetic, example, qNum] = row;
+          audio_url = null;
+        } else {
+          // Format: Word, Definition, Phonetic, Audio URL, Example, Question # (6 columns or more)
+          [word, def, phonetic, audio_url, example, qNum] = row;
+        }
+        
+        // Clean up quotes if present
+        const clean = (s: string | null | undefined) => {
+          if (!s) return s;
+          return s.replace(/^"|"$/g, '').trim();
+        };
+
+        word = clean(word);
+        def = clean(def);
+        phonetic = clean(phonetic);
+        audio_url = clean(audio_url);
+        example = clean(example);
+        qNum = clean(qNum);
+
+        if (!word || !def) return null;
+
+        let targetQId = questionId || null;
+        if (!targetQId && qNum && allQuestions) {
+          const qIdx = parseInt(qNum) - 1;
+          if (!isNaN(qIdx) && allQuestions[qIdx]) {
+            targetQId = allQuestions[qIdx].id;
+          }
+        }
+
+        return {
+          vocab_quiz_id: q.id,
+          word,
+          definition_vi: def,
+          phonetic: phonetic || null,
+          audio_male_url: audio_url || null,
+          example_sentence: example || null,
+          question_id: targetQId,
+          display_order: (words?.length || 0) + lineIdx
+        };
+      }).filter((item): item is any => item !== null);
+
+      if (newQuestions.length > 0) {
+        const { error: insertErr } = await supabase.from("vocab_questions").insert(newQuestions);
+        if (insertErr) throw insertErr;
+        
+        await supabase.from("vocab_quizzes").update({ 
+          total_questions: (words?.length || 0) + newQuestions.length 
+        }).eq("id", q.id);
+      }
+    },
+    onSuccess: () => {
+      setImportOpen(false);
+      setImportText("");
+      // Invalidate all related queries to be safe
+      queryClient.invalidateQueries({ queryKey: ["lesson-vocab-quiz", lessonId] });
+      queryClient.invalidateQueries({ queryKey: ["lesson-vocab-words"] });
+      toast({ title: "Import từ vựng thành công", description: "Đã thêm từ vựng mới vào danh sách." });
+    },
+    onError: (e: any) => {
+      console.error("Import error:", e);
+      toast({ 
+        title: "Lỗi import", 
+        description: e.message || "Đã xảy ra lỗi trong quá trình import dữ liệu.", 
+        variant: "destructive" 
+      });
+    }
+  });
+
+  const addWordMutation = useMutation({
+    mutationFn: async () => {
+      if (!newWord.word || !newWord.definition_vi) throw new Error("Vui lòng điền đủ từ và nghĩa");
+      const q = await getOrCreateQuiz();
+      await supabase.from("vocab_questions").insert({
+        vocab_quiz_id: q.id,
+        word: newWord.word,
+        definition_vi: newWord.definition_vi,
+        phonetic: newWord.phonetic || null,
+        audio_male_url: newWord.audio_url || null,
+        example_sentence: newWord.example_sentence || null,
+        question_id: questionId || null,
+        display_order: words?.length || 0
+      });
+      await supabase.from("vocab_quizzes").update({ total_questions: (words?.length || 0) + 1 }).eq("id", q.id);
+    },
+    onSuccess: () => {
+      setAddOpen(false);
+      setNewWord({ word: "", definition_vi: "", phonetic: "", audio_url: "", example_sentence: "" });
+      queryClient.invalidateQueries({ queryKey: ["lesson-vocab-words"] });
+      toast({ title: "Đã thêm từ vựng" });
+    }
+  });
+
+  const updateWordMutation = useMutation({
+    mutationFn: async () => {
+      if (!editingWord || !editingWord.word || !editingWord.definition_vi) throw new Error("Vui lòng điền đủ từ và nghĩa");
+      const { error } = await supabase.from("vocab_questions").update({
+        word: editingWord.word,
+        definition_vi: editingWord.definition_vi,
+        phonetic: editingWord.phonetic || null,
+        audio_male_url: editingWord.audio_url || null,
+        example_sentence: editingWord.example_sentence || null,
+      }).eq("id", editingWord.id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setEditOpen(false);
+      setEditingWord(null);
+      queryClient.invalidateQueries({ queryKey: ["lesson-vocab-words"] });
+      toast({ title: "Đã cập nhật từ vựng" });
+    },
+    onError: (e: any) => {
+      toast({ title: "Lỗi cập nhật", description: e.message, variant: "destructive" });
+    }
+  });
+
+  const deleteWordMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await supabase.from("vocab_questions").delete().eq("id", id);
+      if (quiz) {
+         await supabase.from("vocab_quizzes").update({ total_questions: Math.max(0, (words?.length || 1) - 1) }).eq("id", quiz.id);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["lesson-vocab-words"] });
+      toast({ title: "Đã xóa từ vựng" });
+    }
+  })
+
+  const deleteMultipleWordsMutation = useMutation({
+    mutationFn: async (ids: number[]) => {
+      await supabase.from("vocab_questions").delete().in("id", ids);
+      if (quiz) {
+         const remainingCount = Math.max(0, (words?.length || ids.length) - ids.length);
+         await supabase.from("vocab_quizzes").update({ total_questions: remainingCount }).eq("id", quiz.id);
+      }
+    },
+    onSuccess: () => {
+      setSelectedDeleteIds([]);
+      queryClient.invalidateQueries({ queryKey: ["lesson-vocab-words"] });
+      toast({ title: "Đã xóa các từ vựng đã chọn" });
+    }
+  });
+
+  const { data: allQuestions } = useQuery({
+    queryKey: ["all-questions-for-vocab", quiz?.id],
+    queryFn: async () => {
+      if (!quiz?.id) return [];
+      // Need to find the quiz (the real one, not vocab_quiz) to get its questions
+      const { data: lesson } = await supabase.from("lessons").select("quiz_id").eq("id", lessonId).single();
+      if (!lesson?.quiz_id) return [];
+      const { data } = await supabase.from("questions").select("id, question_text, display_order").eq("quiz_id", lesson.quiz_id).order("display_order");
+      return data || [];
+    },
+    enabled: !!quiz?.id && !questionId
+  });
+
+  const updateWordQuestion = useMutation({
+    mutationFn: async ({ id, question_id }: { id: number, question_id: number | null }) => {
+      const { error } = await supabase.from("vocab_questions").update({ question_id }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["lesson-vocab-words"] });
+      toast({ title: "Đã cập nhật liên kết câu hỏi" });
+    }
+  });
+
+  const copyWordsMutation = useMutation({
+    mutationFn: async () => {
+      if (selectedWords.length === 0) throw new Error("Chưa chọn từ nào");
+      const q = await getOrCreateQuiz();
+      
+      const wordsToCopy = otherLessonWords?.filter(w => selectedWords.includes(w.id)) || [];
+      const newQuestions = wordsToCopy.map((w, i) => ({
+        vocab_quiz_id: q.id,
+        word: w.word,
+        definition_vi: w.definition_vi,
+        phonetic: w.phonetic,
+        audio_male_url: w.audio_male_url,
+        example_sentence: w.example_sentence,
+        display_order: (words?.length || 0) + i
+      }));
+
+      await supabase.from("vocab_questions").insert(newQuestions);
+      await supabase.from("vocab_quizzes").update({ total_questions: (words?.length || 0) + newQuestions.length }).eq("id", q.id);
+    },
+    onSuccess: () => {
+      setCopyOpen(false);
+      setSelectedWords([]);
+      setSelectedLessonId(null);
+      queryClient.invalidateQueries({ queryKey: ["lesson-vocab-words"] });
+      toast({ title: "Đã gộp từ vựng thành công" });
+    }
+  });
+
+  const exportWords = () => {
+    if (!words || words.length === 0) return toast({ title: "Không có dữ liệu để export" });
+    const header = ["Word", "Definition", "Phonetic", "Audio URL", "Example Sentence", "Question #"].join(",");
+    const rows = words.map(w => {
+      const qNum = w.question_id ? (allQuestions?.find(q => q.id === w.question_id)?.display_order + 1 || "") : "";
+      return [
+        `"${w.word}"`,
+        `"${w.definition_vi}"`,
+        `"${w.phonetic || ""}"`,
+        `"${w.audio_male_url || ""}"`,
+        `"${w.example_sentence || ""}"`,
+        `"${qNum}"`
+      ].join(",");
+    });
+    const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + [header, ...rows].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `vocab_${lessonId}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setImportText(ev.target?.result as string);
+    };
+    reader.readAsText(file);
+  };
+
+  if (isQuizLoading || isWordsLoading) return <div className="text-sm py-4">Đang tải...</div>
+
+  return (
+    <div className="bg-muted/10 p-4 rounded-lg border mt-2 space-y-4">
+      <div className="flex items-center justify-between">
+        <h4 className="font-semibold text-sm flex items-center gap-2">
+          📚 Danh sách từ vựng ({words?.length || 0})
+        </h4>
+        <div className="flex gap-2">
+          {selectedDeleteIds.length > 0 && (
+            <Button size="sm" variant="destructive" onClick={() => { if(confirm(`Xóa ${selectedDeleteIds.length} từ đã chọn?`)) deleteMultipleWordsMutation.mutate(selectedDeleteIds); }}>
+              <Trash2 className="w-4 h-4 mr-1"/> Xóa ({selectedDeleteIds.length})
+            </Button>
+          )}
+          <Button size="sm" variant="outline" onClick={() => setAddOpen(true)}><Plus className="w-4 h-4 mr-1"/> Thêm</Button>
+          <Button size="sm" variant="outline" onClick={() => setCopyOpen(true)}><Copy className="w-4 h-4 mr-1"/> Gộp từ bài khác</Button>
+          <Button size="sm" variant="outline" onClick={() => setImportOpen(true)}><Upload className="w-4 h-4 mr-1"/> Import</Button>
+          <Button size="sm" variant="outline" onClick={exportWords}><Download className="w-4 h-4 mr-1"/> Export</Button>
+        </div>
+      </div>
+
+      <div className="grid gap-2">
+        {words && words.length > 0 && (
+          <div className="flex items-center gap-2 px-3 py-1">
+            <input 
+              type="checkbox" 
+              className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4"
+              checked={selectedDeleteIds.length === words.length && words.length > 0}
+              onChange={(e) => {
+                if (e.target.checked) setSelectedDeleteIds(words.map(w => w.id));
+                else setSelectedDeleteIds([]);
+              }}
+            />
+            <span className="text-[10px] text-muted-foreground uppercase font-bold">Chọn tất cả</span>
+          </div>
+        )}
+        {words?.map((w, idx) => (
+          <div key={w.id} className="flex items-center gap-3 bg-card p-3 rounded-md border text-sm">
+            <input 
+              type="checkbox" 
+              className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4"
+              checked={selectedDeleteIds.includes(w.id)}
+              onChange={(e) => {
+                if (e.target.checked) setSelectedDeleteIds([...selectedDeleteIds, w.id]);
+                else setSelectedDeleteIds(selectedDeleteIds.filter(id => id !== w.id));
+              }}
+            />
+            <div className="flex-1 flex items-center justify-between">
+              <div className="flex gap-4 mb-1">
+                <span className="font-semibold text-base">{w.word} {w.phonetic && <span className="text-muted-foreground font-normal text-sm">({w.phonetic})</span>}</span>
+                <span className="text-muted-foreground">- {w.definition_vi}</span>
+                {!questionId && allQuestions && allQuestions.length > 0 && (
+                  <div className="ml-auto w-32">
+                    <Select 
+                      value={w.question_id?.toString() || "none"} 
+                      onValueChange={(val) => updateWordQuestion.mutate({ id: w.id, question_id: val === "none" ? null : parseInt(val) })}
+                    >
+                      <SelectTrigger className="h-7 text-[10px]">
+                        <SelectValue placeholder="Gắn vào câu..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Không gắn câu</SelectItem>
+                        {allQuestions.map((q, idx) => (
+                          <SelectItem key={q.id} value={q.id.toString()}>Câu {idx + 1}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+              {w.example_sentence && (
+                <p className="text-xs text-muted-foreground italic bg-muted/30 p-1.5 rounded">
+                  Example: {w.example_sentence}
+                </p>
+              )}
+            </div>
+            <div className="flex gap-1">
+              <Button 
+                size="icon" 
+                variant="ghost" 
+                className="h-7 w-7 text-primary opacity-70 hover:opacity-100" 
+                onClick={() => {
+                  setEditingWord({
+                    id: w.id,
+                    word: w.word,
+                    definition_vi: w.definition_vi,
+                    phonetic: w.phonetic || "",
+                    audio_url: w.audio_male_url || "",
+                    example_sentence: w.example_sentence || "",
+                  });
+                  setEditOpen(true);
+                }}
+              >
+                <Pencil className="w-4 h-4" />
+              </Button>
+              <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive opacity-70 hover:opacity-100" onClick={() => { if(confirm("Xóa từ này?")) deleteWordMutation.mutate(w.id); }}>
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        ))}
+        {words?.length === 0 && <p className="text-xs text-muted-foreground italic">Chưa có từ vựng nào.</p>}
+      </div>
+
+      <Dialog open={importOpen} onOpenChange={setImportOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Import Từ Vựng</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <p className="text-xs text-muted-foreground mb-4">
+                Định dạng CSV: <b>Word, Definition, Phonetic, Audio URL, Example Sentence, Question #</b>
+                <br />
+                - <i>Question #</i>: Số thứ tự của câu (1, 2, 3...) để gắn từ vựng vào câu đó.
+              </p>
+              <Input type="file" accept=".csv,.txt,.tsv" onChange={handleFileChange} ref={fileInputRef} className="mb-2" />
+              <textarea 
+                className="w-full h-32 p-2 border rounded text-xs" 
+                placeholder="Hoặc dán data vào đây..."
+                value={importText}
+                onChange={e => setImportText(e.target.value)}
+              />
+            </div>
+            <Button className="w-full" onClick={() => importMutation.mutate()} disabled={importMutation.isPending || !importText.trim()}>
+              {importMutation.isPending ? "Đang xử lý..." : "Bắt đầu Import"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Thêm từ vựng</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Từ tiếng Anh (*)</Label>
+              <Input value={newWord.word} onChange={(e) => setNewWord({...newWord, word: e.target.value})} placeholder="Hello" />
+            </div>
+            <div className="space-y-2">
+              <Label>Nghĩa tiếng Việt (*)</Label>
+              <Input value={newWord.definition_vi} onChange={(e) => setNewWord({...newWord, definition_vi: e.target.value})} placeholder="Xin chào" />
+            </div>
+            <div className="space-y-2">
+              <Label>Phiên âm (tùy chọn)</Label>
+              <Input value={newWord.phonetic} onChange={(e) => setNewWord({...newWord, phonetic: e.target.value})} placeholder="/həˈləʊ/" />
+            </div>
+            <div className="space-y-2">
+              <Label>URL File Audio (tùy chọn)</Label>
+              <Input value={newWord.audio_url} onChange={(e) => setNewWord({...newWord, audio_url: e.target.value})} placeholder="https://..." />
+            </div>
+            <div className="space-y-2">
+              <Label>Câu ví dụ (tùy chọn)</Label>
+              <Input value={newWord.example_sentence} onChange={(e) => setNewWord({...newWord, example_sentence: e.target.value})} placeholder="Ví dụ: She is a student." />
+            </div>
+            <Button className="w-full" onClick={() => addWordMutation.mutate()} disabled={addWordMutation.isPending}>
+              Thêm từ
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Chỉnh sửa từ vựng</DialogTitle>
+          </DialogHeader>
+          {editingWord && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Từ tiếng Anh (*)</Label>
+                <Input value={editingWord.word} onChange={(e) => setEditingWord({...editingWord, word: e.target.value})} placeholder="Hello" />
+              </div>
+              <div className="space-y-2">
+                <Label>Nghĩa tiếng Việt (*)</Label>
+                <Input value={editingWord.definition_vi} onChange={(e) => setEditingWord({...editingWord, definition_vi: e.target.value})} placeholder="Xin chào" />
+              </div>
+              <div className="space-y-2">
+                <Label>Phiên âm (tùy chọn)</Label>
+                <Input value={editingWord.phonetic} onChange={(e) => setEditingWord({...editingWord, phonetic: e.target.value})} placeholder="/həˈləʊ/" />
+              </div>
+              <div className="space-y-2">
+                <Label>URL File Audio (tùy chọn)</Label>
+                <Input value={editingWord.audio_url} onChange={(e) => setEditingWord({...editingWord, audio_url: e.target.value})} placeholder="https://..." />
+              </div>
+              <div className="space-y-2">
+                <Label>Câu ví dụ (tùy chọn)</Label>
+                <Input value={editingWord.example_sentence} onChange={(e) => setEditingWord({...editingWord, example_sentence: e.target.value})} placeholder="Ví dụ: She is a student." />
+              </div>
+              <Button className="w-full" onClick={() => updateWordMutation.mutate()} disabled={updateWordMutation.isPending}>
+                {updateWordMutation.isPending ? "Đang lưu..." : "Lưu thay đổi"}
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={copyOpen} onOpenChange={setCopyOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Gộp từ vựng từ bài học khác</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
+            <div className="relative">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input 
+                placeholder="Tìm bài học..." 
+                className="pl-8" 
+                value={searchLesson}
+                onChange={e => setSearchLesson(e.target.value)}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 flex-1 overflow-hidden">
+              <div className="border rounded-md overflow-y-auto p-2 space-y-1 bg-muted/20">
+                <p className="text-[10px] font-bold uppercase text-muted-foreground mb-2 px-2">Danh sách bài học</p>
+                {allLessons?.filter(l => l.title.toLowerCase().includes(searchLesson.toLowerCase())).map(l => (
+                  <button
+                    key={l.id}
+                    onClick={() => { setSelectedLessonId(l.id); setSelectedWords([]); }}
+                    className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${selectedLessonId === l.id ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
+                  >
+                    {l.title}
+                  </button>
+                ))}
+              </div>
+
+              <div className="border rounded-md overflow-y-auto p-2 space-y-1 bg-card">
+                <p className="text-[10px] font-bold uppercase text-muted-foreground mb-2 px-2">Từ vựng trong bài</p>
+                {otherLessonWords?.map(w => (
+                  <label key={w.id} className="flex items-center gap-3 p-2 hover:bg-muted rounded-md cursor-pointer border-b last:border-0 border-muted/50">
+                    <input 
+                      type="checkbox" 
+                      className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4"
+                      checked={selectedWords.includes(w.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) setSelectedWords([...selectedWords, w.id]);
+                        else setSelectedWords(selectedWords.filter(id => id !== w.id));
+                      }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{w.word}</p>
+                      <p className="text-[10px] text-muted-foreground truncate">{w.definition_vi}</p>
+                    </div>
+                  </label>
+                ))}
+                {selectedLessonId && otherLessonWords?.length === 0 && (
+                  <p className="text-xs text-center py-8 text-muted-foreground italic">Bài này chưa có từ vựng</p>
+                )}
+                {!selectedLessonId && (
+                  <p className="text-xs text-center py-8 text-muted-foreground italic">Chọn một bài học để xem từ vựng</p>
+                )}
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => setCopyOpen(false)}>Hủy</Button>
+            <Button 
+              onClick={() => copyWordsMutation.mutate()} 
+              disabled={copyWordsMutation.isPending || selectedWords.length === 0}
+            >
+              {copyWordsMutation.isPending ? "Đang xử lý..." : `Gộp ${selectedWords.length} từ đã chọn`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}

@@ -42,13 +42,13 @@ const LessonPracticeManager = ({ lessonId, courseId }: LessonPracticeManagerProp
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingPractice, setEditingPractice] = useState<any>(null);
   const [practiceTitle, setPracticeTitle] = useState("");
-  const [triggerMinutes, setTriggerMinutes] = useState(0);
-  const [triggerSeconds, setTriggerSeconds] = useState(0);
+  const [triggerMinutes, setTriggerMinutes] = useState<number | "">(0);
+  const [triggerSeconds, setTriggerSeconds] = useState<number | "">(0);
   const [selectedQuizId, setSelectedQuizId] = useState<string>("");
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const triggerAt = triggerMinutes * 60 + triggerSeconds;
+      const triggerAt = (Number(triggerMinutes) || 0) * 60 + (Number(triggerSeconds) || 0);
       const payload = {
         lesson_id: lessonId,
         quiz_id: selectedQuizId ? Number(selectedQuizId) : null,
@@ -136,9 +136,22 @@ const LessonPracticeManager = ({ lessonId, courseId }: LessonPracticeManagerProp
             <div className="space-y-2">
               <Label>Thời điểm popup (phút:giây)</Label>
               <div className="flex gap-2 items-center">
-                <Input type="number" min={0} value={triggerMinutes} onChange={(e) => setTriggerMinutes(Number(e.target.value))} className="w-20" />
+                <Input 
+                  type="number" 
+                  min={0} 
+                  value={triggerMinutes === 0 ? "" : triggerMinutes} 
+                  onChange={(e) => setTriggerMinutes(e.target.value === "" ? "" : Number(e.target.value))} 
+                  className="w-20" 
+                />
                 <span>:</span>
-                <Input type="number" min={0} max={59} value={triggerSeconds} onChange={(e) => setTriggerSeconds(Number(e.target.value))} className="w-20" />
+                <Input 
+                  type="number" 
+                  min={0} 
+                  max={59} 
+                  value={triggerSeconds === 0 ? "" : triggerSeconds} 
+                  onChange={(e) => setTriggerSeconds(e.target.value === "" ? "" : Number(e.target.value))} 
+                  className="w-20" 
+                />
               </div>
             </div>
             <div className="space-y-2">

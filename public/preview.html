@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+
+<html lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>NgoaiNgu24h - Luyện thi Tiếng Anh chuyên sâu</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&amp;family=Roboto+Flex:opsz,wght@8..144,100..1000&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "secondary-fixed-dim": "#ffb693",
+                        "surface-container-low": "#f3f3fb",
+                        "on-error-container": "#93000a",
+                        "secondary-container": "#fc7729",
+                        "surface-container-lowest": "#ffffff",
+                        "outline-variant": "#c3c6d3",
+                        "on-secondary-fixed": "#351000",
+                        "on-primary-fixed-variant": "#004396",
+                        "primary-container": "#0e4a9e",
+                        "tertiary-fixed": "#ffdbcc",
+                        "surface": "#FFFFFF",
+                        "tertiary": "#602400",
+                        "secondary": "#a04100",
+                        "on-surface-variant": "#434752",
+                        "on-primary-container": "#a2beff",
+                        "on-error": "#ffffff",
+                        "outline": "#E2E8F0",
+                        "tertiary-container": "#853400",
+                        "inverse-primary": "#aec6ff",
+                        "primary-fixed": "#d8e2ff",
+                        "surface-container-high": "#e7e7ef",
+                        "inverse-on-surface": "#f0f0f8",
+                        "primary-fixed-dim": "#aec6ff",
+                        "secondary-fixed": "#ffdbcc",
+                        "on-secondary-fixed-variant": "#7a3000",
+                        "on-tertiary-container": "#ffaa82",
+                        "background": "#F8FAFC",
+                        "primary": "#003477",
+                        "surface-variant": "#e2e2ea",
+                        "on-background": "#191b21",
+                        "surface-bright": "#faf9ff",
+                        "error-container": "#ffdad6",
+                        "on-tertiary-fixed-variant": "#7b2f00",
+                        "on-tertiary": "#ffffff",
+                        "error": "#ba1a1a",
+                        "surface-container-highest": "#e2e2ea",
+                        "surface-container": "#ededf5",
+                        "on-surface": "#0F172A",
+                        "tertiary-fixed-dim": "#ffb694",
+                        "on-secondary": "#FFFFFF",
+                        "surface-tint": "#2a5cb0",
+                        "inverse-surface": "#2e3036",
+                        "on-tertiary-fixed": "#351000",
+                        "on-secondary-container": "#5e2300",
+                        "surface-dim": "#d9d9e1",
+                        "on-primary": "#ffffff",
+                        "on-primary-fixed": "#001a42"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "xl": "32px",
+                        "lg": "24px",
+                        "base": "8px",
+                        "max-width": "1280px",
+                        "gutter": "16px",
+                        "xs": "4px",
+                        "md": "16px",
+                        "sm": "12px",
+                        "margin-mobile": "16px",
+                        "margin-desktop": "24px"
+                    },
+                    "fontFamily": {
+                        "headline-sm": ["Roboto Flex"],
+                        "body-lg": ["Roboto Flex"],
+                        "headline-lg-mobile": ["Roboto Flex"],
+                        "headline-lg": ["Roboto"],
+                        "label-md": ["Roboto Flex"],
+                        "label-lg": ["Roboto Flex"],
+                        "headline-md": ["Roboto Flex"],
+                        "body-md": ["Roboto Flex"],
+                        "body-sm": ["Roboto Flex"]
+                    },
+                    "fontSize": {
+                        "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "headline-lg-mobile": ["28px", {"lineHeight": "36px", "fontWeight": "700"}],
+                        "headline-lg": ["32px", {"lineHeight": "40px", "fontWeight": "700"}],
+                        "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.5px", "fontWeight": "500"}],
+                        "label-lg": ["14px", {"lineHeight": "20px", "letterSpacing": "0.1px", "fontWeight": "500"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "700"}],
+                        "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "body-sm": ["12px", {"lineHeight": "16px", "fontWeight": "400"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            font-family: 'Roboto Flex', sans-serif;
+            background-color: #F8FAFC;
+        }
+        .sidebar-scroll::-webkit-scrollbar {
+            width: 4px;
+        }
+        .sidebar-scroll::-webkit-scrollbar-thumb {
+            background: #e2e2ea;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="text-on-surface">
+<!-- Top Navigation Bar -->
+<header class="flex justify-between items-center px-margin-desktop py-base w-full z-50 bg-surface dark:bg-surface-dim border-b border-outline-variant dark:border-outline shadow-sm docked full-width top-0 sticky">
+<div class="flex items-center gap-lg">
+<span class="font-headline-sm text-headline-sm font-bold text-primary dark:text-primary-fixed">NgoaiNgu24h</span>
+<div class="relative hidden lg:block">
+<input class="bg-surface-container-low border-none rounded-full px-lg py-xs w-64 text-body-md focus:ring-2 focus:ring-primary" placeholder="Tìm kiếm khóa học..." type="text"/>
+<span class="material-symbols-outlined absolute right-3 top-1.5 text-on-surface-variant">search</span>
+</div>
+</div>
+<nav class="hidden md:flex items-center gap-xl">
+<a class="font-body-md text-body-md text-secondary font-bold border-b-2 border-secondary pb-1 hover:text-secondary dark:hover:text-secondary-fixed-dim transition-colors scale-95 active:scale-90 transition-transform" href="#">Khóa học</a>
+<a class="font-body-md text-body-md text-on-surface-variant dark:text-surface-variant hover:text-secondary dark:hover:text-secondary-fixed-dim transition-colors scale-95 active:scale-90 transition-transform" href="#">Hot combo</a>
+<a class="font-body-md text-body-md text-on-surface-variant dark:text-surface-variant hover:text-secondary dark:hover:text-secondary-fixed-dim transition-colors scale-95 active:scale-90 transition-transform" href="#">Phòng luyện</a>
+<a class="font-body-md text-body-md text-on-surface-variant dark:text-surface-variant hover:text-secondary dark:hover:text-secondary-fixed-dim transition-colors scale-95 active:scale-90 transition-transform" href="#">Tra từ</a>
+</nav>
+<div class="flex items-center gap-md">
+<button class="p-xs hover:bg-surface-container-high rounded-full transition-colors relative">
+<span class="material-symbols-outlined text-primary">notifications</span>
+<span class="absolute top-1 right-1 w-2 h-2 bg-error rounded-full"></span>
+</button>
+<button class="p-xs hover:bg-surface-container-high rounded-full transition-colors">
+<span class="material-symbols-outlined text-primary">shopping_cart</span>
+</button>
+<div class="w-8 h-8 rounded-full bg-primary-container overflow-hidden border border-outline cursor-pointer">
+<img alt="User avatar" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCrH1xAC76mxmFJLUe5WgNFebk--K3iSh8ctax4IMZ2ZOnZVNlVa1ESldvqgOOOxgtQgPj9qJG738xxqujQlDW_af6rjPU0AD59jATAc2N1oE_4cSE8uXeT5K78dNi_29myTlBxkytaerYvaedZ3FhCxNrpMq4FsD8JRfMHMtF0oKs8_-FgVvXtpw7FBxPMiIBTN_TGteWWEWTTHXFrggEeETRPbY3hS441NdR9jzOwY-aLqrw7cXnxZWMk2cZBz-ln_DdEyszHb1kW"/>
+</div>
+</div>
+</header>
+<div class="flex min-h-screen">
+<!-- Sidebar Navigation -->
+<aside class="fixed left-0 top-[60px] h-[calc(100vh-60px)] flex flex-col p-md overflow-y-auto sidebar-scroll bg-surface-container-lowest dark:bg-inverse-surface border-r border-outline-variant dark:border-outline w-64 rounded-r-xl transition-all">
+<div class="flex flex-col gap-xs mb-lg">
+<a class="flex items-center gap-md p-sm bg-secondary-container dark:bg-secondary text-on-secondary-container dark:text-on-secondary rounded-lg font-bold translate-x-1 active:translate-x-0 transition-transform" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">home</span>
+<span class="font-label-lg text-label-lg">Trang chủ</span>
+</a>
+<a class="flex items-center gap-md p-sm text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high rounded-lg hover:bg-surface-container-low dark:hover:bg-surface-variant transition-all translate-x-1 active:translate-x-0 transition-transform" href="#">
+<span class="material-symbols-outlined">school</span>
+<span class="font-label-lg text-label-lg">Combo luyện thi</span>
+</a>
+<a class="flex items-center gap-md p-sm text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high rounded-lg hover:bg-surface-container-low dark:hover:bg-surface-variant transition-all translate-x-1 active:translate-x-0 transition-transform" href="#">
+<span class="material-symbols-outlined">menu_book</span>
+<span class="font-label-lg text-label-lg">Luyện thi TOEIC</span>
+</a>
+<a class="flex items-center gap-md p-sm text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high rounded-lg hover:bg-surface-container-low dark:hover:bg-surface-variant transition-all translate-x-1 active:translate-x-0 transition-transform" href="#">
+<span class="material-symbols-outlined">psychology</span>
+<span class="font-label-lg text-label-lg">Lấy gốc Tiếng Anh</span>
+</a>
+<a class="flex items-center gap-md p-sm text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high rounded-lg hover:bg-surface-container-low dark:hover:bg-surface-variant transition-all translate-x-1 active:translate-x-0 transition-transform" href="#">
+<span class="material-symbols-outlined">import_contacts</span>
+<span class="font-label-lg text-label-lg">Khóa học của tôi</span>
+</a>
+<a class="flex items-center gap-md p-sm text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high rounded-lg hover:bg-surface-container-low dark:hover:bg-surface-variant transition-all translate-x-1 active:translate-x-0 transition-transform" href="#">
+<span class="material-symbols-outlined">live_tv</span>
+<span class="font-label-lg text-label-lg">Lịch học Live</span>
+</a>
+<a class="flex items-center gap-md p-sm text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high rounded-lg hover:bg-surface-container-low dark:hover:bg-surface-variant transition-all translate-x-1 active:translate-x-0 transition-transform" href="#">
+<span class="material-symbols-outlined">library_books</span>
+<span class="font-label-lg text-label-lg">Sách</span>
+</a>
+<a class="flex items-center gap-md p-sm text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high rounded-lg hover:bg-surface-container-low dark:hover:bg-surface-variant transition-all translate-x-1 active:translate-x-0 transition-transform" href="#">
+<span class="material-symbols-outlined">leaderboard</span>
+<span class="font-label-lg text-label-lg">Bảng xếp hạng</span>
+</a>
+</div>
+<div class="mt-auto pt-md border-t border-outline">
+<div class="flex items-center gap-md mb-md">
+<img alt="Cô Vũ Thị Mai Phương" class="w-10 h-10 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCsYOs2l0rJRlM73csdPhEZ_D5g33QdKg4X6OwgbNnlYhSvoF_XaEwhX4FqIUJqLBYEXsPvL8jHKtzA-IlXY_sCK63YdIPF9c8ERTuhoV1Oiaww8HNs3_jMMI1kemMkSd5sjW-6qSvO8zg5uog_EkJteF_joztHT7cfdlZ7Hr87zZUWbhVvT-nltJYa0Mw2Q-6Uq_qX1NcuX-d7WC0lnPgmf3jARluVEezrF5x4hpCTn8KqjY2J2NYds2Bs4lE5RC7RU3YsBA1w0CIv"/>
+<div class="flex flex-col">
+<span class="font-label-lg text-label-lg font-bold text-primary">Cô Vũ Thị Mai Phương</span>
+<span class="text-xs text-on-surface-variant">Giảng viên chuyên môn</span>
+</div>
+</div>
+<button class="w-full py-xs bg-primary text-on-primary rounded-full font-label-md text-label-md hover:bg-primary-container transition-colors mb-lg">Theo dõi</button>
+<div class="flex flex-col gap-xs">
+<a class="flex items-center gap-md p-sm text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined">info</span>
+<span class="font-label-lg text-label-lg">Giới thiệu</span>
+</a>
+<a class="flex items-center gap-md p-sm text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined">groups</span>
+<span class="font-label-lg text-label-lg">Cộng đồng</span>
+</a>
+</div>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="ml-64 w-full p-lg overflow-x-hidden">
+<!-- Hero Banner Section -->
+<section class="mb-xl">
+<div class="relative w-full h-[400px] rounded-xl overflow-hidden shadow-lg bg-primary">
+<img class="w-full h-full object-cover opacity-60" data-alt="A professional and modern educational hero banner featuring a smiling teacher and students in a bright, clean classroom. The color palette uses deep corporate blues and vibrant orange highlights. The atmosphere is energetic, focused, and high-performance, reflecting a top-tier exam preparation academy environment." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBDJrAOKi01l98IWe0N-OMB4dwWLvYVllGZX2csAENMQhjixVwWurXuHOxTQbuUMP3zQiEnQ0m44E5Eb09K8nM4AzOhrVh0LNJ5y_chAx1Lg3Zf2rOFRXiQs0LK2XlujBXMQMC8d_65ebCwvYBXZV6E1mzNs5j9xtptzR_ihSrvefmbafCTKIW4YH9JpjyYgObdcT6vPUhfeQah9FZ5aVvlnBl5LlfR5LHd7I4OFjj4ABbMBhNuHanEKXgsw0fste19vAqRVE_OYIWh"/>
+<div class="absolute inset-0 bg-gradient-to-r from-primary via-primary/40 to-transparent flex flex-col justify-center p-xl">
+<span class="inline-block px-md py-xs bg-secondary rounded-full text-on-secondary font-bold text-sm mb-md w-fit">KHAI GIẢNG KHÓA MỚI 2026</span>
+<h1 class="font-headline-lg text-headline-lg text-white max-w-xl leading-tight mb-md">LUYỆN THI TOEIC 2 KỸ NĂNG &amp; 4 KỸ NĂNG TỪ MẤT GỐC ĐẠT 850+</h1>
+<p class="text-white/90 text-body-lg max-w-lg mb-lg">Học 1 lần là đạt mục tiêu. Lộ trình cá nhân hóa, thi thử không giới hạn với kho đề sát thực tế nhất.</p>
+<div class="flex gap-md">
+<button class="bg-secondary text-on-secondary px-xl py-md rounded-lg font-bold hover:scale-105 transition-transform shadow-lg">Đăng ký ngay</button>
+<button class="bg-white/20 backdrop-blur-md text-white border border-white/30 px-xl py-md rounded-lg font-bold hover:bg-white/30 transition-colors">Tìm hiểu thêm</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Exam Countdown & Stats -->
+<section class="grid grid-cols-1 md:grid-cols-3 gap-md mb-xl">
+<div class="bg-surface-container rounded-xl p-md flex items-center gap-md border border-outline">
+<div class="p-sm bg-secondary-container/20 rounded-lg">
+<span class="material-symbols-outlined text-secondary text-3xl">timer</span>
+</div>
+<div>
+<p class="text-body-sm text-on-surface-variant font-medium">Đếm ngược THPT 2026</p>
+<div class="flex gap-xs mt-xs">
+<div class="flex flex-col items-center bg-white px-2 py-1 rounded shadow-sm border border-outline">
+<span class="font-bold text-primary">32</span>
+<span class="text-[8px] uppercase tracking-tighter">Ngày</span>
+</div>
+<div class="flex flex-col items-center bg-white px-2 py-1 rounded shadow-sm border border-outline">
+<span class="font-bold text-primary">13</span>
+<span class="text-[8px] uppercase tracking-tighter">Giờ</span>
+</div>
+<div class="flex flex-col items-center bg-white px-2 py-1 rounded shadow-sm border border-outline">
+<span class="font-bold text-primary">29</span>
+<span class="text-[8px] uppercase tracking-tighter">Phút</span>
+</div>
+</div>
+</div>
+</div>
+<div class="bg-surface-container rounded-xl p-md flex items-center gap-md border border-outline">
+<div class="p-sm bg-primary-container/20 rounded-lg">
+<span class="material-symbols-outlined text-primary text-3xl">live_tv</span>
+</div>
+<div>
+<p class="text-body-sm text-on-surface-variant font-medium">LIVESTREAM VIP 90</p>
+<p class="font-bold text-primary">Trực tiếp vào lúc 20h00</p>
+</div>
+</div>
+<div class="bg-surface-container rounded-xl p-md flex items-center gap-md border border-outline">
+<div class="p-sm bg-tertiary-container/20 rounded-lg">
+<span class="material-symbols-outlined text-tertiary text-3xl">trending_up</span>
+</div>
+<div>
+<p class="text-body-sm text-on-surface-variant font-medium">Sĩ số khóa học</p>
+<p class="font-bold text-tertiary">+12,450 Học viên mới</p>
+</div>
+</div>
+</section>
+<!-- Course Grid Section -->
+<section class="mb-xl">
+<div class="flex justify-between items-end mb-lg">
+<div>
+<h2 class="font-headline-md text-headline-md text-primary">LUYỆN THI TOEIC 4 KỸ NĂNG</h2>
+<p class="text-on-surface-variant">Lộ trình bứt phá điểm số tối ưu cho sinh viên và người đi làm</p>
+</div>
+<a class="text-primary font-bold hover:underline flex items-center gap-xs" href="#">
+                        Xem tất cả <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</a>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-md">
+<!-- Course Card 1 -->
+<div class="bg-surface rounded-xl border border-outline overflow-hidden group hover:shadow-lg transition-all flex flex-col">
+<div class="relative h-48 overflow-hidden">
+<img class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" data-alt="A detailed educational course thumbnail featuring professional graphic design elements, including icons of headphones and microphones for listening and speaking skills. The style is clean and high-contrast, using the academy's signature primary blue and orange highlights. Soft ambient studio lighting highlights a student interacting with digital learning tools." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDSWl4W1F1vHLQTMfvdVfniMuaYgE0H3vboPz9GO0ksIzNd8AKDQaKkVmoXnfHZy8YCEVsPgp4w7W10en2EX4U9CjwZ2-Hju8KmM1a1CuZV--qLMWfSBRoJXzbEgFrR2Fx5tfOkg_3r5tnf5N1og7tCDxwWlf6ewn5vKiii4WF-3meLjUzBX8E_Gw78zu1CtcHurtTQ3448Vo5Mbv5BT3M72e9ks7qWHLjdWjyoRd2mCmWy_aHzYHJJx5Hb7djk7YT0LA7UgSgNKDJC"/>
+<div class="absolute top-2 right-2 bg-secondary text-white text-[10px] font-bold px-2 py-1 rounded">BỔ TRỢ KỸ NĂNG</div>
+</div>
+<div class="p-md flex flex-col flex-grow">
+<h3 class="font-headline-sm text-label-lg mb-xs line-clamp-2 min-h-[40px]">Bổ trợ kỹ năng Nghe - Luyện Nghe điền từ TOEIC</h3>
+<p class="text-body-sm text-on-surface-variant mb-md italic">Cô Vũ Thị Mai Phương</p>
+<div class="mt-auto">
+<div class="flex items-center gap-sm mb-md">
+<span class="text-primary font-bold text-lg">650,000 VNĐ</span>
+<span class="text-on-surface-variant line-through text-xs italic">850,000 VNĐ</span>
+</div>
+<button class="w-full py-sm bg-secondary text-on-secondary rounded-lg font-bold hover:bg-secondary-container transition-colors">Đăng ký ngay</button>
+</div>
+</div>
+</div>
+<!-- Course Card 2 -->
+<div class="bg-surface rounded-xl border border-outline overflow-hidden group hover:shadow-lg transition-all flex flex-col">
+<div class="relative h-48 overflow-hidden">
+<img class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" data-alt="A vibrant course preview image focused on vocabulary and memory training. Digital flashcards are depicted floating in a sleek, minimalist environment with futuristic lighting effects. The aesthetic is corporate yet engaging, focusing on efficiency and high-stakes exam preparation. Warm orange tones highlight the most important visual elements." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAvDjnsrhMm4OLMc0uS_FScJYdy8NqDfxO0NizDsQw6cxp9rE0nqoNik_aAe56r9j_ESWj5EyMYXxUKXVLmLrT45IXq0dLSKnR4o2WH0QxsIxpo42TVRx3xVRo1GLrfPMc5W9108yg5IcRb8KwQJUpuKuXfbErLg80vfWcPcPsDVR5MNf8uh_PKeULYNcGSdsfRNeFcTPulrpncpt4tFvewTwdBy47LP5s7EdOXuh_N9mfmQrTJZiOTaA5CQff5xmc6wIbAy6IUq_im"/>
+<div class="absolute top-2 right-2 bg-primary text-white text-[10px] font-bold px-2 py-1 rounded">CẬP NHẬT 2026</div>
+</div>
+<div class="p-md flex flex-col flex-grow">
+<h3 class="font-headline-sm text-label-lg mb-xs line-clamp-2 min-h-[40px]">EZ Vocab TOEIC: Học và ghi nhớ từ vựng trọng điểm</h3>
+<p class="text-body-sm text-on-surface-variant mb-md italic">Cô Vũ Thị Mai Phương</p>
+<div class="mt-auto">
+<div class="flex items-center gap-sm mb-md">
+<span class="text-primary font-bold text-lg">1,200,000 VNĐ</span>
+<span class="text-on-surface-variant line-through text-xs italic">1,800,000 VNĐ</span>
+</div>
+<button class="w-full py-sm bg-secondary text-on-secondary rounded-lg font-bold hover:bg-secondary-container transition-colors">Đăng ký ngay</button>
+</div>
+</div>
+</div>
+<!-- Course Card 3 -->
+<div class="bg-surface rounded-xl border border-outline overflow-hidden group hover:shadow-lg transition-all flex flex-col">
+<div class="relative h-48 overflow-hidden">
+<img class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" data-alt="An educational marketing image showcasing a teacher and student in a focused coaching session. The lighting is soft and professional, emphasizing a mood of mentorship and academic achievement. The color palette centers around deep primary blues and clean white backgrounds, with sharp typography indicating a high-level TOEIC preparation course." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBe2azf5C0AL4XfKXHaKBT2C9cpF1nQF2xlbD7T-cl4HsixEaK2b3RfM9WncDYRiyHTHwMttXbp5vdTbn3Ysid5F7s-XNPFBNlKMSXmc2LXTuM0pYyrA5wKpy3Yo__9bhsWDmgUrz364bAGHPqFBOyYAVA9bRJG4cD8qRdZwUl9yz0xr1vKaq-5v3aBzPt3_voSXhKdUfw-E95rnIBbyQkFDeTH3ftVh00S5oM3MXfPygsIp54MOzkUic4ZoyMFlLIdAz9SLyhLbFfr"/>
+<div class="absolute top-2 right-2 bg-error text-white text-[10px] font-bold px-2 py-1 rounded">HOT COMBO</div>
+</div>
+<div class="p-md flex flex-col flex-grow">
+<h3 class="font-headline-sm text-label-lg mb-xs line-clamp-2 min-h-[40px]">Luyện thi TOEIC (Nói - Viết) - Chiến thuật đạt đỉnh</h3>
+<p class="text-body-sm text-on-surface-variant mb-md italic">Cô Vũ Thị Mai Phương</p>
+<div class="mt-auto">
+<div class="flex items-center gap-sm mb-md">
+<span class="text-primary font-bold text-lg">1,700,000 VNĐ</span>
+<span class="text-on-surface-variant line-through text-xs italic">2,200,000 VNĐ</span>
+</div>
+<button class="w-full py-sm bg-secondary text-on-secondary rounded-lg font-bold hover:bg-secondary-container transition-colors">Đăng ký ngay</button>
+</div>
+</div>
+</div>
+<!-- Course Card 4 -->
+<div class="bg-surface rounded-xl border border-outline overflow-hidden group hover:shadow-lg transition-all flex flex-col">
+<div class="relative h-48 overflow-hidden">
+<img class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" data-alt="A sophisticated book and exam material layout representing a comprehensive TOEIC preparation kit. The image uses shallow depth of field to focus on high-quality study guides. The lighting is bright and natural, suggesting a productive study morning. Colors are kept professional with corporate blues and vivid orange accents on important call-to-action areas." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDkaTxLKzRFVjxQ4MrR8HFgNniJXBXhHVZWQZfTIaSHvjwXRAfG1fSfEOkP4jqt3I4fyCu4WVGre_e6NzuDBT9Q2jUnnEyp2ADWPDB0llZXvJ8KgZbxuRIIKQwwcxpZwIIluuuD7jiZ9yApIDTKxMeUXUroAT9RIOjJSiX6JhGOCsnx-JbZ7mTgP_iT1pt8UYZL4fn5hmD-nfmFiE9Gm0gjHlXt1uYhjCrWt1IodnCMEX0H3MVkLvtRQMaiwHPJxphLYi884oEl1LJ5"/>
+<div class="absolute top-2 right-2 bg-secondary text-white text-[10px] font-bold px-2 py-1 rounded">BÁN CHẠY NHẤT</div>
+</div>
+<div class="p-md flex flex-col flex-grow">
+<h3 class="font-headline-sm text-label-lg mb-xs line-clamp-2 min-h-[40px]">Luyện bộ đề TOEIC NEW FORMAT sát đề thi thật</h3>
+<p class="text-body-sm text-on-surface-variant mb-md italic">Cô Vũ Thị Mai Phương</p>
+<div class="mt-auto">
+<div class="flex items-center gap-sm mb-md">
+<span class="text-primary font-bold text-lg">1,600,000 VNĐ</span>
+<span class="text-on-surface-variant line-through text-xs italic">2,500,000 VNĐ</span>
+</div>
+<button class="w-full py-sm bg-secondary text-on-secondary rounded-lg font-bold hover:bg-secondary-container transition-colors">Đăng ký ngay</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Mock Exam Section (Phòng thi thực chiến) -->
+<section class="mb-xl">
+<div class="p-xl bg-primary-container/10 rounded-2xl border border-primary/20">
+<div class="flex flex-col md:flex-row justify-between items-center gap-lg mb-xl">
+<div class="max-w-2xl">
+<h2 class="font-headline-md text-headline-md text-primary mb-xs">PHÒNG THI THỰC CHIẾN</h2>
+<p class="text-on-surface-variant">Hệ thống thi thử thông minh, chấm điểm AI, phân tích lỗi sai chi tiết giúp bạn tiến bộ từng ngày.</p>
+</div>
+<button class="bg-primary text-on-primary px-xl py-md rounded-full font-bold flex items-center gap-sm hover:bg-primary-container transition-all">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">bolt</span>
+                            Vào phòng thi ngay
+                        </button>
+</div>
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-md">
+<div class="bg-white p-lg rounded-xl border border-outline hover:border-primary transition-colors text-center">
+<div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-md">
+<span class="material-symbols-outlined text-primary text-3xl">assignment</span>
+</div>
+<h4 class="font-bold text-primary mb-xs">Thi thử TOEIC</h4>
+<p class="text-xs text-on-surface-variant">Cập nhật đề thi mới nhất từ ETS</p>
+</div>
+<div class="bg-white p-lg rounded-xl border border-outline hover:border-primary transition-colors text-center">
+<div class="w-12 h-12 bg-secondary/10 rounded-full flex items-center justify-center mx-auto mb-md">
+<span class="material-symbols-outlined text-secondary text-3xl">edit_document</span>
+</div>
+<h4 class="font-bold text-secondary mb-xs">Luyện đề 2024</h4>
+<p class="text-xs text-on-surface-variant">Kho 500+ đề luyện trọng tâm</p>
+</div>
+<div class="bg-white p-lg rounded-xl border border-outline hover:border-primary transition-colors text-center">
+<div class="w-12 h-12 bg-tertiary/10 rounded-full flex items-center justify-center mx-auto mb-md">
+<span class="material-symbols-outlined text-tertiary text-3xl">query_stats</span>
+</div>
+<h4 class="font-bold text-tertiary mb-xs">Chấm điểm AI</h4>
+<p class="text-xs text-on-surface-variant">Phân tích chi tiết lộ trình học</p>
+</div>
+<div class="bg-white p-lg rounded-xl border border-outline hover:border-primary transition-colors text-center">
+<div class="w-12 h-12 bg-on-primary-fixed-variant/10 rounded-full flex items-center justify-center mx-auto mb-md">
+<span class="material-symbols-outlined text-on-primary-fixed-variant text-3xl">workspace_premium</span>
+</div>
+<h4 class="font-bold text-on-primary-fixed-variant mb-xs">Vinh danh</h4>
+<p class="text-xs text-on-surface-variant">Bảng vàng thành tích học viên</p>
+</div>
+</div>
+</div>
+</section>
+</main>
+</div>
+<!-- Footer -->
+<footer class="w-full py-xl px-margin-desktop mt-auto flex flex-col md:flex-row justify-between items-center bg-surface-container-high dark:bg-surface-container-lowest border-t border-outline-variant full-width">
+<div class="mb-lg md:mb-0">
+<span class="font-headline-sm text-headline-sm text-on-surface mb-xs block">NgoaiNgu24h</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant dark:text-surface-variant opacity-80">© 2024 NgoaiNgu24h.vn - All rights reserved</p>
+</div>
+<div class="flex flex-wrap justify-center gap-lg">
+<a class="font-body-sm text-body-sm text-on-surface-variant dark:text-surface-variant hover:text-primary dark:hover:text-primary-fixed transition-colors opacity-80 hover:opacity-100" href="#">Chính sách bảo mật</a>
+<a class="font-body-sm text-body-sm text-on-surface-variant dark:text-surface-variant hover:text-primary dark:hover:text-primary-fixed transition-colors opacity-80 hover:opacity-100" href="#">Điều khoản sử dụng</a>
+<a class="font-body-sm text-body-sm text-on-surface-variant dark:text-surface-variant hover:text-primary dark:hover:text-primary-fixed transition-colors opacity-80 hover:opacity-100" href="#">Liên hệ</a>
+<a class="font-body-sm text-body-sm text-on-surface-variant dark:text-surface-variant hover:text-primary dark:hover:text-primary-fixed transition-colors opacity-80 hover:opacity-100" href="#">Hướng dẫn thanh toán</a>
+</div>
+<div class="flex gap-md mt-lg md:mt-0">
+<div class="w-8 h-8 rounded-full bg-surface flex items-center justify-center shadow-sm cursor-pointer hover:bg-primary hover:text-white transition-all text-primary">
+<span class="material-symbols-outlined text-sm">social_leaderboard</span>
+</div>
+<div class="w-8 h-8 rounded-full bg-surface flex items-center justify-center shadow-sm cursor-pointer hover:bg-secondary hover:text-white transition-all text-secondary">
+<span class="material-symbols-outlined text-sm">play_circle</span>
+</div>
+<div class="w-8 h-8 rounded-full bg-surface flex items-center justify-center shadow-sm cursor-pointer hover:bg-primary-container hover:text-white transition-all text-primary-container">
+<span class="material-symbols-outlined text-sm">alternate_email</span>
+</div>
+</div>
+</footer>
+<!-- Contextual FAB (Only for Home Screen) -->
+<button class="fixed bottom-margin-desktop right-margin-desktop bg-secondary text-on-secondary p-md rounded-full shadow-xl flex items-center gap-sm hover:scale-110 active:scale-95 transition-all z-[100]">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">support_agent</span>
+<span class="font-label-lg hidden sm:inline">Hỗ trợ học viên</span>
+</button>
+</body></html>

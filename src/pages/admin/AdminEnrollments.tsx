@@ -16,17 +16,32 @@ const AdminEnrollments = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("enrollments")
-        .select("*, courses(title), profiles!inner(full_name)")
+        .select("*, courses(title)")
         .order("enrolled_at", { ascending: false });
       if (error) throw error;
-      return (data ?? []).map((e: any) => {
+      
+      const enrollmentsData = data ?? [];
+      const userIds = [...new Set(enrollmentsData.map(e => e.user_id))];
+      
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, full_name")
+        .in("id", userIds);
+
+      return enrollmentsData.map((e: any) => {
         const now = new Date();
         const expires = e.expires_at ? new Date(e.expires_at) : null;
         const remaining = expires ? Math.max(0, Math.ceil((expires.getTime() - now.getTime()) / 86400000)) : null;
         let status = "active";
         if (expires && remaining === 0) status = "expired";
         else if (expires && remaining !== null && remaining <= 7) status = "expiring";
-        return { ...e, remaining, status };
+        
+        return { 
+          ...e, 
+          remaining, 
+          status,
+          profiles: profiles?.find(p => p.id === e.user_id) || null
+        };
       });
     },
   });

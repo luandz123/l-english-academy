@@ -37,10 +37,22 @@ const AdminDashboard = () => {
     queryFn: async () => {
       const { data } = await supabase
         .from("enrollments")
-        .select("*, courses(title), profiles!inner(full_name)")
+        .select("*, courses(title)")
         .order("enrolled_at", { ascending: false })
         .limit(5);
-      return data ?? [];
+      
+      if (!data || data.length === 0) return [];
+      
+      const userIds = [...new Set(data.map(d => d.user_id))];
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, full_name")
+        .in("id", userIds);
+        
+      return data.map(d => ({
+        ...d,
+        profiles: profiles?.find(p => p.id === d.user_id) || null
+      }));
     },
   });
 
@@ -49,10 +61,22 @@ const AdminDashboard = () => {
     queryFn: async () => {
       const { data } = await supabase
         .from("user_quiz_results")
-        .select("*, quizzes(title), profiles:user_id(full_name)")
+        .select("*, quizzes(title)")
         .order("completed_at", { ascending: false })
         .limit(5);
-      return data ?? [];
+      
+      if (!data || data.length === 0) return [];
+      
+      const userIds = [...new Set(data.map(d => d.user_id))];
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, full_name")
+        .in("id", userIds);
+        
+      return data.map(d => ({
+        ...d,
+        profiles: profiles?.find(p => p.id === d.user_id) || null
+      }));
     },
   });
 

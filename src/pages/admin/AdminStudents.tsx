@@ -6,11 +6,59 @@ import { Link } from "react-router-dom";
 import { Search, Eye } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { createClient } from "@supabase/supabase-js";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Plus } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 const AdminStudents = () => {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
+  const [open, setOpen] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+
+  const createStudentMutation = useMutation({
+    mutationFn: async () => {
+      // Create a temporary client that doesn't persist session
+      // This allows the Admin to register a user without being logged out themselves
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      
+      const tempSupabase = createClient(supabaseUrl, supabaseAnonKey, {
+        auth: { persistSession: false }
+      });
+
+      const { data, error } = await tempSupabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { full_name: fullName }
+        }
+      });
+      
+      if (error) throw error;
+      if (!data.user) throw new Error("Không thể tạo tài khoản.");
+      return data;
+    },
+    onSuccess: () => {
+      toast({ title: "Thành công", description: "Đã tạo tài khoản học viên." });
+      setOpen(false);
+      setEmail("");
+      setPassword("");
+      setFullName("");
+      queryClient.invalidateQueries({ queryKey: ["admin-students"] });
+    },
+    onError: (err: any) => {
+      toast({ title: "Lỗi", description: err.message, variant: "destructive" });
+    },
+  });
 
   const { data: students = [], isLoading } = useQuery({
     queryKey: ["admin-students"],
@@ -54,6 +102,39 @@ const AdminStudents = () => {
             <h1 className="text-2xl font-bold text-foreground">Quản lý Học Viên</h1>
             <p className="text-sm text-muted-foreground">{students.length} học viên</p>
           </div>
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-gradient-to-r from-primary to-accent hover:opacity-90">
+                <Plus className="w-4 h-4 mr-2" /> Tạo học viên
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Tạo tài khoản học viên mới</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 pt-4">
+                <div className="space-y-2">
+                  <Label>Họ và tên</Label>
+                  <Input placeholder="Nguyễn Văn A" value={fullName} onChange={(e) => setFullName(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Email</Label>
+                  <Input type="email" placeholder="student@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Mật khẩu</Label>
+                  <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                </div>
+                <Button 
+                  className="w-full" 
+                  onClick={() => createStudentMutation.mutate()} 
+                  disabled={createStudentMutation.isPending || !email || !password || !fullName}
+                >
+                  {createStudentMutation.isPending ? "Đang xử lý..." : "Tạo tài khoản"}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
 
         <div className="relative max-w-sm">

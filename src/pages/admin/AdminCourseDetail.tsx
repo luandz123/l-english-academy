@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import ModuleManager from "@/components/admin/ModuleManager";
+import { Upload } from "lucide-react";
 
 const AdminCourseDetail = () => {
   const { courseId } = useParams();
@@ -34,9 +35,12 @@ const AdminCourseDetail = () => {
   const [subtitle, setSubtitle] = useState("");
   const [instructor, setInstructor] = useState("");
   const [courseType, setCourseType] = useState("");
+  const [thumbnailUrl, setThumbnailUrl] = useState("");
   const [price, setPrice] = useState(0);
   const [durationMonths, setDurationMonths] = useState(6);
   const [isActive, setIsActive] = useState(true);
+  const [isFree, setIsFree] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     if (course) {
@@ -45,23 +49,52 @@ const AdminCourseDetail = () => {
       setSubtitle(course.subtitle ?? "");
       setInstructor(course.instructor ?? "");
       setCourseType(course.course_type);
+      setThumbnailUrl(course.thumbnail_url ?? "");
       setPrice(course.price ?? 0);
       setDurationMonths(course.duration_months ?? 6);
       setIsActive(course.is_active ?? true);
+      setIsFree((course as any).is_free ?? false);
     }
   }, [course]);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploading(true);
+      const sanitizedName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '');
+      const path = `course-thumbnails/${Date.now()}_${sanitizedName}`;
+      
+      const { error: uploadErr } = await supabase.storage.from("materials").upload(path, file);
+      if (uploadErr) throw uploadErr;
+
+      const { data: urlData } = supabase.storage.from("materials").getPublicUrl(path);
+      setThumbnailUrl(urlData.publicUrl);
+      toast({ title: "Tải ảnh lên thành công" });
+    } catch (error: any) {
+      toast({ title: "Lỗi tải ảnh lên", description: error.message, variant: "destructive" });
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const updateMutation = useMutation({
     mutationFn: async () => {
       const { error } = await supabase.from("courses").update({
         title, description, subtitle, instructor, course_type: courseType,
+        thumbnail_url: thumbnailUrl || null,
         price, duration_months: durationMonths, is_active: isActive,
+        is_free: isFree,
       }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-course", id] });
       toast({ title: "Đã cập nhật khóa học" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Lỗi", description: error.message, variant: "destructive" });
     },
   });
 
@@ -78,10 +111,22 @@ const AdminCourseDetail = () => {
     queryFn: async () => {
       const { data } = await supabase
         .from("enrollments")
-        .select("*, profiles!inner(full_name)")
+        .select("*")
         .eq("course_id", id)
         .order("enrolled_at", { ascending: false });
-      return data ?? [];
+        
+      if (!data || data.length === 0) return [];
+      
+      const userIds = [...new Set(data.map(d => d.user_id))];
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, full_name")
+        .in("id", userIds);
+
+      return data.map(d => ({
+        ...d,
+        profiles: profiles?.find(p => p.id === d.user_id) || null
+      }));
     },
   });
 
@@ -113,6 +158,9 @@ const AdminCourseDetail = () => {
       setMatTitle(""); setMatUrl(""); setMatType("pdf");
       toast({ title: "Đã thêm tài liệu" });
     },
+    onError: (error: any) => {
+      toast({ title: "Lỗi", description: error.message, variant: "destructive" });
+    },
   });
 
   const deleteMaterialMutation = useMutation({
@@ -122,6 +170,9 @@ const AdminCourseDetail = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-course-materials", id] });
       toast({ title: "Đã xóa tài liệu" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Lỗi", description: error.message, variant: "destructive" });
     },
   });
 
@@ -177,6 +228,23 @@ const AdminCourseDetail = () => {
                   <Label>Mô tả</Label>
                   <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
                 </div>
+                <div className="space-y-2 col-span-2">
+                  <Label>Link ảnh khóa học (Thumbnail URL)</Label>
+                  <div className="flex gap-2">
+                    <Input value={thumbnailUrl} onChange={(e) => setThumbnailUrl(e.target.value)} placeholder="https://..." className="flex-1" />
+                    <Button variant="outline" className="shrink-0" asChild disabled={isUploading}>
+                      <label className="cursor-pointer">
+                        {isUploading ? "Đang tải..." : <><Upload className="w-4 h-4 mr-2" /> Tải ảnh lên</>}
+                        <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} disabled={isUploading} />
+                      </label>
+                    </Button>
+                  </div>
+                  {thumbnailUrl && (
+                    <div className="mt-2 aspect-video w-full max-w-sm rounded-lg overflow-hidden border bg-muted">
+                      <img src={thumbnailUrl} alt="Preview" className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                </div>
                 <div className="space-y-2">
                   <Label>Giảng viên</Label>
                   <Input value={instructor} onChange={(e) => setInstructor(e.target.value)} />
@@ -204,12 +272,22 @@ const AdminCourseDetail = () => {
                   <Input type="number" value={durationMonths} onChange={(e) => setDurationMonths(Number(e.target.value))} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Trạng thái</Label>
+                  <Label>Chế độ học</Label>
+                  <Select value={isFree ? "free" : "paid"} onValueChange={(v) => setIsFree(v === "free")}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="paid">Tính phí / Phải đăng ký</SelectItem>
+                      <SelectItem value="free">Hoàn toàn Miễn phí (Public)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Trạng thái hiển thị</Label>
                   <Select value={isActive ? "active" : "inactive"} onValueChange={(v) => setIsActive(v === "active")}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="active">Hoạt động</SelectItem>
-                      <SelectItem value="inactive">Tạm dừng</SelectItem>
+                      <SelectItem value="active">Hoạt động (Đang bán/dạy)</SelectItem>
+                      <SelectItem value="inactive">Tạm dừng (Ẩn khỏi học viên)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

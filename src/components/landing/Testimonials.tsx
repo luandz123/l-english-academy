@@ -1,47 +1,57 @@
 const testimonials = [
   {
     name: "Nguyễn Thị Mai",
-    score: "TOEIC 845",
+    score: "TOEIC 850+ (Tăng 300đ)",
     avatar: "👩‍🎓",
-    quote: "Nhờ L-English, mình đã đạt 845 điểm chỉ sau 3 tháng ôn tập. Bài giảng rất dễ hiểu và bài thi sát thực tế!",
+    stars: 5,
+    quote: "Lộ trình học cực kỳ sát đề thi thật. Mình chỉ ôn luyện trên app 2 tháng đã tăng từ 550 lên 850. Giải thích chi tiết giúp mình hiểu sâu vấn đề.",
   },
   {
     name: "Trần Minh Đức",
-    score: "TOEIC 780",
+    score: "TOEIC 750+ (Tiết kiệm 5tr)",
     avatar: "👨‍💼",
-    quote: "Hệ thống flashcard giúp mình nhớ từ vựng nhanh hơn gấp 3 lần. Bộ đề full test rất chất lượng!",
+    stars: 5,
+    quote: "Không cần đến trung tâm đắt đỏ, chỉ cần chăm chỉ luyện đề trên L-English là đủ. App mượt, đề cập nhật liên tục, thực sự quá hời cho một khóa học.",
   },
   {
     name: "Lê Hoàng Anh",
-    score: "TOEIC 900",
+    score: "TOEIC 915+ (Xuất sắc)",
     avatar: "👩‍💻",
-    quote: "Cô Mai Phương giảng rất tận tâm. 60+ bộ đề giúp mình tự tin vào phòng thi và đạt 900 điểm!",
+    stars: 5,
+    quote: "Bộ từ vựng cốt lõi và phần luyện nghe cực kỳ hiệu quả. Mình thích nhất là tính năng gamification giúp việc học không còn nhàm chán.",
   },
 ];
 
 const Testimonials = () => {
   return (
-    <section className="py-16 md:py-24 bg-background">
+    <section className="py-16 md:py-24 bg-white">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-3">Học viên nói gì?</h2>
-          <p className="text-muted-foreground">Hàng nghìn học viên đã đạt mục tiêu TOEIC cùng L-English</p>
+          <h2 className="text-3xl md:text-4xl font-extrabold text-foreground mb-3">Học viên nói gì? 💬</h2>
+          <p className="text-muted-foreground font-medium">Chia sẻ từ những học viên đã trải nghiệm chương trình học giá rẻ chất lượng cao</p>
         </div>
         <div className="grid md:grid-cols-3 gap-6">
           {testimonials.map((t, i) => (
             <div
               key={i}
-              className="bg-card rounded-xl border p-6 space-y-4 card-hover animate-fade-in"
+              className="card-duo p-6 space-y-4 animate-fade-in"
               style={{ animationDelay: `${i * 0.1}s` }}
             >
               <div className="flex items-center gap-3">
-                <span className="text-3xl">{t.avatar}</span>
+                <div className="w-12 h-12 rounded-full bg-[var(--duo-green)]/10 flex items-center justify-center">
+                  <span className="text-2xl">{t.avatar}</span>
+                </div>
                 <div>
-                  <p className="font-semibold text-foreground">{t.name}</p>
-                  <p className="text-sm font-medium text-accent">{t.score}</p>
+                  <p className="font-extrabold text-foreground">{t.name}</p>
+                  <p className="text-sm font-bold text-[var(--duo-green)]">{t.score}</p>
                 </div>
               </div>
-              <p className="text-sm text-muted-foreground leading-relaxed italic">"{t.quote}"</p>
+              <div className="flex gap-0.5">
+                {Array.from({ length: t.stars }).map((_, si) => (
+                  <span key={si} className="text-[var(--duo-yellow)] text-lg">⭐</span>
+                ))}
+              </div>
+              <p className="text-sm text-muted-foreground leading-relaxed font-medium">"{t.quote}"</p>
             </div>
           ))}
         </div>

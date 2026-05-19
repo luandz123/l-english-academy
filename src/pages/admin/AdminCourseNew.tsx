@@ -10,17 +10,41 @@ import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { Upload } from "lucide-react";
 
 const AdminCourseNew = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [isUploading, setIsUploading] = useState(false);
   const [form, setForm] = useState({
     title: "", subtitle: "", description: "", course_type: "",
     instructor: "Cô Mai Phương", price: 0, duration_months: 6,
-    is_active: false, display_order: 0,
+    is_active: false, display_order: 0, thumbnail_url: "",
   });
 
   const update = (key: string, value: any) => setForm((f) => ({ ...f, [key]: value }));
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploading(true);
+      const sanitizedName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '');
+      const path = `course-thumbnails/${Date.now()}_${sanitizedName}`;
+      
+      const { error: uploadErr } = await supabase.storage.from("materials").upload(path, file);
+      if (uploadErr) throw uploadErr;
+
+      const { data: urlData } = supabase.storage.from("materials").getPublicUrl(path);
+      update("thumbnail_url", urlData.publicUrl);
+      toast({ title: "Tải ảnh lên thành công" });
+    } catch (error: any) {
+      toast({ title: "Lỗi tải ảnh lên", description: error.message, variant: "destructive" });
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const createMutation = useMutation({
     mutationFn: async (active: boolean) => {
@@ -34,6 +58,7 @@ const AdminCourseNew = () => {
         duration_months: form.duration_months,
         is_active: active,
         display_order: form.display_order,
+        thumbnail_url: form.thumbnail_url || null,
       });
       if (error) throw error;
     },
@@ -62,6 +87,23 @@ const AdminCourseNew = () => {
               <div className="space-y-2">
                 <Label>Mô tả chi tiết</Label>
                 <Textarea value={form.description} onChange={(e) => update("description", e.target.value)} rows={5} />
+              </div>
+              <div className="space-y-2">
+                <Label>Link ảnh khóa học (Thumbnail URL)</Label>
+                <div className="flex gap-2">
+                  <Input value={form.thumbnail_url} onChange={(e) => update("thumbnail_url", e.target.value)} placeholder="https://..." className="flex-1" />
+                  <Button variant="outline" className="shrink-0" asChild disabled={isUploading}>
+                    <label className="cursor-pointer">
+                      {isUploading ? "Đang tải..." : <><Upload className="w-4 h-4 mr-2" /> Tải ảnh lên</>}
+                      <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} disabled={isUploading} />
+                    </label>
+                  </Button>
+                </div>
+                {form.thumbnail_url && (
+                    <div className="mt-2 aspect-video w-full max-w-sm rounded-lg overflow-hidden border bg-muted">
+                      <img src={form.thumbnail_url} alt="Preview" className="w-full h-full object-cover" />
+                    </div>
+                )}
               </div>
               <div className="space-y-2">
                 <Label>Loại nội dung *</Label>
