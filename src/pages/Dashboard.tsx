@@ -1,7 +1,8 @@
 import StudentLayout from "@/components/StudentLayout";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { PlayCircle, ClipboardCheck, Star, Clock, Flame } from "lucide-react";
+import { PlayCircle as PlayCircleLucide, Flame } from "lucide-react";
+import { PlayCircle, ClipboardText, Star, BookBookmark } from "@phosphor-icons/react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -57,10 +58,34 @@ const Dashboard = () => {
     : "0";
 
   const stats = [
-    { icon: PlayCircle, label: "Bài giảng đã xem", value: `${completedLessons}`, color: "bg-[var(--duo-correct)]", shadow: "shadow-[0_4px_0_var(--duo-correct-dark)]" },
-    { icon: ClipboardCheck, label: "Bài thi đã làm", value: `${totalQuizzes}`, color: "bg-[var(--duo-blue)]", shadow: "shadow-[0_4px_0_var(--duo-blue-dark)]" },
-    { icon: Star, label: "Điểm trung bình", value: `${avgScore}/10`, color: "bg-[var(--duo-yellow)]", shadow: "shadow-[0_4px_0_var(--duo-yellow-dark)]" },
-    { icon: Clock, label: "Khóa đã đăng ký", value: `${enrollments?.length || 0}`, color: "bg-[var(--duo-purple)]", shadow: "shadow-[0_4px_0_var(--duo-purple-dark)]" },
+    {
+      Icon: PlayCircle,
+      label: "Bài giảng đã xem",
+      value: `${completedLessons}`,
+      gradient: "from-emerald-500 to-teal-400",
+      glow: "shadow-emerald-400/40",
+    },
+    {
+      Icon: ClipboardText,
+      label: "Bài thi đã làm",
+      value: `${totalQuizzes}`,
+      gradient: "from-blue-500 to-cyan-400",
+      glow: "shadow-blue-400/40",
+    },
+    {
+      Icon: Star,
+      label: "Điểm trung bình",
+      value: `${avgScore}/10`,
+      gradient: "from-yellow-400 to-orange-400",
+      glow: "shadow-yellow-400/40",
+    },
+    {
+      Icon: BookBookmark,
+      label: "Khóa đã đăng ký",
+      value: `${enrollments?.length || 0}`,
+      gradient: "from-purple-500 to-fuchsia-400",
+      glow: "shadow-purple-400/40",
+    },
   ];
 
   const courseTypeMap: Record<string, string> = {
@@ -91,9 +116,9 @@ const Dashboard = () => {
         {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {stats.map((s) => (
-            <div key={s.label} className="card-duo p-4 space-y-3">
-              <div className={`w-10 h-10 rounded-xl ${s.color} ${s.shadow} flex items-center justify-center`}>
-                <s.icon className="w-5 h-5 text-white" />
+            <div key={s.label} className="card-duo p-4 space-y-3 hover:-translate-y-0.5 transition-transform">
+              <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${s.gradient} ${s.glow} shadow-lg flex items-center justify-center`}>
+                <s.Icon size={26} weight="duotone" color="white" />
               </div>
               <p className="text-2xl font-extrabold text-foreground">{s.value}</p>
               <p className="text-xs font-bold text-muted-foreground">{s.label}</p>

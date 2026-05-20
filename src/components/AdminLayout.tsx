@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, BookOpen, Users, ClipboardList, FileText, BarChart3, Settings, LogOut, Menu, X, Sun, Moon, ChevronRight, ShieldAlert } from "lucide-react";
+import { LayoutDashboard, BookOpen, Users, ClipboardList, FileText, BarChart3, Settings, LogOut, Menu, X, Sun, Moon, ChevronRight, ShieldAlert, Home } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -121,11 +121,18 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
         {/* Bottom actions */}
         <div className="p-3 border-t-2 border-[var(--duo-gray)] space-y-1">
           <Link
+            to="/"
+            className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-muted-foreground hover:bg-[var(--duo-green)]/10 hover:text-[var(--duo-green)] transition-all w-full border-2 border-transparent hover:border-[var(--duo-green)]/30"
+          >
+            <Home className="w-5 h-5 text-[var(--duo-green)]" />
+            Về trang chủ
+          </Link>
+          <Link
             to="/dashboard"
             className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-muted-foreground hover:bg-muted hover:text-foreground transition-all w-full border-2 border-transparent hover:border-[var(--duo-gray)]"
           >
-            <LayoutDashboard className="w-5 h-5 text-[var(--duo-green)]" />
-            Về trang học
+            <LayoutDashboard className="w-5 h-5 text-[var(--duo-blue)]" />
+            Trang học của tôi
           </Link>
           <Button 
             variant="ghost" 
@@ -173,6 +180,13 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
           </div>
           
           <div className="ml-auto flex items-center gap-3">
+            <Link
+              to="/"
+              className="btn-3d btn-3d-white text-xs py-2 px-4 inline-flex items-center gap-1.5 font-bold rounded-xl"
+            >
+              <Home className="w-4 h-4 text-[var(--duo-green)]" />
+              Trang chủ
+            </Link>
             <div className="hidden md:flex items-center gap-1.5 bg-[var(--duo-blue)]/10 px-3 py-1.5 rounded-full border-2 border-[var(--duo-blue)]/20">
               <ShieldAlert className="w-4 h-4 text-[var(--duo-blue)]" />
               <span className="text-xs font-extrabold text-[var(--duo-blue)]">Admin Mode</span>

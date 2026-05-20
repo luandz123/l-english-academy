@@ -8,6 +8,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminRoute from "@/components/AdminRoute";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import ThemeToggle from "@/components/ThemeToggle";
 
 // Lazy-loaded pages
 const Index = lazy(() => import("./pages/Index"));
@@ -61,6 +62,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      <ThemeToggle />
       <BrowserRouter>
         <AuthProvider>
           <ErrorBoundary>

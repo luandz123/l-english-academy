@@ -883,10 +883,10 @@ const DictationPage = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:h-[calc(100vh-230px)] lg:overflow-hidden">
           
           {/* Main Workspace */}
-          <div className="lg:col-span-3 card-duo p-4 sm:p-6 md:p-8 flex flex-col space-y-5 sm:space-y-6 bg-white min-h-[60vh]">
+          <div className="lg:col-span-3 card-duo p-4 sm:p-6 md:p-8 flex flex-col space-y-5 sm:space-y-6 bg-white h-full lg:overflow-hidden">
             
             <div className="flex justify-between items-center pb-4 sm:pb-5 border-b-2">
               <h2 className="text-2xl font-extrabold text-[var(--duo-blue)]">Câu {currentIndex + 1}</h2>
@@ -933,7 +933,7 @@ const DictationPage = () => {
             )}
 
             {/* Dictation Inputs */}
-            <div className="space-y-6 overflow-y-auto w-full max-w-3xl mx-auto flex-1">
+            <div className="space-y-6 overflow-y-auto w-full max-w-3xl mx-auto flex-1 pr-1">
               <QuestionDictationSection 
                 key={`q-${currentQuestion.id}-${sessionDone.has(currentQuestion.id)}`}
                 question={currentQuestion} 
@@ -978,10 +978,10 @@ const DictationPage = () => {
           </div>
 
           {/* Sidebar - Question Navigator (Desktop) */}
-          <div className="hidden lg:block lg:col-span-1 space-y-6">
+          <div className="hidden lg:flex lg:flex-col lg:col-span-1 space-y-6 h-full lg:overflow-hidden">
              <QuestionVocabSidebar vocabWords={vocabWords} currentQuestionId={currentQuestion?.id} />
              
-             <div className="card-duo p-5 bg-white max-h-[80vh] overflow-y-auto">
+             <div className="card-duo p-5 bg-white flex-1 overflow-y-auto">
                 <h3 className="font-extrabold text-lg mb-5 text-foreground flex items-center gap-2"><FileQuestion className="w-5 h-5 text-[var(--duo-blue)]" /> Câu hỏi</h3>
                 <div className="grid grid-cols-4 gap-3">
                   {activeQuestionIndices.map((idx: number) => {
