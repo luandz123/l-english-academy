@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { Volume2, Undo2, LayoutGrid, Check, X as XIcon } from "lucide-react";
+import { Volume2, Undo2, LayoutGrid, Check, X as XIcon, Library } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";

@@ -11,6 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Lock } from "lucide-react";
+import learnBg from "@/assets/learn-bg.jpg";
 
 const LearnPage = () => {
   const { courseId } = useParams();
@@ -245,8 +246,12 @@ const LearnPage = () => {
   const isDictationLesson = currentLesson.lesson_type === "dictation";
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="flex flex-col lg:flex-row">
+    <div className="min-h-screen relative">
+      {/* Fixed background — always fills screen, sharp image, no blur */}
+      <div className="fixed inset-0 -z-10" style={{ backgroundImage: `url(${learnBg})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }} />
+      {/* Light overlay — just enough for text readability */}
+
+      <div className="relative z-10 flex flex-col lg:flex-row">
         {/* Main content */}
         <div className="flex-1 min-w-0">
           {isVideoLesson && (
@@ -339,21 +344,20 @@ const LearnPage = () => {
               {currentLesson.title}
             </h1>
             <div className="flex flex-wrap items-center gap-2">
-              <Button size="sm" className="btn-3d bg-white text-foreground hover:bg-gray-50 border-gray-200" disabled={currentIndex === 0}
+              <Button size="sm" className="btn-3d btn-3d-white" disabled={currentIndex === 0}
                 onClick={() => setCurrentLessonId(allLessons[currentIndex - 1].id)}>
                 <ChevronLeft className="w-5 h-5 mr-1" /> Trước
               </Button>
-              <Button size="sm" className="btn-3d bg-white text-foreground hover:bg-gray-50 border-gray-200" disabled={currentIndex === allLessons.length - 1}
+              <Button size="sm" className="btn-3d btn-3d-white" disabled={currentIndex === allLessons.length - 1}
                 onClick={() => setCurrentLessonId(allLessons[currentIndex + 1].id)}>
                 Tiếp <ChevronRight className="w-5 h-5 ml-1" />
               </Button>
-              <Button size="sm" className={isCompleted ? "btn-3d btn-3d-green" : "btn-3d bg-white text-foreground hover:bg-gray-50 border-gray-200"} onClick={() => completionMutation.mutate()}>
+              <Button size="sm" className={isCompleted ? "btn-3d btn-3d-green" : "btn-3d btn-3d-white"} onClick={() => completionMutation.mutate()}>
                 <Check className="w-5 h-5 mr-1" />
                 {isCompleted ? "Đã xong" : "Đánh dấu xong"}
               </Button>
-              <Button size="sm" className={isFavorited ? "btn-3d bg-[var(--duo-yellow)] hover:bg-[var(--duo-yellow)]/90 text-white border-[#E5B400]" : "btn-3d bg-white text-foreground hover:bg-gray-50 border-gray-200"} onClick={() => favoriteMutation.mutate()}>
-                <Star className={`w-5 h-5 mr-1 ${isFavorited ? "fill-current text-white" : ""}`} />
-                Lưu
+              <Button size="sm" className="btn-3d bg-white border-[var(--duo-red)]/30 text-[var(--duo-red)] hover:bg-[var(--duo-red)]/5 font-extrabold" onClick={() => navigate("/courses")}>
+                <X className="w-5 h-5 mr-1" /> Thoát
               </Button>
               {/* Manual practice buttons */}
               {practices.length > 0 && (
@@ -368,44 +372,20 @@ const LearnPage = () => {
             </div>
           </div>
 
-          {/* Tabs */}
+          {/* Description */}
           <div className="p-6 max-w-4xl mx-auto">
-            <Tabs defaultValue="notes">
-              <TabsList className="bg-muted p-1.5 rounded-xl w-full sm:w-auto inline-flex h-auto">
-                <TabsTrigger value="notes" className="rounded-lg font-extrabold py-2 px-4 data-[state=active]:bg-white data-[state=active]:text-[var(--duo-blue)] data-[state=active]:shadow-sm">📝 Ghi chú cá nhân</TabsTrigger>
-                <TabsTrigger value="description" className="rounded-lg font-extrabold py-2 px-4 data-[state=active]:bg-white data-[state=active]:text-[var(--duo-blue)] data-[state=active]:shadow-sm">📖 Mô tả bài học</TabsTrigger>
-              </TabsList>
-              <TabsContent value="description" className="mt-6">
-                <div className="card-duo p-6 bg-white">
-                  <p className="text-base font-medium text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                    {currentLesson.description || "Chưa có mô tả cho bài học này. 🤫"}
-                  </p>
-                </div>
-              </TabsContent>
-              <TabsContent value="notes" className="mt-6 space-y-6">
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <textarea
-                    value={noteText}
-                    onChange={(e) => setNoteText(e.target.value)}
-                    placeholder="Nhập ghi chú của bạn ở đây... ✍️"
-                    className="flex-1 min-h-[120px] rounded-2xl border-2 border-border p-4 text-base font-medium resize-none focus:outline-none focus:border-[var(--duo-blue)] focus:ring-4 focus:ring-[var(--duo-blue)]/20 transition-all bg-muted/10"
-                  />
-                  <Button className="btn-3d btn-3d-primary px-8 h-auto self-end sm:self-auto text-lg" onClick={() => noteMutation.mutate()} disabled={noteMutation.isPending}>Lưu Ghi Chú 💾</Button>
-                </div>
-                {savedNotes.map((n: any) => (
-                  <div key={n.id} className="card-duo p-5 bg-white">
-                    <p className="text-base font-medium text-foreground leading-relaxed">{n.content}</p>
-                    <p className="text-sm font-bold text-muted-foreground mt-3 opacity-70 flex items-center gap-1">🕒 {new Date(n.created_at).toLocaleString("vi-VN")}</p>
-                  </div>
-                ))}
-              </TabsContent>
-            </Tabs>
+            <div className="card-duo p-6 bg-white">
+              <h3 className="text-lg font-extrabold text-foreground mb-4 flex items-center gap-2">📖 Mô tả bài học</h3>
+              <p className="text-base font-medium text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                {currentLesson.description || "Chưa có mô tả cho bài học này. 🤫"}
+              </p>
+            </div>
           </div>
         </div>
 
         {/* Sidebar */}
         <div className="w-full lg:w-[350px] lg:border-l-2 border-border bg-muted/10 overflow-y-auto lg:h-screen lg:sticky lg:top-0">
-          <div className="p-6 border-b-2 bg-white sticky top-0 z-10">
+          <div className="p-6 border-b-2 bg-card sticky top-0 z-10">
             <h2 className="text-lg font-extrabold text-foreground flex items-center gap-2 mb-3">📋 Nội dung khóa học</h2>
             <div className="flex items-center justify-between text-sm font-bold text-muted-foreground mb-2">
               <span>{completedCount}/{totalLessons} bài</span>
@@ -417,7 +397,7 @@ const LearnPage = () => {
           </div>
           <Accordion type="multiple" defaultValue={modules.map((_: any, i: number) => `part-${i}`)} className="p-4 space-y-4">
             {modules.map((mod: any, pi: number) => (
-              <AccordionItem key={mod.id} value={`part-${pi}`} className="border-none bg-white rounded-2xl overflow-hidden shadow-[0_2px_0_var(--border)] border-2">
+              <AccordionItem key={mod.id} value={`part-${pi}`} className="border-none bg-card rounded-2xl overflow-hidden shadow-[0_2px_0_var(--border)] border-2">
                 <AccordionTrigger className="py-4 px-5 text-base font-extrabold hover:no-underline hover:bg-muted/30 transition-colors">
                   <span className="text-left">{mod.title}</span>
                 </AccordionTrigger>
@@ -481,7 +461,7 @@ const LearnPage = () => {
         {activePractice && practiceQuestions.length > 0 && (
           <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm lg:items-stretch lg:justify-end">
             <div className="card-duo w-full max-w-xl lg:max-w-md lg:h-full lg:rounded-none max-h-[90vh] lg:max-h-screen flex flex-col p-0 overflow-hidden shadow-2xl">
-              <div className="sticky top-0 bg-white border-b-2 p-5 flex items-center justify-between z-10">
+              <div className="sticky top-0 bg-card border-b-2 p-5 flex items-center justify-between z-10">
                 <h3 className="text-xl font-extrabold text-[var(--duo-orange)] flex items-center gap-2">📝 {activePractice.title || "Luyện tập nhanh"}</h3>
                 <Button size="icon" variant="ghost" className="hover:bg-muted rounded-full" onClick={() => setActivePractice(null)}><X className="w-6 h-6 text-muted-foreground" /></Button>
               </div>
@@ -507,7 +487,7 @@ const LearnPage = () => {
                     <div className="space-y-3">
                       {practiceQuestions[practiceCurrentQ]?.answers.map((a: any, i: number) => (
                         <button key={a.id} onClick={() => setPracticeAnswers(prev => ({ ...prev, [practiceCurrentQ]: a.id }))}
-                          className={cn("w-full text-left p-4 rounded-2xl border-2 text-base font-bold transition-all flex items-center gap-4 bg-white",
+                          className={cn("w-full text-left p-4 rounded-2xl border-2 text-base font-bold transition-all flex items-center gap-4 bg-card",
                             practiceAnswers[practiceCurrentQ] === a.id ? "border-[var(--duo-blue)] bg-[var(--duo-blue)]/5 text-[var(--duo-blue)] shadow-[0_4px_0_var(--duo-blue)] -translate-y-1" : "border-border hover:bg-muted/50 hover:border-border shadow-[0_4px_0_transparent]"
                           )}>
                           <span className={cn("w-8 h-8 rounded-lg flex items-center justify-center text-sm border-2 shrink-0", practiceAnswers[practiceCurrentQ] === a.id ? "border-[var(--duo-blue)] bg-white" : "border-border bg-muted/50 text-muted-foreground")}>{String.fromCharCode(65 + i)}</span> 
@@ -517,7 +497,7 @@ const LearnPage = () => {
                     </div>
                     
                     <div className="flex gap-3 pt-6">
-                      {practiceCurrentQ > 0 && <Button className="btn-3d bg-white text-foreground hover:bg-gray-50 border-gray-200 flex-1 py-6 text-base h-auto" onClick={() => setPracticeCurrentQ(p => p - 1)}>← Quay lại</Button>}
+                      {practiceCurrentQ > 0 && <Button className="btn-3d btn-3d-white flex-1 py-6 text-base h-auto" onClick={() => setPracticeCurrentQ(p => p - 1)}>← Quay lại</Button>}
                       {practiceCurrentQ < practiceQuestions.length - 1 ? (
                         <Button className="btn-3d btn-3d-primary flex-1 py-6 text-base h-auto" onClick={() => setPracticeCurrentQ(p => p + 1)} disabled={!practiceAnswers[practiceCurrentQ]}>Tiếp tục →</Button>
                       ) : (
@@ -543,7 +523,7 @@ const LearnPage = () => {
                         const correct = q.answers.find((a: any) => a.is_correct);
                         const isCorrect = selected === correct?.id;
                         return (
-                          <div key={q.id} className={`p-5 rounded-2xl border-2 bg-white ${isCorrect ? "border-[var(--duo-correct)]/30" : "border-[var(--duo-red)]/30"}`}>
+                          <div key={q.id} className={`p-5 rounded-2xl border-2 bg-card ${isCorrect ? "border-[var(--duo-correct)]/30" : "border-[var(--duo-red)]/30"}`}>
                             <p className="text-base font-extrabold mb-4 text-foreground">Câu {i + 1}: {q.question_text}</p>
                             
                             <div className="space-y-3">

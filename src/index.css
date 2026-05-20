@@ -6,90 +6,90 @@
 
 @layer base {
   :root {
-    /* Duolingo-inspired bright palette */
-    --background: 0 0% 98%;
-    --foreground: 0 0% 11%;
+    /* Logo-inspired coral palette */
+    --background: 24 33% 98%;
+    --foreground: 220 22% 20%;
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 11%;
+    --card-foreground: 220 22% 20%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 11%;
-    --primary: 346 91% 50%;
+    --popover-foreground: 220 22% 20%;
+    --primary: 334 95% 56%;
     --primary-foreground: 0 0% 100%;
-    --primary-dark: 346 91% 35%;
-    --primary-light: 346 91% 95%;
-    --secondary: 200 100% 54%;
+    --primary-dark: 336 75% 42%;
+    --primary-light: 336 100% 96%;
+    --secondary: 24 100% 57%;
     --secondary-foreground: 0 0% 100%;
-    --muted: 0 0% 95%;
+    --muted: 24 20% 95%;
     --muted-foreground: 0 0% 45%;
-    --accent: 43 100% 50%;
+    --accent: 24 100% 57%;
     --accent-foreground: 0 0% 100%;
-    --accent-dark: 43 100% 38%;
+    --accent-dark: 24 89% 45%;
     --destructive: 0 80% 60%;
     --destructive-foreground: 0 0% 100%;
     --warning: 30 100% 50%;
     --warning-foreground: 0 0% 100%;
     --success: 142 76% 45%;
     --success-foreground: 0 0% 100%;
-    --border: 0 0% 90%;
-    --input: 0 0% 90%;
-    --ring: 346 91% 50%;
+    --border: 24 18% 88%;
+    --input: 24 18% 88%;
+    --ring: 334 95% 56%;
     --radius: 1rem;
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 0 0% 11%;
-    --sidebar-primary: 346 91% 50%;
+    --sidebar-foreground: 220 22% 20%;
+    --sidebar-primary: 334 95% 56%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 346 91% 95%;
-    --sidebar-accent-foreground: 346 91% 35%;
-    --sidebar-border: 0 0% 92%;
-    --sidebar-ring: 346 91% 50%;
+    --sidebar-accent: 336 100% 96%;
+    --sidebar-accent-foreground: 336 75% 42%;
+    --sidebar-border: 24 18% 90%;
+    --sidebar-ring: 334 95% 56%;
 
-    /* Custom Duolingo colors */
-    --duo-green: #f40c44;
-    --duo-green-dark: #ac0830;
-    --duo-green-light: #f85077;
+    /* Custom landing colors */
+    --duo-green: #ff2f86;
+    --duo-green-dark: #cf1365;
+    --duo-green-light: #ff6aa8;
     --duo-correct: #58cc02;
     --duo-correct-dark: #46a302;
     --duo-correct-light: #84d842;
-    --duo-blue: #1CB0F6;
-    --duo-blue-dark: #1899D6;
-    --duo-yellow: #FFC800;
-    --duo-yellow-dark: #E5B300;
-    --duo-orange: #FF9600;
+    --duo-blue: #2f384b;
+    --duo-blue-dark: #202839;
+    --duo-yellow: #ffc266;
+    --duo-yellow-dark: #df9b34;
+    --duo-orange: #ff8f1f;
     --duo-red: #FF4B4B;
-    --duo-purple: #CE82FF;
-    --duo-purple-dark: #A855F7;
-    --duo-gray: #E5E5E5;
-    --duo-gray-dark: #AFAFAF;
+    --duo-purple: #ff9cc6;
+    --duo-purple-dark: #d94789;
+    --duo-gray: #e6dde1;
+    --duo-gray-dark: #b2a4aa;
   }
 
   .dark {
-    --background: 0 0% 7%;
+    --background: 220 24% 10%;
     --foreground: 0 0% 95%;
-    --card: 0 0% 12%;
+    --card: 220 20% 14%;
     --card-foreground: 0 0% 95%;
-    --popover: 0 0% 12%;
+    --popover: 220 20% 14%;
     --popover-foreground: 0 0% 95%;
-    --primary: 346 91% 50%;
+    --primary: 334 95% 60%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 200 100% 54%;
+    --secondary: 24 100% 57%;
     --secondary-foreground: 0 0% 100%;
-    --muted: 0 0% 15%;
+    --muted: 220 18% 18%;
     --muted-foreground: 0 0% 60%;
-    --accent: 43 100% 50%;
+    --accent: 24 100% 57%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 80% 50%;
     --destructive-foreground: 0 0% 95%;
-    --border: 0 0% 20%;
-    --input: 0 0% 20%;
-    --ring: 346 91% 50%;
-    --sidebar-background: 0 0% 10%;
+    --border: 220 16% 22%;
+    --input: 220 16% 22%;
+    --ring: 334 95% 60%;
+    --sidebar-background: 220 24% 11%;
     --sidebar-foreground: 0 0% 90%;
-    --sidebar-primary: 346 91% 50%;
+    --sidebar-primary: 334 95% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 346 40% 15%;
-    --sidebar-accent-foreground: 346 91% 60%;
-    --sidebar-border: 0 0% 18%;
-    --sidebar-ring: 346 91% 50%;
+    --sidebar-accent: 220 18% 18%;
+    --sidebar-accent-foreground: 334 95% 72%;
+    --sidebar-border: 220 16% 22%;
+    --sidebar-ring: 334 95% 60%;
   }
 }
 
@@ -110,7 +110,7 @@
 @layer utilities {
   .text-gradient {
     @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, var(--duo-green), var(--duo-blue));
+    background-image: linear-gradient(135deg, var(--duo-green), var(--duo-orange));
   }
 }
 
@@ -173,7 +173,7 @@
   .btn-3d-white {
     background-color: white;
     box-shadow: 0 4px 0 var(--duo-gray);
-    color: var(--duo-blue);
+    color: var(--duo-blue-dark);
     border: 2px solid var(--duo-gray);
   }
   .btn-3d-white:hover {
@@ -254,9 +254,9 @@
     border-color: #C8E6C9;
   }
   .badge-blue {
-    background: #DDF4FF;
+    background: #fff2e4;
     color: var(--duo-blue-dark);
-    border-color: #A8E0FD;
+    border-color: #ffd2a5;
   }
   .badge-yellow {
     background: #FFF8E0;
@@ -272,5 +272,28 @@
     background: #FFF0E0;
     color: #CC7700;
     border-color: #FFCC80;
+  }
+
+  /* Dark mode overrides for cards and 3D buttons */
+  .dark .card-duo {
+    background-color: hsl(var(--card));
+    border-color: hsl(var(--border));
+    box-shadow: 0 4px 0 hsl(var(--border));
+  }
+  .dark .card-duo:hover {
+    box-shadow: 0 6px 0 hsl(var(--border));
+  }
+  .dark .btn-3d-white {
+    background-color: hsl(var(--card));
+    border-color: hsl(var(--border));
+    box-shadow: 0 4px 0 hsl(var(--border));
+    color: var(--duo-blue);
+  }
+  .dark .btn-3d-white:hover {
+    background-color: hsl(var(--muted));
+    box-shadow: 0 5px 0 hsl(var(--border));
+  }
+  .dark .btn-3d-white:active {
+    box-shadow: 0 2px 0 hsl(var(--border));
   }
 }

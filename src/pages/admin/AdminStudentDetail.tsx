@@ -142,7 +142,8 @@ const AdminStudentDetail = () => {
           </div>
           <div className="flex-1">
             <h1 className="text-xl font-bold text-foreground">{profile.full_name ?? "—"}</h1>
-            <p className="text-xs text-muted-foreground">📅 Đăng ký: {profile.created_at ? new Date(profile.created_at).toLocaleDateString("vi-VN") : ""}</p>
+            <p className="text-sm font-semibold text-muted-foreground font-mono mt-0.5">{profile.email ?? "—"}</p>
+            <p className="text-xs text-muted-foreground mt-1">📅 Đăng ký: {profile.created_at ? new Date(profile.created_at).toLocaleDateString("vi-VN") : ""}</p>
           </div>
           <Dialog open={unlockDialogOpen} onOpenChange={setUnlockDialogOpen}>
             <DialogTrigger asChild>
@@ -176,6 +177,7 @@ const AdminStudentDetail = () => {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="7">7 ngày (1 tuần)</SelectItem>
                       <SelectItem value="30">30 ngày</SelectItem>
                       <SelectItem value="90">90 ngày</SelectItem>
                       <SelectItem value="180">180 ngày (6 tháng)</SelectItem>

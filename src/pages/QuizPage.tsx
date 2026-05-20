@@ -1,7 +1,7 @@
 import StudentLayout from "@/components/StudentLayout";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,6 +25,7 @@ const QuizPage = () => {
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [currentGroupIdx, setCurrentGroupIdx] = useState(0);
   const { playSound } = useSound();
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const { data: quiz } = useQuery({
     queryKey: ["quiz", qid],
@@ -241,125 +242,150 @@ const QuizPage = () => {
       <main className="flex-1 flex overflow-hidden w-full h-[calc(100vh-64px)]">
         
         {/* Main Content: Group-based view */}
-        <div className="flex-1 h-full overflow-y-auto p-3 sm:p-4 lg:p-8 space-y-5 sm:space-y-8 scroll-smooth pb-32">
-          {currentGroup && (
+        <div className="flex-1 h-full flex flex-col overflow-hidden bg-background">
+          {/* Scrollable Questions Container */}
+          <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-3 sm:p-4 lg:p-8 space-y-5 sm:space-y-8 scroll-smooth">
             <div className="max-w-4xl mx-auto space-y-6">
-              {/* Group context: Passage or shared Audio */}
-              {(currentGroup.passage || currentGroup.audio_url || currentGroup.image_url) && (
-                <div className="card-duo p-5 sm:p-8 bg-[#DDF4FF]/30 border-[#A8E0FD] space-y-6">
-                  {currentGroup.image_url && (
-                    <img src={currentGroup.image_url} alt="Passage Context" className="max-w-full h-auto rounded-xl border-2 border-[var(--duo-gray)] mx-auto" />
-                  )}
-                  {currentGroup.audio_url && (
-                    <div className="flex items-center gap-4 bg-white/80 p-4 rounded-2xl border-2 border-[var(--duo-blue)]/20 shadow-sm">
-                      <div className="w-12 h-12 rounded-xl bg-[var(--duo-blue)] flex items-center justify-center text-white text-xl shrink-0">🎧</div>
-                      <div className="flex-1">
-                        <p className="text-sm font-extrabold text-[var(--duo-blue)] mb-1">Nghe đoạn hội thoại / bài nói</p>
-                        <audio key={currentGroup.audio_url} controls src={currentGroup.audio_url} className="w-full h-9" controlsList="nodownload" />
-                      </div>
-                    </div>
-                  )}
-                  {currentGroup.passage && (
-                    <div className="prose prose-sm max-w-none text-foreground font-medium leading-relaxed bg-white/50 p-6 rounded-2xl border-2 border-[var(--duo-gray)] shadow-inner whitespace-pre-wrap">
-                      {currentGroup.passage}
-                    </div>
-                  )}
+              {/* Global Quiz Audio Player */}
+              {quiz?.audio_url && quiz.audio_url !== "null" && (
+                <div className="bg-[#DDF4FF]/40 dark:bg-zinc-900/40 p-5 rounded-2xl border-2 border-[var(--duo-blue)]/20 flex items-center gap-4 shadow-sm backdrop-blur-sm">
+                  <div className="w-12 h-12 rounded-xl bg-[var(--duo-blue)] flex items-center justify-center text-white text-xl shrink-0 shadow-md">🎧</div>
+                  <div className="flex-1">
+                    <p className="text-sm font-extrabold text-[var(--duo-blue)] mb-1">Âm thanh toàn bài thi (Listening Track)</p>
+                    <audio key={quiz.audio_url} controls src={quiz.audio_url} className="w-full h-9" controlsList="nodownload" />
+                  </div>
                 </div>
               )}
 
-              {/* Questions in group */}
-              {currentGroup.questions.map((q: any) => (
-                <div key={q.id} id={`question-${q.originalIdx}`} className="card-duo p-5 sm:p-7 space-y-6">
-                  <div className="flex items-center justify-between">
-                    <span className="badge-duo badge-blue">Câu {q.originalIdx + 1} / {totalQ}</span>
-                    {q.question_type && <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest bg-muted px-2 py-0.5 rounded-full">{q.question_type}</span>}
-                  </div>
-
-                  {q.image_url && q.image_url !== currentGroup.image_url && (
-                    <img src={q.image_url} alt="Question" className="max-w-full h-auto rounded-xl border-2 border-[var(--duo-gray)] mb-4" />
-                  )}
-                  {q.audio_url && q.audio_url !== currentGroup.audio_url && (
-                    <audio controls src={q.audio_url} className="w-full mb-4" />
-                  )}
-
-                  {q.cleanText && q.question_type !== "part2" && (
-                    <p className="text-lg font-bold text-foreground leading-relaxed p-4 bg-muted/40 rounded-2xl border-l-4 border-[var(--duo-blue)]">
-                      {q.cleanText}
-                    </p>
-                  )}
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {q.answers.map((opt: any, oi: number) => {
-                      const checked = answers[q.originalIdx] === opt.id;
-                      const isPart2 = q.question_type === "part2";
-                      
-                      // Skip D for Part 2
-                      if (isPart2 && oi === 3) return null;
-
-                      // Hide text for Part 1 and Part 2 (force listening)
-                      const hideText = q.question_type === "part1" || q.question_type === "part2";
-
-                      return (
-                        <label
-                          key={opt.id}
-                          onClick={() => selectAnswer(q.originalIdx, opt.id)}
-                          className={cn(
-                            "flex items-center gap-3 w-full p-4 rounded-xl border-2 transition-all cursor-pointer group",
-                            checked
-                              ? "border-[var(--duo-correct)] bg-[var(--duo-correct)]/10 shadow-[0_3px_0_var(--duo-correct-dark)]/20"
-                              : "border-[var(--duo-gray)] bg-white hover:border-[var(--duo-blue)] shadow-[0_2px_0_var(--duo-gray)]"
-                          )}
-                        >
-                          <div className={cn("w-7 h-7 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors font-extrabold text-sm", checked ? "border-[var(--duo-correct)] bg-[var(--duo-correct)] text-white" : "border-[var(--duo-gray-dark)] group-hover:border-[var(--duo-blue)]")}>
-                            {checked ? "✓" : String.fromCharCode(65 + oi)}
+              {currentGroup && (
+                <div className="space-y-6">
+                  {/* Group context: Passage or shared Audio */}
+                  {(currentGroup.passage || currentGroup.audio_url || currentGroup.image_url) && (
+                    <div className="card-duo p-5 sm:p-8 bg-[#DDF4FF]/30 border-[#A8E0FD] space-y-6">
+                      {currentGroup.image_url && (
+                        <img src={currentGroup.image_url} alt="Passage Context" className="max-w-full max-h-[320px] object-contain rounded-xl border-2 border-[var(--duo-gray)] mx-auto shadow-sm" />
+                      )}
+                      {currentGroup.audio_url && (
+                        <div className="flex items-center gap-4 bg-white/80 p-4 rounded-2xl border-2 border-[var(--duo-blue)]/20 shadow-sm">
+                          <div className="w-12 h-12 rounded-xl bg-[var(--duo-blue)] flex items-center justify-center text-white text-xl shrink-0">🎧</div>
+                          <div className="flex-1">
+                            <p className="text-sm font-extrabold text-[var(--duo-blue)] mb-1">Nghe đoạn hội thoại / bài nói</p>
+                            <audio key={currentGroup.audio_url} controls src={currentGroup.audio_url} className="w-full h-9" controlsList="nodownload" />
                           </div>
-                          {hideText ? (
-                            <span className="text-base flex-1 text-muted-foreground/30 italic font-medium select-none tracking-widest">••••••••</span>
-                          ) : (
-                            <span className={cn("text-base flex-1 font-bold", checked ? "text-foreground" : "text-muted-foreground")}>{opt.answer_text}</span>
-                          )}
-                        </label>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
+                        </div>
+                      )}
+                      {currentGroup.passage && (
+                        <div className="prose prose-sm max-w-none text-foreground font-medium leading-relaxed bg-white/50 p-6 rounded-2xl border-2 border-[var(--duo-gray)] shadow-inner whitespace-pre-wrap">
+                          {currentGroup.passage}
+                        </div>
+                      )}
+                    </div>
+                  )}
 
-              {/* Navigation within groups */}
-              <div className="flex items-center justify-between pt-4 pb-20">
-                <Button 
-                  variant="ghost" 
-                  disabled={currentGroupIdx === 0} 
-                  onClick={() => {
-                    setCurrentGroupIdx(prev => prev - 1);
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                  className="font-bold gap-2"
-                >
-                  <ChevronLeft className="w-4 h-4" /> Câu trước
-                </Button>
-                
-                {currentGroupIdx < groupedQuestions.length - 1 ? (
-                  <button 
-                    onClick={() => {
-                      setCurrentGroupIdx(prev => prev + 1);
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }}
-                    className="btn-3d btn-3d-primary py-3 px-8 text-base font-extrabold"
-                  >
-                    Tiếp theo <ChevronRight className="w-5 h-5 inline ml-1" />
-                  </button>
-                ) : (
-                  <button 
-                    onClick={() => setShowConfirm(true)}
-                    className="btn-3d btn-3d-correct py-3 px-8 text-base font-extrabold"
-                  >
-                    Hoàn thành bài thi
-                  </button>
-                )}
-              </div>
+                  {/* Questions in group */}
+                  {currentGroup.questions.map((q: any) => (
+                    <div key={q.id} id={`question-${q.originalIdx}`} className="card-duo p-5 sm:p-7 space-y-6">
+                      <div className="flex items-center justify-between">
+                        <span className="badge-duo badge-blue">Câu {q.originalIdx + 1} / {totalQ}</span>
+                        {q.question_type && <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest bg-muted px-2 py-0.5 rounded-full">{q.question_type}</span>}
+                      </div>
+
+                      {q.image_url && q.image_url !== currentGroup.image_url && (
+                        <img src={q.image_url} alt="Question" className="max-w-full max-h-[260px] object-contain rounded-xl border-2 border-[var(--duo-gray)] mb-4 mx-auto" />
+                      )}
+                      {q.audio_url && q.audio_url !== currentGroup.audio_url && (
+                        <audio controls src={q.audio_url} className="w-full mb-4 animate-in fade-in" />
+                      )}
+
+                      {q.cleanText && q.question_type !== "part2" && (
+                        <p className="text-lg font-bold text-foreground leading-relaxed p-4 bg-muted/40 rounded-2xl border-l-4 border-[var(--duo-blue)]">
+                          {q.cleanText}
+                        </p>
+                      )}
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {q.answers.map((opt: any, oi: number) => {
+                          const checked = answers[q.originalIdx] === opt.id;
+                          const isPart2 = q.question_type === "part2";
+                          
+                          // Skip D for Part 2
+                          if (isPart2 && oi === 3) return null;
+
+                          // Hide text for Part 1 and Part 2 (force listening)
+                          const isPart1ByTitle = quiz?.title?.toLowerCase().includes("part 1") || quiz?.title?.toLowerCase().includes("photos of people") || quiz?.title?.toLowerCase().includes("tranh");
+                          const isPart2ByTitle = quiz?.title?.toLowerCase().includes("part 2") || quiz?.title?.toLowerCase().includes("hỏi đáp");
+                          const hideText = 
+                            q.question_type === "part1" || 
+                            q.question_type === "part2" ||
+                            (isPart1ByTitle && q.question_type === "multiple_choice") ||
+                            (isPart2ByTitle && q.question_type === "multiple_choice") ||
+                            (!!quiz?.audio_url && quiz.audio_url !== "null" && q.question_type === "multiple_choice" && !!q.image_url);
+
+                          return (
+                            <label
+                              key={opt.id}
+                              onClick={() => selectAnswer(q.originalIdx, opt.id)}
+                              className={cn(
+                                "flex items-center gap-3 w-full p-4 rounded-xl border-2 transition-all cursor-pointer group",
+                                checked
+                                  ? "border-[var(--duo-correct)] bg-[var(--duo-correct)]/10 shadow-[0_3px_0_var(--duo-correct-dark)]/20"
+                                  : "border-[var(--duo-gray)] bg-white hover:border-[var(--duo-blue)] shadow-[0_2px_0_var(--duo-gray)]"
+                              )}
+                            >
+                              <div className={cn("w-7 h-7 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors font-extrabold text-sm", checked ? "border-[var(--duo-correct)] bg-[var(--duo-correct)] text-white" : "border-[var(--duo-gray-dark)] group-hover:border-[var(--duo-blue)]")}>
+                                {checked ? "✓" : String.fromCharCode(65 + oi)}
+                              </div>
+                              {hideText ? (
+                                <span className="text-base flex-1 text-muted-foreground/30 italic font-medium select-none tracking-widest">••••••••</span>
+                              ) : (
+                                <span className={cn("text-base flex-1 font-bold", checked ? "text-foreground" : "text-muted-foreground")}>{opt.answer_text}</span>
+                              )}
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          )}
+          </div>
+
+          {/* Sticky Bottom Actions Bar */}
+          <div className="h-20 border-t-2 border-[var(--duo-gray)] bg-card shrink-0 z-20 flex items-center shadow-md">
+            <div className="max-w-4xl w-full mx-auto flex items-center justify-between px-4 sm:px-8">
+              <Button 
+                variant="ghost" 
+                disabled={currentGroupIdx === 0} 
+                onClick={() => {
+                  setCurrentGroupIdx(prev => prev - 1);
+                  scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="font-bold gap-2 text-base text-muted-foreground hover:text-foreground"
+              >
+                <ChevronLeft className="w-5 h-5" /> Câu trước
+              </Button>
+              
+              {currentGroupIdx < groupedQuestions.length - 1 ? (
+                <button 
+                  onClick={() => {
+                    setCurrentGroupIdx(prev => prev + 1);
+                    scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="btn-3d btn-3d-primary py-3 px-8 text-base font-extrabold"
+                >
+                  Tiếp theo <ChevronRight className="w-5 h-5 inline ml-1" />
+                </button>
+              ) : (
+                <button 
+                  onClick={() => setShowConfirm(true)}
+                  className="btn-3d btn-3d-correct py-3 px-8 text-base font-extrabold"
+                >
+                  Hoàn thành bài thi
+                </button>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Right Sidebar: Grid (Desktop only) */}
