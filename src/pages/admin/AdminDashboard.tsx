@@ -1,6 +1,7 @@
 import AdminLayout from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Users, BookOpen, ClipboardCheck, TrendingUp } from "lucide-react";
+import { UsersFour, Books, ClipboardText, TrendUp } from "@phosphor-icons/react";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -103,9 +104,30 @@ const AdminDashboard = () => {
   });
 
   const kpis = [
-    { icon: Users, label: "Tổng học viên", value: totalStudents.toLocaleString(), color: "text-primary", bg: "bg-primary/10" },
-    { icon: BookOpen, label: "Khóa học hoạt động", value: String(totalCourses), color: "text-accent", bg: "bg-accent/10" },
-    { icon: ClipboardCheck, label: "Lượt làm bài thi", value: totalQuizAttempts.toLocaleString(), color: "text-warning", bg: "bg-warning/10" },
+    {
+      Icon: UsersFour,
+      label: "Tổng học viên",
+      value: totalStudents.toLocaleString(),
+      gradient: "from-blue-500 to-cyan-400",
+      glow: "shadow-blue-400/40",
+      border: "border-blue-100 dark:border-blue-900",
+    },
+    {
+      Icon: Books,
+      label: "Khóa học hoạt động",
+      value: String(totalCourses),
+      gradient: "from-emerald-500 to-teal-400",
+      glow: "shadow-emerald-400/40",
+      border: "border-emerald-100 dark:border-emerald-900",
+    },
+    {
+      Icon: ClipboardText,
+      label: "Lượt làm bài thi",
+      value: totalQuizAttempts.toLocaleString(),
+      gradient: "from-orange-400 to-amber-400",
+      glow: "shadow-orange-400/40",
+      border: "border-orange-100 dark:border-orange-900",
+    },
   ];
 
   return (
@@ -115,12 +137,12 @@ const AdminDashboard = () => {
 
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
           {kpis.map((k) => (
-            <div key={k.label} className="bg-card rounded-xl border p-4 space-y-2">
-              <div className={`w-8 h-8 rounded-lg ${k.bg} flex items-center justify-center`}>
-                <k.icon className={`w-4 h-4 ${k.color}`} />
+            <div key={k.label} className={`bg-card rounded-2xl border-2 ${k.border} p-5 space-y-3 hover:-translate-y-0.5 transition-transform`}>
+              <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${k.gradient} ${k.glow} shadow-lg flex items-center justify-center`}>
+                <k.Icon size={26} weight="duotone" color="white" />
               </div>
-              <p className="text-2xl font-bold text-foreground">{k.value}</p>
-              <p className="text-xs text-muted-foreground">{k.label}</p>
+              <p className="text-3xl font-black text-foreground">{k.value}</p>
+              <p className="text-xs font-bold text-muted-foreground">{k.label}</p>
             </div>
           ))}
         </div>

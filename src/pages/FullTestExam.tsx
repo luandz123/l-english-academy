@@ -133,7 +133,16 @@ const FullTestExam = () => {
           ))}
         </div>
         <span className="text-xs font-bold text-muted-foreground ml-auto">{answeredCount}/200 đã trả lời</span>
-        <span className="text-sm font-mono font-extrabold text-[var(--duo-red)] bg-red-50 border-2 border-red-200 px-3 py-1 rounded-xl">⏱ {hours}:{String(mins).padStart(2, "0")}:{String(secs).padStart(2, "0")}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-mono font-extrabold text-[var(--duo-red)] bg-red-50 border-2 border-red-200 px-3 py-1 rounded-xl">⏱ {hours}:{String(mins).padStart(2, "0")}:{String(secs).padStart(2, "0")}</span>
+          <button 
+            onClick={submit} 
+            disabled={submitting}
+            className="btn-3d btn-3d-correct py-1.5 px-4 text-xs sm:text-sm font-black flex items-center gap-1.5"
+          >
+            {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Nộp bài"}
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-1">

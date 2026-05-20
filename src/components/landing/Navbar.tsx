@@ -24,7 +24,7 @@ const Navbar = () => {
   const initials = displayName.charAt(0).toUpperCase();
 
   return (
-    <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b-2 border-[var(--duo-gray)]">
+    <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-[var(--duo-gray)] shadow-[0_1px_0_rgba(47,56,75,0.04)]">
       <div className="container mx-auto flex items-center justify-between h-16 px-4">
         <Link to="/">
           <Logo />
@@ -50,7 +50,7 @@ const Navbar = () => {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48 rounded-xl border-2 border-[var(--duo-gray)] shadow-[0_4px_0_var(--duo-gray)]">
               <DropdownMenuItem onClick={() => navigate("/dashboard")} className="font-bold rounded-lg">
-                <User className="w-4 h-4 mr-2 text-[var(--duo-blue)]" />
+                <User className="w-4 h-4 mr-2 text-[var(--duo-green)]" />
                 Dashboard
               </DropdownMenuItem>
               {isAdmin && (

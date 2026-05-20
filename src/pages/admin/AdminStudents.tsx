@@ -91,7 +91,8 @@ const AdminStudents = () => {
   };
 
   const filtered = students.filter((s) =>
-    (s.full_name ?? "").toLowerCase().includes(search.toLowerCase())
+    (s.full_name ?? "").toLowerCase().includes(search.toLowerCase()) ||
+    (s.email ?? "").toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -139,7 +140,7 @@ const AdminStudents = () => {
 
         <div className="relative max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input placeholder="Tìm theo tên..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <Input placeholder="Tìm theo tên hoặc email..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
 
         {isLoading ? (
@@ -152,6 +153,7 @@ const AdminStudents = () => {
                   <tr className="border-b bg-muted/50">
                     <th className="text-left p-3 font-semibold text-foreground">#</th>
                     <th className="text-left p-3 font-semibold text-foreground">Họ tên</th>
+                    <th className="text-left p-3 font-semibold text-foreground">Email</th>
                     <th className="text-center p-3 font-semibold text-foreground">Khóa</th>
                     <th className="text-center p-3 font-semibold text-foreground">Ngày ĐK</th>
                     <th className="text-center p-3 font-semibold text-foreground">Trạng thái</th>
@@ -163,6 +165,7 @@ const AdminStudents = () => {
                     <tr key={s.id} className="border-b last:border-0 hover:bg-muted/30">
                       <td className="p-3 text-muted-foreground">{i + 1}</td>
                       <td className="p-3 font-medium text-foreground">{s.full_name ?? "—"}</td>
+                      <td className="p-3 text-foreground font-mono text-xs">{s.email ?? "—"}</td>
                       <td className="p-3 text-center text-foreground">{s.courseCount} khóa</td>
                       <td className="p-3 text-center text-muted-foreground">{s.created_at ? new Date(s.created_at).toLocaleDateString("vi-VN") : ""}</td>
                       <td className="p-3 text-center">
