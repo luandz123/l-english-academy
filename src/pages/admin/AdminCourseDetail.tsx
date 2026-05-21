@@ -40,7 +40,16 @@ const AdminCourseDetail = () => {
   const [durationMonths, setDurationMonths] = useState(6);
   const [isActive, setIsActive] = useState(true);
   const [isFree, setIsFree] = useState(false);
+  const [categoryId, setCategoryId] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ["admin-course-categories"],
+    queryFn: async () => {
+      const { data } = await supabase.from("course_categories").select("*").order("display_order");
+      return data || [];
+    },
+  });
 
   useEffect(() => {
     if (course) {
@@ -54,6 +63,7 @@ const AdminCourseDetail = () => {
       setDurationMonths(course.duration_months ?? 6);
       setIsActive(course.is_active ?? true);
       setIsFree((course as any).is_free ?? false);
+      setCategoryId(course.category_id ? String(course.category_id) : "");
     }
   }, [course]);
 
@@ -84,6 +94,7 @@ const AdminCourseDetail = () => {
       const { error } = await supabase.from("courses").update({
         title, description, subtitle, instructor, course_type: courseType,
         thumbnail_url: thumbnailUrl || null,
+        category_id: categoryId ? parseInt(categoryId) : null,
         price, duration_months: durationMonths, is_active: isActive,
         is_free: isFree,
       }).eq("id", id);
@@ -260,6 +271,17 @@ const AdminCourseDetail = () => {
                       <SelectItem value="vocabulary">Từ vựng</SelectItem>
                       <SelectItem value="fulltest">Full Test</SelectItem>
                       <SelectItem value="combo">Combo</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Danh mục hiển thị (Trang chủ)</Label>
+                  <Select value={categoryId} onValueChange={setCategoryId}>
+                    <SelectTrigger><SelectValue placeholder="Chọn danh mục" /></SelectTrigger>
+                    <SelectContent>
+                      {categories.map(c => (
+                        <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>

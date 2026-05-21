@@ -256,12 +256,14 @@ const KeywordDictationInput = ({
   expected, 
   onCorrect,
   isDoneInSession,
-  autoFocus
+  autoFocus,
+  forceReveal
 }: { 
   expected: string, 
   onCorrect: () => void,
   isDoneInSession: boolean,
-  autoFocus?: boolean
+  autoFocus?: boolean,
+  forceReveal?: boolean
 }) => {
   const [value, setValue] = useState("");
   const [status, setStatus] = useState<"typing" | "correct" | "error">(isDoneInSession ? "correct" : "typing");
@@ -270,11 +272,15 @@ const KeywordDictationInput = ({
   const { playSound } = useSound();
 
   useEffect(() => {
-    if (isDoneInSession) {
+    if (forceReveal) {
       setStatus("correct");
       setValue(expected);
+    } else if (isDoneInSession) {
+      // Nếu đã làm xong (hoặc vừa check xong), giữ nguyên trạng thái lỗi nếu đang lỗi
+      setStatus(prev => prev === "error" ? "error" : "correct");
+      setValue(prev => prev ? prev : expected);
     }
-  }, [isDoneInSession, expected]);
+  }, [isDoneInSession, forceReveal, expected]);
 
   useEffect(() => {
     if (autoFocus && inputRef.current && status !== "correct") {
@@ -282,24 +288,30 @@ const KeywordDictationInput = ({
     }
   }, [autoFocus, status]);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      if (e.nativeEvent?.isComposing) return;
-      if (isFullMatch(value, expected)) {
-        playSound("correct");
-        setStatus("correct");
-        setValue(expected);
-        onCorrect();
-      } else {
-        playSound("incorrect");
-        setStatus("error");
-        setShake(true);
-        setTimeout(() => setShake(false), 300);
-      }
+  const handleCheck = () => {
+    if (isFullMatch(value, expected)) {
+      playSound("correct");
+      setStatus("correct");
+      setValue(expected);
+      onCorrect();
+    } else {
+      playSound("incorrect");
+      setStatus("error");
+      // Keep value as what user typed
+      setShake(true);
+      setTimeout(() => setShake(false), 300);
+      onCorrect(); // Đánh dấu hoàn thành để chuyển focus
     }
   };
 
-  const containerClass = `inline-block align-middle mx-1 sm:mx-2 min-w-[80px] transition-all relative ${
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      if (e.nativeEvent?.isComposing) return;
+      handleCheck();
+    }
+  };
+
+  const containerClass = `inline-block align-middle mx-1 sm:mx-1.5 min-w-[70px] transition-all relative ${
     status === "correct" 
       ? "animate-[dictation-correct_0.5s_ease-in-out]" 
       : ""
@@ -307,44 +319,60 @@ const KeywordDictationInput = ({
 
   return (
     <div className={containerClass}>
-      <div className="relative flex items-center justify-center">
+      <div className="relative flex items-center justify-center group">
         <Input
           ref={inputRef}
           value={value}
           onChange={(e) => {
-            setValue(e.target.value);
+            const val = e.target.value;
+            setValue(val);
             if (status === "error") setStatus("typing");
+            
+            // Auto check
+            if (isFullMatch(val, expected)) {
+              playSound("correct");
+              setStatus("correct");
+              setValue(expected);
+              onCorrect();
+            }
           }}
           onKeyDown={handleKeyDown}
           placeholder="..."
-          className={`w-full text-center px-2 py-1 h-auto text-base sm:text-lg border-2 shadow-sm focus-visible:ring-0 ${
+          className={`w-full text-center px-2 py-1 h-auto text-sm sm:text-base border-2 shadow-sm focus-visible:ring-0 ${
             status === "correct" 
-              ? "font-extrabold text-[var(--duo-correct)] border-[var(--duo-correct)] bg-[var(--duo-correct)]/10 pr-8" 
+              ? "font-bold text-[var(--duo-correct)] border-[var(--duo-correct)] bg-[var(--duo-correct)]/10 pr-6" 
               : status === "error"
-              ? "font-bold text-[var(--duo-red)] border-[var(--duo-red)] bg-[var(--duo-red)]/10"
-              : "font-bold border-border bg-white focus-visible:border-[var(--duo-blue)] focus-visible:ring-[var(--duo-blue)]/20"
+              ? "font-bold text-[var(--duo-red)] border-[var(--duo-red)] bg-[var(--duo-red)]/10 pr-6"
+              : "font-bold border-border bg-white focus-visible:border-[var(--duo-blue)] focus-visible:ring-[var(--duo-blue)]/20 pr-6"
           }`}
-          readOnly={status === "correct"}
-          style={{ width: `${Math.max(80, expected.length * 15 + (status === "correct" ? 30 : 20))}px` }}
+          readOnly={status === "correct" || status === "error"}
+          style={{ width: `${Math.max(70, Math.max(expected.length, value.length) * 10 + 26)}px` }}
         />
         {status === "correct" && (
-          <CheckCircle className="w-4 h-4 text-[var(--duo-correct)] absolute right-2 top-1/2 -translate-y-1/2" />
+          <CheckCircle className="w-3.5 h-3.5 text-[var(--duo-correct)] absolute right-2 top-1/2 -translate-y-1/2" />
+        )}
+        {status === "error" && (
+          <>
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-black text-[var(--duo-red)] select-none">
+              !
+            </div>
+            <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 z-50 pointer-events-none">
+              <div className="bg-white border-2 border-[var(--duo-correct)] text-[var(--duo-correct)] text-xs font-bold px-2 py-1 rounded-md shadow-sm whitespace-nowrap animate-in fade-in slide-in-from-top-1">
+                {expected}
+              </div>
+            </div>
+          </>
+        )}
+        {status === "typing" && (
+          <button 
+            onClick={handleCheck}
+            className="absolute right-1 top-1/2 -translate-y-1/2 w-5 h-5 bg-[var(--duo-blue)]/10 text-[var(--duo-blue)] rounded flex items-center justify-center opacity-100 hover:bg-[var(--duo-blue)] hover:text-white transition-colors"
+            title="Kiểm tra (Enter)"
+          >
+            <ChevronRight className="w-3 h-3" />
+          </button>
         )}
       </div>
-      {status === "error" && (
-        <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 z-50">
-          <button
-            onClick={() => {
-              setValue(expected);
-              setStatus("correct");
-              onCorrect();
-            }}
-            className="bg-white border-2 border-[var(--duo-red)] text-[var(--duo-red)] text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm whitespace-nowrap hover:bg-red-50 flex items-center gap-1.5 transition-colors animate-in fade-in slide-in-from-top-1"
-          >
-            <Eye className="w-3.5 h-3.5" /> Xem đáp án
-          </button>
-        </div>
-      )}
     </div>
   );
 };
@@ -1229,6 +1257,19 @@ const QuestionVocabSidebar = ({ vocabWords, currentQuestionId }: { vocabWords: a
 };
 
 const KeywordModeItem = ({ item, question, vocabWords, isDoneInSession, onComplete, autoFocus }: any) => {
+  const [forceRevealAll, setForceRevealAll] = useState(false);
+
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // Shortcut Alt+A to reveal
+      if (e.altKey && e.key.toLowerCase() === 'a') {
+        setForceRevealAll(true);
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, []);
+
   const keywords = useMemo(() => {
     let kw: string[] = [];
     if (question.dictation_keywords?.trim()) {
@@ -1254,10 +1295,10 @@ const KeywordModeItem = ({ item, question, vocabWords, isDoneInSession, onComple
   const [completedKeywords, setCompletedKeywords] = useState<Set<number>>(new Set());
 
   useEffect(() => {
-    if (isDoneInSession) {
+    if (isDoneInSession || forceRevealAll) {
       setCompletedKeywords(new Set(keywordIndices));
     }
-  }, [isDoneInSession, keywordIndices]);
+  }, [isDoneInSession, forceRevealAll, keywordIndices]);
 
   useEffect(() => {
     if (keywordIndices.length > 0 && completedKeywords.size === keywordIndices.length && !isDoneInSession) {
@@ -1273,7 +1314,7 @@ const KeywordModeItem = ({ item, question, vocabWords, isDoneInSession, onComple
 
   if (keywordIndices.length === 0) {
     return (
-      <div className="bg-white p-4 sm:p-6 rounded-2xl border-2 leading-[2.5] sm:leading-[3] text-lg sm:text-xl font-bold shadow-sm">
+      <div className="bg-white p-3 sm:p-5 rounded-2xl border-2 leading-loose sm:leading-[2.5] text-base sm:text-lg font-medium shadow-sm">
         {item.text}
         <p className="text-sm text-[var(--duo-orange)] mt-3 font-bold bg-[var(--duo-orange)]/10 p-2 sm:p-3 rounded-lg border border-[var(--duo-orange)]/20">
           ⚠️ Chưa thiết lập chế độ nghe điền keyword cho bài này.
@@ -1283,26 +1324,38 @@ const KeywordModeItem = ({ item, question, vocabWords, isDoneInSession, onComple
   }
 
   return (
-    <div className="bg-white p-4 sm:p-6 rounded-2xl border-2 leading-[2.5] sm:leading-[3] text-lg sm:text-xl font-bold shadow-sm flex flex-wrap items-center">
-      {parts.map((part: any, idx: number) => (
-        part.isKeyword ? (
-          <KeywordDictationInput 
-            key={idx}
-            expected={part.text}
-            isDoneInSession={completedKeywords.has(idx) || isDoneInSession}
-            onCorrect={() => {
-              setCompletedKeywords(prev => {
-                const next = new Set(prev);
-                next.add(idx);
-                return next;
-              });
-            }}
-            autoFocus={autoFocus && !completedKeywords.has(idx) && idx === keywordIndices.find(i => !completedKeywords.has(i))}
-          />
-        ) : (
-          <span key={idx} className="whitespace-pre-wrap">{part.text}</span>
-        )
-      ))}
+    <div className="bg-white p-3 sm:p-5 rounded-2xl border-2 leading-loose sm:leading-[2.5] text-base sm:text-lg font-medium shadow-sm flex flex-col items-start gap-2 relative group">
+      {!isDoneInSession && keywordIndices.length > 0 && !forceRevealAll && (
+        <button 
+          onClick={() => setForceRevealAll(true)}
+          className="absolute right-2 top-2 z-10 text-[10px] font-bold bg-muted/50 hover:bg-muted text-muted-foreground px-2 py-1 rounded-md transition-colors"
+          title="Phím tắt: Alt + A"
+        >
+          <Eye className="w-3 h-3 inline mr-1" /> Xem đáp án (Alt+A)
+        </button>
+      )}
+      <div className="flex flex-wrap items-center pt-2 sm:pt-0 w-full">
+        {parts.map((part: any, idx: number) => (
+          part.isKeyword ? (
+            <KeywordDictationInput 
+              key={idx}
+              expected={part.text}
+              forceReveal={forceRevealAll}
+              isDoneInSession={completedKeywords.has(idx) || isDoneInSession}
+              onCorrect={() => {
+                setCompletedKeywords(prev => {
+                  const next = new Set(prev);
+                  next.add(idx);
+                  return next;
+                });
+              }}
+              autoFocus={autoFocus && !completedKeywords.has(idx) && idx === keywordIndices.find(i => !completedKeywords.has(i))}
+            />
+          ) : (
+            <span key={idx} className="whitespace-pre-wrap">{part.text}</span>
+          )
+        ))}
+      </div>
     </div>
   );
 };

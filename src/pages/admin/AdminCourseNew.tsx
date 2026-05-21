@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Upload } from "lucide-react";
 
@@ -17,9 +17,17 @@ const AdminCourseNew = () => {
   const { toast } = useToast();
   const [isUploading, setIsUploading] = useState(false);
   const [form, setForm] = useState({
-    title: "", subtitle: "", description: "", course_type: "",
+    title: "", subtitle: "", description: "", course_type: "", category_id: "",
     instructor: "Cô Mai Phương", price: 0, duration_months: 6,
     is_active: false, display_order: 0, thumbnail_url: "",
+  });
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ["admin-course-categories"],
+    queryFn: async () => {
+      const { data } = await supabase.from("course_categories").select("*").order("display_order");
+      return data || [];
+    },
   });
 
   const update = (key: string, value: any) => setForm((f) => ({ ...f, [key]: value }));
@@ -53,6 +61,7 @@ const AdminCourseNew = () => {
         subtitle: form.subtitle || null,
         description: form.description || null,
         course_type: form.course_type,
+        category_id: form.category_id ? parseInt(form.category_id) : null,
         instructor: form.instructor,
         price: form.price,
         duration_months: form.duration_months,
@@ -115,6 +124,17 @@ const AdminCourseNew = () => {
                     <SelectItem value="listening">Listening</SelectItem>
                     <SelectItem value="speaking">Speaking & Writing</SelectItem>
                     <SelectItem value="fulltest">Full Test</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Danh mục hiển thị</Label>
+                <Select value={form.category_id} onValueChange={(v) => update("category_id", v)}>
+                  <SelectTrigger><SelectValue placeholder="Chọn danh mục" /></SelectTrigger>
+                  <SelectContent>
+                    {categories.map(c => (
+                      <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

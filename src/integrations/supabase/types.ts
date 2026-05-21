@@ -103,6 +103,36 @@ export type Database = {
           },
         ]
       }
+      course_categories: {
+        Row: {
+          created_at: string | null
+          display_order: number | null
+          icon: string | null
+          id: number
+          is_active: boolean | null
+          name: string
+          slug: string
+        }
+        Insert: {
+          created_at?: string | null
+          display_order?: number | null
+          icon?: string | null
+          id?: number
+          is_active?: boolean | null
+          name: string
+          slug: string
+        }
+        Update: {
+          created_at?: string | null
+          display_order?: number | null
+          icon?: string | null
+          id?: number
+          is_active?: boolean | null
+          name?: string
+          slug?: string
+        }
+        Relationships: []
+      }
       courses: {
         Row: {
           course_type: string
@@ -116,6 +146,7 @@ export type Database = {
           is_free: boolean | null
           price: number | null
           subtitle: string | null
+          category_id: number | null
           thumbnail_url: string | null
           title: string
         }
@@ -131,6 +162,7 @@ export type Database = {
           is_free?: boolean | null
           price?: number | null
           subtitle?: string | null
+          category_id?: number | null
           thumbnail_url?: string | null
           title: string
         }
@@ -146,6 +178,7 @@ export type Database = {
           is_free?: boolean | null
           price?: number | null
           subtitle?: string | null
+          category_id?: number | null
           thumbnail_url?: string | null
           title?: string
         }

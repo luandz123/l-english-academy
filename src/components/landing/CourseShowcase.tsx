@@ -16,6 +16,7 @@ interface CourseRow {
   is_active: boolean | null;
   is_free: boolean | null;
   display_order: number | null;
+  category_id: number | null;
 }
 
 const courseTypeMap: Record<string, string> = {
@@ -27,10 +28,23 @@ const courseTypeMap: Record<string, string> = {
 };
 
 const CourseShowcase = () => {
-  const [activeTab, setActiveTab] = useState<string>("toeic");
+  const [activeTab, setActiveTab] = useState<number | null>(null);
+
+  // Fetch active categories
+  const { data: categories = [], isLoading: isCategoriesLoading } = useQuery({
+    queryKey: ["featured-categories"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("course_categories")
+        .select("*")
+        .eq("is_active", true)
+        .order("display_order");
+      return data || [];
+    },
+  });
 
   // Fetch all active real courses from Supabase
-  const { data: dbCourses, isLoading } = useQuery<CourseRow[]>({
+  const { data: dbCourses = [], isLoading: isCoursesLoading } = useQuery<CourseRow[]>({
     queryKey: ["featured-courses-real"],
     queryFn: async () => {
       const { data } = await supabase
@@ -47,38 +61,20 @@ const CourseShowcase = () => {
     return new Intl.NumberFormat("vi-VN").format(price) + " đ";
   };
 
-  // Categorize the database courses dynamically based on titles/content keywords
-  const toeicCourses = dbCourses?.filter(c => 
-    c.title.toUpperCase().includes("TOEIC") || 
-    (c.subtitle && c.subtitle.toUpperCase().includes("TOEIC"))
-  ) || [];
+  // Set default active tab
+  if (activeTab === null && categories.length > 0) {
+    setActiveTab(categories[0].id);
+  }
 
-  const cap3Courses = dbCourses?.filter(c => 
-    c.title.toUpperCase().includes("CẤP 3") || 
-    c.title.toUpperCase().includes("LỚP 10") || 
-    c.title.toUpperCase().includes("THPT") ||
-    c.title.toUpperCase().includes("TỐT NGHIỆP") ||
-    c.title.toUpperCase().includes("THCS") ||
-    (c.subtitle && (
-      c.subtitle.toUpperCase().includes("CẤP 3") || 
-      c.subtitle.toUpperCase().includes("LỚP 10") || 
-      c.subtitle.toUpperCase().includes("THPT") ||
-      c.subtitle.toUpperCase().includes("THCS")
-    ))
-  ) || [];
+  const activeCourses = dbCourses.filter(c => c.category_id === activeTab);
+  const activeCategory = categories.find(c => c.id === activeTab);
 
-  const basicCourses = dbCourses?.filter(c => 
-    !toeicCourses.some(tc => tc.id === c.id) && 
-    !cap3Courses.some(cc => cc.id === c.id)
-  ) || [];
-
-  const getCoursesForTab = () => {
-    if (activeTab === "toeic") return toeicCourses;
-    if (activeTab === "cap3") return cap3Courses;
-    return basicCourses;
+  const getIcon = (iconName: string | null) => {
+    if (iconName === "BookOpen") return <BookOpen size={16} />;
+    if (iconName === "GraduationCap") return <GraduationCap size={16} />;
+    if (iconName === "Layers") return <Layers size={16} />;
+    return <BookOpen size={16} />;
   };
-
-  const activeCourses = getCoursesForTab();
 
   return (
     <section className="py-14 md:py-20 bg-[#fffaf7] dark:bg-zinc-900 border-t border-[var(--duo-gray)] dark:border-zinc-800" id="courses">
@@ -95,59 +91,54 @@ const CourseShowcase = () => {
           </p>
         </div>
 
-        {/* Tab Filters matching the database classes capability */}
+        {/* Dynamic Tab Filters */}
         <div className="flex flex-wrap justify-center gap-3 md:gap-4 mb-12">
-          <button
-            onClick={() => setActiveTab("toeic")}
-            className={`btn-3d text-sm font-bold uppercase transition-all duration-150 py-3 px-6 rounded-2xl flex items-center gap-2 ${
-              activeTab === "toeic"
-                ? "bg-[var(--duo-green)] text-white shadow-[0_4px_0_var(--duo-green-dark)] hover:bg-[var(--duo-green-light)]"
-                : "bg-white text-[var(--duo-green-dark)] border-2 border-[var(--duo-gray)] shadow-[0_4px_0_var(--duo-gray)] hover:bg-zinc-50"
-            }`}
-          >
-            <BookOpen size={16} /> LUYỆN THI TOEIC
-            {toeicCourses.length > 0 && (
-              <span className="ml-1 bg-white/20 px-2 py-0.5 rounded-full text-xs font-black">
-                {toeicCourses.length}
-              </span>
-            )}
-          </button>
+          {categories.map((cat, index) => {
+            const isActive = activeTab === cat.id;
+            const catCourses = dbCourses.filter(c => c.category_id === cat.id);
+            // Cycle through green, orange, blue styles based on index
+            const styleIdx = index % 3;
+            
+            let btnClass = "bg-white text-[var(--duo-gray-dark)] border-2 border-[var(--duo-gray)] shadow-[0_4px_0_var(--duo-gray)] hover:bg-zinc-50";
+            let badgeClass = "bg-slate-100 text-slate-600";
+            
+            if (isActive) {
+              if (styleIdx === 0) {
+                btnClass = "bg-[var(--duo-green)] text-white shadow-[0_4px_0_var(--duo-green-dark)] hover:bg-[var(--duo-green-light)] border-[var(--duo-green)]";
+                badgeClass = "bg-white/20 text-white";
+              } else if (styleIdx === 1) {
+                btnClass = "bg-[var(--duo-orange)] text-white shadow-[0_4px_0_var(--accent-dark)] hover:brightness-105 border-[var(--duo-orange)]";
+                badgeClass = "bg-orange-100 text-[var(--accent-dark)]";
+              } else {
+                btnClass = "bg-[var(--duo-blue)] text-white shadow-[0_4px_0_var(--duo-blue-dark)] hover:brightness-110 border-[var(--duo-blue)]";
+                badgeClass = "bg-slate-100 text-[var(--duo-blue-dark)]";
+              }
+            } else {
+              // Idle text colors based on style index
+              if (styleIdx === 0) btnClass = "bg-white text-[var(--duo-green-dark)] border-2 border-[var(--duo-gray)] shadow-[0_4px_0_var(--duo-gray)] hover:bg-zinc-50";
+              else if (styleIdx === 1) btnClass = "bg-white text-[var(--duo-orange)] border-2 border-[var(--duo-gray)] shadow-[0_4px_0_var(--duo-gray)] hover:bg-zinc-50";
+              else btnClass = "bg-white text-[var(--duo-blue-dark)] border-2 border-[var(--duo-gray)] shadow-[0_4px_0_var(--duo-gray)] hover:bg-zinc-50";
+            }
 
-          <button
-            onClick={() => setActiveTab("cap3")}
-            className={`btn-3d text-sm font-bold uppercase transition-all duration-150 py-3 px-6 rounded-2xl flex items-center gap-2 ${
-              activeTab === "cap3"
-                ? "bg-[var(--duo-orange)] text-white shadow-[0_4px_0_var(--accent-dark)] hover:brightness-105"
-                : "bg-white text-[var(--duo-orange)] border-2 border-[var(--duo-gray)] shadow-[0_4px_0_var(--duo-gray)] hover:bg-zinc-50"
-            }`}
-          >
-            <GraduationCap size={16} /> ÔN THI CẤP 3 & THPT
-            {cap3Courses.length > 0 && (
-              <span className="ml-1 bg-orange-100 text-[var(--accent-dark)] px-2 py-0.5 rounded-full text-xs font-black">
-                {cap3Courses.length}
-              </span>
-            )}
-          </button>
-
-          <button
-            onClick={() => setActiveTab("basic")}
-            className={`btn-3d text-sm font-bold uppercase transition-all duration-150 py-3 px-6 rounded-2xl flex items-center gap-2 ${
-              activeTab === "basic"
-                ? "bg-[var(--duo-blue)] text-white shadow-[0_4px_0_var(--duo-blue-dark)] hover:brightness-110"
-                : "bg-white text-[var(--duo-blue-dark)] border-2 border-[var(--duo-gray)] shadow-[0_4px_0_var(--duo-gray)] hover:bg-zinc-50"
-            }`}
-          >
-            <Layers size={16} /> TIẾNG ANH CĂN BẢN
-            {basicCourses.length > 0 && (
-              <span className="ml-1 bg-slate-100 text-[var(--duo-blue-dark)] px-2 py-0.5 rounded-full text-xs font-black">
-                {basicCourses.length}
-              </span>
-            )}
-          </button>
+            return (
+              <button
+                key={cat.id}
+                onClick={() => setActiveTab(cat.id)}
+                className={`btn-3d text-sm font-bold uppercase transition-all duration-150 py-3 px-6 rounded-2xl flex items-center gap-2 ${btnClass}`}
+              >
+                {getIcon(cat.icon)} {cat.name}
+                {catCourses.length > 0 && (
+                  <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-black ${badgeClass}`}>
+                    {catCourses.length}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
 
         {/* Content Showcase Grid */}
-        {isLoading ? (
+        {isCoursesLoading || isCategoriesLoading ? (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {[1, 2, 3].map((i) => (
               <Skeleton key={i} className="h-96 rounded-3xl" />
@@ -179,9 +170,7 @@ const CourseShowcase = () => {
 
                     {/* Floating top badges */}
                     <div className="absolute top-3.5 left-3.5 flex flex-wrap gap-2">
-                      <span className={`badge-duo ${
-                        activeTab === "toeic" ? "badge-green" : activeTab === "cap3" ? "badge-blue" : "badge-blue"
-                      } font-black text-[10px]`}>
+                      <span className={`badge-duo badge-blue font-black text-[10px]`}>
                         {courseTypeMap[c.course_type] || c.course_type}
                       </span>
                     </div>
@@ -236,13 +225,7 @@ const CourseShowcase = () => {
 
                       <Link
                         to={`/courses/${c.id}`}
-                        className={`btn-3d text-xs font-black py-2 px-4 rounded-xl inline-flex items-center gap-1.5 ${
-                          activeTab === "toeic"
-                            ? "btn-3d-green"
-                            : activeTab === "cap3"
-                            ? "btn-3d-primary"
-                            : "btn-3d-white"
-                        }`}
+                        className={`btn-3d text-xs font-black py-2 px-4 rounded-xl inline-flex items-center gap-1.5 btn-3d-white`}
                       >
                         HỌC NGAY <ArrowRight size={13} />
                       </Link>
@@ -261,13 +244,10 @@ const CourseShowcase = () => {
             
             <div className="space-y-2">
               <h3 className="text-2xl font-black text-foreground">
-                {activeTab === "cap3" ? "Chương Trình Ôn Thi Cấp 3 & THPT" : "Chương Trình Tiếng Anh Căn Bản"}
+                Chương Trình {activeCategory?.name || "Đang phát triển"}
               </h3>
               <p className="text-muted-foreground font-semibold text-sm max-w-md mx-auto">
-                {activeTab === "cap3" 
-                  ? "Hệ thống đang hoàn thiện kho đề thi thử tuyển sinh Lớp 10 và đề thi tốt nghiệp THPT Quốc Gia với ngân hàng câu hỏi bám sát cấu trúc mới nhất của Bộ GD&ĐT."
-                  : "Chương trình tự học giao tiếp hàng ngày, ngữ pháp cơ bản cho người mất gốc đang được đội ngũ sư phạm biên soạn."
-                }
+                Hệ thống đang cập nhật và hoàn thiện kho dữ liệu cho chương trình học này.
               </p>
             </div>
 

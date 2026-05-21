@@ -37,6 +37,7 @@ const AdminCourseNew = lazy(() => import("./pages/admin/AdminCourseNew"));
 const AdminCourseDetail = lazy(() => import("./pages/admin/AdminCourseDetail"));
 const AdminStudents = lazy(() => import("./pages/admin/AdminStudents"));
 const AdminStudentDetail = lazy(() => import("./pages/admin/AdminStudentDetail"));
+const AdminCategories = lazy(() => import("./pages/admin/AdminCategories"));
 const AdminEnrollments = lazy(() => import("./pages/admin/AdminEnrollments"));
 const AdminMaterials = lazy(() => import("./pages/admin/AdminMaterials"));
 const AdminReports = lazy(() => import("./pages/admin/AdminReports"));
@@ -94,6 +95,7 @@ const App = () => (
                 {/* Admin (role-protected) */}
                 <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
                 <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+                <Route path="/admin/categories" element={<AdminRoute><AdminCategories /></AdminRoute>} />
                 <Route path="/admin/courses" element={<AdminRoute><AdminCourses /></AdminRoute>} />
                 <Route path="/admin/courses/new" element={<AdminRoute><AdminCourseNew /></AdminRoute>} />
                 <Route path="/admin/courses/:courseId" element={<AdminRoute><AdminCourseDetail /></AdminRoute>} />
