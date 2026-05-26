@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useParams, useNavigate, Link, useLocation } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -688,7 +688,7 @@ const DictationPage = () => {
       <StudentLayout>
         <div className="text-center p-8 bg-card rounded-xl border">
           <p className="text-muted-foreground mb-4">Bài luyện nghe này chưa có câu hỏi.</p>
-          <Button onClick={() => navigate(-1)}><ArrowLeft className="w-4 h-4 mr-2" /> Quay lại</Button>
+          <Button onClick={() => navigate(`/courses/${courseId}`)}><ArrowLeft className="w-4 h-4 mr-2" /> Quay lại</Button>
         </div>
       </StudentLayout>
     );
@@ -726,7 +726,7 @@ const DictationPage = () => {
       <StudentLayout>
         <div className="max-w-3xl mx-auto card-duo p-5 sm:p-8 lg:p-10 space-y-6 sm:space-y-8 bg-white">
           <div className="flex items-center gap-4 border-b-2 pb-4 sm:pb-6">
-            <Button variant="ghost" size="icon" className="hover:bg-muted rounded-full" onClick={() => navigate(-1)}>
+            <Button variant="ghost" size="icon" className="hover:bg-muted rounded-full" onClick={() => navigate(`/courses/${courseId}`)}>
               <ArrowLeft className="w-6 h-6 text-muted-foreground" />
             </Button>
             <div>
@@ -861,9 +861,19 @@ const DictationPage = () => {
                   <div className="flex items-center justify-between border-b-2 pb-4">
                     <span className="text-xl font-extrabold text-[var(--duo-blue)]">Câu {idx + 1}</span>
                     {q.audio_url && (
-                      <Button className="btn-3d bg-white text-[var(--duo-blue)] hover:bg-[var(--duo-blue)]/5 border-[var(--duo-blue)]/30 font-bold px-4" size="sm" onClick={() => new Audio(q.audio_url).play()}>
-                        <Volume2 className="w-5 h-5 mr-2" /> Nghe lại
-                      </Button>
+                      <audio 
+                        src={q.audio_url} 
+                        controls 
+                        className="h-10 max-w-[200px] sm:max-w-[250px]"
+                        onPlay={(e) => {
+                          const audios = document.getElementsByTagName('audio');
+                          for (let i = 0; i < audios.length; i++) {
+                            if (audios[i] !== e.currentTarget) {
+                              audios[i].pause();
+                            }
+                          }
+                        }}
+                      />
                     )}
                   </div>
                   <div className="space-y-4">
@@ -896,29 +906,72 @@ const DictationPage = () => {
       <div className="max-w-6xl mx-auto space-y-6">
         
         {/* Header & Back */}
-        <div className="flex items-center justify-between bg-white card-duo p-5 border-2">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" className="hover:bg-muted rounded-full" onClick={() => navigate(-1)}>
-              <ArrowLeft className="w-6 h-6 text-muted-foreground" />
+        <div className="flex items-center justify-between bg-white card-duo p-4 sm:p-5 border-2">
+          <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+            <Button variant="ghost" size="icon" className="hover:bg-muted rounded-full shrink-0" onClick={() => setStarted(false)}>
+              <ArrowLeft className="w-5 h-5 sm:w-6 sm:h-6 text-muted-foreground" />
             </Button>
-            <div>
-              <h1 className="text-xl font-extrabold text-foreground">{quizData.quiz.title}</h1>
-              <p className="text-sm font-bold text-[var(--duo-correct)] flex items-center gap-2 mt-1">
+            <div className="min-w-0">
+              <h1 className="text-base sm:text-xl font-extrabold text-foreground truncate">{quizData.quiz.title}</h1>
+              <p className="text-xs sm:text-sm font-bold text-[var(--duo-correct)] flex items-center gap-1.5 mt-0.5 sm:mt-1">
                 <span className="w-2 h-2 rounded-full bg-[var(--duo-correct)] inline-block animate-pulse"></span>
-                Luyện nghe điền từ • {completedQuestionIds.size}/{questions.length} hoàn thành
+                <span className="truncate">Luyện nghe điền từ • {completedQuestionIds.size}/{questions.length} hoàn thành</span>
               </p>
             </div>
+          </div>
+
+          {/* D4: Mobile Sheet Trigger right inside header to avoid floating bottom blocks */}
+          <div className="lg:hidden shrink-0">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button className="btn-3d btn-3d-blue h-9 sm:h-11 px-3 sm:px-4 text-xs sm:text-sm shadow-sm flex items-center gap-1.5">
+                  <Library className="w-4 h-4" /> Danh sách & Từ vựng
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="bottom" className="h-[80vh] rounded-t-3xl border-t-4 border-[var(--duo-blue)] p-0 overflow-hidden bg-muted/10">
+                <div className="h-full overflow-y-auto p-4 sm:p-6 space-y-6 sm:space-y-8 bg-white">
+                  <QuestionVocabSidebar vocabWords={vocabWords} currentQuestionId={currentQuestion?.id} />
+                  
+                  <div className="space-y-4">
+                    <h3 className="font-extrabold text-lg sm:text-xl text-foreground flex items-center gap-2">
+                      <FileQuestion className="w-5 h-5 text-[var(--duo-blue)]" /> Danh sách câu hỏi
+                    </h3>
+                    <div className="grid grid-cols-5 sm:grid-cols-6 gap-2 pt-1">
+                      {activeQuestionIndices.map((idx: number) => {
+                        const q = questions[idx];
+                        const isDone = completedQuestionIds.has(q.id);
+                        const isCurrent = currentIndex === idx;
+                        return (
+                          <SheetClose asChild key={q.id}>
+                            <button
+                              onClick={() => setCurrentIndex(idx)}
+                              className={`aspect-square flex items-center justify-center rounded-xl text-sm font-extrabold transition-all border-2
+                                ${isCurrent ? 'border-[var(--duo-blue)] bg-[var(--duo-blue)]/10 text-[var(--duo-blue)] shadow-[0_2px_0_var(--duo-blue)] -translate-y-0.5' : ''}
+                                ${isDone && !isCurrent ? 'bg-[var(--duo-correct)] border-[var(--duo-correct-dark)] text-white shadow-[0_2px_0_var(--duo-correct-dark)]' : ''}
+                                ${!isDone && !isCurrent ? 'bg-white border-border text-muted-foreground hover:bg-muted/50' : ''}
+                              `}
+                            >
+                              {idx + 1}
+                            </button>
+                          </SheetClose>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:h-[calc(100vh-230px)] lg:overflow-hidden">
           
           {/* Main Workspace */}
-          <div className="lg:col-span-3 card-duo p-4 sm:p-6 md:p-8 flex flex-col space-y-5 sm:space-y-6 bg-white h-full lg:overflow-hidden">
+          <div className="lg:col-span-3 card-duo p-4 sm:p-6 md:p-8 flex flex-col space-y-4 sm:space-y-6 bg-white h-full lg:overflow-hidden">
             
-            <div className="flex justify-between items-center pb-4 sm:pb-5 border-b-2">
-              <h2 className="text-2xl font-extrabold text-[var(--duo-blue)]">Câu {currentIndex + 1}</h2>
-              <div className="flex items-center gap-3 text-sm font-bold text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-lg border">
+            <div className="flex justify-between items-center pb-3 sm:pb-5 border-b-2">
+              <h2 className="text-xl sm:text-2xl font-extrabold text-[var(--duo-blue)]">Câu {currentIndex + 1}</h2>
+              <div className="hidden sm:flex items-center gap-3 text-sm font-bold text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-lg border">
                 <kbd className="px-2 py-0.5 bg-white rounded border shadow-sm text-xs font-mono">Ctrl</kbd>
                 Phát / Dừng Audio
               </div>
@@ -926,22 +979,22 @@ const DictationPage = () => {
 
             {/* Audio Block */}
             {currentQuestion.audio_url && (
-              <div className="w-full bg-[var(--duo-blue)]/5 p-4 sm:p-6 rounded-2xl border-2 border-[var(--duo-blue)]/20 flex flex-col items-center gap-4">
+              <div className="w-full bg-[var(--duo-blue)]/5 p-3 sm:p-6 rounded-2xl border-2 border-[var(--duo-blue)]/20 flex flex-col items-center gap-3 sm:gap-4">
                 <audio 
                   ref={audioRef} 
                   src={currentQuestion.audio_url} 
                   controls 
-                  className="w-full max-w-lg h-12 rounded-full shadow-sm"
+                  className="w-full max-w-lg h-10 sm:h-12 rounded-full shadow-sm"
                   autoPlay
                 />
-                <div className="flex flex-wrap justify-center items-center gap-2 bg-white border-2 rounded-xl p-1 sm:p-1.5 shadow-sm">
+                <div className="flex flex-wrap justify-center items-center gap-1.5 bg-white border-2 rounded-xl p-1 shadow-sm">
                   {[0.5, 0.75, 1, 1.25, 1.5].map((speed) => (
                     <Button
                       key={speed}
                       variant="ghost"
                       size="sm"
                       className={cn(
-                        "h-8 px-3 text-sm font-extrabold rounded-lg transition-colors",
+                        "h-7 sm:h-8 px-2 sm:px-3 text-xs sm:text-sm font-extrabold rounded-lg transition-colors",
                         audioRef.current?.playbackRate === speed ? "bg-[var(--duo-blue)] text-white shadow-[0_2px_0_#1899D6]" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                       )}
                       onClick={() => {
@@ -961,7 +1014,7 @@ const DictationPage = () => {
             )}
 
             {/* Dictation Inputs */}
-            <div className="space-y-6 overflow-y-auto w-full max-w-3xl mx-auto flex-1 pr-1">
+            <div className="space-y-4 sm:space-y-6 overflow-y-auto w-full max-w-3xl mx-auto flex-1 pr-1">
               <QuestionDictationSection 
                 key={`q-${currentQuestion.id}-${sessionDone.has(currentQuestion.id)}`}
                 question={currentQuestion} 
@@ -975,31 +1028,31 @@ const DictationPage = () => {
             </div>
 
             {/* Bottom Actions */}
-            <div className="pt-6 border-t-2 flex flex-col sm:flex-row items-center justify-between gap-4 mt-auto">
-               <span className="text-sm sm:text-base font-extrabold text-[var(--duo-correct)] bg-[var(--duo-correct)]/10 px-4 py-2 rounded-xl border border-[var(--duo-correct)]/20 w-full sm:w-auto text-center">
+            <div className="pt-4 sm:pt-6 border-t-2 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 mt-auto">
+               <span className="text-xs sm:text-base font-extrabold text-[var(--duo-correct)] bg-[var(--duo-correct)]/10 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl border border-[var(--duo-correct)]/20 w-full sm:w-auto text-center">
                  Đã xong {completedQuestionIds.size}/{questions.length} câu
                </span>
-               <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+               <div className="flex flex-row gap-2 w-full sm:w-auto justify-end">
                  {sessionDone.has(currentQuestion.id) ? (
                    <Button 
                      onClick={() => handleNext(true)} 
-                     className="btn-3d btn-3d-primary text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 h-auto w-full sm:w-auto animate-in zoom-in-95 duration-300"
+                     className="btn-3d btn-3d-primary text-sm sm:text-lg px-4 sm:px-8 py-2.5 sm:py-6 h-10 sm:h-auto flex-1 sm:flex-none animate-in zoom-in-95 duration-300"
                    >
-                     Tiếp tục <ChevronRight className="w-5 h-5 ml-2" />
+                     Tiếp tục <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 ml-1 sm:ml-2" />
                    </Button>
                  ) : (
-                   <Button className="btn-3d bg-white text-muted-foreground hover:bg-gray-50 border-gray-200 text-base sm:text-lg px-6 py-5 sm:py-6 h-auto w-full sm:w-auto" onClick={() => handleNext(false)}>
-                     <SkipForward className="w-5 h-5 mr-2" /> Bỏ qua
+                   <Button className="btn-3d bg-white text-muted-foreground hover:bg-gray-50 border-gray-200 text-sm sm:text-lg px-4 py-2.5 sm:py-6 h-10 sm:h-auto flex-1 sm:flex-none" onClick={() => handleNext(false)}>
+                     <SkipForward className="w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2" /> Bỏ qua
                    </Button>
                  )}
                  <Button 
-                   className="btn-3d btn-3d-blue text-base sm:text-lg px-6 py-5 sm:py-6 h-auto w-full sm:w-auto"
+                   className="btn-3d btn-3d-blue text-sm sm:text-lg px-4 py-2.5 sm:py-6 h-10 sm:h-auto flex-1 sm:flex-none"
                    onClick={() => {
                      playSound("complete");
                      setIsSubmitted(true);
                    }}
                  >
-                   <CheckCircle className="w-5 h-5 mr-2" /> Nộp bài
+                   <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2" /> Nộp bài
                  </Button>
                </div>
             </div>
@@ -1034,46 +1087,6 @@ const DictationPage = () => {
             </div>
           </div>
 
-          {/* Mobile Navigator Trigger */}
-          <div className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-[90%] max-w-sm">
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button className="btn-3d btn-3d-blue w-full rounded-2xl h-14 text-base shadow-2xl shadow-[var(--duo-blue)]/30">
-                  <Library className="w-5 h-5 mr-2" /> Danh sách câu & Từ vựng
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="bottom" className="h-[80vh] rounded-t-3xl border-t-4 border-[var(--duo-blue)] p-0 overflow-hidden bg-muted/10">
-                <div className="h-full overflow-y-auto p-6 space-y-8 bg-white">
-                  <QuestionVocabSidebar vocabWords={vocabWords} currentQuestionId={currentQuestion?.id} />
-                  
-                  <div className="space-y-4">
-                    <h3 className="font-extrabold text-xl text-foreground flex items-center gap-2"><FileQuestion className="w-5 h-5 text-[var(--duo-blue)]" /> Danh sách câu hỏi</h3>
-                    <div className="grid grid-cols-5 sm:grid-cols-6 gap-3 pt-2">
-                      {activeQuestionIndices.map((idx: number) => {
-                        const q = questions[idx];
-                        const isDone = completedQuestionIds.has(q.id);
-                        const isCurrent = currentIndex === idx;
-                        return (
-                          <SheetClose asChild key={q.id}>
-                            <button
-                              onClick={() => setCurrentIndex(idx)}
-                              className={`aspect-square flex items-center justify-center rounded-xl text-base font-extrabold transition-all border-2
-                                ${isCurrent ? 'border-[var(--duo-blue)] bg-[var(--duo-blue)]/10 text-[var(--duo-blue)] shadow-[0_2px_0_var(--duo-blue)] -translate-y-0.5' : ''}
-                                ${isDone && !isCurrent ? 'bg-[var(--duo-correct)] border-[var(--duo-correct-dark)] text-white shadow-[0_2px_0_var(--duo-correct-dark)]' : ''}
-                                ${!isDone && !isCurrent ? 'bg-white border-border text-muted-foreground hover:bg-muted/50' : ''}
-                              `}
-                            >
-                              {idx + 1}
-                            </button>
-                          </SheetClose>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-              </SheetContent>
-            </Sheet>
-          </div>
         </div>
       </div>
     </StudentLayout>
@@ -1114,10 +1127,23 @@ const QuestionDictationSection = ({
     return items;
   }, [question]);
 
+  // Helper: detect if an item in keyword mode has no keywords (manual or vocab)
+  const itemHasKeywords = useCallback((item: any) => {
+    if (!isKeywordMode) return true;
+    // Cloze items are not affected by keyword mode
+    if (item.type === 'question' && item.text.includes('[___]')) return true;
+    // Has manually set keywords?
+    if (question.dictation_keywords?.trim()) return true;
+    // Has vocab words for this question?
+    const questionVocab = (vocabWords ?? []).filter((w: any) => w.question_id === question.id);
+    return questionVocab.length > 0;
+  }, [isKeywordMode, question, vocabWords]);
+
   useEffect(() => {
-    setFields(new Array(expectedItems.length).fill(isDoneInSession));
+    // Pre-mark no-keyword items as true so they don't block other items
+    setFields(expectedItems.map(item => isDoneInSession || (isKeywordMode ? !itemHasKeywords(item) : false)));
     setFocusedIndex(0);
-  }, [expectedItems.length, isDoneInSession]);
+  }, [expectedItems.length, isDoneInSession, isKeywordMode]);
 
   const setFieldComplete = (idx: number) => {
     setFields(prev => {
@@ -1273,11 +1299,16 @@ const KeywordModeItem = ({ item, question, vocabWords, isDoneInSession, onComple
   const keywords = useMemo(() => {
     let kw: string[] = [];
     if (question.dictation_keywords?.trim()) {
+      // Use explicitly set keywords first
       kw = question.dictation_keywords.split(',').map((k: string) => k.trim()).filter(Boolean);
+    } else if (vocabWords && vocabWords.length > 0) {
+      // Fallback: auto-use vocab words linked to this question as keywords
+      const questionVocab = vocabWords.filter((w: any) => w.question_id === question.id);
+      kw = questionVocab.map((w: any) => w.word).filter(Boolean);
     }
     // Sort keywords by length descending to match longest first
     return kw.sort((a, b) => b.length - a.length);
-  }, [question]);
+  }, [question, vocabWords]);
 
   const parts = useMemo(() => {
     if (keywords.length === 0) return [{ text: item.text, isKeyword: false }];
@@ -1306,22 +1337,20 @@ const KeywordModeItem = ({ item, question, vocabWords, isDoneInSession, onComple
     }
   }, [completedKeywords.size, keywordIndices.length, isDoneInSession, onComplete]);
 
-  useEffect(() => {
-    if (keywordIndices.length === 0 && !isDoneInSession) {
-      onComplete();
-    }
-  }, [keywordIndices.length, isDoneInSession, onComplete]);
+  // NOTE: When no keywords, we do NOT auto-complete. The parent pre-marks
+  // this item as non-blocking so other items are unaffected.
 
   if (keywordIndices.length === 0) {
     return (
       <div className="bg-white p-3 sm:p-5 rounded-2xl border-2 leading-loose sm:leading-[2.5] text-base sm:text-lg font-medium shadow-sm">
         {item.text}
         <p className="text-sm text-[var(--duo-orange)] mt-3 font-bold bg-[var(--duo-orange)]/10 p-2 sm:p-3 rounded-lg border border-[var(--duo-orange)]/20">
-          ⚠️ Chưa thiết lập chế độ nghe điền keyword cho bài này.
+          ⚠️ Câu này chưa có từ vựng hoặc keyword. Hãy thêm từ vựng cho câu trong trang admin để bật chế độ điền keyword tự động.
         </p>
       </div>
     );
   }
+
 
   return (
     <div className="bg-white p-3 sm:p-5 rounded-2xl border-2 leading-loose sm:leading-[2.5] text-base sm:text-lg font-medium shadow-sm flex flex-col items-start gap-2 relative group">

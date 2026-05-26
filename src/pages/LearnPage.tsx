@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { PlayCircle, FileText, CheckCircle, ChevronLeft, ChevronRight, Star, Check, Loader2, FileQuestion, X, Headphones } from "lucide-react";
+import { PlayCircle, CheckCircle, ChevronLeft, ChevronRight, Check, Loader2, FileQuestion, X, Headphones, PanelRightClose, PanelRight, Keyboard, Trophy, ChevronDown } from "lucide-react";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -46,9 +46,9 @@ const LearnPage = () => {
         .select("*, lessons(*)")
         .eq("course_id", cId)
         .order("display_order");
-        
+
       if (!data) return [];
-      
+
       return data
         .filter((m: any) => m.is_published !== false)
         .map((m: any) => ({
@@ -140,6 +140,25 @@ const LearnPage = () => {
   const [triggeredPractices, setTriggeredPractices] = useState<Set<number>>(new Set());
   const videoTimeRef = useRef(0);
 
+  // B1: Sidebar collapse state (persisted)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    try { return localStorage.getItem('learnpage-sidebar-collapsed') === 'true'; } catch { return false; }
+  });
+  const toggleSidebar = () => setSidebarCollapsed(v => {
+    const next = !v;
+    try { localStorage.setItem('learnpage-sidebar-collapsed', String(next)); } catch {}
+    return next;
+  });
+
+  // A4: Module completion modal
+  const [moduleCompleteModal, setModuleCompleteModal] = useState<{ moduleName: string; nextModuleName?: string } | null>(null);
+
+  // A3: Exit confirm modal
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
+
+  // A3: Keyboard shortcuts tooltip
+  const [showShortcuts, setShowShortcuts] = useState(false);
+
   // Simulate video time tracking (since YouTube API is complex, use interval)
   useEffect(() => {
     if (!currentLessonId || practices.length === 0) return;
@@ -204,7 +223,19 @@ const LearnPage = () => {
         await supabase.from("user_lesson_progress").insert({ user_id: user.id, lesson_id: currentLessonId, is_completed: true });
       }
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["lesson-progress"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["lesson-progress"] });
+      // A4: Check if this is the last lesson in a module
+      const currentModule = modules.find((m: any) => m.lessons.some((l: any) => l.id === currentLessonId));
+      const currentModuleIdx = modules.findIndex((m: any) => m.id === currentModule?.id);
+      const isLastInModule = currentModule && currentModule.lessons[currentModule.lessons.length - 1]?.id === currentLessonId;
+      const existing = progress.find((p: any) => p.lesson_id === currentLessonId);
+      const wasCompleted = existing?.is_completed;
+      if (isLastInModule && !wasCompleted) {
+        const nextModule = modules[currentModuleIdx + 1];
+        setModuleCompleteModal({ moduleName: currentModule.title, nextModuleName: nextModule?.title });
+      }
+    },
   });
 
   const favoriteMutation = useMutation({
@@ -232,6 +263,30 @@ const LearnPage = () => {
     },
   });
 
+  // A3: Keyboard shortcuts effect
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName?.toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || (e.target as HTMLElement)?.isContentEditable) return;
+      if (activePractice) return;
+      if (e.key === 'ArrowLeft' && currentIndex > 0) {
+        e.preventDefault();
+        setCurrentLessonId(allLessons[currentIndex - 1].id);
+      } else if (e.key === 'ArrowRight' && currentIndex < allLessons.length - 1) {
+        e.preventDefault();
+        setCurrentLessonId(allLessons[currentIndex + 1].id);
+      } else if ((e.key === 'c' || e.key === 'C') && !e.ctrlKey && !e.metaKey) {
+        completionMutation.mutate();
+      } else if (e.key === 'Escape') {
+        setShowExitConfirm(true);
+      } else if (e.key === '?') {
+        setShowShortcuts(v => !v);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentIndex, allLessons, activePractice, completionMutation]);
+
   if (isLoading) {
     return <div className="min-h-screen bg-background flex items-center justify-center"><Loader2 className="w-12 h-12 animate-spin text-[var(--duo-blue)]" /></div>;
   }
@@ -245,34 +300,83 @@ const LearnPage = () => {
   const isPracticeLesson = currentLesson.lesson_type === "practice" || currentLesson.lesson_type === "exam";
   const isDictationLesson = currentLesson.lesson_type === "dictation";
 
+  // Convert any YouTube URL format to embeddable URL
+  const getEmbedUrl = (url: string): string => {
+    if (!url) return url;
+    try {
+      // Already an embed URL
+      if (url.includes("youtube.com/embed/")) return url;
+      // youtu.be/VIDEO_ID
+      const shortMatch = url.match(/youtu\.be\/([^?&]+)/);
+      if (shortMatch) return `https://www.youtube.com/embed/${shortMatch[1]}`;
+      // youtube.com/watch?v=VIDEO_ID
+      const watchMatch = url.match(/[?&]v=([^&]+)/);
+      if (watchMatch) return `https://www.youtube.com/embed/${watchMatch[1]}`;
+      // youtube.com/shorts/VIDEO_ID
+      const shortsMatch = url.match(/youtube\.com\/shorts\/([^?&]+)/);
+      if (shortsMatch) return `https://www.youtube.com/embed/${shortsMatch[1]}`;
+    } catch {}
+    return url;
+  };
+
   return (
     <div className="min-h-screen relative">
       {/* Fixed background — always fills screen, sharp image, no blur */}
       <div className="fixed inset-0 -z-10" style={{ backgroundImage: `url(${learnBg})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }} />
-      {/* Light overlay — just enough for text readability */}
 
-      <div className="relative z-10 flex flex-col lg:flex-row">
+      <div className="relative z-10 flex flex-col lg:flex-row min-h-screen">
         {/* Main content */}
-        <div className="flex-1 min-w-0">
-          {isVideoLesson && (
-            <div className="aspect-video bg-black lg:rounded-br-none overflow-hidden border-b-4 border-black/20">
-              <iframe
-                src={currentLesson.video_url}
-                className="w-full h-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                title={currentLesson.title}
-              />
-            </div>
-          )}
-
-          {isPdfLesson && (
-            <div className="w-full h-[80vh] bg-muted lg:rounded-br-none overflow-hidden border-b-4 border-black/20">
-              <iframe
-                src={`${currentLesson.pdf_url}#toolbar=0`}
-                className="w-full h-full border-none"
-                title={currentLesson.title}
-              />
+        <div className="flex-1 min-w-0 flex flex-col justify-between">
+          {(isVideoLesson || isPdfLesson) && (
+            <div className="lg:rounded-br-none overflow-hidden border-b-4 border-black/20 bg-muted/10">
+              {isVideoLesson && isPdfLesson ? (
+                <Tabs defaultValue="video" className="w-full">
+                  <div className="bg-card border-b p-2">
+                    <TabsList className="grid w-full max-w-[400px] grid-cols-2">
+                      <TabsTrigger value="video" className="font-bold">🎬 Xem Video</TabsTrigger>
+                      <TabsTrigger value="pdf" className="font-bold">📄 Đọc Tài liệu PDF</TabsTrigger>
+                    </TabsList>
+                  </div>
+                  <TabsContent value="video" className="m-0 border-none outline-none focus-visible:ring-0">
+                    <div className="aspect-video bg-black">
+                      <iframe
+                        src={getEmbedUrl(currentLesson.video_url)}
+                        className="w-full h-full"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        title={currentLesson.title}
+                      />
+                    </div>
+                  </TabsContent>
+                  <TabsContent value="pdf" className="m-0 border-none outline-none focus-visible:ring-0">
+                    <div className="w-full h-[80vh] bg-muted">
+                      <iframe
+                        src={`${currentLesson.pdf_url}#toolbar=0`}
+                        className="w-full h-full border-none"
+                        title={currentLesson.title}
+                      />
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              ) : isVideoLesson ? (
+                <div className="aspect-video bg-black">
+                  <iframe
+                    src={getEmbedUrl(currentLesson.video_url)}
+                    className="w-full h-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    title={currentLesson.title}
+                  />
+                </div>
+              ) : (
+                <div className="w-full h-[80vh] bg-muted">
+                  <iframe
+                    src={`${currentLesson.pdf_url}#toolbar=0`}
+                    className="w-full h-full border-none"
+                    title={currentLesson.title}
+                  />
+                </div>
+              )}
             </div>
           )}
 
@@ -288,7 +392,7 @@ const LearnPage = () => {
                   </div>
                   <h2 className="text-2xl font-extrabold text-foreground">{currentLesson.title}</h2>
                   <p className="text-muted-foreground font-bold text-lg">Bài {currentLesson.lesson_type === "exam" ? "thi online 🏆" : "luyện tập 🎯"}</p>
-                  
+
                   {latestResult && (
                     <div className="flex flex-col items-center justify-center gap-2 mb-6">
                       <span className="text-lg font-extrabold text-[var(--duo-correct)] bg-[var(--duo-correct)]/10 px-6 py-3 rounded-2xl border-2 border-[var(--duo-correct)]/20">
@@ -320,7 +424,7 @@ const LearnPage = () => {
                   </div>
                   <h2 className="text-2xl font-extrabold text-foreground">{currentLesson.title}</h2>
                   <p className="text-muted-foreground font-bold text-lg">Bài luyện nghe điền từ 🎧</p>
-                  
+
                   {latestResult && (
                     <div className="flex flex-col items-center justify-center gap-2 mb-6">
                       <span className="text-lg font-extrabold text-[var(--duo-purple)] bg-[var(--duo-purple)]/10 px-6 py-3 rounded-2xl border-2 border-[var(--duo-purple)]/20">
@@ -356,8 +460,13 @@ const LearnPage = () => {
                 <Check className="w-5 h-5 mr-1" />
                 {isCompleted ? "Đã xong" : "Đánh dấu xong"}
               </Button>
-              <Button size="sm" className="btn-3d bg-white border-[var(--duo-red)]/30 text-[var(--duo-red)] hover:bg-[var(--duo-red)]/5 font-extrabold" onClick={() => navigate("/courses")}>
+              <Button size="sm" className="btn-3d bg-white border-[var(--duo-red)]/30 text-[var(--duo-red)] hover:bg-[var(--duo-red)]/5 font-extrabold" onClick={() => setShowExitConfirm(true)}>
                 <X className="w-5 h-5 mr-1" /> Thoát
+              </Button>
+              {/* B1: Sidebar toggle button (hidden on mobile, only on desktop) */}
+              <Button size="sm" variant="outline" className="btn-3d btn-3d-white hidden lg:flex items-center gap-1" onClick={toggleSidebar}>
+                {sidebarCollapsed ? <PanelRight className="w-4 h-4" /> : <PanelRightClose className="w-4 h-4" />}
+                <span>{sidebarCollapsed ? "Hiện mục lục" : "Thu gọn"}</span>
               </Button>
               {/* Manual practice buttons */}
               {practices.length > 0 && (
@@ -383,10 +492,15 @@ const LearnPage = () => {
           </div>
         </div>
 
-        {/* Sidebar */}
-        <div className="w-full lg:w-[350px] lg:border-l-2 border-border bg-muted/10 overflow-y-auto lg:h-screen lg:sticky lg:top-0">
-          <div className="p-6 border-b-2 bg-card sticky top-0 z-10">
-            <h2 className="text-lg font-extrabold text-foreground flex items-center gap-2 mb-3">📋 Nội dung khóa học</h2>
+        {/* Sidebar (B1: Conditionally collapsed with smooth transition properties) */}
+        <div className={cn(
+          "w-full lg:w-[350px] lg:border-l-2 border-border bg-card/90 backdrop-blur-md overflow-y-auto lg:h-screen lg:sticky lg:top-0 transition-all duration-300",
+          sidebarCollapsed ? "lg:w-0 lg:opacity-0 lg:overflow-hidden lg:border-l-0" : "lg:w-[350px]"
+        )}>
+          <div className="p-6 border-b-2 bg-card sticky top-0 z-10 flex items-center justify-between">
+            <h2 className="text-lg font-extrabold text-foreground flex items-center gap-2">📋 Nội dung khóa học</h2>
+          </div>
+          <div className="p-6 pt-2 border-b-2 bg-card/50">
             <div className="flex items-center justify-between text-sm font-bold text-muted-foreground mb-2">
               <span>{completedCount}/{totalLessons} bài</span>
               <span className="text-[var(--duo-correct)]">{progressPct}%</span>
@@ -395,7 +509,14 @@ const LearnPage = () => {
               <div className="h-full bg-[var(--duo-correct)] transition-all rounded-full" style={{ width: `${progressPct}%` }} />
             </div>
           </div>
-          <Accordion type="multiple" defaultValue={modules.map((_: any, i: number) => `part-${i}`)} className="p-4 space-y-4">
+          <Accordion
+            type="multiple"
+            defaultValue={modules.reduce((acc: string[], mod: any, pi: number) => {
+              if (mod.lessons.some((l: any) => l.id === currentLessonId)) acc.push(`part-${pi}`);
+              return acc;
+            }, [])}
+            className="p-4 space-y-4"
+          >
             {modules.map((mod: any, pi: number) => (
               <AccordionItem key={mod.id} value={`part-${pi}`} className="border-none bg-card rounded-2xl overflow-hidden shadow-[0_2px_0_var(--border)] border-2">
                 <AccordionTrigger className="py-4 px-5 text-base font-extrabold hover:no-underline hover:bg-muted/30 transition-colors">
@@ -406,49 +527,57 @@ const LearnPage = () => {
                     <p className="text-sm font-bold text-muted-foreground px-3 py-2">Đang cập nhật... ⏳</p>
                   ) : (
                     <div className="space-y-2 mt-2">
-                    {mod.lessons.map((lesson: any) => {
-                      const globalIdx = allLessons.findIndex((al: any) => al.id === lesson.id);
-                      const done = progress.some((p: any) => p.lesson_id === lesson.id && p.is_completed);
-                      const isCurrent = currentLessonId === lesson.id;
-                      const isVideo = !lesson.lesson_type || lesson.lesson_type === "video";
-                      const isDictation = lesson.lesson_type === "dictation";
-                      const canStudy = enrollment || (course as any)?.is_free || mod.is_free || lesson.is_free;
+                      {mod.lessons.map((lesson: any) => {
+                        const globalIdx = allLessons.findIndex((al: any) => al.id === lesson.id);
+                        const done = progress.some((p: any) => p.lesson_id === lesson.id && p.is_completed);
+                        const isCurrent = currentLessonId === lesson.id;
+                        const isVideo = !lesson.lesson_type || lesson.lesson_type === "video";
+                        const isDictation = lesson.lesson_type === "dictation";
+                        const canStudy = enrollment || (course as any)?.is_free || mod.is_free || lesson.is_free;
 
-                      return (
-                        <button
-                          key={lesson.id}
-                          onClick={() => {
-                            if (canStudy) {
-                              setCurrentLessonId(lesson.id);
-                            } else {
-                              toast({
-                                title: "Nội dung có phí 🔒",
-                                description: "Vui lòng đăng ký khóa học để xem bài học này.",
-                                variant: "destructive"
-                              });
-                            }
-                          }}
-                          className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-bold transition-all text-left border-2 ${
-                            isCurrent ? "bg-[var(--duo-blue)]/10 text-[var(--duo-blue)] border-[var(--duo-blue)]/30 shadow-[0_2px_0_var(--duo-blue)] -translate-y-0.5" : "text-muted-foreground border-transparent hover:bg-muted/50"
-                          } cursor-pointer`}
-                        >
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 border-2 ${isCurrent ? 'bg-[var(--duo-blue)] text-white border-[var(--duo-blue)]' : done ? 'bg-[var(--duo-correct)] text-white border-[var(--duo-correct)]' : 'bg-muted border-border text-muted-foreground'}`}>
-                            {done ? <Check className="w-4 h-4" /> : isVideo ? <PlayCircle className="w-4 h-4" /> : isDictation ? <Headphones className="w-4 h-4" /> : <FileQuestion className="w-4 h-4" />}
-                          </div>
-                          
-                          <div className="flex-1 min-w-0">
-                            <span className="truncate block text-foreground">{lesson.title}</span>
-                            <span className="text-[10px] uppercase font-extrabold text-muted-foreground block mt-0.5">Bài {(globalIdx + 1).toString().padStart(2, '0')}</span>
-                          </div>
+                        return (
+                          <button
+                            key={lesson.id}
+                            onClick={() => {
+                              if (canStudy) {
+                                setCurrentLessonId(lesson.id);
+                              } else {
+                                toast({
+                                  title: "Nội dung có phí 🔒",
+                                  description: "Vui lòng đăng ký khóa học để xem bài học này.",
+                                  variant: "destructive"
+                                });
+                              }
+                            }}
+                            className={`w-full flex items-start gap-3 px-3 py-3.5 rounded-xl text-sm font-bold transition-all text-left border-2 ${isCurrent
+                                ? "bg-[var(--duo-blue)] text-white border-[var(--duo-blue-dark)] shadow-[0_3px_0_var(--duo-blue-dark)] -translate-y-0.5"
+                                : "text-muted-foreground border-transparent hover:bg-muted/50 hover:border-border/60"
+                              } cursor-pointer`}
+                          >
+                            <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 mt-0.5 border-2 ${isCurrent ? 'bg-white/20 text-white border-white/40' :
+                                done ? 'bg-[var(--duo-correct)] text-white border-[var(--duo-correct)]' :
+                                  'bg-muted border-border text-muted-foreground'
+                              }`}>
+                              {done ? <Check className="w-4 h-4" /> : isVideo ? <PlayCircle className="w-4 h-4" /> : isDictation ? <Headphones className="w-4 h-4" /> : <FileQuestion className="w-4 h-4" />}
+                            </div>
 
-                          {!canStudy ? (
-                            <Lock className="w-4 h-4 text-amber-500 shrink-0" />
-                          ) : (
-                            canStudy && !enrollment && <span className="badge-duo text-[9px] py-0.5 px-1.5 shrink-0" style={{ backgroundColor: 'var(--duo-correct)', color: 'white', borderColor: 'var(--duo-correct-dark)' }}>FREE</span>
-                          )}
-                        </button>
-                      );
-                    })}
+                            <div className="flex-1 min-w-0">
+                              <span className={`block text-[10px] uppercase font-extrabold mb-0.5 tracking-wider ${isCurrent ? 'text-white/70' : 'text-muted-foreground'
+                                }`}>{mod.title}</span>
+                              <span className={`block text-[15px] font-extrabold leading-snug ${isCurrent ? 'text-white' : 'text-foreground'
+                                }`}>{lesson.title}</span>
+                              <span className={`text-[10px] uppercase font-extrabold block mt-0.5 ${isCurrent ? 'text-white/60' : 'text-muted-foreground'
+                                }`}>Bài {(globalIdx + 1).toString().padStart(2, '0')}</span>
+                            </div>
+
+                            {!canStudy ? (
+                              <Lock className="w-4 h-4 text-amber-500 shrink-0" />
+                            ) : (
+                              canStudy && !enrollment && <span className="badge-duo text-[9px] py-0.5 px-1.5 shrink-0" style={{ backgroundColor: 'var(--duo-correct)', color: 'white', borderColor: 'var(--duo-correct-dark)' }}>FREE</span>
+                            )}
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
                 </AccordionContent>
@@ -456,8 +585,9 @@ const LearnPage = () => {
             ))}
           </Accordion>
         </div>
+      </div>
 
-        {/* Practice popup panel */}
+      {/* Practice popup panel */}
         {activePractice && practiceQuestions.length > 0 && (
           <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm lg:items-stretch lg:justify-end">
             <div className="card-duo w-full max-w-xl lg:max-w-md lg:h-full lg:rounded-none max-h-[90vh] lg:max-h-screen flex flex-col p-0 overflow-hidden shadow-2xl">
@@ -474,28 +604,28 @@ const LearnPage = () => {
                       </div>
                       <span className="text-sm font-bold text-[var(--duo-blue)]">{practiceCurrentQ + 1}/{practiceQuestions.length}</span>
                     </div>
-                    
+
                     {practiceQuestions[practiceCurrentQ]?.image_url && (
                       <img src={practiceQuestions[practiceCurrentQ].image_url} alt="" className="w-full rounded-2xl border-2 shadow-sm" />
                     )}
                     {practiceQuestions[practiceCurrentQ]?.audio_url && (
                       <audio controls src={practiceQuestions[practiceCurrentQ].audio_url} className="w-full rounded-full mt-4" />
                     )}
-                    
+
                     <h4 className="text-xl font-extrabold text-foreground leading-snug">{practiceQuestions[practiceCurrentQ]?.question_text}</h4>
-                    
+
                     <div className="space-y-3">
                       {practiceQuestions[practiceCurrentQ]?.answers.map((a: any, i: number) => (
                         <button key={a.id} onClick={() => setPracticeAnswers(prev => ({ ...prev, [practiceCurrentQ]: a.id }))}
                           className={cn("w-full text-left p-4 rounded-2xl border-2 text-base font-bold transition-all flex items-center gap-4 bg-card",
                             practiceAnswers[practiceCurrentQ] === a.id ? "border-[var(--duo-blue)] bg-[var(--duo-blue)]/5 text-[var(--duo-blue)] shadow-[0_4px_0_var(--duo-blue)] -translate-y-1" : "border-border hover:bg-muted/50 hover:border-border shadow-[0_4px_0_transparent]"
                           )}>
-                          <span className={cn("w-8 h-8 rounded-lg flex items-center justify-center text-sm border-2 shrink-0", practiceAnswers[practiceCurrentQ] === a.id ? "border-[var(--duo-blue)] bg-white" : "border-border bg-muted/50 text-muted-foreground")}>{String.fromCharCode(65 + i)}</span> 
+                          <span className={cn("w-8 h-8 rounded-lg flex items-center justify-center text-sm border-2 shrink-0", practiceAnswers[practiceCurrentQ] === a.id ? "border-[var(--duo-blue)] bg-white" : "border-border bg-muted/50 text-muted-foreground")}>{String.fromCharCode(65 + i)}</span>
                           <span>{a.answer_text}</span>
                         </button>
                       ))}
                     </div>
-                    
+
                     <div className="flex gap-3 pt-6">
                       {practiceCurrentQ > 0 && <Button className="btn-3d btn-3d-white flex-1 py-6 text-base h-auto" onClick={() => setPracticeCurrentQ(p => p - 1)}>← Quay lại</Button>}
                       {practiceCurrentQ < practiceQuestions.length - 1 ? (
@@ -525,7 +655,7 @@ const LearnPage = () => {
                         return (
                           <div key={q.id} className={`p-5 rounded-2xl border-2 bg-card ${isCorrect ? "border-[var(--duo-correct)]/30" : "border-[var(--duo-red)]/30"}`}>
                             <p className="text-base font-extrabold mb-4 text-foreground">Câu {i + 1}: {q.question_text}</p>
-                            
+
                             <div className="space-y-3">
                               <p className="text-sm font-bold flex items-start gap-3 text-muted-foreground">
                                 <span className="w-auto px-2 py-1 h-6 rounded-md bg-muted flex items-center justify-center border text-xs shrink-0">Bạn chọn</span>
@@ -550,12 +680,119 @@ const LearnPage = () => {
                         );
                       })}
                     </div>
-                    
+
                     <div className="pt-6 border-t-2 mt-8">
                       <Button className="btn-3d btn-3d-primary w-full py-6 text-lg h-auto" onClick={() => setActivePractice(null)}>Đóng và học tiếp 🚀</Button>
                     </div>
                   </div>
                 )}
+              </div>
+            </div>
+          </div>
+        )}
+
+      {/* A3: Exit Confirm Modal */}
+      {showExitConfirm && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="card-duo p-6 max-w-sm w-full space-y-4 bg-card text-center animate-in zoom-in-95 duration-200">
+            <h3 className="font-extrabold text-xl text-foreground">Bạn muốn rời khỏi bài học?</h3>
+            <p className="text-sm font-semibold text-muted-foreground">Tiến độ bài học hiện tại của bạn sẽ được lưu giữ tự động.</p>
+            <div className="flex gap-3 pt-2">
+              <Button className="btn-3d btn-3d-white flex-1 py-3 text-sm font-bold" onClick={() => setShowExitConfirm(false)}>Ở lại học</Button>
+              <Button className="btn-3d btn-3d-primary flex-1 py-3 text-sm font-bold" onClick={() => navigate("/courses")}>Rời đi</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* A4: Module Complete Modal */}
+      {moduleCompleteModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="card-duo p-8 max-w-md w-full space-y-6 bg-card text-center relative overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="text-6xl animate-bounce">🏆🎉</div>
+            <h3 className="font-extrabold text-2xl text-foreground">Hoàn Thành Module!</h3>
+            <p className="text-sm font-bold text-muted-foreground">
+              Chúc mừng bạn đã chinh phục xong module:
+              <span className="block text-foreground font-black text-lg mt-2 p-3 bg-muted rounded-2xl border-2">
+                {moduleCompleteModal.moduleName}
+              </span>
+            </p>
+            {moduleCompleteModal.nextModuleName ? (
+              <p className="text-sm font-semibold text-muted-foreground">
+                Tiếp theo: <strong className="text-foreground">{moduleCompleteModal.nextModuleName}</strong>
+              </p>
+            ) : (
+              <p className="text-sm font-semibold text-muted-foreground">Bạn đã hoàn thành module cuối cùng của khóa học này! 🥳</p>
+            )}
+            <div className="flex flex-col gap-3 pt-4">
+              {moduleCompleteModal.nextModuleName ? (
+                <Button
+                  className="btn-3d btn-3d-green w-full py-4 text-base font-extrabold"
+                  onClick={() => {
+                    const currentModuleIdx = modules.findIndex((m: any) => m.title === moduleCompleteModal.moduleName);
+                    const nextModule = modules[currentModuleIdx + 1];
+                    if (nextModule?.lessons?.[0]) {
+                      setCurrentLessonId(nextModule.lessons[0].id);
+                    }
+                    setModuleCompleteModal(null);
+                  }}
+                >
+                  Học module tiếp theo →
+                </Button>
+              ) : (
+                <Button
+                  className="btn-3d btn-3d-primary w-full py-4 text-base font-extrabold"
+                  onClick={() => {
+                    setModuleCompleteModal(null);
+                    navigate("/courses");
+                  }}
+                >
+                  Về danh sách khóa học
+                </Button>
+              )}
+              <button
+                className="text-sm font-bold text-muted-foreground hover:text-foreground transition-colors mt-2"
+                onClick={() => setModuleCompleteModal(null)}
+              >
+                Đóng lại
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* A3: Keyboard shortcuts helper button & panel */}
+      <div className="fixed bottom-4 right-4 z-40 hidden md:block">
+        <button
+          onClick={() => setShowShortcuts(v => !v)}
+          className="w-10 h-10 rounded-full bg-card border-2 border-border shadow-md flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+          title="Phím tắt bàn phím (?)"
+        >
+          <Keyboard className="w-5 h-5" />
+        </button>
+
+        {showShortcuts && (
+          <div className="absolute bottom-12 right-0 w-64 bg-card border-2 border-border p-4 rounded-2xl shadow-xl space-y-3 animate-in slide-in-from-bottom-2 duration-200">
+            <div className="flex items-center justify-between border-b pb-2">
+              <span className="font-extrabold text-sm flex items-center gap-1.5"><Keyboard className="w-4 h-4 text-[var(--duo-blue)]" /> Phím tắt</span>
+              <button onClick={() => setShowShortcuts(false)} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
+            </div>
+            <div className="space-y-2 text-xs font-bold">
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Bài tiếp theo</span>
+                <kbd className="px-1.5 py-0.5 bg-muted border rounded shadow-sm">ArrowRight</kbd>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Bài trước đó</span>
+                <kbd className="px-1.5 py-0.5 bg-muted border rounded shadow-sm">ArrowLeft</kbd>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Đánh dấu xong</span>
+                <kbd className="px-1.5 py-0.5 bg-muted border rounded shadow-sm">C</kbd>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Thoát bài học</span>
+                <kbd className="px-1.5 py-0.5 bg-muted border rounded shadow-sm">Esc</kbd>
               </div>
             </div>
           </div>

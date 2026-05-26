@@ -191,7 +191,6 @@ const LessonManager = ({ moduleId, courseId, lessons, quizzes }: LessonManagerPr
   const [expandedLesson, setExpandedLesson] = useState<number | null>(null);
   const [expandedQuiz, setExpandedQuiz] = useState<number | null>(null);
   const [uploadingPdf, setUploadingPdf] = useState(false);
-  const [contentMode, setContentMode] = useState<"video" | "pdf">("video");
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -258,8 +257,8 @@ const LessonManager = ({ moduleId, courseId, lessons, quizzes }: LessonManagerPr
       const payload: any = {
         title: lessonTitle,
         lesson_type: lessonType,
-        video_url: lessonType === "video" && contentMode === "video" ? videoUrl : null,
-        pdf_url: lessonType === "video" && contentMode === "pdf" ? pdfUrl : null,
+        video_url: lessonType === "video" && videoUrl ? videoUrl : null,
+        pdf_url: lessonType === "video" && pdfUrl ? pdfUrl : null,
         duration_seconds: durationUnit === "minutes" ? (Number(durationVal) || 0) * 60 : (Number(durationVal) || 0),
         module_id: moduleId,
         display_order: editingLesson ? editingLesson.display_order : (lessons.length > 0 ? Math.max(...lessons.map((l: any) => l.display_order)) + 1 : 0),
@@ -354,7 +353,6 @@ const LessonManager = ({ moduleId, courseId, lessons, quizzes }: LessonManagerPr
     setLessonType("video");
     setVideoUrl("");
     setPdfUrl("");
-    setContentMode("video");
     setDurationVal(60);
     setDurationUnit("minutes");
     setDialogOpen(true);
@@ -367,7 +365,6 @@ const LessonManager = ({ moduleId, courseId, lessons, quizzes }: LessonManagerPr
     setLessonType(l.lesson_type || "video");
     setVideoUrl(l.video_url || "");
     setPdfUrl(l.pdf_url || "");
-    setContentMode(l.pdf_url ? "pdf" : "video");
     const ds = l.duration_seconds || 0;
     if (ds > 0 && ds % 60 === 0) {
       setDurationVal(ds / 60);
@@ -464,59 +461,38 @@ const LessonManager = ({ moduleId, courseId, lessons, quizzes }: LessonManagerPr
               </Select>
             </div>
             {lessonType === "video" && (
-              <div className="space-y-3">
+              <div className="space-y-4 bg-muted/20 p-4 rounded-xl border">
                 <div className="space-y-2">
-                  <Label>Nội dung bài giảng</Label>
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      variant={contentMode === "video" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setContentMode("video")}
-                    >
-                      <Video className="w-3.5 h-3.5 mr-1" /> Video Link
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={contentMode === "pdf" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setContentMode("pdf")}
-                    >
-                      <FileText className="w-3.5 h-3.5 mr-1" /> Tài liệu PDF
-                    </Button>
-                  </div>
+                  <Label className="flex items-center gap-2"><Video className="w-4 h-4 text-blue-500" /> Link video (YouTube embed URL hoặc Link MP4)</Label>
+                  <Input value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} placeholder="https://www.youtube.com/embed/... hoặc https://.../video.mp4" />
+                  <p className="text-xs text-muted-foreground">Có thể để trống nếu chỉ muốn tải PDF.</p>
                 </div>
-                {contentMode === "video" && (
-                  <div className="space-y-2">
-                    <Label>Link video (YouTube embed URL)</Label>
-                    <Input value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} placeholder="https://www.youtube.com/embed/..." />
-                  </div>
-                )}
-                {contentMode === "pdf" && (
-                  <div className="space-y-2">
-                    <Label>File PDF</Label>
-                    {pdfUrl && (
-                      <div className="flex items-center gap-2 p-2 bg-muted/30 rounded-lg border">
-                        <FileText className="w-4 h-4 text-amber-600" />
-                        <span className="text-xs text-foreground truncate flex-1">{pdfUrl.split('/').pop()}</span>
-                        <Button size="sm" variant="ghost" className="h-6 text-xs text-destructive" onClick={() => setPdfUrl("")}>Xóa</Button>
-                      </div>
-                    )}
-                    <div className="flex gap-2">
-                      <Input value={pdfUrl} onChange={(e) => setPdfUrl(e.target.value)} placeholder="URL tài liệu PDF hoặc upload file bên dưới..." className="flex-1" />
-                      <Button variant="outline" size="sm" asChild disabled={uploadingPdf}>
-                        <label className="cursor-pointer">
-                          <Upload className="w-4 h-4 mr-1" />
-                          {uploadingPdf ? "Đang tải..." : "Upload PDF"}
-                          <input type="file" className="hidden" accept=".pdf" onChange={handlePdfUpload} />
-                        </label>
-                      </Button>
+                
+                <div className="h-px bg-border my-2" />
+                
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2"><FileText className="w-4 h-4 text-amber-600" /> File PDF đính kèm</Label>
+                  {pdfUrl && (
+                    <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg border">
+                      <FileText className="w-4 h-4 text-amber-600" />
+                      <span className="text-xs text-foreground truncate flex-1">{pdfUrl.split('/').pop()}</span>
+                      <Button size="sm" variant="ghost" className="h-6 text-xs text-destructive" onClick={() => setPdfUrl("")}>Xóa</Button>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      💡 Học viên sẽ xem PDF trực tiếp trên website khi mở bài học này.
-                    </p>
+                  )}
+                  <div className="flex gap-2">
+                    <Input value={pdfUrl} onChange={(e) => setPdfUrl(e.target.value)} placeholder="URL tài liệu PDF hoặc upload file bên dưới..." className="flex-1" />
+                    <Button variant="outline" size="sm" asChild disabled={uploadingPdf}>
+                      <label className="cursor-pointer">
+                        <Upload className="w-4 h-4 mr-1" />
+                        {uploadingPdf ? "Đang tải..." : "Upload PDF"}
+                        <input type="file" className="hidden" accept=".pdf" onChange={handlePdfUpload} />
+                      </label>
+                    </Button>
                   </div>
-                )}
+                  <p className="text-xs text-muted-foreground">
+                    💡 Nếu có cả Video và PDF, bài học sẽ hiển thị 2 tab để học viên chuyển đổi.
+                  </p>
+                </div>
               </div>
             )}
             {(lessonType === "exam" || lessonType === "practice" || lessonType === "dictation") && (

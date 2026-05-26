@@ -21,6 +21,9 @@ const QuizResult = () => {
   
   const [showDetails, setShowDetails] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  
+  // D8: Toggle to show only incorrect answers
+  const [onlyShowIncorrect, setOnlyShowIncorrect] = useState(false);
 
   const qid = Number(quizId);
 
@@ -142,6 +145,17 @@ const QuizResult = () => {
           </div>
           
           <div className="flex items-center gap-3 lg:gap-6">
+            {/* D8: Toggle Only Show Incorrect Answers */}
+            <label className="flex items-center gap-2 cursor-pointer font-bold text-xs bg-red-50 text-[var(--duo-red)] px-3 py-2 rounded-full border-2 border-red-200 hover:bg-red-100/50 transition-all select-none">
+              <input 
+                type="checkbox" 
+                checked={onlyShowIncorrect} 
+                onChange={(e) => setOnlyShowIncorrect(e.target.checked)} 
+                className="w-4 h-4 rounded accent-[var(--duo-red)] cursor-pointer"
+              />
+              <span>Chỉ xem câu sai ❌</span>
+            </label>
+
             <button onClick={() => setShowDetails(false)} className="btn-3d btn-3d-white py-2 px-4 text-sm">
               Đóng xem giải
             </button>
@@ -151,9 +165,21 @@ const QuizResult = () => {
         <main className="flex-1 flex overflow-hidden w-full h-[calc(100vh-64px)]">
           {/* Main Content: List of all questions */}
           <div className="flex-1 h-full overflow-y-auto p-3 sm:p-4 lg:p-8 space-y-5 sm:space-y-8 scroll-smooth pb-32">
-            {/* Main Content: Group-based view in Review Mode */}
-            <div className="flex-1 h-full overflow-y-auto p-3 sm:p-4 lg:p-8 space-y-5 sm:space-y-8 scroll-smooth pb-32">
-              {groupedQuestions.map((group: any, gIdx: number) => (
+            {groupedQuestions.map((group: any, gIdx: number) => {
+              // D8: Filter questions to only show incorrect ones if selected
+              const questionsToRender = group.questions.filter((q: any) => {
+                const selectedId = dbUserAnswers.length > 0 ? selectedByQuestionId[q.id] : stateAnswers[q.originalIdx];
+                const selectedOpt = q.answers?.find((o: any) => o.id === selectedId);
+                const isCorrect = !!selectedOpt?.is_correct;
+                if (onlyShowIncorrect) {
+                  return !isCorrect;
+                }
+                return true;
+              });
+
+              if (questionsToRender.length === 0) return null;
+
+              return (
                 <div key={gIdx} className="max-w-4xl mx-auto space-y-6 mb-12">
                   {/* Group context: Passage or shared Audio */}
                   {(group.passage || group.audio_url || group.image_url) && (
@@ -166,7 +192,20 @@ const QuizResult = () => {
                           <div className="w-12 h-12 rounded-xl bg-[var(--duo-blue)] flex items-center justify-center text-white text-xl shrink-0">🎧</div>
                           <div className="flex-1">
                             <p className="text-sm font-extrabold text-[var(--duo-blue)] mb-1">Audio hội thoại / bài nói</p>
-                            <audio controls src={group.audio_url} className="w-full h-9" controlsList="nodownload" />
+                            <audio 
+                              controls 
+                              src={group.audio_url} 
+                              className="w-full h-9" 
+                              controlsList="nodownload" 
+                              onPlay={(e) => {
+                                const audios = document.getElementsByTagName('audio');
+                                for (let i = 0; i < audios.length; i++) {
+                                  if (audios[i] !== e.currentTarget) {
+                                    audios[i].pause();
+                                  }
+                                }
+                              }}
+                            />
                           </div>
                         </div>
                       )}
@@ -179,7 +218,7 @@ const QuizResult = () => {
                   )}
 
                   {/* Questions in group */}
-                  {group.questions.map((q: any) => {
+                  {questionsToRender.map((q: any) => {
                     const selectedId = dbUserAnswers.length > 0 ? selectedByQuestionId[q.id] : stateAnswers[q.originalIdx];
                     const selectedOpt = q.answers?.find((o: any) => o.id === selectedId);
                     const correctOpt = q.answers?.find((o: any) => o.is_correct === true);
@@ -204,7 +243,19 @@ const QuizResult = () => {
                           <img src={q.image_url} alt="Question" className="max-w-full h-auto rounded-xl border-2 border-[var(--duo-gray)] mb-4" />
                         )}
                         {q.audio_url && q.audio_url !== group.audio_url && (
-                          <audio controls src={q.audio_url} className="w-full mb-4" />
+                          <audio 
+                            controls 
+                            src={q.audio_url} 
+                            className="w-full mb-4" 
+                            onPlay={(e) => {
+                              const audios = document.getElementsByTagName('audio');
+                              for (let i = 0; i < audios.length; i++) {
+                                if (audios[i] !== e.currentTarget) {
+                                  audios[i].pause();
+                                }
+                              }
+                            }}
+                          />
                         )}
 
                         {q.cleanText && (
@@ -264,8 +315,8 @@ const QuizResult = () => {
                     );
                   })}
                 </div>
-              ))}
-            </div>
+              );
+            })}
           </div>
 
           {/* Right Sidebar: Grid (Desktop only) */}
@@ -284,6 +335,9 @@ const QuizResult = () => {
                    const isCorrect = q.answers?.find((o: any) => o.id === selectedId)?.is_correct;
                    const isAnswered = !!selectedId;
                    
+                   // D8: Filter out correct button indicators in sidebar if onlyShowIncorrect is active
+                   if (onlyShowIncorrect && isCorrect) return null;
+
                    let btnClass = "border-[var(--duo-gray)] bg-white text-muted-foreground hover:border-[var(--duo-blue)]";
                    if (isAnswered) {
                        if (isCorrect) {
@@ -322,46 +376,49 @@ const QuizResult = () => {
         {paletteOpen && (
           <div className="absolute bottom-16 left-0 right-0 bg-card/95 backdrop-blur-xl border-t-2 border-[var(--duo-gray)] shadow-[0_-10px_40px_rgba(0,0,0,0.1)] z-20 max-h-[50vh] overflow-y-auto p-6 animate-in slide-in-from-bottom-5 lg:hidden">
              <div className="max-w-5xl mx-auto space-y-4">
-               <div className="flex items-center justify-between">
-                  <h3 className="font-extrabold text-sm">Điều hướng nhanh</h3>
-                  <div className="flex flex-col gap-1 text-xs text-muted-foreground font-bold">
-                    <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-[var(--duo-correct)] block"></span> Đúng ({score})</span>
-                    <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-[var(--duo-red)] block"></span> Sai ({totalQ - score})</span>
-                  </div>
-               </div>
-               <div className="flex flex-wrap gap-2">
-                 {questions.map((q: any, i: number) => {
-                   const selectedId = dbUserAnswers.length > 0 ? selectedByQuestionId[q.id] : stateAnswers[i];
-                   const isCorrect = q.answers?.find((o: any) => o.id === selectedId)?.is_correct;
-                   const isAnswered = !!selectedId;
-                   
-                   let btnClass = "border-[var(--duo-gray)] bg-white text-muted-foreground hover:border-[var(--duo-blue)]";
-                   if (isAnswered) {
-                       if (isCorrect) {
-                           btnClass = "border-[var(--duo-correct)] bg-[var(--duo-correct)] text-white shadow-[0_2px_0_var(--duo-correct-dark)]";
-                       } else {
-                           btnClass = "border-[var(--duo-red)] bg-[var(--duo-red)] text-white shadow-[0_2px_0_#CC3333]";
-                       }
-                   }
+                <div className="flex items-center justify-between">
+                   <h3 className="font-extrabold text-sm">Điều hướng nhanh</h3>
+                   <div className="flex flex-col gap-1 text-xs text-muted-foreground font-bold">
+                     <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-[var(--duo-correct)] block"></span> Đúng ({score})</span>
+                     <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-[var(--duo-red)] block"></span> Sai ({totalQ - score})</span>
+                   </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {questions.map((q: any, i: number) => {
+                    const selectedId = dbUserAnswers.length > 0 ? selectedByQuestionId[q.id] : stateAnswers[i];
+                    const isCorrect = q.answers?.find((o: any) => o.id === selectedId)?.is_correct;
+                    const isAnswered = !!selectedId;
+                    
+                    // D8: Filter out correct buttons
+                    if (onlyShowIncorrect && isCorrect) return null;
 
-                   return (
-                     <button
-                       key={i}
-                       onClick={() => { 
-                         const el = document.getElementById(`question-${i}`);
-                         if (el) el.scrollIntoView({ behavior: 'smooth' });
-                         setPaletteOpen(false); 
-                       }}
-                       className={cn(
-                         "w-10 h-10 rounded-xl text-sm font-extrabold transition-all flex items-center justify-center border-2",
-                         btnClass
-                       )}
-                     >
-                       {i + 1}
-                     </button>
-                   );
-                 })}
-               </div>
+                    let btnClass = "border-[var(--duo-gray)] bg-white text-muted-foreground hover:border-[var(--duo-blue)]";
+                    if (isAnswered) {
+                        if (isCorrect) {
+                            btnClass = "border-[var(--duo-correct)] bg-[var(--duo-correct)] text-white shadow-[0_2px_0_var(--duo-correct-dark)]";
+                        } else {
+                            btnClass = "border-[var(--duo-red)] bg-[var(--duo-red)] text-white shadow-[0_2px_0_#CC3333]";
+                        }
+                    }
+
+                    return (
+                      <button
+                        key={i}
+                        onClick={() => { 
+                          const el = document.getElementById(`question-${i}`);
+                          if (el) el.scrollIntoView({ behavior: 'smooth' });
+                          setPaletteOpen(false); 
+                        }}
+                        className={cn(
+                          "w-10 h-10 rounded-xl text-sm font-extrabold transition-all flex items-center justify-center border-2",
+                          btnClass
+                        )}
+                      >
+                        {i + 1}
+                      </button>
+                    );
+                  })}
+                </div>
              </div>
           </div>
         )}

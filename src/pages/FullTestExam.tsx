@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Loader2 } from "lucide-react";
+import { Loader2, ChevronLeft } from "lucide-react";
 import { useSound } from "@/hooks/useSound";
 
 const partNames = ["PART 1", "PART 2", "PART 3", "PART 4", "PART 5", "PART 6", "PART 7"];
@@ -101,7 +101,13 @@ const FullTestExam = () => {
 
   if (!started) {
     return (
-      <div className="min-h-screen bg-[#FAFAFA] flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#FAFAFA] flex items-center justify-center p-4 relative">
+        <button
+          onClick={() => navigate(`/courses/${courseId}/fulltest`)}
+          className="absolute top-4 left-4 flex items-center gap-1.5 text-sm font-bold text-muted-foreground hover:text-foreground transition-colors bg-white border-2 border-[var(--duo-gray)] px-3 py-2 rounded-xl hover:border-[var(--duo-blue)] shadow-[0_2px_0_var(--duo-gray)]"
+        >
+          <ChevronLeft className="w-4 h-4" /> Quay lại
+        </button>
         <div className="card-duo p-8 max-w-lg text-center space-y-5">
           <div className="w-20 h-20 rounded-2xl bg-[var(--duo-blue)] shadow-[0_4px_0_var(--duo-blue-dark)] flex items-center justify-center mx-auto">
             <span className="text-3xl">📋</span>

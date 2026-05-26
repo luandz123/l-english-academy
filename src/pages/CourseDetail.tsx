@@ -207,7 +207,7 @@ const CourseDetail = () => {
 
           <TabsContent value="content" className="mt-6">
             {modules && modules.length > 0 ? (
-              <Accordion type="multiple" defaultValue={["mod-0"]} className="space-y-4">
+              <Accordion type="multiple" defaultValue={[]} className="space-y-4">
                 {modules.map((mod: any, pi: number) => {
                   const lessons = (mod.lessons || []).sort((a: any, b: any) => a.display_order - b.display_order);
                   const quizzes = (mod.quizzes || []).sort((a: any, b: any) => a.display_order - b.display_order);
