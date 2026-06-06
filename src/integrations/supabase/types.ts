@@ -353,6 +353,7 @@ export type Database = {
           id: number
           is_free: boolean | null
           is_live: boolean | null
+          is_published: boolean
           lesson_type: string
           live_time: string | null
           module_id: number | null
@@ -367,6 +368,7 @@ export type Database = {
           id?: number
           is_free?: boolean | null
           is_live?: boolean | null
+          is_published?: boolean
           lesson_type?: string
           live_time?: string | null
           module_id?: number | null
@@ -381,6 +383,7 @@ export type Database = {
           id?: number
           is_free?: boolean | null
           is_live?: boolean | null
+          is_published?: boolean
           lesson_type?: string
           live_time?: string | null
           module_id?: number | null
@@ -474,6 +477,7 @@ export type Database = {
           display_order: number
           id: number
           is_free: boolean | null
+          is_published: boolean
           title: string
         }
         Insert: {
@@ -482,6 +486,7 @@ export type Database = {
           display_order?: number
           id?: number
           is_free?: boolean | null
+          is_published?: boolean
           title: string
         }
         Update: {
@@ -490,6 +495,7 @@ export type Database = {
           display_order?: number
           id?: number
           is_free?: boolean | null
+          is_published?: boolean
           title?: string
         }
         Relationships: [
@@ -524,6 +530,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string | null
+          email: string | null
           full_name: string | null
           id: string
           updated_at: string | null
@@ -532,6 +539,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           created_at?: string | null
+          email?: string | null
           full_name?: string | null
           id?: string
           updated_at?: string | null
@@ -540,6 +548,7 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           created_at?: string | null
+          email?: string | null
           full_name?: string | null
           id?: string
           updated_at?: string | null
