@@ -135,6 +135,7 @@ export type Database = {
       }
       courses: {
         Row: {
+          category_id: number | null
           course_type: string
           created_at: string | null
           description: string | null
@@ -146,11 +147,11 @@ export type Database = {
           is_free: boolean | null
           price: number | null
           subtitle: string | null
-          category_id: number | null
           thumbnail_url: string | null
           title: string
         }
         Insert: {
+          category_id?: number | null
           course_type: string
           created_at?: string | null
           description?: string | null
@@ -162,11 +163,11 @@ export type Database = {
           is_free?: boolean | null
           price?: number | null
           subtitle?: string | null
-          category_id?: number | null
           thumbnail_url?: string | null
           title: string
         }
         Update: {
+          category_id?: number | null
           course_type?: string
           created_at?: string | null
           description?: string | null
@@ -178,11 +179,18 @@ export type Database = {
           is_free?: boolean | null
           price?: number | null
           subtitle?: string | null
-          category_id?: number | null
           thumbnail_url?: string | null
           title?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "courses_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "course_categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       enrollments: {
         Row: {
@@ -516,7 +524,6 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string | null
-          email: string | null
           full_name: string | null
           id: string
           updated_at: string | null
@@ -525,7 +532,6 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           created_at?: string | null
-          email?: string | null
           full_name?: string | null
           id?: string
           updated_at?: string | null
@@ -534,7 +540,6 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           created_at?: string | null
-          email?: string | null
           full_name?: string | null
           id?: string
           updated_at?: string | null
