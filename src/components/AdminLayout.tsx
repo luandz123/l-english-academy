@@ -10,6 +10,7 @@ const navItems = [
   { to: "/admin/dashboard", label: "Tổng quan", icon: LayoutDashboard, color: "text-[var(--duo-green)]" },
   { to: "/admin/categories", label: "Danh mục", icon: BookOpen, color: "text-[var(--duo-purple)]" },
   { to: "/admin/courses", label: "Khóa học", icon: BookOpen, color: "text-[var(--duo-blue)]" },
+  { to: "/admin/fulltests", label: "Full Test TOEIC", icon: ClipboardList, color: "text-[var(--duo-orange)]" },
   { to: "/admin/students", label: "Học viên", icon: Users, color: "text-[var(--duo-purple)]" },
   { to: "/admin/enrollments", label: "Đăng ký", icon: ClipboardList, color: "text-[var(--duo-orange)]" },
   { to: "/admin/materials", label: "Tài liệu", icon: FileText, color: "text-[var(--duo-yellow)]" },

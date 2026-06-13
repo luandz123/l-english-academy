@@ -9,6 +9,16 @@ import { Plus, Edit, Trash2, Upload, Download, Image, Music, Library, GripVertic
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import AdminLessonVocab from "./AdminLessonVocab";
+import ImportDialog from "./ImportDialog";
+import {
+  normalizeFolderPath,
+  buildFolderSet,
+  getSubFolders,
+  getBreadcrumbs,
+  getParentPath,
+  joinFolderPath,
+} from "./quiz-manager/utils";
 import {
   Select,
   SelectContent,
@@ -47,55 +57,7 @@ type ImageSwapSource =
   | { type: "question"; questionId: number }
   | null;
 
-const normalizeFolderPath = (folderPath?: string | null) => {
-  const normalized = folderPath?.trim();
-  return normalized && normalized.length > 0 ? normalized : "/";
-};
-
-const buildFolderSet = (items: any[]) => {
-  const folders = new Set<string>();
-  items.forEach((item) => {
-    const folderPath = normalizeFolderPath(item.folder_path);
-    if (folderPath === "/") return;
-
-    const parts = folderPath.split("/").filter(Boolean);
-    let acc = "";
-    parts.forEach((part) => {
-      acc += `/${part}`;
-      folders.add(acc);
-    });
-  });
-  return folders;
-};
-
-const getSubFolders = (folders: Set<string>, currentPath: string) => {
-  const subs = new Set<string>();
-  folders.forEach((folderPath) => {
-    if (currentPath === "/") {
-      const match = folderPath.match(/^\/([^/]+)$/);
-      if (match) subs.add(match[1]);
-      return;
-    }
-
-    const prefix = `${currentPath}/`;
-    if (!folderPath.startsWith(prefix)) return;
-    const remaining = folderPath.slice(prefix.length);
-    const nextPart = remaining.split("/")[0];
-    if (nextPart) subs.add(nextPart);
-  });
-  return Array.from(subs).sort((a, b) => a.localeCompare(b, "vi"));
-};
-
-const getBreadcrumbs = (currentPath: string) => currentPath === "/" ? ["/"] : ["/", ...currentPath.split("/").filter(Boolean)];
-
-const getParentPath = (currentPath: string) => {
-  if (currentPath === "/") return "/";
-  const parts = currentPath.split("/").filter(Boolean);
-  parts.pop();
-  return parts.length === 0 ? "/" : `/${parts.join("/")}`;
-};
-
-const joinFolderPath = (currentPath: string, folderName: string) => currentPath === "/" ? `/${folderName}` : `${currentPath}/${folderName}`;
+// Folder utils and CSV parser are imported from ./quiz-manager/utils
 
 // Sortable question item
 const SortableQuestionItem = ({
@@ -157,7 +119,7 @@ const SortableQuestionItem = ({
   );
 };
 
-import AdminLessonVocab from "./AdminLessonVocab";
+// AdminLessonVocab and ImportDialog are imported at the top of this file
 
 const QuizManager = ({ quizId, courseId, lessonType, lessonId }: QuizManagerProps) => {
   const { toast } = useToast();
@@ -214,9 +176,7 @@ const QuizManager = ({ quizId, courseId, lessonType, lessonId }: QuizManagerProp
   ]);
 
   const [importDialogOpen, setImportDialogOpen] = useState(false);
-  const [importPart, setImportPart] = useState("auto");
-  const [importText, setImportText] = useState("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  // importPart, importText, fileInputRef are now managed inside <ImportDialog />
 
 
   
@@ -854,17 +814,7 @@ const QuizManager = ({ quizId, courseId, lessonType, lessonId }: QuizManagerProp
     },
   });
 
-  const handleFileImport = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      setImportText(ev.target?.result as string);
-    };
-    reader.readAsText(file);
-  };
-
-  // Helper to get lessonId (needed for vocab import)
+  // Helper to get lessonId (needed for vocab import and export)
   const { data: lessonIdFromQuiz } = useQuery({
     queryKey: ["lesson-id-from-quiz", quizId],
     queryFn: async () => {
@@ -964,11 +914,13 @@ const QuizManager = ({ quizId, courseId, lessonType, lessonId }: QuizManagerProp
       }
     }
 
+    // Header matches import format (can be re-imported directly)
     let header = "";
     if (isDictation) {
-      header = "QuestionText,A,B,C,D,Translation,AudioURL,ImageURL,Vocabulary,Dictation_Keywords";
+      // BUG FIX: thêm dictation_keywords vào header và data rows
+      header = "question_text,answers,translation,audio_url,vocabulary,dictation_keywords";
     } else {
-      header = "QuestionText,A,B,C,D,Correct,Explanation,Translation,AudioURL,ImageURL";
+      header = "question_text,a,b,c,d,correct,explanation,translation,audio_url,image_url";
     }
 
     const rows = questions.map((q: any) => {
@@ -980,14 +932,16 @@ const QuizManager = ({ quizId, courseId, lessonType, lessonId }: QuizManagerProp
       
       if (isDictation) {
         const vocabList = vocabByQuestion[q.id] || [];
-        const vocabStr = vocabList.map(v => `${v.word}|${v.definition_vi}|${v.phonetic || ""}|${v.audio_male_url || ""}|${v.example_sentence || ""}`).join(";");
+        const vocabStr = vocabList.map((v: any) => `${v.word}|${v.definition_vi}|${v.phonetic || ""}|${v.example_sentence || ""}`).join(";");
+        // answers = all answer_texts joined by " | " (re-importable format)
+        const answersStr = answers.map((ans: any) => ans.answer_text).join(" | ");
         return [
           `"${q.question_text || ""}"`,
-          `"${a}"`, `"${b}"`, `"${c}"`, `"${d}"`,
+          `"${answersStr}"`,
           `"${q.translation || ""}"`,
           `"${q.audio_url || ""}"`,
-          `"${q.image_url || ""}"`,
-          `"${vocabStr}"`
+          `"${vocabStr}"`,
+          `"${q.dictation_keywords || ""}"`  // ← FIX: was missing
         ].join(",");
       } else {
         const correctIdx = answers.findIndex((ans: any) => ans.is_correct);
@@ -1137,6 +1091,7 @@ const QuizManager = ({ quizId, courseId, lessonType, lessonId }: QuizManagerProp
         </div>
         <div className="flex gap-1 flex-wrap">
           <Button size="sm" variant="outline" onClick={() => setImportDialogOpen(true)}><Upload className="w-3 h-3 mr-1" /> Import CSV</Button>
+          {/* ImportDialog is now a separate component with batch insert */}
 
           <Button size="sm" variant="outline" onClick={exportQuestions}><Download className="w-3 h-3 mr-1" /> Export</Button>
           <Button size="sm" variant="outline" onClick={openNew}><Plus className="w-3 h-3 mr-1" /> Thêm câu</Button>
@@ -1295,133 +1250,18 @@ const QuizManager = ({ quizId, courseId, lessonType, lessonId }: QuizManagerProp
         </DialogContent>
       </Dialog>
 
-      {/* Import Dialog */}
-      <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Import câu hỏi từ CSV/TSV</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="flex items-center gap-3 bg-muted/50 p-3 rounded-lg mb-4">
-              <Label className="shrink-0">Chọn Part:</Label>
-              <Select value={importPart} onValueChange={setImportPart}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Chọn Part để xem hướng dẫn..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="auto">Tự động (Mặc định)</SelectItem>
-                  <SelectItem value="part1">Part 1 - Ảnh (4 đáp án)</SelectItem>
-                  <SelectItem value="part2">Part 2 - Hỏi đáp (3 đáp án)</SelectItem>
-                  <SelectItem value="part3">Part 3 - Hội thoại (Audio chung)</SelectItem>
-                  <SelectItem value="part4">Part 4 - Bài nói (Audio chung)</SelectItem>
-                  <SelectItem value="part5">Part 5 - Điền câu (Trắc nghiệm)</SelectItem>
-                  <SelectItem value="part6">Part 6 - Điền đoạn văn (Passage chung)</SelectItem>
-                  <SelectItem value="part7">Part 7 - Đọc hiểu (Passage/Ảnh chung)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-100 dark:border-blue-800 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-blue-700 dark:text-blue-400">💡 Hướng dẫn & Prompt ChatGPT</span>
-                <Button 
-                  size="sm" 
-                  variant="ghost" 
-                  className="h-7 text-[10px] text-blue-600"
-                  onClick={() => {
-                    const prompts: Record<string, string> = {
-                      dictation: "Hãy giúp tôi chuyển nội dung bài nghe điền từ sang định dạng TSV (Tab-separated values). Header: question_text, answers, translation, audio_url, vocabulary, dictation_keywords.\nQuy tắc:\n- Hệ thống hỗ trợ 1 Audio cho nhiều câu điền từ.\n- Cột question_text hoặc answers đều chứa nội dung câu cần nghe (Full Transcript).\n- Nếu có nhiều câu trong cùng 1 audio, hãy liệt kê chúng cách nhau bằng dấu '|' ở cột answers.\n- vocabulary: 'từ|nghĩa|phiên âm|ví dụ', cách nhau bằng ';'.\n- dictation_keywords: danh sách từ khóa cần điền, cách nhau bằng dấu phẩy (nếu có).",
-                      part1: "Hãy giúp tôi chuyển nội dung TOEIC Part 1 sang định dạng TSV. Header: image_url, audio_url, a, b, c, d, correct, translation, vocabulary.\nQuy tắc:\n- a,b,c,d để trống.\n- correct: A/B/C/D.\n- vocabulary: 'từ|nghĩa|phiên âm|ví dụ', nhiều từ cách nhau bằng ';'.",
-                      part2: "Hãy giúp tôi chuyển nội dung TOEIC Part 2 sang định dạng TSV. Header: question_text, audio_url, a, b, c, correct, translation, vocabulary.\nQuy tắc:\n- Chỉ có 3 đáp án A, B, C.\n- BẮT BUỘC có audio_url cho mỗi câu (Đây là phần nghe, chữ sẽ bị ẩn khi làm bài).\n- vocabulary: 'từ|nghĩa|phiên âm|ví dụ', nhiều từ cách nhau bằng ';'.",
-                      part34: "Hãy giúp tôi chuyển nội dung TOEIC Part 3/4 sang định dạng TSV. Header: audio_url, question_text, a, b, c, d, correct, translation, vocabulary.\nQuy tắc:\n- Các câu chung audio sẽ được tự động nhóm lại.\n- vocabulary: 'từ|nghĩa|phiên âm|ví dụ', nhiều từ cách nhau bằng ';'.",
-                      part6: "Hãy giúp tôi chuyển nội dung TOEIC Part 6 sang định dạng TSV. Header: passage, question_text, a, b, c, d, correct, explanation, translation, vocabulary.\nQuy tắc:\n- Cột passage chỉ điền ở câu đầu tiên của nhóm câu hỏi.\n- vocabulary: 'từ|nghĩa|phiên âm|ví dụ', nhiều từ cách nhau bằng ';'.",
-                      part7: "Hãy giúp tôi chuyển nội dung TOEIC Part 7 sang định dạng TSV. Header: passage, image_url, question_text, a, b, c, d, correct, explanation, translation, vocabulary.\nQuy tắc:\n- vocabulary: 'từ|nghĩa|phiên âm|ví dụ', nhiều từ cách nhau bằng ';'.",
-                      auto: "Hãy giúp tôi chuyển nội dung trắc nghiệm sang định dạng TSV. Header: question_text, a, b, c, d, correct, explanation, translation, audio_url, image_url, vocabulary.\nQuy tắc:\n- vocabulary: 'từ|nghĩa|phiên âm|ví dụ', nhiều từ cách nhau bằng ';'."
-                    };
-                    const key = isDictation ? "dictation" : (importPart === "part3" || importPart === "part4") ? "part34" : importPart;
-                    navigator.clipboard.writeText(prompts[key] || prompts.auto);
-                    toast({ title: "Đã sao chép prompt cho ChatGPT" });
-                  }}
-                >
-                  <Plus className="w-3 h-3 mr-1" /> Copy Prompt
-                </Button>
-              </div>
-              <p className="text-[11px] text-muted-foreground leading-relaxed">
-                {isDictation ? (
-                  <>
-                    <b>Luyện nghe điền từ (1 audio - N câu):</b>
-                    <br />• Cột <code>question_text</code> hoặc <code>answers</code> đều là nội dung cần điền.
-                    <br />• Nếu có nhiều câu, hãy viết cách nhau bằng dấu <code>|</code> (Ví dụ: Câu 1 | Câu 2).
-                    <br />• <b>Format:</b> <code>question_text, answers, translation, audio_url, vocabulary, dictation_keywords</code>
-                  </>
-                ) : importPart === "part1" ? (
-                  <>
-                    <b>Format:</b> <code>image_url, audio_url, a, b, c, d, correct(A/B/C/D), translation, vocabulary</code>
-                    <br />• Đáp án A, B, C, D nên để trống (chỉ hiện nút chọn).
-                  </>
-                ) : importPart === "part2" ? (
-                  <>
-                    <b>Format:</b> <code>question_text, audio_url, a, b, c, correct(A/B/C), translation, vocabulary</code>
-                    <br />• <b>Lưu ý:</b> Đây là phần Nghe (Listening). Nội dung câu hỏi và đáp án sẽ bị <b>ẩn</b> khi làm bài (giống thi thật).
-                  </>
-                ) : (importPart === "part3" || importPart === "part4") ? (
-                  <>
-                    <b>Format:</b> <code>audio_url, question_text, a, b, c, d, correct, translation, vocabulary</code>
-                    <br />• Các câu cùng Audio sẽ tự động được nhóm lại.
-                  </>
-                ) : importPart === "part6" ? (
-                  <>
-                    <b>Format:</b> <code>passage, question_text, a, b, c, d, correct, explanation, translation, vocabulary</code>
-                    <br />• Điền nội dung <b>passage</b> vào cột đầu tiên cho câu đầu của nhóm.
-                  </>
-                ) : importPart === "part7" ? (
-                  <>
-                    <b>Format:</b> <code>passage, image_url, question_text, a, b, c, d, correct, explanation, translation, vocabulary</code>
-                  </>
-                ) : (
-                  <>
-                    <b>Format:</b> <code>question_text, a, b, c, d, correct, explanation, translation, audio_url, image_url, vocabulary</code>
-                  </>
-                )}
-                <br />
-                <span className="text-blue-600 dark:text-blue-400 font-medium">
-                  • Cột vocabulary: <code>từ|nghĩa|phiên âm|ví dụ</code> (nhiều từ cách nhau bằng <code>;</code>)
-                </span>
-              </p>
-            </div>
-
-            <div className="flex gap-2">
-              <input ref={fileInputRef} type="file" accept=".csv,.tsv,.txt" onChange={handleFileImport} className="text-sm" />
-              <Button size="sm" variant="outline" onClick={() => {
-                let template = "";
-                if (isDictation) {
-                  template = "question_text\tanswers\ttranslation\taudio_url\tvocabulary\tdictation_keywords\nSentence 1\tSentence 2 | Sentence 3\tDịch nghĩa cả đoạn...\thttps://example.com/audio.mp3\tword|nghĩa|/phonetic/|example\tkeyword1, keyword2";
-                } else if (importPart === "part1") {
-                  template = "image_url\taudio_url\ta\tb\tc\td\tcorrect\ttranslation\tvocabulary\nhttps://img.com/1.jpg\thttps://aud.com/1.mp3\t\t\t\t\tA\tBức tranh mô tả...\tread|đọc|/riːd/|He is reading a book";
-                } else if (importPart === "part2") {
-                  template = "question_text\taudio_url\ta\tb\tc\tcorrect\ttranslation\tvocabulary\nWhen are you moving to your new office?\thttps://example.com/audio.mp3\tThe office printer is over there.\tThe water bill is high this month.\tThe schedule is being revised.\tC\tKhi nào bạn chuyển đến văn phòng mới?\toffice|văn phòng|/ˈɑːfɪs/|The office is closed";
-                } else if (importPart === "part3" || importPart === "part4") {
-                  template = "audio_url\tquestion_text\ta\tb\tc\td\tcorrect\ttranslation\tvocabulary\nhttps://aud.com/3.mp3\tQuestion 1\tA\tB\tC\tD\tA\t\tword|nghĩa|/phonetic/|example\nhttps://aud.com/3.mp3\tQuestion 2\tA\tB\tC\tD\tB\t\t\nhttps://aud.com/3.mp3\tQuestion 3\tA\tB\tC\tD\tC\t\t";
-                } else if (importPart === "part6") {
-                  template = "passage\tquestion_text\ta\tb\tc\td\tcorrect\texplanation\ttranslation\tvocabulary\nDear all, [passage text...]\tQuestion 15\tA\tB\tC\tD\tA\t\t\t\n\tQuestion 16\tA\tB\tC\tD\tB\t\t\t";
-                } else {
-                  template = "question_text\ta\tb\tc\td\tcorrect\texplanation\ttranslation\taudio_url\timage_url\tvocabulary\nWhat is shown in the picture?\tA man reading\tA woman cooking\tA child playing\tA dog sleeping\tA\tThe image shows a man reading\tBức tranh cho thấy một người đàn ông đang đọc sách\thttps://example.com/audio.mp3\thttps://example.com/image.jpg\tshow|cho thấy|/ʃoʊ/||She shows me";
-                }
-                const blob = new Blob([template], { type: "text/tab-separated-values" });
-                const a = document.createElement("a");
-                a.href = URL.createObjectURL(blob);
-                a.download = `template_${importPart || "quiz"}.tsv`;
-                a.click();
-              }}>📥 Tải template mẫu</Button>
-            </div>
-            <Textarea value={importText} onChange={(e) => setImportText(e.target.value)} rows={8} placeholder="Dán dữ liệu ở đây..." className="font-mono text-xs" />
-            <Button onClick={() => importMutation.mutate()} disabled={importMutation.isPending || !importText.trim()} className="w-full">
-              {importMutation.isPending ? "Đang import..." : `Bắt đầu Import (${Math.max(0, importText.trim().split("\n").length - 1)} câu)`}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
+      {/* Import Dialog — delegated to ImportDialog component (batch insert + media cache) */}
+      <ImportDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+        quizId={quizId}
+        courseId={courseId}
+        isDictation={isDictation}
+        effectiveLessonId={effectiveLessonId}
+        existingCount={questions.length}
+        courseTitle={courseData?.title || "Khóa học chưa rõ"}
+        quizTitle={quizData?.title || `Bài tập ${quizId}`}
+      />
 
       {/* ===== WIZARD DIALOG ===== */}
       <Dialog open={wizardOpen} onOpenChange={setWizardOpen}>

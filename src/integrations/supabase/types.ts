@@ -254,33 +254,42 @@ export type Database = {
       }
       full_tests: {
         Row: {
+          audio_url: string | null
           category: string
           course_id: number | null
           created_at: string | null
+          description: string | null
           display_order: number
           id: number
           release_date: string | null
           title: string
+          total_attempts: number | null
           total_questions: number | null
         }
         Insert: {
+          audio_url?: string | null
           category?: string
           course_id?: number | null
           created_at?: string | null
+          description?: string | null
           display_order?: number
           id?: number
           release_date?: string | null
           title: string
+          total_attempts?: number | null
           total_questions?: number | null
         }
         Update: {
+          audio_url?: string | null
           category?: string
           course_id?: number | null
           created_at?: string | null
+          description?: string | null
           display_order?: number
           id?: number
           release_date?: string | null
           title?: string
+          total_attempts?: number | null
           total_questions?: number | null
         }
         Relationships: [
@@ -289,6 +298,55 @@ export type Database = {
             columns: ["course_id"]
             isOneToOne: false
             referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      full_test_answer_details: {
+        Row: {
+          id: number
+          is_correct: boolean | null
+          part_number: number | null
+          question_id: number
+          result_id: number
+          selected_answer_id: number | null
+        }
+        Insert: {
+          id?: number
+          is_correct?: boolean | null
+          part_number?: number | null
+          question_id: number
+          result_id: number
+          selected_answer_id?: number | null
+        }
+        Update: {
+          id?: number
+          is_correct?: boolean | null
+          part_number?: number | null
+          question_id?: number
+          result_id?: number
+          selected_answer_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "full_test_answer_details_result_id_fkey"
+            columns: ["result_id"]
+            isOneToOne: false
+            referencedRelation: "user_full_test_results"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "full_test_answer_details_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "full_test_answer_details_selected_answer_id_fkey"
+            columns: ["selected_answer_id"]
+            isOneToOne: false
+            referencedRelation: "answers"
             referencedColumns: ["id"]
           },
         ]
@@ -547,33 +605,48 @@ export type Database = {
           audio_url: string | null
           dictation_keywords: string | null
           display_order: number
+          explanation: string | null
+          group_id: string | null
           id: number
           image_url: string | null
+          knowledge_tag: string | null
+          passage_text: string | null
           question_text: string
           question_type: string | null
           quiz_id: number | null
+          transcript: string | null
           translation: string | null
         }
         Insert: {
           audio_url?: string | null
           dictation_keywords?: string | null
           display_order?: number
+          explanation?: string | null
+          group_id?: string | null
           id?: number
           image_url?: string | null
+          knowledge_tag?: string | null
+          passage_text?: string | null
           question_text: string
           question_type?: string | null
           quiz_id?: number | null
+          transcript?: string | null
           translation?: string | null
         }
         Update: {
           audio_url?: string | null
           dictation_keywords?: string | null
           display_order?: number
+          explanation?: string | null
+          group_id?: string | null
           id?: number
           image_url?: string | null
+          knowledge_tag?: string | null
+          passage_text?: string | null
           question_text?: string
           question_type?: string | null
           quiz_id?: number | null
+          transcript?: string | null
           translation?: string | null
         }
         Relationships: [
@@ -704,35 +777,53 @@ export type Database = {
       }
       user_full_test_results: {
         Row: {
+          answers_detail: Json | null
           completed_at: string | null
           correct_answers: number | null
           id: number
+          listening_correct: number | null
           listening_score: number | null
+          pause_count: number | null
+          reading_correct: number | null
           reading_score: number | null
           test_id: number
+          test_mode: string | null
           time_spent_seconds: number | null
+          total_questions: number | null
           total_score: number | null
           user_id: string
         }
         Insert: {
+          answers_detail?: Json | null
           completed_at?: string | null
           correct_answers?: number | null
           id?: number
+          listening_correct?: number | null
           listening_score?: number | null
+          pause_count?: number | null
+          reading_correct?: number | null
           reading_score?: number | null
           test_id: number
+          test_mode?: string | null
           time_spent_seconds?: number | null
+          total_questions?: number | null
           total_score?: number | null
           user_id: string
         }
         Update: {
+          answers_detail?: Json | null
           completed_at?: string | null
           correct_answers?: number | null
           id?: number
+          listening_correct?: number | null
           listening_score?: number | null
+          pause_count?: number | null
+          reading_correct?: number | null
           reading_score?: number | null
           test_id?: number
+          test_mode?: string | null
           time_spent_seconds?: number | null
+          total_questions?: number | null
           total_score?: number | null
           user_id?: string
         }

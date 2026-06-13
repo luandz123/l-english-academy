@@ -25,19 +25,27 @@ const FullTestList = () => {
     },
   });
 
+  // BUG FIX #4: Get highest score per test instead of random overwrite
   const { data: results } = useQuery({
     queryKey: ["full-test-results", user?.id],
     queryFn: async () => {
       const { data } = await supabase
         .from("user_full_test_results")
         .select("test_id, total_score")
-        .eq("user_id", user!.id);
+        .eq("user_id", user!.id)
+        .order("total_score", { ascending: false });
       return data || [];
     },
     enabled: !!user,
   });
 
-  const resultMap = new Map((results || []).map(r => [r.test_id, r.total_score]));
+  // BUG FIX #4: Keep only the highest score per test
+  const resultMap = new Map<number, number>();
+  (results || []).forEach(r => {
+    if (!resultMap.has(r.test_id) || (r.total_score ?? 0) > (resultMap.get(r.test_id) ?? 0)) {
+      resultMap.set(r.test_id, r.total_score);
+    }
+  });
 
   // Group by category
   const categoryMap: Record<string, string> = {
@@ -83,7 +91,7 @@ const FullTestList = () => {
                     const score = resultMap.get(test.id);
 
                     return (
-                      <div key={test.id} className="flex items-center gap-3 px-4 py-3 rounded-xl border-2 border-[var(--duo-gray)] bg-white hover:border-[var(--duo-green)] transition-all group">
+                      <div key={test.id} className="flex items-center gap-3 px-4 py-3 rounded-xl border-2 border-[var(--duo-gray)] bg-card hover:border-[var(--duo-green)] transition-all group">
                         {!released ? (
                           <Lock className="w-5 h-5 text-[var(--duo-yellow)] shrink-0" />
                         ) : done ? (
@@ -92,8 +100,8 @@ const FullTestList = () => {
                           <span className="w-5 h-5 rounded-full border-2 border-muted-foreground shrink-0" />
                         )}
                         <span className="text-sm font-bold text-foreground flex-1">{test.title}</span>
-                        <span className="text-xs font-bold text-muted-foreground">{test.total_questions} câu</span>
-                        {done && score && <span className="badge-duo badge-green">{score} điểm</span>}
+                        <span className="text-xs font-bold text-muted-foreground">{test.total_questions || '—'} câu</span>
+                        {done && score && <span className="badge-duo badge-green">{score}/990</span>}
                         {!released && test.release_date && (
                           <span className="badge-duo badge-yellow flex items-center gap-1">
                             <Clock className="w-3 h-3" /> {new Date(test.release_date).toLocaleDateString("vi-VN")}
@@ -105,9 +113,14 @@ const FullTestList = () => {
                           </Link>
                         )}
                         {done && (
-                          <Link to={`/courses/${courseId}/fulltest/${test.id}/result`} className="btn-3d btn-3d-white py-1.5 px-3 text-xs">
-                            Xem lại
-                          </Link>
+                          <>
+                            <Link to={`/courses/${courseId}/fulltest/${test.id}/result`} className="btn-3d btn-3d-white py-1.5 px-3 text-xs">
+                              Xem lại
+                            </Link>
+                            <Link to={`/courses/${courseId}/fulltest/${test.id}`} className="btn-3d btn-3d-primary py-1.5 px-3 text-xs">
+                              Làm lại
+                            </Link>
+                          </>
                         )}
                       </div>
                     );

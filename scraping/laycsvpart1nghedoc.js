@@ -1,3 +1,16 @@
+// =============================================================
+// 📖 NGOAINGU24H EXTRACTOR — Part 1 TOEIC (Ảnh + 4 đáp án)
+// Output format khớp với Import mode "Part 1" của hệ thống:
+//   image_url, audio_url, a, b, c, d, correct, translation, vocabulary
+//
+// CÁCH DÙNG:
+//   1. Vào trang bài Part 1 trên ngoaingu24h.vn (sau khi làm xong)
+//   2. Paste script này vào Console → Enter
+//   3. Copy CSV → Import vào Admin với mode "Part 1 - Ảnh (4 đáp án)"
+//
+// ⚠️ QUAN TRỌNG: Script này dùng mode Part 1, KHÔNG phải Auto/Default
+//    Thứ tự cột: image_url, audio_url, a, b, c, d, correct, translation, vocabulary
+// =============================================================
 (() => {
   const container = document.querySelector(".game-object-para-children");
   if (!container) { console.error("❌ Không tìm thấy container"); return; }
@@ -9,7 +22,7 @@
     ["A","B","C","D"].forEach((l, i, arr) => {
       const next = arr[i+1];
       const re = next
-        ? new RegExp(`\\(${l}\\)\\s*(.+?)(?=\\(${next}\\)|=>|$)`, "s")
+        ? new RegExp(`\\(${l}\\)\\s*([\\s\\S]*?)(?=\\(${next}\\)|=>|$)`, "s")
         : new RegExp(`\\(${l}\\)\\s*(.+?)(?=>|$)`, "s");
       const m = text.match(re);
       if (m) out[l] = m[1].replace(/\s+/g," ").trim().replace(/=\s*$/,"");
@@ -42,65 +55,68 @@
     const en = parseChoices(enPart);
     const vi = parseChoices(viPart);
 
-    // Explanation = chỉ dịch đáp án đúng
-    const explanation = correctLetter ? (vi[correctLetter] || "") : "";
-
-    // Translation = tất cả 4, format "(A) ... (B) ... (C) ... (D) ..."
     const translation = ["A","B","C","D"]
       .map(l => vi[l] ? `(${l}) ${vi[l]}` : "")
       .filter(Boolean).join(" ");
 
+    // Part 1 format: image_url, audio_url, a, b, c, d, correct, translation, vocabulary
     results.push({
-      QuestionText: "Look at the photo and choose the best description.",
-      A: cleanTail(en.A), B: cleanTail(en.B),
-      C: cleanTail(en.C), D: cleanTail(en.D),
-      Correct: correctLetter,
-      Explanation: explanation,
-      Translation: translation,
-      AudioURL: "",
-      ImageURL: imageURL,
+      image_url: imageURL,
+      audio_url: "",          // Part 1 audio được gán qua Wizard sau khi import
+      a: cleanTail(en.A),
+      b: cleanTail(en.B),
+      c: cleanTail(en.C),
+      d: cleanTail(en.D),
+      correct: correctLetter,
+      translation,
+      vocabulary: "",
     });
   });
 
   console.table(results.map(r => ({
-    Correct: r.Correct,
-    Explanation: r.Explanation.slice(0,40),
-    hasImg: !!r.ImageURL,
-    A: r.A.slice(0,30),
+    correct: r.correct,
+    hasImg: !!r.image_url,
+    a: r.a.slice(0,30),
   })));
 
-  // ── CSV ───────────────────────────────────────────────────────
+  // ── CSV (đúng thứ tự cột Part 1) ──────────────────────────
   const esc = v => `"${String(v).replace(/"/g,'""')}"`;
-  const header = ["QuestionText","A","B","C","D","Correct","Explanation","Translation","AudioURL","ImageURL"];
+  // Header khớp với mode Part 1 trong Import Dialog
+  const header = ["image_url","audio_url","a","b","c","d","correct","translation","vocabulary"];
   const csv = [
     header.join(","),
     ...results.map(q =>
-      [q.QuestionText,q.A,q.B,q.C,q.D,q.Correct,q.Explanation,q.Translation,q.AudioURL,q.ImageURL]
+      [q.image_url, q.audio_url, q.a, q.b, q.c, q.d, q.correct, q.translation, q.vocabulary]
       .map(esc).join(",")
     )
   ].join("\n");
 
-  // ── Overlay ───────────────────────────────────────────────────
+  // ── UI Overlay ─────────────────────────────────────────────
   document.getElementById("__csv_overlay")?.remove();
   const ov = document.createElement("div");
   ov.id = "__csv_overlay";
-  ov.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:999999;display:flex;align-items:center;justify-content:center;font-family:monospace`;
+  ov.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:999999;display:flex;align-items:center;justify-content:center;font-family:monospace`;
   ov.innerHTML = `
     <div style="background:#1e1e2e;color:#cdd6f4;border-radius:12px;width:85vw;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.6);overflow:hidden">
       <div style="padding:14px 20px;background:#313244;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #45475a">
-        <span style="font-size:15px;font-weight:700;color:#cba6f7">📋 CSV — ${results.length} câu</span>
+        <div>
+          <span style="font-size:15px;font-weight:700;color:#cba6f7">📋 Part 1 CSV — ${results.length} câu</span>
+          <span style="margin-left:12px;font-size:11px;color:#89b4fa">mode: Part 1 - Ảnh (4 đáp án)</span>
+        </div>
         <div style="display:flex;gap:8px">
           <button id="__csv_copy" style="padding:6px 16px;border-radius:6px;border:none;cursor:pointer;background:#a6e3a1;color:#1e1e2e;font-weight:700;font-size:13px">⬇ Copy CSV</button>
           <button id="__csv_close" style="padding:6px 14px;border-radius:6px;border:none;cursor:pointer;background:#f38ba8;color:#1e1e2e;font-weight:700;font-size:13px">✕ Đóng</button>
         </div>
       </div>
       <div style="padding:8px 20px;background:#181825;font-size:12px;color:#6c7086;border-bottom:1px solid #313244">
-        ✅ ${results.filter(q=>q.Correct).length} đáp án &nbsp;|&nbsp;
-        🖼 ${results.filter(q=>q.ImageURL).length} ảnh &nbsp;|&nbsp;
-        📝 ${results.filter(q=>q.Explanation).length} explanation
+        ✅ ${results.filter(q=>q.correct).length} đáp án &nbsp;|&nbsp;
+        🖼 ${results.filter(q=>q.image_url).length} ảnh &nbsp;|&nbsp;
+        ⚠️ Audio để trống → gán qua Wizard sau khi import
       </div>
       <textarea id="__csv_text" readonly style="flex:1;margin:0;padding:16px 20px;background:#181825;color:#a6e3a1;border:none;outline:none;resize:none;font-size:11px;line-height:1.6;overflow:auto"></textarea>
-      <div id="__csv_status" style="padding:8px 20px;background:#313244;font-size:12px;color:#6c7086;text-align:center">Nhấn Copy CSV → paste vào Google Sheets</div>
+      <div id="__csv_status" style="padding:8px 20px;background:#313244;font-size:12px;color:#6c7086;text-align:center">
+        Nhấn Copy CSV → Vào Admin → Import CSV → Chọn <b>Part 1 - Ảnh</b> → Paste
+      </div>
     </div>`;
   document.body.appendChild(ov);
   document.getElementById("__csv_text").value = csv;
@@ -108,7 +124,7 @@
     try {
       await navigator.clipboard.writeText(csv);
       document.getElementById("__csv_copy").textContent = "✅ Đã copy!";
-      document.getElementById("__csv_status").textContent = `✅ Đã copy ${results.length} câu!`;
+      document.getElementById("__csv_status").textContent = `✅ Đã copy ${results.length} câu! → Paste vào Import Dialog với mode Part 1`;
       document.getElementById("__csv_status").style.color = "#a6e3a1";
       setTimeout(() => document.getElementById("__csv_copy").textContent = "⬇ Copy CSV", 2500);
     } catch { document.getElementById("__csv_text").select(); document.execCommand("copy"); }

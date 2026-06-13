@@ -42,6 +42,8 @@ const AdminEnrollments = lazy(() => import("./pages/admin/AdminEnrollments"));
 const AdminMaterials = lazy(() => import("./pages/admin/AdminMaterials"));
 const AdminReports = lazy(() => import("./pages/admin/AdminReports"));
 const AdminSettings = lazy(() => import("./pages/admin/AdminSettings"));
+const AdminFullTestManager = lazy(() => import("./pages/admin/AdminFullTestManager"));
+
 
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-background">
@@ -99,6 +101,7 @@ const App = () => (
                 <Route path="/admin/courses" element={<AdminRoute><AdminCourses /></AdminRoute>} />
                 <Route path="/admin/courses/new" element={<AdminRoute><AdminCourseNew /></AdminRoute>} />
                 <Route path="/admin/courses/:courseId" element={<AdminRoute><AdminCourseDetail /></AdminRoute>} />
+                <Route path="/admin/fulltests" element={<AdminRoute><AdminFullTestManager /></AdminRoute>} />
                 <Route path="/admin/students" element={<AdminRoute><AdminStudents /></AdminRoute>} />
                 <Route path="/admin/students/:userId" element={<AdminRoute><AdminStudentDetail /></AdminRoute>} />
                 <Route path="/admin/enrollments" element={<AdminRoute><AdminEnrollments /></AdminRoute>} />
