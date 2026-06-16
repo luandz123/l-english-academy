@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 
 const Profile = () => {
-  const { user, profile } = useAuth();
+  const { user, profile, isAdmin } = useAuth();
   const { toast } = useToast();
   const [fullName, setFullName] = useState(profile?.full_name || "");
   const [saving, setSaving] = useState(false);
@@ -34,8 +34,18 @@ const Profile = () => {
   });
 
   const { data: enrollments } = useQuery({
-    queryKey: ["profile-enrollments", user?.id],
+    queryKey: ["profile-enrollments", user?.id, isAdmin],
     queryFn: async () => {
+      if (!user) return [];
+      if (isAdmin) {
+        const { data: courses } = await supabase.from("courses").select("*").eq("is_active", true);
+        return (courses || []).map(c => ({
+          id: `admin-${c.id}`,
+          course_id: c.id,
+          expires_at: null,
+          courses: c
+        }));
+      }
       const { data } = await supabase
         .from("enrollments")
         .select("*, courses(title)")

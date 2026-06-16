@@ -16,15 +16,16 @@ import learnBg from "@/assets/learn-bg.jpg";
 const LearnPage = () => {
   const { courseId } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const cId = Number(courseId);
 
   const { data: enrollment } = useQuery({
-    queryKey: ["learn-enrollment", user?.id, cId],
+    queryKey: ["learn-enrollment", user?.id, cId, isAdmin],
     queryFn: async () => {
       if (!user) return null;
+      if (isAdmin) return { id: 0, user_id: user.id, course_id: cId, enrolled: true };
       const { data } = await supabase.from("enrollments").select("*").eq("user_id", user.id).eq("course_id", cId).maybeSingle();
       return data;
     },

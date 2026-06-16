@@ -44,6 +44,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setIsAdmin(!!roleRes.data);
     } catch (err) {
       console.error("Error fetching user data:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -59,8 +61,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } else {
         setProfile(null);
         setIsAdmin(false);
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     // Then check existing session

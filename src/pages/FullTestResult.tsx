@@ -22,6 +22,8 @@ const partBreakdownMeta = [
   { part: 7, name: "Part 7: Reading Comprehension" },
 ];
 
+const partShortNames = ["Part 1", "Part 2", "Part 3", "Part 4", "Part 5", "Part 6", "Part 7"];
+
 const FullTestResult = () => {
   const { courseId, testId } = useParams();
   const location = useLocation();
@@ -119,9 +121,12 @@ const FullTestResult = () => {
   const answerLookup: Record<number, number | null> = {};
   const correctnessLookup: Record<number, boolean> = {};
 
-  answerDetails.forEach(detail => {
-    answerLookup[detail.question_id] = detail.selected_answer_id;
-    correctnessLookup[detail.question_id] = !!detail.is_correct;
+  const detailsArray = Array.isArray(answerDetails) ? answerDetails : [];
+  detailsArray.forEach(detail => {
+    if (detail) {
+      answerLookup[detail.question_id] = detail.selected_answer_id;
+      correctnessLookup[detail.question_id] = !!detail.is_correct;
+    }
   });
 
   // Calculate stats per Part — BUG FIX #11: use actual question counts
@@ -207,6 +212,28 @@ const FullTestResult = () => {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="w-10 h-10 animate-spin text-primary" />
       </div>
+    );
+  }
+
+  if (!latestResult) {
+    return (
+      <StudentLayout>
+        <div className="max-w-4xl mx-auto px-4 py-16 text-center space-y-6 font-sans">
+          <Award className="w-16 h-16 text-[var(--duo-gray)] mx-auto animate-bounce" />
+          <h1 className="text-3xl font-black text-foreground">Không tìm thấy kết quả bài thi</h1>
+          <p className="text-muted-foreground font-semibold max-w-md mx-auto">
+            Có vẻ như bạn chưa hoàn thành bài thi này, hoặc phiên làm bài đã bị hủy. Hãy thử bắt đầu làm bài lại nhé!
+          </p>
+          <div className="pt-4">
+            <Link
+              to={`/courses/${courseId}`}
+              className="btn-3d btn-3d-primary font-black px-6 py-3"
+            >
+              Quay lại khóa học
+            </Link>
+          </div>
+        </div>
+      </StudentLayout>
     );
   }
 
@@ -311,9 +338,10 @@ const FullTestResult = () => {
                       )}
 
                       {group.passage && (
-                        <div className="prose prose-sm max-w-none text-foreground font-medium bg-white p-5 rounded-xl border-2 border-[var(--duo-gray)] whitespace-pre-wrap leading-relaxed">
-                          {group.passage}
-                        </div>
+                        <div 
+                          className="prose prose-sm max-w-none text-foreground font-medium bg-white p-5 rounded-xl border-2 border-[var(--duo-gray)] leading-relaxed"
+                          dangerouslySetInnerHTML={{ __html: group.passage }}
+                        />
                       )}
                     </div>
                   )}

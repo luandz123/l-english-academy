@@ -21,7 +21,7 @@ const courseTypeMap: Record<string, string> = {
 
 const CourseDetail = () => {
   const { courseId } = useParams();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const cid = Number(courseId);
@@ -56,8 +56,10 @@ const CourseDetail = () => {
   });
 
   const { data: enrollment, refetch: refetchEnrollment } = useQuery({
-    queryKey: ["enrollment", cid, user?.id],
+    queryKey: ["enrollment", cid, user?.id, isAdmin],
     queryFn: async () => {
+      if (!user) return null;
+      if (isAdmin) return { id: 0, user_id: user.id, course_id: cid, enrolled: true };
       const { data } = await supabase
         .from("enrollments")
         .select("*")

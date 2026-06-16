@@ -61,7 +61,7 @@ const getToeicReadingScore = (correct: number): number => {
 const FullTestExam = () => {
   const { courseId, testId } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { playSound } = useSound();
 
   // States
@@ -97,8 +97,9 @@ const FullTestExam = () => {
 
   // BUG FIX #3: Check enrollment to prevent unauthorized access
   const { data: enrollment, isLoading: loadingEnrollment } = useQuery({
-    queryKey: ["fulltest-enrollment", courseId, user?.id],
+    queryKey: ["fulltest-enrollment", courseId, user?.id, isAdmin],
     queryFn: async () => {
+      if (isAdmin) return { enrolled: true };
       // Check if course is free first
       const { data: course } = await supabase
         .from("courses")
@@ -707,9 +708,10 @@ const FullTestExam = () => {
                     )}
 
                     {group.passage && (
-                      <div className="prose prose-sm max-w-none text-foreground font-medium bg-white p-5 rounded-xl border-2 border-[var(--duo-gray)] whitespace-pre-wrap leading-relaxed">
-                        {group.passage}
-                      </div>
+                      <div 
+                        className="prose prose-sm max-w-none text-foreground font-medium bg-white p-5 rounded-xl border-2 border-[var(--duo-gray)] leading-relaxed"
+                        dangerouslySetInnerHTML={{ __html: group.passage }}
+                      />
                     )}
                   </div>
                 )}

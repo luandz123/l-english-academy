@@ -27,7 +27,7 @@ const filterTypes = [
 ];
 
 const Courses = () => {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [zaloDialogOpen, setZaloDialogOpen] = useState(false);
   const [selectedCourseTitle, setSelectedCourseTitle] = useState("");
@@ -47,8 +47,12 @@ const Courses = () => {
   });
 
   const { data: enrollments } = useQuery({
-    queryKey: ["my-enrollments-ids", user?.id],
+    queryKey: ["my-enrollments-ids", user?.id, isAdmin, courses?.map(c => c.id).join(',')],
     queryFn: async () => {
+      if (!user) return [];
+      if (isAdmin && courses) {
+        return courses.map(c => c.id);
+      }
       const { data } = await supabase
         .from("enrollments")
         .select("course_id")
@@ -113,7 +117,7 @@ const Courses = () => {
   };
 
   const handleCourseClick = (c: any, isEnrolled: boolean) => {
-    const canAccess = isEnrolled || c.is_free || !c.price || c.price === 0;
+    const canAccess = isEnrolled || c.is_free || !c.price || c.price === 0 || isAdmin;
     if (canAccess) {
       navigate(getLessonLink(c));
     } else {
