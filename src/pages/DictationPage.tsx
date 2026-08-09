@@ -470,7 +470,7 @@ const DictationPage = () => {
       if (qErr) throw qErr;
 
       const { data: questions, error: questErr } = await supabase
-        .from("quiz_questions")
+        .from("questions")
         .select(`
           id,
           question_text,
@@ -478,17 +478,20 @@ const DictationPage = () => {
           translation,
           explanation,
           dictation_keywords,
-          order_index,
-          answers:quiz_answers(id, answer_text, is_correct, order_index)
+          display_order,
+          passage_text,
+          transcript,
+          image_url,
+          answers(id, answer_text, is_correct, display_order)
         `)
         .eq("quiz_id", Number(quizId))
-        .order("order_index", { ascending: true });
+        .order("display_order", { ascending: true });
 
       if (questErr) throw questErr;
 
       const sortedQuestions = (questions || []).map((q: any) => ({
         ...q,
-        answers: (q.answers || []).sort((a: any, b: any) => a.order_index - b.order_index)
+        answers: (q.answers || []).sort((a: any, b: any) => a.display_order - b.display_order)
       }));
 
       return { quiz, questions: sortedQuestions };
@@ -503,7 +506,7 @@ const DictationPage = () => {
       const questionIds = quizData.questions.map((q: any) => q.id);
       
       const { data, error } = await supabase
-        .from("lesson_vocab_words")
+        .from("vocab_questions")
         .select("*")
         .in("question_id", questionIds);
         

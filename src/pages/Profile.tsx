@@ -7,17 +7,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import { User, BookOpen, Trophy, KeyRound, Calendar, Mail, CheckCircle2 } from "lucide-react";
 
 const Profile = () => {
   const { user, profile, isAdmin } = useAuth();
   const { toast } = useToast();
   const [fullName, setFullName] = useState(profile?.full_name || "");
   const [saving, setSaving] = useState(false);
-  const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  const displayName = profile?.full_name || user?.user_metadata?.full_name || "User";
+  const displayName = profile?.full_name || user?.user_metadata?.full_name || "Học viên";
   const initials = displayName.charAt(0).toUpperCase();
 
   const { data: quizResults } = useQuery({
@@ -48,7 +48,7 @@ const Profile = () => {
       }
       const { data } = await supabase
         .from("enrollments")
-        .select("*, courses(title)")
+        .select("*, courses(*)")
         .eq("user_id", user!.id);
       return data || [];
     },
@@ -66,7 +66,7 @@ const Profile = () => {
     if (error) {
       toast({ title: "Lỗi", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Đã cập nhật!", description: "Thông tin cá nhân đã được lưu." });
+      toast({ title: "Đã cập nhật!", description: "Thông tin cá nhân đã được lưu thành công." });
     }
   };
 
@@ -83,8 +83,7 @@ const Profile = () => {
     if (error) {
       toast({ title: "Lỗi", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Thành công!", description: "Mật khẩu đã được đổi." });
-      setCurrentPassword("");
+      toast({ title: "Thành công!", description: "Mật khẩu đã được đổi thành công." });
       setNewPassword("");
       setConfirmPassword("");
     }
@@ -92,110 +91,174 @@ const Profile = () => {
 
   return (
     <StudentLayout>
-      <div className="max-w-4xl mx-auto space-y-6">
-        {/* Profile header */}
-        <div className="card-duo p-6 flex items-center gap-4">
-          <div className="w-16 h-16 rounded-full bg-[var(--duo-green)] flex items-center justify-center text-2xl font-extrabold text-white shadow-[0_4px_0_var(--duo-green-dark)]">{initials}</div>
-          <div>
-            <h1 className="text-xl font-extrabold text-foreground">{displayName}</h1>
-            <p className="text-sm text-muted-foreground font-medium">{user?.email}</p>
-            <p className="text-xs text-muted-foreground font-bold mt-0.5">📅 Đăng ký: {user?.created_at ? new Date(user.created_at).toLocaleDateString("vi-VN") : ""}</p>
+      <div className="max-w-4xl mx-auto space-y-6 pb-16">
+        {/* Profile Card Banner */}
+        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm flex flex-col sm:flex-row items-start sm:items-center gap-5">
+          {profile?.avatar_url ? (
+            <img src={profile.avatar_url} alt={displayName} className="w-16 h-16 rounded-2xl object-cover border border-border shrink-0" />
+          ) : (
+            <div className="w-16 h-16 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center text-2xl font-bold shrink-0 shadow-sm">
+              {initials}
+            </div>
+          )}
+          <div className="space-y-1 min-w-0 flex-1">
+            <h1 className="text-xl font-bold text-foreground truncate">{displayName}</h1>
+            <p className="text-xs text-muted-foreground flex items-center gap-1.5 truncate">
+              <Mail className="w-3.5 h-3.5" /> {user?.email}
+            </p>
+            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+              <Calendar className="w-3.5 h-3.5" /> Ngày tham gia: {user?.created_at ? new Date(user.created_at).toLocaleDateString("vi-VN") : "—"}
+            </p>
           </div>
         </div>
 
-        <Tabs defaultValue="info">
-          <TabsList className="bg-transparent p-0 h-auto gap-2 flex-wrap">
-            <TabsTrigger value="info" className="data-[state=active]:bg-[var(--duo-green)] data-[state=active]:text-white data-[state=active]:shadow-[0_3px_0_var(--duo-green-dark)] px-4 py-2 rounded-xl font-bold text-sm border-2 border-[var(--duo-gray)] data-[state=active]:border-[var(--duo-green)]">
-              Thông tin
+        {/* Profile Navigation Tabs */}
+        <Tabs defaultValue="info" className="w-full space-y-4">
+          <TabsList className="bg-muted/50 p-1 rounded-xl border border-border inline-flex h-auto flex-wrap">
+            <TabsTrigger
+              value="info"
+              className="data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm px-4 py-2 rounded-lg font-semibold text-xs transition-all flex items-center gap-1.5"
+            >
+              <User className="w-3.5 h-3.5" /> Thông tin cá nhân
             </TabsTrigger>
-            <TabsTrigger value="progress" className="data-[state=active]:bg-[var(--duo-blue)] data-[state=active]:text-white data-[state=active]:shadow-[0_3px_0_var(--duo-blue-dark)] px-4 py-2 rounded-xl font-bold text-sm border-2 border-[var(--duo-gray)] data-[state=active]:border-[var(--duo-blue)]">
-              Khóa học
+            <TabsTrigger
+              value="courses"
+              className="data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm px-4 py-2 rounded-lg font-semibold text-xs transition-all flex items-center gap-1.5"
+            >
+              <BookOpen className="w-3.5 h-3.5" /> Khóa học ({enrollments?.length || 0})
             </TabsTrigger>
-            <TabsTrigger value="history" className="data-[state=active]:bg-[var(--duo-yellow)] data-[state=active]:text-white data-[state=active]:shadow-[0_3px_0_var(--duo-yellow-dark)] px-4 py-2 rounded-xl font-bold text-sm border-2 border-[var(--duo-gray)] data-[state=active]:border-[var(--duo-yellow)]">
-              Lịch sử bài thi
+            <TabsTrigger
+              value="history"
+              className="data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm px-4 py-2 rounded-lg font-semibold text-xs transition-all flex items-center gap-1.5"
+            >
+              <Trophy className="w-3.5 h-3.5" /> Lịch sử bài thi ({quizResults?.length || 0})
             </TabsTrigger>
-            <TabsTrigger value="password" className="data-[state=active]:bg-[var(--duo-purple)] data-[state=active]:text-white data-[state=active]:shadow-[0_3px_0_var(--duo-purple-dark)] px-4 py-2 rounded-xl font-bold text-sm border-2 border-[var(--duo-gray)] data-[state=active]:border-[var(--duo-purple)]">
-              Đổi mật khẩu
+            <TabsTrigger
+              value="password"
+              className="data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm px-4 py-2 rounded-lg font-semibold text-xs transition-all flex items-center gap-1.5"
+            >
+              <KeyRound className="w-3.5 h-3.5" /> Đổi mật khẩu
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="info" className="mt-4">
-            <div className="card-duo p-6 space-y-4 max-w-md">
-              <div className="space-y-2">
-                <Label className="font-bold">Họ và tên</Label>
-                <Input value={fullName} onChange={(e) => setFullName(e.target.value)} className="h-12 rounded-xl border-2 border-[var(--duo-gray)] font-medium" />
+          {/* Tab: Info */}
+          <TabsContent value="info" className="mt-4 focus-visible:outline-none">
+            <div className="rounded-xl border border-border bg-card p-6 space-y-4 max-w-lg shadow-sm">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground">Họ và tên</Label>
+                <Input
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  className="h-10 rounded-lg border-border text-sm"
+                  placeholder="Nhập họ và tên..."
+                />
               </div>
-              <div className="space-y-2">
-                <Label className="font-bold">Email</Label>
-                <Input value={user?.email || ""} disabled className="h-12 rounded-xl border-2 border-[var(--duo-gray)] font-medium bg-muted" />
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground">Địa chỉ Email</Label>
+                <Input
+                  value={user?.email || ""}
+                  disabled
+                  className="h-10 rounded-lg border-border text-sm bg-muted/60 text-muted-foreground"
+                />
+                <p className="text-[11px] text-muted-foreground">Email đăng nhập không thể thay đổi.</p>
               </div>
-              <button onClick={handleUpdateProfile} disabled={saving} className="btn-3d btn-3d-primary py-2.5 px-6 text-sm">
-                {saving ? "Đang lưu..." : "Cập nhật"}
+              <button
+                onClick={handleUpdateProfile}
+                disabled={saving}
+                className="btn-3d btn-3d-primary py-2 px-5 text-xs font-semibold"
+              >
+                {saving ? "Đang lưu..." : "Lưu thay đổi"}
               </button>
             </div>
           </TabsContent>
 
-          <TabsContent value="progress" className="mt-4 space-y-4">
+          {/* Tab: Courses */}
+          <TabsContent value="courses" className="mt-4 focus-visible:outline-none space-y-3">
             {enrollments && enrollments.length > 0 ? (
               enrollments.map((e: any) => (
-                <div key={e.id} className="card-duo p-4 flex items-center justify-between">
-                  <div>
-                    <p className="font-extrabold text-foreground">{e.courses?.title}</p>
-                    <p className="text-xs text-muted-foreground font-bold mt-0.5">
-                      {e.expires_at ? `📅 Hết hạn: ${new Date(e.expires_at).toLocaleDateString("vi-VN")}` : "♾️ Vĩnh viễn"}
+                <div key={e.id} className="rounded-xl border border-border bg-card p-4 flex items-center justify-between shadow-sm">
+                  <div className="space-y-0.5">
+                    <p className="font-semibold text-sm text-foreground">{e.courses?.title}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {e.expires_at ? `Hạn dùng: ${new Date(e.expires_at).toLocaleDateString("vi-VN")}` : "Thời hạn: Vĩnh viễn"}
                     </p>
                   </div>
-                  <span className="badge-duo badge-green">Đã đăng ký</span>
+                  <span className="badge-duo badge-green">
+                    <CheckCircle2 className="w-3 h-3" /> Đã kích hoạt
+                  </span>
                 </div>
               ))
             ) : (
-              <p className="text-sm text-muted-foreground font-medium">Chưa đăng ký khóa học nào.</p>
+              <div className="rounded-xl border border-border p-8 text-center bg-card">
+                <p className="text-xs text-muted-foreground">Bạn chưa đăng ký khóa học nào.</p>
+              </div>
             )}
           </TabsContent>
 
-          <TabsContent value="history" className="mt-4">
-            <div className="card-duo overflow-hidden">
+          {/* Tab: History */}
+          <TabsContent value="history" className="mt-4 focus-visible:outline-none">
+            <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
               {quizResults && quizResults.length > 0 ? (
-                <table className="w-full text-sm">
+                <table className="w-full text-xs">
                   <thead>
-                    <tr className="border-b-2 border-[var(--duo-gray)] bg-muted/50">
-                      <th className="text-left p-3 font-extrabold text-foreground">Bài thi</th>
-                      <th className="text-center p-3 font-extrabold text-foreground">Điểm</th>
-                      <th className="text-center p-3 font-extrabold text-foreground">Đúng</th>
-                      <th className="text-center p-3 font-extrabold text-foreground">Ngày</th>
+                    <tr className="border-b border-border bg-muted/40 text-muted-foreground">
+                      <th className="text-left p-3 font-semibold">Tên bài thi / bài tập</th>
+                      <th className="text-center p-3 font-semibold">Điểm số</th>
+                      <th className="text-center p-3 font-semibold">Số câu đúng</th>
+                      <th className="text-right p-3 font-semibold">Ngày hoàn thành</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-border">
                     {quizResults.map((r: any) => {
                       const pct = r.total_questions > 0 ? (r.correct_answers / r.total_questions) * 100 : 0;
                       return (
-                        <tr key={r.id} className="border-b-2 border-[var(--duo-gray)] last:border-0 hover:bg-muted/30">
-                          <td className="p-3 text-foreground font-bold">{r.quizzes?.title || `Quiz #${r.quiz_id}`}</td>
-                          <td className="p-3 text-center"><span className={`badge-duo ${pct >= 80 ? 'badge-green' : pct >= 50 ? 'badge-yellow' : 'badge-orange'}`}>{Number(r.score).toFixed(1)}/10</span></td>
-                          <td className="p-3 text-center text-muted-foreground font-bold">{r.correct_answers}/{r.total_questions}</td>
-                          <td className="p-3 text-center text-muted-foreground font-bold">{new Date(r.completed_at).toLocaleDateString("vi-VN")}</td>
+                        <tr key={r.id} className="hover:bg-muted/20 transition-colors">
+                          <td className="p-3 font-medium text-foreground">{r.quizzes?.title || `Quiz #${r.quiz_id}`}</td>
+                          <td className="p-3 text-center">
+                            <span className={`badge-duo ${pct >= 80 ? 'badge-green' : pct >= 50 ? 'badge-yellow' : 'badge-orange'}`}>
+                              {Number(r.score).toFixed(1)}/10
+                            </span>
+                          </td>
+                          <td className="p-3 text-center text-muted-foreground">{r.correct_answers}/{r.total_questions}</td>
+                          <td className="p-3 text-right text-muted-foreground">{new Date(r.completed_at).toLocaleDateString("vi-VN")}</td>
                         </tr>
                       );
                     })}
                   </tbody>
                 </table>
               ) : (
-                <p className="p-6 text-center text-sm text-muted-foreground font-medium">Chưa có kết quả bài thi.</p>
+                <p className="p-8 text-center text-xs text-muted-foreground">Chưa có lịch sử làm bài thi nào.</p>
               )}
             </div>
           </TabsContent>
 
-          <TabsContent value="password" className="mt-4">
-            <div className="card-duo p-6 space-y-4 max-w-md">
-              <div className="space-y-2">
-                <Label className="font-bold">Mật khẩu mới</Label>
-                <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="h-12 rounded-xl border-2 border-[var(--duo-gray)] font-medium" />
+          {/* Tab: Password */}
+          <TabsContent value="password" className="mt-4 focus-visible:outline-none">
+            <div className="rounded-xl border border-border bg-card p-6 space-y-4 max-w-lg shadow-sm">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground">Mật khẩu mới</Label>
+                <Input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="h-10 rounded-lg border-border text-sm"
+                  placeholder="Nhập ít nhất 6 ký tự..."
+                />
               </div>
-              <div className="space-y-2">
-                <Label className="font-bold">Xác nhận mật khẩu mới</Label>
-                <Input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="h-12 rounded-xl border-2 border-[var(--duo-gray)] font-medium" />
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground">Xác nhận mật khẩu mới</Label>
+                <Input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="h-10 rounded-lg border-border text-sm"
+                  placeholder="Nhập lại mật khẩu mới..."
+                />
               </div>
-              <button onClick={handleChangePassword} className="btn-3d btn-3d-primary py-2.5 px-6 text-sm">
+              <button
+                onClick={handleChangePassword}
+                className="btn-3d btn-3d-primary py-2 px-5 text-xs font-semibold"
+              >
                 Đổi mật khẩu
               </button>
             </div>

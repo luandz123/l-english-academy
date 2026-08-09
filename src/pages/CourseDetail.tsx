@@ -1,9 +1,8 @@
 import StudentLayout from "@/components/StudentLayout";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { PlayCircle, FileText, Lock, Headphones, BookA, Clock, ChevronRight } from "lucide-react";
+import { PlayCircle, FileText, Lock, Headphones, BookA, Clock, ChevronRight, User, Download, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
@@ -12,11 +11,11 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 const courseTypeMap: Record<string, string> = {
-  video_quiz: "🎬 Video + Bài Thi",
-  flashcard: "🃏 Flashcard",
-  listening: "🎧 Listening",
-  speaking: "🗣️ Speaking & Writing",
-  fulltest: "📋 Full Test",
+  video_quiz: "Khóa học Video + Bài tập",
+  flashcard: "Kho từ vựng Flashcard",
+  listening: "Luyện nghe Chép chính tả",
+  speaking: "Speaking & Writing",
+  fulltest: "Luyện đề Full Test",
 };
 
 const CourseDetail = () => {
@@ -44,7 +43,6 @@ const CourseDetail = () => {
       
       if (!data) return [];
       
-      // Filter unpublished modules, lessons and quizzes
       return data
         .filter((mod: any) => mod.is_published !== false)
         .map((mod: any) => ({
@@ -55,7 +53,7 @@ const CourseDetail = () => {
     },
   });
 
-  const { data: enrollment, refetch: refetchEnrollment } = useQuery({
+  const { data: enrollment } = useQuery({
     queryKey: ["enrollment", cid, user?.id, isAdmin],
     queryFn: async () => {
       if (!user) return null;
@@ -107,15 +105,15 @@ const CourseDetail = () => {
   const handleEnroll = async () => {
     if (!user) return navigate("/login");
     toast({ 
-      title: "Bản quyền khóa học", 
-      description: "Khóa học này trả phí. Vui lòng liên hệ Admin để đăng ký toàn bộ khóa học!", 
+      title: "Kích hoạt khóa học", 
+      description: "Khóa học này thuộc chương trình VIP. Vui lòng liên hệ Admin qua Zalo 0334729066 để kích hoạt quyền truy cập!", 
       variant: "default",
       duration: 5000,
     });
   };
 
   if (isLoading) return <StudentLayout><Skeleton className="h-64 rounded-2xl" /></StudentLayout>;
-  if (!course) return <StudentLayout><p className="text-muted-foreground font-medium">Không tìm thấy khóa học.</p></StudentLayout>;
+  if (!course) return <StudentLayout><p className="text-muted-foreground font-medium">Không tìm thấy thông tin khóa học.</p></StudentLayout>;
 
   const getLessonLink = () => {
     if (course.course_type === "flashcard") return `/courses/${cid}/vocab`;
@@ -125,68 +123,77 @@ const CourseDetail = () => {
     let firstQuizId: number | null = null;
     
     if (modules && modules.length > 0) {
-       for (const mod of modules) {
-          if (mod.lessons && mod.lessons.length > 0) hasLessons = true;
-          if (!firstQuizId && mod.quizzes && mod.quizzes.length > 0) {
-             firstQuizId = mod.quizzes[0].id;
-          }
-       }
+      for (const mod of modules) {
+        if (mod.lessons && mod.lessons.length > 0) hasLessons = true;
+        if (!firstQuizId && mod.quizzes && mod.quizzes.length > 0) {
+          firstQuizId = mod.quizzes[0].id;
+        }
+      }
     }
     
     if (!hasLessons && firstQuizId) {
-       return `/courses/${cid}/quiz/${firstQuizId}`;
+      return `/courses/${cid}/quiz/${firstQuizId}`;
     }
     
     return `/courses/${cid}/learn`;
   };
 
+  const totalLessonsCount = modules?.reduce((acc: number, mod: any) => acc + (mod.lessons?.length || 0), 0) || 0;
+
   return (
     <StudentLayout>
-      <div className="space-y-8 max-w-5xl mx-auto pb-24">
-        {/* Hero Section */}
-        <div className="card-duo p-0 overflow-hidden">
+      <div className="space-y-6 max-w-5xl mx-auto pb-16">
+        {/* Course Hero Banner */}
+        <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
           <div className="grid md:grid-cols-12 gap-0">
-            <div className="md:col-span-5 aspect-[4/3] bg-muted overflow-hidden">
+            <div className="md:col-span-5 aspect-video md:aspect-auto bg-muted overflow-hidden">
               {course.thumbnail_url ? (
-                <img src={course.thumbnail_url} alt={course.title} className="w-full h-full object-cover transition-transform hover:scale-105 duration-700" />
+                <img src={course.thumbnail_url} alt={course.title} className="w-full h-full object-cover" />
               ) : (
-                <div className="w-full h-full bg-gradient-to-br from-[var(--duo-correct)]/10 to-[var(--duo-blue)]/10 flex items-center justify-center text-muted-foreground uppercase font-bold text-xs tracking-widest">
-                  L-English
+                <div className="w-full h-full min-h-[220px] bg-gradient-to-br from-blue-500/10 to-indigo-500/10 flex items-center justify-center text-primary font-bold text-sm">
+                  L-ENGLISH ACADEMY
                 </div>
               )}
             </div>
             
-            <div className="md:col-span-7 p-6 md:p-8 space-y-5 flex flex-col justify-center">
+            <div className="md:col-span-7 p-6 md:p-8 space-y-4 flex flex-col justify-center">
               <div>
-                <span className="badge-duo badge-blue mb-4 inline-block">
+                <span className="badge-duo badge-blue mb-3 inline-block">
                   {courseTypeMap[course.course_type] || course.course_type}
                 </span>
-                <h1 className="text-2xl md:text-3xl font-extrabold text-foreground leading-tight mb-4">
+                <h1 className="text-xl md:text-2xl font-bold text-foreground leading-snug">
                   {course.title}
                 </h1>
-                
-                <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm font-bold text-muted-foreground">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-[var(--duo-correct)] flex items-center justify-center text-white shadow-[0_2px_0_var(--duo-correct-dark)]">
-                      <span className="font-extrabold text-xs">{course.instructor?.charAt(0) || "I"}</span>
-                    </div>
-                    <span>{course.instructor}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-[var(--duo-blue)]" />
-                    <span>{course.duration_months ? `${course.duration_months} tháng` : "Vĩnh viễn"}</span>
-                  </div>
+                {course.subtitle && (
+                  <p className="text-xs md:text-sm text-muted-foreground mt-1.5 line-clamp-2">
+                    {course.subtitle}
+                  </p>
+                )}
+              </div>
+              
+              <div className="flex flex-wrap items-center gap-4 text-xs font-semibold text-muted-foreground pt-1">
+                <div className="flex items-center gap-1.5">
+                  <User className="w-4 h-4 text-primary" />
+                  <span>Giảng viên: <strong className="text-foreground font-semibold">{course.instructor || "L-English"}</strong></span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Clock className="w-4 h-4 text-primary" />
+                  <span>Thời lượng: <strong className="text-foreground font-semibold">{course.duration_months ? `${course.duration_months} tháng` : "Vĩnh viễn"}</strong></span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <FileText className="w-4 h-4 text-primary" />
+                  <span>{totalLessonsCount} bài học</span>
                 </div>
               </div>
               
               <div className="pt-2">
-                {enrollment || (course as any).is_free ? (
-                  <Link to={getLessonLink()} className="btn-3d btn-3d-primary text-base px-8 py-3.5 inline-block">
-                    {enrollment ? "Tiếp tục học 🚀" : "Vào học miễn phí ✨"}
+                {enrollment || (course as any).is_free || isAdmin ? (
+                  <Link to={getLessonLink()} className="btn-3d btn-3d-primary py-2.5 px-6 text-sm font-semibold inline-flex items-center gap-2">
+                    {enrollment ? "Tiếp tục học ngay" : "Bắt đầu học miễn phí"} <ChevronRight className="w-4 h-4" />
                   </Link>
                 ) : (
-                  <button onClick={handleEnroll} className="btn-3d btn-3d-primary text-base px-8 py-3.5">
-                    Đăng ký khóa học 🔓
+                  <button onClick={handleEnroll} className="btn-3d btn-3d-primary py-2.5 px-6 text-sm font-semibold inline-flex items-center gap-2">
+                    <Lock className="w-4 h-4" /> Kích hoạt khóa học
                   </button>
                 )}
               </div>
@@ -194,46 +201,53 @@ const CourseDetail = () => {
           </div>
         </div>
 
-        <Tabs defaultValue="content" className="w-full">
-          <TabsList className="bg-transparent p-0 h-auto gap-2 flex-wrap">
-            <TabsTrigger value="content" className="data-[state=active]:bg-[var(--duo-correct)] data-[state=active]:text-white data-[state=active]:shadow-[0_3px_0_var(--duo-correct-dark)] px-5 py-2.5 rounded-xl font-bold text-sm border-2 border-[var(--duo-gray)] data-[state=active]:border-[var(--duo-correct)]">
-              📖 Nội dung
+        {/* Tab Content */}
+        <Tabs defaultValue="content" className="w-full space-y-4">
+          <TabsList className="bg-muted/50 p-1 rounded-xl border border-border inline-flex h-auto">
+            <TabsTrigger
+              value="content"
+              className="data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm px-5 py-2 rounded-lg font-semibold text-xs transition-all"
+            >
+              Nội dung khóa học ({totalLessonsCount})
             </TabsTrigger>
-            <TabsTrigger value="overview" className="data-[state=active]:bg-[var(--duo-blue)] data-[state=active]:text-white data-[state=active]:shadow-[0_3px_0_var(--duo-blue-dark)] px-5 py-2.5 rounded-xl font-bold text-sm border-2 border-[var(--duo-gray)] data-[state=active]:border-[var(--duo-blue)]">
-              ℹ️ Tổng quan
+            <TabsTrigger
+              value="overview"
+              className="data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm px-5 py-2 rounded-lg font-semibold text-xs transition-all"
+            >
+              Giới thiệu
             </TabsTrigger>
-            <TabsTrigger value="materials" className="data-[state=active]:bg-[var(--duo-yellow)] data-[state=active]:text-white data-[state=active]:shadow-[0_3px_0_var(--duo-yellow-dark)] px-5 py-2.5 rounded-xl font-bold text-sm border-2 border-[var(--duo-gray)] data-[state=active]:border-[var(--duo-yellow)]">
-              📎 Tài liệu ({materials?.length || 0})
+            <TabsTrigger
+              value="materials"
+              className="data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm px-5 py-2 rounded-lg font-semibold text-xs transition-all"
+            >
+              Tài liệu đính kèm ({materials?.length || 0})
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="content" className="mt-6">
+          {/* Tab: Content */}
+          <TabsContent value="content" className="mt-4 focus-visible:outline-none space-y-4">
             {modules && modules.length > 0 ? (
-              <Accordion type="multiple" defaultValue={[]} className="space-y-4">
+              <Accordion type="multiple" defaultValue={modules.map((_, i) => `mod-${i}`)} className="space-y-3">
                 {modules.map((mod: any, pi: number) => {
                   const lessons = (mod.lessons || []).sort((a: any, b: any) => a.display_order - b.display_order);
-                  const quizzes = (mod.quizzes || []).sort((a: any, b: any) => a.display_order - b.display_order);
-                  
-                  const lessonQuizIds = new Set(lessons.map((l: any) => l.quiz_id).filter(Boolean));
-                  const standaloneQuizzes = quizzes.filter((q: any) => !lessonQuizIds.has(q.id));
+
                   return (
-                    <AccordionItem key={mod.id} value={`mod-${pi}`} className="card-duo border-2 border-[var(--duo-gray)] overflow-hidden">
-                      <AccordionTrigger className="px-6 py-5 hover:no-underline hover:bg-muted/50 transition-colors">
-                        <div className="flex flex-col items-start gap-1.5 text-left">
-                          <span className="font-extrabold text-lg text-foreground leading-tight">{mod.title}</span>
-                          <span className="text-sm font-bold text-muted-foreground flex items-center gap-2">
-                            <FileText className="w-3.5 h-3.5" />
-                            {lessons.length} bài học
-                          </span>
+                    <AccordionItem key={mod.id} value={`mod-${pi}`} className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
+                      <AccordionTrigger className="px-5 py-4 hover:no-underline hover:bg-muted/40 transition-colors">
+                        <div className="flex items-center justify-between gap-4 text-left w-full pr-2">
+                          <div className="space-y-0.5">
+                            <span className="font-bold text-sm text-foreground">{mod.title}</span>
+                            <p className="text-xs text-muted-foreground font-normal">{lessons.length} bài học</p>
+                          </div>
                         </div>
                       </AccordionTrigger>
-                      <AccordionContent className="px-6 pb-6 pt-2">
-                        <div className="space-y-2">
+                      <AccordionContent className="px-4 pb-4 pt-1">
+                        <div className="space-y-1.5">
                           {lessons.map((lesson: any) => {
                             const isTest = lesson.lesson_type === "exam" || lesson.lesson_type === "practice";
                             const isDictation = lesson.lesson_type === "dictation";
                             
-                            const canAccess = enrollment || (course as any).is_free || mod.is_free || lesson.is_free;
+                            const canAccess = enrollment || (course as any).is_free || mod.is_free || lesson.is_free || isAdmin;
                             const getDestUrl = () => {
                               if (!canAccess) return "#";
                               if (isTest) return `/courses/${cid}/quiz/${lesson.quiz_id || lesson.id}`;
@@ -242,54 +256,57 @@ const CourseDetail = () => {
                             };
                             
                             const destUrl = getDestUrl();
-                            
                             const latestResult = (isTest || isDictation) ? quizResults?.find(r => r.quiz_id === (lesson.quiz_id || lesson.id)) : null;
                             
                             return (
-                                <div
-                                  key={`l-${lesson.id}`}
-                                  onClick={() => {
-                                    if (!canAccess) {
-                                      toast({
-                                        title: "Nội dung có phí",
-                                        description: "Vui lòng đăng ký khóa học để xem nội dung bài học này.",
-                                        variant: "destructive"
-                                      });
-                                      return;
-                                    }
-                                    navigate(destUrl);
-                                  }}
-                                  className={cn(
-                                    "flex justify-between items-center px-4 py-3.5 rounded-xl transition-all cursor-pointer group",
-                                    (isTest || isDictation) 
-                                      ? "border-2 border-[var(--duo-gray)] bg-white hover:border-[var(--duo-correct)] shadow-[0_2px_0_var(--duo-gray)] hover:shadow-[0_3px_0_var(--duo-gray)]" 
-                                      : "hover:bg-muted/50 border-2 border-transparent"
-                                  )}
-                                >
-                                  <div className="flex items-center gap-3">
-                                    {isDictation ? (
-                                      <div className="w-10 h-10 rounded-xl bg-[var(--duo-purple)] flex items-center justify-center shrink-0 shadow-[0_3px_0_var(--duo-purple-dark)] group-hover:scale-110 transition-transform">
-                                        <Headphones className="w-5 h-5 text-white" />
-                                      </div>
-                                    ) : isTest ? (
-                                      <div className="w-10 h-10 rounded-xl bg-[var(--duo-orange)] flex items-center justify-center shrink-0 shadow-[0_3px_0_#CC7700] group-hover:scale-110 transition-transform">
-                                        <FileText className="w-5 h-5 text-white" />
-                                      </div>
-                                    ) : (
-                                      <div className="w-10 h-10 rounded-xl bg-[var(--duo-blue)] flex items-center justify-center shrink-0 shadow-[0_3px_0_var(--duo-blue-dark)] group-hover:scale-110 transition-transform">
-                                        <PlayCircle className="w-5 h-5 text-white" />
-                                      </div>
-                                    )}
-                                    <div className="flex flex-col">
-                                      <span className="text-[15px] text-foreground font-bold group-hover:text-[var(--duo-correct)] transition-colors line-clamp-1">{lesson.title}</span>
-                                      {isTest && <span className="text-xs font-bold text-muted-foreground mt-0.5">Bài {lesson.lesson_type === "exam" ? "thi online" : "luyện tập"}</span>}
-                                      {isDictation && <span className="text-xs font-bold text-muted-foreground mt-0.5">Luyện nghe điền từ</span>}
+                              <div
+                                key={`l-${lesson.id}`}
+                                onClick={() => {
+                                  if (!canAccess) {
+                                    toast({
+                                      title: "Khóa học trả phí",
+                                      description: "Vui lòng kích hoạt khóa học để xem nội dung bài học này.",
+                                      variant: "destructive"
+                                    });
+                                    return;
+                                  }
+                                  navigate(destUrl);
+                                }}
+                                className={cn(
+                                  "flex justify-between items-center px-4 py-3 rounded-lg border transition-all cursor-pointer group",
+                                  canAccess 
+                                    ? "border-border/60 bg-muted/20 hover:bg-card hover:border-primary/40 hover:shadow-sm" 
+                                    : "border-border/40 bg-muted/10 opacity-75"
+                                )}
+                              >
+                                <div className="flex items-center gap-3 min-w-0 flex-1">
+                                  {isDictation ? (
+                                    <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+                                      <Headphones className="w-4 h-4" />
                                     </div>
+                                  ) : isTest ? (
+                                    <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                                      <FileText className="w-4 h-4" />
+                                    </div>
+                                  ) : (
+                                    <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                                      <PlayCircle className="w-4 h-4" />
+                                    </div>
+                                  )}
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-xs md:text-sm font-semibold text-foreground truncate group-hover:text-primary transition-colors">
+                                      {lesson.title}
+                                    </p>
+                                    <p className="text-[11px] text-muted-foreground">
+                                      {isDictation ? "Luyện nghe chép chính tả" : isTest ? (lesson.lesson_type === "exam" ? "Bài thi đánh giá" : "Bài tập luyện tập") : "Bài giảng lý thuyết"}
+                                    </p>
                                   </div>
-                                   <div className="flex items-center gap-3 shrink-0">
+                                </div>
+
+                                <div className="flex items-center gap-2.5 shrink-0 ml-3">
                                   {vocabQuizzes?.find(vq => vq.lesson_id === lesson.id && vq.total_questions > 0) && (
                                     <button
-                                      className="badge-duo badge-purple text-[10px] hover:scale-105 transition-transform flex items-center gap-1"
+                                      className="badge-duo badge-purple text-[10px] hidden sm:inline-flex items-center gap-1"
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         navigate(`/courses/${cid}/vocab-lesson/${lesson.id}`);
@@ -298,65 +315,33 @@ const CourseDetail = () => {
                                       <BookA className="w-3 h-3" /> Từ vựng
                                     </button>
                                   )}
+
                                   {!canAccess ? (
-                                    <div className="flex items-center gap-1.5 shrink-0">
-                                      <Lock className="w-3 h-3 text-[var(--duo-yellow)]" />
-                                      <span className="badge-duo badge-yellow">VIP</span>
-                                    </div>
+                                    <span className="badge-duo badge-yellow flex items-center gap-1">
+                                      <Lock className="w-3 h-3" /> VIP
+                                    </span>
                                   ) : (
                                     <>
                                       {(lesson.is_free || mod.is_free || (course as any).is_free) && (
-                                        <span className="badge-duo badge-green">FREE</span>
+                                        <span className="badge-duo badge-blue">FREE</span>
                                       )}
-                                      {(isTest || isDictation) ? (
-                                        <>
-                                          {latestResult ? (
-                                            <div className="flex flex-col items-end gap-1.5 hidden sm:flex">
-                                              {isDictation ? (
-                                                <div className="flex flex-col items-end gap-1.5 min-w-[120px]">
-                                                  <div className="flex justify-between w-full text-[11px] font-extrabold text-[var(--duo-purple)] uppercase tracking-wider">
-                                                    <span>Tiến độ</span>
-                                                    <span>{Math.round(((latestResult.correct_answers || 0) / (latestResult.total_questions || 1)) * 100)}%</span>
-                                                  </div>
-                                                  <div className="progress-duo w-full h-2">
-                                                    <div 
-                                                      className="progress-duo-fill" 
-                                                      style={{ width: `${((latestResult.correct_answers || 0) / (latestResult.total_questions || 1)) * 100}%`, background: 'linear-gradient(90deg, var(--duo-purple), var(--duo-purple-dark))' }}
-                                                    />
-                                                  </div>
-                                                </div>
-                                              ) : (
-                                                <span className="badge-duo badge-green">
-                                                  Điểm: {latestResult.score}/10
-                                                </span>
-                                              )}
-                                            </div>
-                                          ) : (
-                                            <span className="badge-duo badge-orange hidden sm:inline-block">
-                                              Chưa học
-                                            </span>
-                                          )}
-                                          <div className="ml-1 w-8 h-8 rounded-full bg-muted flex items-center justify-center group-hover:bg-[var(--duo-correct)] group-hover:text-white text-muted-foreground transition-colors">
-                                            <ChevronRight className="w-4 h-4" />
-                                          </div>
-                                        </>
-                                      ) : (
-                                        <div className="flex items-center gap-3">
-                                          {lesson.duration_seconds > 0 && (
-                                            <span className="text-xs font-bold text-muted-foreground whitespace-nowrap">{Math.round(lesson.duration_seconds / 60)} phút</span>
-                                          )}
-                                          <div className="w-8 h-8 rounded-full flex items-center justify-center text-muted-foreground group-hover:text-[var(--duo-correct)] transition-colors">
-                                            <ChevronRight className="w-4 h-4" />
-                                          </div>
-                                        </div>
+                                      {latestResult && (
+                                        <span className="badge-duo badge-green">
+                                          <CheckCircle2 className="w-3 h-3" /> {latestResult.score}/10
+                                        </span>
                                       )}
+                                      {lesson.duration_seconds > 0 && (
+                                        <span className="text-[11px] font-medium text-muted-foreground hidden sm:inline-block">
+                                          {Math.round(lesson.duration_seconds / 60)} phút
+                                        </span>
+                                      )}
+                                      <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
                                     </>
                                   )}
                                 </div>
                               </div>
                             );
                           })}
-                          {/* Removed standalone quizzes per user request */}
                         </div>
                       </AccordionContent>
                     </AccordionItem>
@@ -364,47 +349,55 @@ const CourseDetail = () => {
                 })}
               </Accordion>
             ) : (
-              <div className="card-duo p-6 text-center">
-                <p className="text-sm text-muted-foreground font-medium">Nội dung đang được cập nhật...</p>
+              <div className="rounded-xl border border-dashed border-border p-8 text-center bg-card">
+                <p className="text-xs text-muted-foreground">Nội dung bài học đang được cập nhật...</p>
               </div>
             )}
           </TabsContent>
 
-          <TabsContent value="overview" className="mt-6">
-            <div className="card-duo p-8 max-w-3xl">
-              <h3 className="font-extrabold text-xl text-foreground mb-6 flex items-center gap-2">
-                <BookA className="w-5 h-5 text-[var(--duo-correct)]" /> Về khóa học này
+          {/* Tab: Overview */}
+          <TabsContent value="overview" className="mt-4 focus-visible:outline-none">
+            <div className="rounded-xl border border-border bg-card p-6 space-y-4">
+              <h3 className="font-bold text-base text-foreground flex items-center gap-2">
+                <BookA className="w-4 h-4 text-primary" /> Về khóa học này
               </h3>
-              <div className="prose prose-slate max-w-none text-[15px] leading-relaxed text-muted-foreground">
+              <div className="text-sm leading-relaxed text-muted-foreground whitespace-pre-line">
                 {course.description || "Chưa có mô tả chi tiết cho khóa học này."}
               </div>
             </div>
           </TabsContent>
 
-          <TabsContent value="materials" className="mt-6">
-            <div className="card-duo p-6">
+          {/* Tab: Materials */}
+          <TabsContent value="materials" className="mt-4 focus-visible:outline-none">
+            <div className="rounded-xl border border-border bg-card p-6">
               {materials && materials.length > 0 ? (
-                <div className="grid sm:grid-cols-2 gap-4">
+                <div className="grid sm:grid-cols-2 gap-3">
                   {materials.map((m: any) => (
-                    <div key={m.id} className="flex items-start gap-4 p-4 rounded-xl border-2 border-[var(--duo-gray)] bg-white hover:border-[var(--duo-blue)] hover:shadow-[0_3px_0_var(--duo-gray)] transition-all group">
-                      <div className="w-10 h-10 rounded-xl bg-[var(--duo-blue)] flex items-center justify-center shrink-0 text-white shadow-[0_3px_0_var(--duo-blue-dark)]">
-                        <FileText className="w-5 h-5" />
+                    <div key={m.id} className="flex items-center justify-between p-4 rounded-xl border border-border bg-muted/20 hover:border-primary/40 transition-all">
+                      <div className="flex items-center gap-3 min-w-0 pr-3">
+                        <div className="w-9 h-9 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-primary flex items-center justify-center shrink-0">
+                          <FileText className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-semibold text-xs md:text-sm text-foreground truncate">{m.title}</p>
+                          <p className="text-[11px] text-muted-foreground">Tài liệu học tập đính kèm</p>
+                        </div>
                       </div>
-                      <div className="flex-1 min-w-0 pt-0.5">
-                        <h4 className="font-extrabold text-sm text-foreground line-clamp-1 mb-2 group-hover:text-[var(--duo-blue)] transition-colors">{m.title}</h4>
-                        <a href={m.file_url} target="_blank" rel="noopener noreferrer" className="btn-3d btn-3d-white text-xs py-1.5 px-3 inline-block">
-                          Tải xuống
-                        </a>
-                      </div>
+                      <a
+                        href={m.file_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn-3d btn-3d-white py-1.5 px-3 text-xs inline-flex items-center gap-1 shrink-0"
+                      >
+                        <Download className="w-3.5 h-3.5" /> Tải về
+                      </a>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-12">
-                  <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4">
-                    <FileText className="w-8 h-8 text-muted-foreground" />
-                  </div>
-                  <p className="text-[15px] text-muted-foreground font-medium">Chưa có tài liệu đính kèm cho khóa học này.</p>
+                <div className="text-center py-10 text-muted-foreground text-xs">
+                  <FileText className="w-8 h-8 mx-auto mb-2 text-muted-foreground/50" />
+                  Chưa có tài liệu đính kèm cho khóa học này.
                 </div>
               )}
             </div>

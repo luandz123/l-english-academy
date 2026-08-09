@@ -1,45 +1,13 @@
 import StudentLayout from "@/components/StudentLayout";
-import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { PlayCircle as PlayCircleLucide, Flame, ArrowRight, Trophy } from "lucide-react";
+import { Flame, ArrowRight, Trophy, BookOpen, Headphones, FileText, Sparkles, CheckCircle2, Play } from "lucide-react";
 import { PlayCircle, ClipboardText, Star, BookBookmark } from "@phosphor-icons/react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useState, useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import OnboardingModal, { useOnboarding } from "@/components/OnboardingModal";
-
-// Count-up animation for premium feeling
-const AnimatedCounter = ({ value, suffix = "", duration = 800 }: { value: number; suffix?: string; duration?: number }) => {
-  const [count, setCount] = useState(0);
-
-  useEffect(() => {
-    let start = 0;
-    const end = value;
-    if (start === end) {
-      setCount(end);
-      return;
-    }
-
-    const totalMiliseconds = duration;
-    const incrementTime = Math.max(Math.floor(totalMiliseconds / (end || 1)), 15);
-    
-    const timer = setInterval(() => {
-      start += Math.ceil(end / (totalMiliseconds / incrementTime));
-      if (start >= end) {
-        clearInterval(timer);
-        setCount(end);
-      } else {
-        setCount(start);
-      }
-    }, incrementTime);
-
-    return () => clearInterval(timer);
-  }, [value, duration]);
-
-  return <span>{count}{suffix}</span>;
-};
 
 const Dashboard = () => {
   const { user, profile } = useAuth();
@@ -85,14 +53,12 @@ const Dashboard = () => {
     enabled: !!user,
   });
 
-  // A1: Get last lesson progress to show Continue Learning widget
+  // Get last lesson progress to show Continue Learning widget
   const lastProgressLesson = useMemo(() => {
     if (!lessonProgress || lessonProgress.length === 0) return null;
-    // Find the latest record
-    return lessonProgress[0]; // ordered desc by created_at
+    return lessonProgress[0];
   }, [lessonProgress]);
 
-  // Fetch full details of the last progress lesson
   const { data: lastLessonDetails } = useQuery({
     queryKey: ["last-lesson-details", lastProgressLesson?.lesson_id],
     queryFn: async () => {
@@ -107,7 +73,6 @@ const Dashboard = () => {
     enabled: !!lastProgressLesson?.lesson_id,
   });
 
-  // Fetch total lessons per course
   const { data: allLessons = [] } = useQuery({
     queryKey: ["dashboard-all-lessons"],
     queryFn: async () => {
@@ -126,7 +91,7 @@ const Dashboard = () => {
     return Number((quizResults.reduce((sum, r) => sum + (Number(r.score) || 0), 0) / quizResults.length).toFixed(1));
   }, [quizResults]);
 
-  // A1: Calculate daily streak from progress records
+  // Calculate daily streak from progress records
   const streak = useMemo(() => {
     if (!lessonProgress || lessonProgress.length === 0) return 0;
     const completedDates = Array.from(new Set(
@@ -170,7 +135,6 @@ const Dashboard = () => {
     return currentStreak;
   }, [lessonProgress]);
 
-  // D6: Map progress percentage
   const completedLessonIds = useMemo(() => new Set(lessonProgress?.filter((p: any) => p.is_completed).map((p: any) => p.lesson_id) || []), [lessonProgress]);
 
   const courseProgressMap = useMemo(() => {
@@ -188,285 +152,294 @@ const Dashboard = () => {
   const stats = [
     {
       Icon: PlayCircle,
-      label: "Bài giảng đã xem",
+      label: "Bài học hoàn thành",
       value: completedLessons,
-      suffix: "",
-      gradient: "from-emerald-500 to-teal-400",
-      glow: "shadow-emerald-400/40",
+      suffix: " bài",
+      color: "text-blue-600 dark:text-blue-400",
+      bgColor: "bg-blue-50 dark:bg-blue-950/50",
     },
     {
       Icon: ClipboardText,
       label: "Bài thi đã làm",
       value: totalQuizzes,
-      suffix: "",
-      gradient: "from-blue-500 to-cyan-400",
-      glow: "shadow-blue-400/40",
+      suffix: " đề",
+      color: "text-emerald-600 dark:text-emerald-400",
+      bgColor: "bg-emerald-50 dark:bg-emerald-950/50",
     },
     {
       Icon: Star,
       label: "Điểm trung bình",
       value: avgScore,
       suffix: "/10",
-      gradient: "from-yellow-400 to-orange-400",
-      glow: "shadow-yellow-400/40",
+      color: "text-amber-600 dark:text-amber-400",
+      bgColor: "bg-amber-50 dark:bg-amber-950/50",
     },
     {
       Icon: BookBookmark,
       label: "Khóa đã đăng ký",
       value: enrollments?.length || 0,
-      suffix: "",
-      gradient: "from-purple-500 to-fuchsia-400",
-      glow: "shadow-purple-400/40",
+      suffix: " khóa",
+      color: "text-purple-600 dark:text-purple-400",
+      bgColor: "bg-purple-50 dark:bg-purple-950/50",
     },
   ];
 
   const courseTypeMap: Record<string, string> = {
-    video_quiz: "🎬 Video",
-    flashcard: "🃏 Flashcard",
-    listening: "🎧 Listening",
-    speaking: "🗣️ Speaking",
-    fulltest: "📋 Full Test",
+    video_quiz: "Khóa học Video",
+    flashcard: "Kho Từ vựng",
+    listening: "Luyện nghe Chép chính tả",
+    speaking: "Speaking & Writing",
+    fulltest: "Luyện đề Full Test",
   };
 
   return (
     <StudentLayout>
-      {/* Onboarding Modal - chỉ hiện 1 lần cho user mới */}
       {showOnboarding && <OnboardingModal onDone={doneOnboarding} />}
 
-      <div className="space-y-6 max-w-6xl">
-        {/* Welcome banner & A1 Streak Widget */}
-        <div className="card-duo p-0 overflow-hidden">
-          <div className="bg-[var(--duo-correct)] p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div>
-              <h1 className="text-xl md:text-2xl font-extrabold text-white">Xin chào, {displayName}! 👋</h1>
-              <p className="text-white/80 text-sm mt-1 font-bold">Chúc bạn một ngày học tập thật hiệu quả. 🦉</p>
+      <div className="space-y-6 max-w-6xl mx-auto">
+        {/* Welcome banner */}
+        <div className="rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-sky-600 p-6 md:p-8 text-white shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 text-white text-xs font-semibold backdrop-blur-sm mb-2">
+              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+              <span>Chào mừng trở lại</span>
             </div>
-            
-            {/* A1: Streak Counter Widget */}
-            <div className="flex items-center gap-3 bg-white/20 backdrop-blur-sm rounded-2xl px-5 py-3 border-2 border-white/10 animate-pulse">
-              <Flame className="w-8 h-8 text-[var(--duo-orange)] fill-[var(--duo-orange)]" />
-              <div className="text-left">
-                <p className="text-white font-black text-xl leading-none">
-                  <AnimatedCounter value={streak} /> ngày
-                </p>
-                <p className="text-white/70 text-[10px] font-bold uppercase tracking-wider mt-0.5">Chuỗi học tập (Streak)</p>
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white">
+              Xin chào, {displayName}!
+            </h1>
+            <p className="text-white/80 text-sm font-normal">
+              Tiếp tục hành trình chinh phục mục tiêu TOEIC hôm nay nhé.
+            </p>
+          </div>
+          
+          {/* Streak Widget */}
+          <div className="flex items-center gap-3.5 bg-white/15 backdrop-blur-md rounded-xl px-4 py-3 border border-white/20 shrink-0">
+            <div className="w-10 h-10 rounded-lg bg-amber-400/20 flex items-center justify-center text-amber-300">
+              <Flame className="w-6 h-6 fill-amber-400 text-amber-400" />
+            </div>
+            <div>
+              <div className="text-xl font-extrabold leading-none text-white">
+                {streak} ngày
               </div>
+              <p className="text-white/80 text-[11px] font-medium mt-1">Chuỗi học tập</p>
             </div>
           </div>
         </div>
 
-        {/* A1: Continue Learning Widget */}
+        {/* Continue Learning Widget */}
         {lastLessonDetails && (
-          <div className="card-duo p-6 bg-gradient-to-r from-[var(--duo-blue)]/5 to-[var(--duo-blue)]/10 border-2 border-[var(--duo-blue)]/20 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div className="rounded-2xl border border-blue-200 dark:border-blue-900/50 bg-blue-50/50 dark:bg-blue-950/20 p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition-all hover:border-blue-300">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-[var(--duo-blue)] flex items-center justify-center text-white text-2xl shrink-0 shadow-md">
-                🎓
+              <div className="w-12 h-12 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                <Play className="w-5 h-5 fill-white" />
               </div>
-              <div className="space-y-1">
-                <span className="badge-duo badge-blue text-[9px] uppercase tracking-wider font-extrabold">Học tiếp bài học gần đây</span>
-                <h3 className="font-extrabold text-foreground text-base leading-tight md:text-lg">{lastLessonDetails.title}</h3>
-                <p className="text-xs text-muted-foreground font-bold">
-                  Khóa học: <span className="text-foreground">{(lastLessonDetails.modules as any)?.courses?.title}</span>
+              <div className="space-y-0.5">
+                <span className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
+                  Học tiếp bài gần nhất
+                </span>
+                <h3 className="font-bold text-foreground text-base leading-snug">
+                  {lastLessonDetails.title}
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Khóa học: <span className="text-foreground font-medium">{(lastLessonDetails.modules as any)?.courses?.title}</span>
                 </p>
               </div>
             </div>
             <Link
               to={`/courses/${(lastLessonDetails.modules as any)?.course_id}/learn`}
-              className="btn-3d btn-3d-primary py-3 px-6 text-sm font-extrabold flex items-center gap-2 self-stretch md:self-auto text-center justify-center"
+              className="btn-3d btn-3d-primary py-2.5 px-5 text-sm font-semibold flex items-center gap-2 self-stretch md:self-auto text-center justify-center shrink-0"
             >
               Vào học tiếp <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
         )}
 
-        {/* Quick Actions Shortcuts */}
+        {/* Quick Navigation Shortcuts */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <Link
             to="/courses"
-            className="card-duo p-3.5 flex items-center gap-3 bg-white hover:bg-[var(--duo-green)]/5 hover:border-[var(--duo-green)] transition-all group"
+            className="p-4 rounded-xl border border-border bg-card hover:border-blue-300 hover:shadow-sm transition-all group flex flex-col justify-between"
           >
-            <div className="w-10 h-10 rounded-xl bg-[var(--duo-green)]/10 text-[var(--duo-green)] flex items-center justify-center font-black text-lg group-hover:scale-110 transition-transform">
-              📚
+            <div className="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+              <BookOpen className="w-5 h-5" />
             </div>
             <div>
-              <p className="font-extrabold text-xs text-foreground group-hover:text-[var(--duo-green)] transition-colors">Tất cả khóa học</p>
-              <p className="text-[10px] text-muted-foreground font-semibold">Khám phá lộ trình</p>
+              <p className="font-semibold text-sm text-foreground group-hover:text-blue-600 transition-colors">Tất cả khóa học</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Lộ trình 4 kỹ năng</p>
             </div>
           </Link>
 
           <Link
             to="/courses?filter=fulltest"
-            className="card-duo p-3.5 flex items-center gap-3 bg-white hover:bg-[var(--duo-orange)]/5 hover:border-[var(--duo-orange)] transition-all group"
+            className="p-4 rounded-xl border border-border bg-card hover:border-emerald-300 hover:shadow-sm transition-all group flex flex-col justify-between"
           >
-            <div className="w-10 h-10 rounded-xl bg-[var(--duo-orange)]/10 text-[var(--duo-orange)] flex items-center justify-center font-black text-lg group-hover:scale-110 transition-transform">
-              📋
+            <div className="w-10 h-10 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+              <FileText className="w-5 h-5" />
             </div>
             <div>
-              <p className="font-extrabold text-xs text-foreground group-hover:text-[var(--duo-orange)] transition-colors">Luyện đề Full Test</p>
-              <p className="text-[10px] text-muted-foreground font-semibold">Thi thử bấm giờ</p>
+              <p className="font-semibold text-sm text-foreground group-hover:text-emerald-600 transition-colors">Luyện đề Full Test</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Thi thử bấm giờ</p>
             </div>
           </Link>
 
           <Link
             to="/courses?filter=flashcard"
-            className="card-duo p-3.5 flex items-center gap-3 bg-white hover:bg-[var(--duo-blue)]/5 hover:border-[var(--duo-blue)] transition-all group"
+            className="p-4 rounded-xl border border-border bg-card hover:border-purple-300 hover:shadow-sm transition-all group flex flex-col justify-between"
           >
-            <div className="w-10 h-10 rounded-xl bg-[var(--duo-blue)]/10 text-[var(--duo-blue)] flex items-center justify-center font-black text-lg group-hover:scale-110 transition-transform">
-              🃏
+            <div className="w-10 h-10 rounded-lg bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+              <Star className="w-5 h-5" />
             </div>
             <div>
-              <p className="font-extrabold text-xs text-foreground group-hover:text-[var(--duo-blue)] transition-colors">Kho từ vựng</p>
-              <p className="text-[10px] text-muted-foreground font-semibold">Flashcard 3 vòng</p>
+              <p className="font-semibold text-sm text-foreground group-hover:text-purple-600 transition-colors">Kho từ vựng</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Flashcard thông minh</p>
             </div>
           </Link>
 
           <Link
             to="/courses?filter=listening"
-            className="card-duo p-3.5 flex items-center gap-3 bg-white hover:bg-[var(--duo-purple)]/5 hover:border-[var(--duo-purple)] transition-all group"
+            className="p-4 rounded-xl border border-border bg-card hover:border-amber-300 hover:shadow-sm transition-all group flex flex-col justify-between"
           >
-            <div className="w-10 h-10 rounded-xl bg-[var(--duo-purple)]/10 text-[var(--duo-purple)] flex items-center justify-center font-black text-lg group-hover:scale-110 transition-transform">
-              🎧
+            <div className="w-10 h-10 rounded-lg bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+              <Headphones className="w-5 h-5" />
             </div>
             <div>
-              <p className="font-extrabold text-xs text-foreground group-hover:text-[var(--duo-purple)] transition-colors">Luyện nghe chép</p>
-              <p className="text-[10px] text-muted-foreground font-semibold">Tăng phản xạ tai</p>
+              <p className="font-semibold text-sm text-foreground group-hover:text-amber-600 transition-colors">Luyện nghe chép</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Điền từ chi tiết</p>
             </div>
           </Link>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           {stats.map((s) => (
-            <div key={s.label} className="card-duo p-4 space-y-3 hover:-translate-y-0.5 transition-transform">
-              <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${s.gradient} ${s.glow} shadow-lg flex items-center justify-center`}>
-                <s.Icon size={26} weight="duotone" color="white" />
+            <div key={s.label} className="p-4 rounded-xl border border-border bg-card shadow-sm flex items-center gap-3.5">
+              <div className={`w-11 h-11 rounded-xl ${s.bgColor} ${s.color} flex items-center justify-center shrink-0`}>
+                <s.Icon size={22} weight="bold" />
               </div>
-              <p className="text-2xl font-extrabold text-foreground">
-                <AnimatedCounter value={Number(s.value)} suffix={s.suffix} />
-              </p>
-              <p className="text-xs font-bold text-muted-foreground">{s.label}</p>
+              <div className="min-w-0">
+                <p className="text-xl font-bold text-foreground leading-tight">
+                  {s.value}{s.suffix}
+                </p>
+                <p className="text-xs text-muted-foreground truncate mt-0.5">{s.label}</p>
+              </div>
             </div>
           ))}
         </div>
 
-        {/* My courses */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-extrabold text-foreground flex items-center gap-2">
-              Khóa học của tôi 📚
-            </h2>
+        {/* My Courses Section */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-bold text-foreground">Khóa học của tôi</h2>
+              <p className="text-xs text-muted-foreground">Các khóa học bạn đang theo học</p>
+            </div>
             {enrollments && enrollments.length > 0 && (
-              <Link to="/courses" className="text-xs font-bold text-[var(--duo-blue)] hover:underline flex items-center gap-1">
-                Xem tất cả <ArrowRight className="w-3 h-3" />
+              <Link to="/courses" className="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
+                Xem tất cả <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             )}
           </div>
 
           {enrollLoading ? (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[1, 2, 3].map(i => <Skeleton key={i} className="h-40 rounded-2xl" />)}
+              {[1, 2, 3].map(i => <Skeleton key={i} className="h-48 rounded-xl" />)}
             </div>
           ) : enrollments && enrollments.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {enrollments.map((e: any) => {
                 const progress = courseProgressMap[e.course_id];
                 const progressPct = progress && progress.total > 0 ? Math.round((progress.completed / progress.total) * 100) : 0;
                 const isCompleted = progressPct === 100 && progress && progress.total > 0;
 
                 return (
-                  <div key={e.id} className="card-duo flex flex-col h-full overflow-hidden hover:translate-y-[-2px] transition-transform">
-                    <div className="aspect-video w-full bg-muted relative overflow-hidden">
-                      {e.courses?.thumbnail_url ? (
-                        <img src={e.courses.thumbnail_url} alt={e.courses.title} className="w-full h-full object-cover transition-transform duration-300 hover:scale-105" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-muted-foreground uppercase font-bold text-xs bg-gradient-to-br from-[var(--duo-correct)]/10 to-[var(--duo-blue)]/10">
-                          {e.courses?.title?.substring(0, 20)}...
+                  <div key={e.id} className="rounded-xl border border-border bg-card overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+                    <div>
+                      <div className="aspect-video w-full bg-muted relative overflow-hidden">
+                        {e.courses?.thumbnail_url ? (
+                          <img src={e.courses.thumbnail_url} alt={e.courses.title} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs font-medium bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-slate-800 dark:to-slate-900">
+                            {e.courses?.title?.substring(0, 20)}...
+                          </div>
+                        )}
+                        
+                        {isCompleted && (
+                          <div className="absolute top-2.5 left-2.5">
+                            <span className="badge-duo badge-green shadow-sm">
+                              <CheckCircle2 className="w-3 h-3" /> Hoàn thành
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Progress Bar */}
+                      {progress && progress.total > 0 && (
+                        <div className="w-full bg-muted h-1">
+                          <div
+                            className={`h-full transition-all duration-500 ${isCompleted ? 'bg-emerald-500' : 'bg-blue-600'}`}
+                            style={{ width: `${progressPct}%` }}
+                          />
                         </div>
                       )}
-                      
-                      {/* D6: Completed badge */}
-                      {isCompleted && (
-                        <div className="absolute top-3 left-3">
-                          <span className="badge-duo badge-green text-[9px] shadow-sm">✅ Hoàn thành</span>
+
+                      <div className="p-4 space-y-2">
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                          <span className="badge-duo badge-blue">{courseTypeMap[e.courses?.course_type] || "Khóa học"}</span>
+                          {progress && progress.total > 0 && (
+                            <span className="font-medium text-[11px]">{progressPct}% hoàn thành</span>
+                          )}
                         </div>
-                      )}
+                        <h3 className="font-bold text-foreground text-sm line-clamp-2 leading-snug">{e.courses?.title}</h3>
+                      </div>
                     </div>
 
-                    {/* D6: Progress Bar on Dashboard */}
-                    {progress && progress.total > 0 && (
-                      <div className="w-full bg-muted h-1.5">
-                        <div
-                          className="h-full transition-all duration-500"
-                          style={{
-                            width: `${progressPct}%`,
-                            backgroundColor: isCompleted ? 'var(--duo-correct)' : 'var(--duo-blue)'
-                          }}
-                        />
-                      </div>
-                    )}
-
-                    <div className="p-4 space-y-2 flex-1 flex flex-col justify-between">
-                      <div>
-                        <div className="flex items-center justify-between mb-2 gap-2">
-                           <span className="badge-duo badge-blue text-[9px] shrink-0">{courseTypeMap[e.courses?.course_type] || ""}</span>
-                           {progress && progress.total > 0 && (
-                             <span className="text-[10px] font-extrabold text-muted-foreground">{progressPct}% hoàn thành</span>
-                           )}
-                        </div>
-                        <h3 className="font-extrabold text-foreground text-sm line-clamp-2 leading-tight">{e.courses?.title}</h3>
-                      </div>
-                      
-                      <div className="pt-2 border-t-2 border-[var(--duo-gray)] mt-4">
-                        <p className="text-[10px] text-muted-foreground font-bold">
-                          {e.expires_at ? `📅 Hạn: ${new Date(e.expires_at).toLocaleDateString("vi-VN")}` : "♾️ Vĩnh viễn"}
-                        </p>
-                        <Link 
-                          to={e.courses?.course_type === 'flashcard' ? `/courses/${e.course_id}/vocab` : e.courses?.course_type === 'fulltest' ? `/courses/${e.course_id}/fulltest` : `/courses/${e.course_id}/learn`} 
-                          className="btn-3d btn-3d-primary w-full py-2 text-xs mt-3 block text-center"
-                        >
-                          {isCompleted ? "Học lại 🔁" : "Tiếp tục học →"}
-                        </Link>
-                      </div>
+                    <div className="p-4 pt-0">
+                      <Link 
+                        to={e.courses?.course_type === 'flashcard' ? `/courses/${e.course_id}/vocab` : e.courses?.course_type === 'fulltest' ? `/courses/${e.course_id}/fulltest` : `/courses/${e.course_id}/learn`} 
+                        className="btn-3d btn-3d-primary w-full py-2 text-xs text-center"
+                      >
+                        {isCompleted ? "Học lại bài học" : "Tiếp tục học →"}
+                      </Link>
                     </div>
                   </div>
                 );
               })}
             </div>
           ) : (
-            <div className="card-duo p-8 text-center bg-white space-y-3">
-              <div className="w-16 h-16 rounded-full bg-[var(--duo-blue)]/10 text-[var(--duo-blue)] flex items-center justify-center text-2xl mx-auto">
-                📚
+            <div className="rounded-xl border border-dashed border-border p-8 text-center bg-card space-y-3">
+              <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto">
+                <BookOpen className="w-6 h-6" />
               </div>
-              <p className="text-foreground font-extrabold text-base">Bạn chưa tham gia khóa học nào</p>
-              <p className="text-muted-foreground text-xs font-medium max-w-sm mx-auto">Khám phá các khóa học TOEIC 4 kỹ năng được thiết kế trực quan, dễ hiểu để bắt đầu ngay hôm nay.</p>
-              <Link to="/courses" className="btn-3d btn-3d-primary py-2.5 px-6 inline-flex items-center gap-2 text-sm mt-2">
-                Xem danh sách khóa học <ArrowRight className="w-4 h-4" />
+              <p className="text-foreground font-semibold text-base">Bạn chưa đăng ký khóa học nào</p>
+              <p className="text-muted-foreground text-xs max-w-sm mx-auto">Khám phá các khóa học TOEIC 4 kỹ năng được thiết kế trực quan, bài bản để bắt đầu ngay.</p>
+              <Link to="/courses" className="btn-3d btn-3d-primary py-2 px-4 inline-flex items-center gap-1.5 text-xs mt-2">
+                Xem danh sách khóa học <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>
           )}
         </div>
 
-        {/* Recent quiz results */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-extrabold text-foreground flex items-center gap-2">
-              <Trophy className="w-5 h-5 text-[var(--duo-orange)]" /> Kết quả bài thi gần đây 📝
+        {/* Recent Quiz Results */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-bold text-foreground flex items-center gap-2">
+              <Trophy className="w-4 h-4 text-amber-500" /> Kết quả bài thi gần đây
             </h2>
-            <Link to="/profile" className="text-xs font-bold text-[var(--duo-blue)] hover:underline">
-              Xem chi tiết hồ sơ →
+            <Link to="/profile" className="text-xs font-semibold text-primary hover:underline">
+              Xem tất cả →
             </Link>
           </div>
 
           {quizResults && quizResults.length > 0 ? (
-            <div className="card-duo divide-y-2 divide-[var(--duo-gray)] bg-white">
+            <div className="rounded-xl border border-border bg-card divide-y divide-border overflow-hidden shadow-sm">
               {quizResults.map((r: any) => {
                 const pct = r.total_questions > 0 ? (r.correct_answers / r.total_questions) * 100 : 0;
                 const scoreColor = pct >= 80 ? "badge-green" : pct >= 50 ? "badge-yellow" : "badge-orange";
                 return (
-                  <div key={r.id} className="px-5 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 hover:bg-muted/10 transition-colors">
+                  <div key={r.id} className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 hover:bg-muted/40 transition-colors">
                     <div className="space-y-0.5">
-                      <span className="text-foreground font-bold text-sm line-clamp-1">{r.quizzes?.title || `Quiz #${r.quiz_id}`}</span>
-                      <span className="text-xs text-muted-foreground font-semibold block">{new Date(r.completed_at).toLocaleDateString("vi-VN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit", year: "numeric" })}</span>
+                      <p className="text-foreground font-semibold text-sm line-clamp-1">{r.quizzes?.title || `Bài tập #${r.quiz_id}`}</p>
+                      <p className="text-xs text-muted-foreground">{new Date(r.completed_at).toLocaleDateString("vi-VN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit", year: "numeric" })}</p>
                     </div>
                     <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
                       <span className={`badge-duo ${scoreColor}`}>{r.correct_answers}/{r.total_questions} đúng ({Math.round(pct)}%)</span>
@@ -476,8 +449,8 @@ const Dashboard = () => {
               })}
             </div>
           ) : (
-            <div className="card-duo p-6 text-center bg-white">
-              <p className="text-sm text-muted-foreground font-medium">Bạn chưa làm bài thi nào gần đây.</p>
+            <div className="rounded-xl border border-border p-6 text-center bg-card">
+              <p className="text-xs text-muted-foreground">Bạn chưa làm bài kiểm tra nào gần đây.</p>
             </div>
           )}
         </div>

@@ -1,5 +1,5 @@
 import StudentLayout from "@/components/StudentLayout";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
@@ -7,23 +7,23 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useState, useMemo, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, X } from "lucide-react";
+import { Search, X, CheckCircle2, Lock, User, Clock, MessageSquare } from "lucide-react";
 
 const courseTypeMap: Record<string, string> = {
-  video_quiz: "🎬 Video + Bài Thi",
-  flashcard: "🃏 Flashcard",
-  listening: "🎧 Listening",
-  speaking: "🗣️ Speaking & Writing",
-  fulltest: "📋 Full Test",
+  video_quiz: "Khóa học Video",
+  flashcard: "Kho Từ vựng",
+  listening: "Luyện nghe Chép chính tả",
+  speaking: "Speaking & Writing",
+  fulltest: "Luyện đề Full Test",
 };
 
 const filterTypes = [
   { key: "all", label: "Tất cả" },
-  { key: "video_quiz", label: "🎬 Video" },
-  { key: "flashcard", label: "🃏 Flashcard" },
-  { key: "listening", label: "🎧 Listening" },
-  { key: "speaking", label: "🗣️ Speaking" },
-  { key: "fulltest", label: "📋 Full Test" },
+  { key: "video_quiz", label: "Video" },
+  { key: "flashcard", label: "Từ vựng Flashcard" },
+  { key: "listening", label: "Luyện nghe" },
+  { key: "speaking", label: "Speaking" },
+  { key: "fulltest", label: "Full Test" },
 ];
 
 const Courses = () => {
@@ -80,7 +80,6 @@ const Courses = () => {
     enabled: !!user,
   });
 
-  // D6: Fetch lesson progress per course for progress bar
   const { data: lessonProgressData = [] } = useQuery({
     queryKey: ["all-lesson-progress", user?.id],
     queryFn: async () => {
@@ -95,7 +94,6 @@ const Courses = () => {
     enabled: !!user,
   });
 
-  // D6: Fetch total lessons per course
   const { data: courseLessonCounts = [] } = useQuery({
     queryKey: ["course-lesson-counts"],
     queryFn: async () => {
@@ -110,7 +108,6 @@ const Courses = () => {
   const enrolledIds = new Set(enrollments || []);
   const completedLessonIds = new Set(lessonProgressData.map((p: any) => p.lesson_id));
 
-  // Build a map: courseId -> { total, completed }
   const courseProgressMap = useMemo(() => {
     const map: Record<number, { total: number; completed: number }> = {};
     courseLessonCounts.forEach((lesson: any) => {
@@ -144,7 +141,6 @@ const Courses = () => {
     }
   };
 
-  // A2: filter logic
   const filterCourses = (list: any[]) => {
     return list.filter(c => {
       const matchSearch = !searchQuery || c.title.toLowerCase().includes(searchQuery.toLowerCase()) || (c.subtitle || "").toLowerCase().includes(searchQuery.toLowerCase());
@@ -165,7 +161,7 @@ const Courses = () => {
   const renderCourseCard = (c: any) => {
     const isEnrolled = enrolledIds.has(c.id);
     const isFree = c.is_free || !c.price || c.price === 0;
-    const canAccess = isEnrolled || isFree;
+    const canAccess = isEnrolled || isFree || isAdmin;
     const progress = courseProgressMap[c.id];
     const progressPct = progress && progress.total > 0 ? Math.round((progress.completed / progress.total) * 100) : 0;
     const isCompleted = progressPct === 100 && progress && progress.total > 0;
@@ -173,81 +169,86 @@ const Courses = () => {
     return (
       <div
         key={c.id}
-        className="card-duo flex flex-col h-full cursor-pointer hover:translate-y-[-4px] transition-transform duration-300"
+        className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between cursor-pointer group"
         onClick={() => handleCourseClick(c, isEnrolled)}
       >
-        <div className="aspect-video w-full bg-muted relative overflow-hidden rounded-t-[14px]">
-          {c.thumbnail_url ? (
-            <img src={c.thumbnail_url} alt={c.title} className="w-full h-full object-cover transition-transform duration-300 hover:scale-105" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-muted-foreground uppercase font-bold text-xs bg-gradient-to-br from-[var(--duo-green)]/10 to-[var(--duo-blue)]/10">
-               L-ENGLISH
-            </div>
-          )}
-          {/* D6: badges */}
-          {isEnrolled && (
-            <div className="absolute top-3 left-3">
-              {isCompleted
-                ? <span className="badge-duo badge-green">✅ Hoàn thành</span>
-                : <span className="badge-duo badge-green">✅ Đã đăng ký</span>
-              }
-            </div>
-          )}
-          {isFree && (
-            <div className="absolute top-3 right-3">
-              <span className="badge-duo badge-green">FREE</span>
-            </div>
-          )}
-        </div>
+        <div>
+          <div className="aspect-video w-full bg-muted relative overflow-hidden">
+            {c.thumbnail_url ? (
+              <img src={c.thumbnail_url} alt={c.title} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs font-semibold bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-slate-800 dark:to-slate-900">
+                L-ENGLISH ACADEMY
+              </div>
+            )}
 
-        {/* D6: Progress bar under thumbnail */}
-        {isEnrolled && progress && progress.total > 0 && (
-          <div className="px-0">
-            <div className="h-1.5 bg-muted w-full">
-              <div
-                className="h-full transition-all duration-700 rounded-none"
-                style={{
-                  width: `${progressPct}%`,
-                  backgroundColor: isCompleted ? 'var(--duo-correct)' : 'var(--duo-blue)'
-                }}
-              />
-            </div>
-          </div>
-        )}
-
-        <div className="p-5 flex-1 flex flex-col space-y-3">
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="badge-duo badge-blue">{courseTypeMap[c.course_type] || c.course_type}</span>
-              {/* D6: progress text */}
-              {isEnrolled && progress && progress.total > 0 && (
-                <span className={`text-[10px] font-extrabold ${isCompleted ? 'text-[var(--duo-correct)]' : 'text-muted-foreground'}`}>
-                  {progress.completed}/{progress.total} bài
+            {/* Badges */}
+            <div className="absolute top-2.5 left-2.5 flex flex-wrap gap-1.5">
+              {isEnrolled && (
+                <span className="badge-duo badge-green shadow-sm">
+                  <CheckCircle2 className="w-3 h-3" /> {isCompleted ? "Hoàn thành" : "Đã đăng ký"}
                 </span>
               )}
+              {isFree && (
+                <span className="badge-duo badge-blue shadow-sm">FREE</span>
+              )}
             </div>
-            <h3 className="font-extrabold text-foreground leading-tight text-base line-clamp-2">{c.title}</h3>
           </div>
-          <p className="text-sm text-muted-foreground line-clamp-2 flex-1 font-medium">{c.subtitle}</p>
-          <div className="pt-2 border-t-2 border-[var(--duo-gray)] mt-auto">
-            <p className="text-[10px] text-muted-foreground font-bold">
-              Giảng viên: <span className="text-foreground">{c.instructor}</span>
-            </p>
-            <p className="text-[10px] text-muted-foreground mt-0.5 font-bold">
-              Hạn: {c.duration_months ? `${c.duration_months} tháng` : "Vĩnh viễn"}
-            </p>
+
+          {/* Progress bar under thumbnail */}
+          {isEnrolled && progress && progress.total > 0 && (
+            <div className="w-full bg-muted h-1">
+              <div
+                className={`h-full transition-all duration-500 ${isCompleted ? 'bg-emerald-500' : 'bg-blue-600'}`}
+                style={{ width: `${progressPct}%` }}
+              />
+            </div>
+          )}
+
+          <div className="p-5 space-y-3">
+            <div>
+              <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
+                <span className="badge-duo badge-purple">{courseTypeMap[c.course_type] || c.course_type}</span>
+                {isEnrolled && progress && progress.total > 0 && (
+                  <span className={`text-[11px] font-semibold ${isCompleted ? 'text-emerald-600' : 'text-muted-foreground'}`}>
+                    {progress.completed}/{progress.total} bài
+                  </span>
+                )}
+              </div>
+              <h3 className="font-bold text-foreground text-base leading-snug line-clamp-2 group-hover:text-primary transition-colors">
+                {c.title}
+              </h3>
+            </div>
+
+            {c.subtitle && (
+              <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                {c.subtitle}
+              </p>
+            )}
+
+            <div className="pt-3 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
+              <span className="flex items-center gap-1">
+                <User className="w-3.5 h-3.5 text-muted-foreground/70" /> {c.instructor || "L-English"}
+              </span>
+              <span className="flex items-center gap-1">
+                <Clock className="w-3.5 h-3.5 text-muted-foreground/70" /> {c.duration_months ? `${c.duration_months} tháng` : "Vĩnh viễn"}
+              </span>
+            </div>
           </div>
         </div>
-        <div className="px-5 pb-5 flex items-center justify-between">
-          <span className="font-extrabold text-sm text-[var(--duo-correct)]">{formatPrice(c.price)}</span>
+
+        <div className="p-5 pt-0 flex items-center justify-between gap-3">
+          <span className="font-bold text-sm text-foreground">
+            {formatPrice(c.price)}
+          </span>
           <button
             onClick={(e) => {
               e.stopPropagation();
               handleCourseClick(c, isEnrolled);
             }}
-            className={`btn-3d ${canAccess ? 'btn-3d-primary' : 'btn-3d-secondary'} text-xs py-2 px-4`}
+            className={`btn-3d ${canAccess ? 'btn-3d-primary' : 'btn-3d-white'} text-xs py-2 px-4`}
           >
-            {canAccess ? "Vào học ngay 🚀" : "Kích hoạt khóa học 🔒"}
+            {canAccess ? "Vào học ngay" : "Kích hoạt khóa học"}
           </button>
         </div>
       </div>
@@ -255,13 +256,15 @@ const Courses = () => {
   };
 
   const EmptyState = ({ message }: { message: string }) => (
-    <div className="card-duo p-12 text-center max-w-xl mx-auto space-y-4 col-span-full">
-      <div className="text-5xl">🔍</div>
-      <h3 className="font-extrabold text-lg text-foreground">Không tìm thấy kết quả</h3>
-      <p className="text-sm text-muted-foreground font-medium">{message}</p>
+    <div className="p-12 text-center max-w-md mx-auto space-y-3 col-span-full rounded-2xl border border-dashed border-border bg-card">
+      <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto text-muted-foreground">
+        <Search className="w-6 h-6" />
+      </div>
+      <h3 className="font-bold text-base text-foreground">Không tìm thấy khóa học</h3>
+      <p className="text-xs text-muted-foreground leading-relaxed">{message}</p>
       <button
         onClick={() => { setSearchQuery(""); setActiveFilter("all"); }}
-        className="btn-3d btn-3d-white py-2 px-5 text-sm"
+        className="btn-3d btn-3d-white py-1.5 px-4 text-xs"
       >
         Xóa bộ lọc
       </button>
@@ -270,43 +273,43 @@ const Courses = () => {
 
   return (
     <StudentLayout>
-      <div className="space-y-6 max-w-6xl mx-auto pb-10 px-1">
+      <div className="space-y-6 max-w-6xl mx-auto pb-10">
         <div>
-          <h1 className="text-2xl font-extrabold text-foreground">Hệ Thống Luyện Thi 📚</h1>
-          <p className="text-sm text-muted-foreground mt-1 font-medium">Khám phá kho đề thi và lộ trình luyện TOEIC chuyên sâu</p>
+          <h1 className="text-2xl font-bold text-foreground tracking-tight">Hệ thống Khóa học & Đề thi</h1>
+          <p className="text-sm text-muted-foreground mt-1">Lộ trình học tập và kho đề luyện thi TOEIC chuẩn format</p>
         </div>
 
-        {/* A2: Search + Filter bar */}
+        {/* Search + Filter Bar */}
         <div className="space-y-3">
-          {/* Search input */}
           <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Tìm kiếm khóa học..."
+              placeholder="Tìm kiếm theo tên khóa học..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-10 py-2.5 rounded-xl border-2 border-[var(--duo-gray)] bg-card text-sm font-medium focus:outline-none focus:border-[var(--duo-blue)] transition-colors"
+              className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               >
                 <X className="w-4 h-4" />
               </button>
             )}
           </div>
-          {/* Filter chips */}
+
+          {/* Filter Pills */}
           <div className="flex flex-wrap gap-2">
             {filterTypes.map(f => (
               <button
                 key={f.key}
                 onClick={() => handleFilterChange(f.key)}
-                className={`px-4 py-1.5 rounded-full border-2 text-xs font-extrabold transition-all cursor-pointer ${
+                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all ${
                   activeFilter === f.key
-                    ? "bg-[var(--duo-blue)] text-white border-[var(--duo-blue-dark)] shadow-[0_2px_0_var(--duo-blue-dark)]"
-                    : "bg-card border-[var(--duo-gray)] text-muted-foreground hover:border-[var(--duo-blue)]/50 hover:text-foreground"
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "bg-card border border-border text-muted-foreground hover:text-foreground hover:bg-muted"
                 }`}
               >
                 {f.label}
@@ -317,40 +320,37 @@ const Courses = () => {
 
         {isLoading ? (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-56 rounded-2xl" />)}
+            {[1, 2, 3, 4, 5, 6].map(i => <Skeleton key={i} className="h-64 rounded-2xl" />)}
           </div>
         ) : (
           <Tabs defaultValue="my-courses" className="w-full space-y-6">
-            <TabsList className="bg-transparent p-0 h-auto gap-2 flex-wrap border-b-2 border-[var(--duo-gray)] pb-3 w-full justify-start rounded-none">
+            <TabsList className="bg-muted/50 p-1 rounded-xl border border-border inline-flex h-auto">
               <TabsTrigger
                 value="my-courses"
-                className="data-[state=active]:bg-[var(--duo-correct)] data-[state=active]:text-white data-[state=active]:shadow-[0_3px_0_var(--duo-correct-dark)] px-6 py-3 rounded-xl font-extrabold text-sm border-2 border-[var(--duo-gray)] data-[state=active]:border-[var(--duo-correct)] transition-all"
+                className="data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm px-5 py-2 rounded-lg font-semibold text-xs transition-all"
               >
-                📚 Khóa học của tôi
+                Khóa học của tôi ({myCourses.length})
               </TabsTrigger>
               <TabsTrigger
                 value="all-courses"
-                className="data-[state=active]:bg-[var(--duo-blue)] data-[state=active]:text-white data-[state=active]:shadow-[0_3px_0_var(--duo-blue-dark)] px-6 py-3 rounded-xl font-extrabold text-sm border-2 border-[var(--duo-gray)] data-[state=active]:border-[var(--duo-blue)] transition-all"
+                className="data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm px-5 py-2 rounded-lg font-semibold text-xs transition-all"
               >
-                🔍 Tất cả khóa học
+                Tất cả khóa học ({courses?.length || 0})
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value="my-courses" className="mt-6 focus-visible:outline-none">
               {myCourses.length === 0 ? (
-                <div className="card-duo p-12 text-center max-w-xl mx-auto space-y-4">
-                  <div className="text-4xl">📚</div>
-                  <h3 className="font-extrabold text-lg text-foreground">Bạn chưa đăng ký khóa học nào</h3>
-                  <p className="text-sm text-muted-foreground font-medium leading-relaxed">
-                    Hãy nhấn sang tab <strong>Tất cả khóa học</strong> để xem danh sách các lộ trình học và đề thi TOEIC cực chất từ L-English!
+                <div className="p-12 text-center max-w-md mx-auto space-y-3 rounded-2xl border border-dashed border-border bg-card">
+                  <h3 className="font-bold text-base text-foreground">Bạn chưa có khóa học nào</h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Chuyển sang tab <strong>Tất cả khóa học</strong> để đăng ký và bắt đầu học ngay.
                   </p>
                 </div>
               ) : filteredMyCourses.length === 0 ? (
-                <div className="grid grid-cols-1">
-                  <EmptyState message={`Không có khóa học nào khớp với "${searchQuery || activeFilter}". Thử tìm kiếm khác hoặc xóa bộ lọc.`} />
-                </div>
+                <EmptyState message={`Không tìm thấy khóa học nào khớp với "${searchQuery}".`} />
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {filteredMyCourses.map((c) => renderCourseCard(c))}
                 </div>
               )}
@@ -358,15 +358,13 @@ const Courses = () => {
 
             <TabsContent value="all-courses" className="mt-6 focus-visible:outline-none">
               {courses?.length === 0 ? (
-                <div className="card-duo p-12 text-center max-w-xl mx-auto">
-                  <p className="text-sm text-muted-foreground font-medium">Hiện tại chưa có khóa học nào được phát hành.</p>
+                <div className="p-12 text-center max-w-md mx-auto rounded-2xl border border-border bg-card">
+                  <p className="text-xs text-muted-foreground">Hiện tại chưa có khóa học nào được xuất bản.</p>
                 </div>
               ) : filteredAllCourses.length === 0 ? (
-                <div className="grid grid-cols-1">
-                  <EmptyState message={`Không có khóa học nào khớp với tìm kiếm của bạn. Thử từ khóa khác hoặc xóa bộ lọc.`} />
-                </div>
+                <EmptyState message="Không tìm thấy khóa học nào khớp với bộ lọc." />
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {filteredAllCourses.map((c) => renderCourseCard(c))}
                 </div>
               )}
@@ -375,48 +373,46 @@ const Courses = () => {
         )}
       </div>
 
+      {/* Activation Modal */}
       <Dialog open={zaloDialogOpen} onOpenChange={setZaloDialogOpen}>
-        <DialogContent className="max-w-md p-6 rounded-2xl border-4 border-[var(--duo-gray)] dark:border-zinc-800 bg-card text-center shadow-[0_8px_0_var(--duo-gray)] dark:shadow-[0_8px_0_rgba(0,0,0,0.5)]">
-          <DialogHeader className="flex flex-col items-center space-y-4">
-            <div className="w-20 h-20 rounded-2xl bg-[var(--duo-orange)]/10 flex items-center justify-center text-4xl shadow-[0_4px_0_rgba(240,140,0,0.2)] animate-bounce mt-2">
-              🔒
+        <DialogContent className="max-w-md p-6 rounded-2xl border border-border bg-card shadow-lg">
+          <DialogHeader className="text-center space-y-2">
+            <div className="w-12 h-12 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto mb-1">
+              <Lock className="w-6 h-6" />
             </div>
-            <DialogTitle className="text-2xl font-extrabold text-foreground leading-tight tracking-tight">
-              Khóa Học Chưa Được Kích Hoạt!
+            <DialogTitle className="text-xl font-bold text-foreground">
+              Kích hoạt khóa học
             </DialogTitle>
-            <DialogDescription className="text-sm font-semibold text-muted-foreground pt-1">
-              Bạn đang yêu cầu truy cập khóa học:
-              <span className="block text-foreground font-extrabold text-base mt-1.5 p-2 bg-muted rounded-xl border-2 border-[var(--duo-gray)] dark:border-zinc-800">
-                {selectedCourseTitle}
-              </span>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Bạn đang chọn khóa học: <strong className="text-foreground">{selectedCourseTitle}</strong>
             </DialogDescription>
           </DialogHeader>
 
-          <div className="my-6 p-4 rounded-xl bg-[var(--duo-blue)]/5 dark:bg-[var(--duo-blue)]/10 border-2 border-[var(--duo-blue)]/10 dark:border-[var(--duo-blue)]/20 text-left space-y-3">
-            <h4 className="font-extrabold text-sm text-[var(--duo-blue-dark)] dark:text-[var(--duo-blue)] flex items-center gap-1.5">
-              <span className="text-base">💡</span> Hướng dẫn kích hoạt:
-            </h4>
-            <p className="text-xs text-muted-foreground font-medium leading-relaxed">
-              Khóa học này yêu cầu kích hoạt bản quyền từ quản trị viên. Vui lòng liên hệ Admin qua Zalo để được cấp tài khoản học và nhận đầy đủ tài liệu, lộ trình ôn tập TOEIC hiệu quả nhất!
+          <div className="my-4 p-4 rounded-xl bg-muted/50 border border-border space-y-2.5 text-xs text-muted-foreground">
+            <p className="font-semibold text-foreground flex items-center gap-1.5">
+              <MessageSquare className="w-4 h-4 text-primary" /> Hướng dẫn kích hoạt tài khoản:
             </p>
-            <div className="pt-1 flex items-center justify-between text-xs font-bold text-foreground">
-              <span>📞 Hotline / Zalo:</span>
-              <span className="text-[var(--duo-blue-dark)] dark:text-[var(--duo-blue)]">0334729066</span>
+            <p className="leading-relaxed">
+              Khóa học này thuộc chương trình chuyên sâu có bản quyền. Vui lòng liên hệ Admin qua Zalo để kích hoạt quyền truy cập đầy đủ bài giảng, tài liệu và đề thi.
+            </p>
+            <div className="pt-2 border-t border-border flex items-center justify-between font-semibold text-foreground">
+              <span>Hotline / Zalo:</span>
+              <span className="text-primary font-bold">0334729066</span>
             </div>
           </div>
 
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-2">
             <a
               href="https://zalo.me/0334729066"
               target="_blank"
               rel="noopener noreferrer"
-              className="btn-3d w-full py-4 text-sm font-extrabold text-white text-center bg-gradient-to-r from-emerald-500 to-teal-500 hover:opacity-90 inline-block rounded-xl shadow-[0_4px_0_#0F766E] border-2 border-emerald-600"
+              className="btn-3d btn-3d-primary w-full py-2.5 text-sm font-semibold flex items-center justify-center gap-2"
             >
-              💬 LIÊN HỆ QUA ZALO ADMIN NGAY
+              <MessageSquare className="w-4 h-4" /> Liên hệ qua Zalo ngay
             </a>
             <button
               onClick={() => setZaloDialogOpen(false)}
-              className="btn-3d btn-3d-white w-full py-3 text-xs"
+              className="btn-3d btn-3d-white w-full py-2 text-xs"
             >
               Đóng lại
             </button>
