@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Loader2, ChevronLeft, Clock, AlertTriangle, CheckCircle, Volume2, Info, ShieldAlert } from "lucide-react";
+import { Loader2, ChevronLeft, Clock, AlertTriangle, CheckCircle, Volume2, Info, ShieldAlert, LayoutGrid, Bookmark, BookmarkCheck } from "lucide-react";
 import { useSound } from "@/hooks/useSound";
 import StudentLayout from "@/components/StudentLayout";
 
@@ -69,6 +69,9 @@ const FullTestExam = () => {
   const [testMode, setTestMode] = useState<"exam" | "practice">("exam");
   const [volumeChecked, setVolumeChecked] = useState(false);
   const [answers, setAnswers] = useState<Record<number, number>>({}); // key: globalIndex, value: answerId
+  const [flagged, setFlagged] = useState<Set<number>>(new Set()); // key: globalIndex
+  const [paletteFilter, setPaletteFilter] = useState<"all" | "done" | "flagged" | "todo">("all");
+  const [mobilePaletteOpen, setMobilePaletteOpen] = useState(false);
   const [checkedAnswers, setCheckedAnswers] = useState<Record<number, boolean>>({}); // key: questionId, value: true/false (luyện tập)
   const [currentPart, setCurrentPart] = useState(0); // 0 to 6
   const [timeLeft, setTimeLeft] = useState(120 * 60);
@@ -77,6 +80,18 @@ const FullTestExam = () => {
   const [showConfirm, setShowConfirm] = useState(false);
   const [pauseCount, setPauseCount] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+
+  const toggleFlag = (globalIdx: number) => {
+    setFlagged(prev => {
+      const next = new Set(prev);
+      if (next.has(globalIdx)) {
+        next.delete(globalIdx);
+      } else {
+        next.add(globalIdx);
+      }
+      return next;
+    });
+  };
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const volumeAudioRef = useRef<HTMLAudioElement>(null);
@@ -627,21 +642,67 @@ const FullTestExam = () => {
       {/* Main split content */}
       <div className="flex flex-1 overflow-hidden">
         {/* Left Sidebar Palette (Question Grid) */}
-        <aside className="hidden lg:block w-72 border-r-2 border-[var(--duo-gray)] bg-card p-4 overflow-y-auto shrink-0 select-none">
-          <div className="space-y-4 pb-20">
+        <aside className="hidden lg:flex w-80 flex-col border-r-2 border-[var(--duo-gray)] bg-card shrink-0 select-none h-full">
+          <div className="p-4 border-b-2 border-[var(--duo-gray)] space-y-3">
+            <h3 className="font-extrabold text-sm flex items-center gap-2">
+              <LayoutGrid className="w-4 h-4 text-[var(--duo-correct)]" /> Bảng câu hỏi ({answeredCount}/{allQuestions.length})
+            </h3>
+            
+            {/* Filter chips */}
+            <div className="flex gap-1">
+              {[
+                { key: "all", label: `Tất cả` },
+                { key: "done", label: `Đã làm (${answeredCount})` },
+                { key: "flagged", label: `🚩 (${flagged.size})` },
+                { key: "todo", label: `Chưa làm (${unansweredCount})` },
+              ].map(f => (
+                <button
+                  key={f.key}
+                  onClick={() => setPaletteFilter(f.key as any)}
+                  className={cn(
+                    "text-[10px] font-bold px-2 py-1 rounded-lg border transition-all",
+                    paletteFilter === f.key
+                      ? "bg-[var(--duo-blue)] text-white border-[var(--duo-blue-dark)]"
+                      : "bg-muted text-muted-foreground border-transparent hover:border-[var(--duo-gray)]"
+                  )}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {[1, 2, 3, 4, 5, 6, 7].map(part => {
               const partQList = allQuestions.filter((q: any) => q.part_number === part);
               if (partQList.length === 0) return null;
 
+              // Check if any question in this part matches filter
+              const filteredPartQs = allQuestions.filter((q: any, gIdx: number) => {
+                if (q.part_number !== part) return false;
+                if (paletteFilter === "done") return answers[gIdx] !== undefined;
+                if (paletteFilter === "flagged") return flagged.has(gIdx);
+                if (paletteFilter === "todo") return answers[gIdx] === undefined;
+                return true;
+              });
+
+              if (filteredPartQs.length === 0) return null;
+
               return (
                 <div key={part} className="space-y-2">
-                  <p className="text-xs font-black text-muted-foreground uppercase tracking-widest">
-                    {partShortNames[part - 1]} ({partQList.length} câu)
+                  <p className="text-xs font-black text-muted-foreground uppercase tracking-widest flex items-center justify-between">
+                    <span>{partShortNames[part - 1]}</span>
+                    <span className="text-[10px] lowercase font-bold">({partQList.length} câu)</span>
                   </p>
                   <div className="grid grid-cols-5 gap-1.5">
                     {allQuestions.map((q: any, globalIdx: number) => {
                       if (q.part_number !== part) return null;
+                      if (paletteFilter === "done" && answers[globalIdx] === undefined) return null;
+                      if (paletteFilter === "flagged" && !flagged.has(globalIdx)) return null;
+                      if (paletteFilter === "todo" && answers[globalIdx] !== undefined) return null;
+
                       const hasAns = answers[globalIdx] !== undefined;
+                      const isFlagged = flagged.has(globalIdx);
 
                       return (
                         <button
@@ -651,13 +712,17 @@ const FullTestExam = () => {
                             document.getElementById(`question-${globalIdx}`)?.scrollIntoView({ behavior: "smooth" });
                           }}
                           className={cn(
-                            "w-10 h-10 text-xs font-bold rounded-xl border-2 transition-all flex items-center justify-center hover:-translate-y-0.5",
+                            "w-10 h-10 text-xs font-bold rounded-xl border-2 transition-all flex items-center justify-center hover:-translate-y-0.5 relative cursor-pointer",
+                            isFlagged ? "border-[var(--duo-orange)] ring-2 ring-[var(--duo-orange)]/30" : "",
                             hasAns
                               ? "bg-[var(--duo-correct)] text-white border-[var(--duo-correct)] shadow-[0_2px_0_var(--duo-correct-dark)]"
                               : "bg-white text-muted-foreground border-[var(--duo-gray)] hover:border-[var(--duo-blue)]"
                           )}
                         >
                           {globalIdx + 1}
+                          {isFlagged && (
+                            <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-[var(--duo-orange)] border border-white" />
+                          )}
                         </button>
                       );
                     })}
@@ -721,6 +786,7 @@ const FullTestExam = () => {
                   const isChecked = checkedAnswers[q.id];
                   const selectedId = answers[q.globalIdx];
                   const hasSelected = selectedId !== undefined;
+                  const isFlagged = flagged.has(q.globalIdx);
 
                   const isPart1 = q.part_number === 1;
                   const isPart2 = q.part_number === 2;
@@ -731,13 +797,29 @@ const FullTestExam = () => {
                       id={`question-${q.globalIdx}`}
                       className="card-duo p-6 bg-white border-2 border-[var(--duo-gray)] rounded-2xl space-y-4 relative scroll-mt-6"
                     >
-                      <div className="flex justify-between items-center">
-                        <span className="badge-duo badge-orange font-black">
-                          Câu {q.globalIdx + 1}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
-                          {partShortNames[q.part_number - 1]}
-                        </span>
+                      <div className="flex justify-between items-center border-b-2 border-[var(--duo-gray)] pb-3">
+                        <div className="flex items-center gap-2">
+                          <span className="badge-duo badge-orange font-black">
+                            Câu {q.globalIdx + 1}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest bg-muted px-2 py-0.5 rounded-full">
+                            {partShortNames[q.part_number - 1]}
+                          </span>
+                        </div>
+
+                        {/* Bookmark Button */}
+                        <button
+                          onClick={() => toggleFlag(q.globalIdx)}
+                          className={cn(
+                            "flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full border-2 transition-all cursor-pointer",
+                            isFlagged
+                              ? "border-[var(--duo-orange)] bg-[var(--duo-orange)]/10 text-[var(--duo-orange)] shadow-sm"
+                              : "border-[var(--duo-gray)] text-muted-foreground hover:text-foreground hover:border-[var(--duo-orange)]"
+                          )}
+                        >
+                          {isFlagged ? <BookmarkCheck className="w-3.5 h-3.5 fill-[var(--duo-orange)]" /> : <Bookmark className="w-3.5 h-3.5" />}
+                          <span>{isFlagged ? "Đã đánh dấu" : "Đánh dấu xem lại"}</span>
+                        </button>
                       </div>
 
                       {q.image_url && q.image_url !== group.image_url && (
@@ -799,7 +881,7 @@ const FullTestExam = () => {
                               key={opt.id}
                               disabled={testMode === "practice" && isChecked}
                               onClick={() => handleSelectAnswer(q.globalIdx, opt.id)}
-                              className={cn("w-full text-left p-4 rounded-xl border-2 text-sm transition-all flex items-center group disabled:opacity-90", btnClass)}
+                              className={cn("w-full text-left p-4 rounded-xl border-2 text-sm transition-all flex items-center group disabled:opacity-90 active:scale-[0.99]", btnClass)}
                             >
                               <div className={cn("w-7 h-7 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors mr-3 font-extrabold text-sm", indicatorClass)}>
                                 {String.fromCharCode(65 + oi)}
@@ -862,6 +944,101 @@ const FullTestExam = () => {
         </main>
       </div>
 
+      {/* Fixed Bottom Palette for Mobile/Tablet (< lg) */}
+      <footer className="h-16 border-t-2 border-[var(--duo-gray)] shrink-0 bg-card z-30 flex lg:hidden items-center justify-between px-4 sticky bottom-0">
+        <button
+          onClick={() => setMobilePaletteOpen(!mobilePaletteOpen)}
+          className="btn-3d btn-3d-white w-full py-2.5 text-xs font-extrabold flex items-center justify-center gap-2"
+        >
+          <LayoutGrid className="w-4 h-4" />
+          Danh sách câu hỏi ({answeredCount}/{allQuestions.length})
+          {flagged.size > 0 && <span className="text-[var(--duo-orange)] font-black">🚩 {flagged.size}</span>}
+        </button>
+      </footer>
+
+      {/* Mobile Expandable Drawer */}
+      {mobilePaletteOpen && (
+        <div className="fixed inset-x-0 bottom-16 bg-card border-t-4 border-[var(--duo-blue)] shadow-[0_-10px_40px_rgba(0,0,0,0.15)] z-40 max-h-[65vh] overflow-y-auto p-5 animate-in slide-in-from-bottom-5 lg:hidden rounded-t-3xl">
+          <div className="max-w-xl mx-auto space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b-2 border-[var(--duo-gray)]">
+              <h3 className="font-extrabold text-sm text-foreground">Điều hướng câu hỏi đề thi</h3>
+              <button onClick={() => setMobilePaletteOpen(false)} className="text-xs font-bold text-muted-foreground hover:text-foreground">Đóng ✕</button>
+            </div>
+
+            <div className="flex gap-1.5 overflow-x-auto pb-1">
+              {[
+                { key: "all", label: `Tất cả (${allQuestions.length})` },
+                { key: "done", label: `Đã làm (${answeredCount})` },
+                { key: "flagged", label: `🚩 (${flagged.size})` },
+                { key: "todo", label: `Chưa làm (${unansweredCount})` },
+              ].map(f => (
+                <button
+                  key={f.key}
+                  onClick={() => setPaletteFilter(f.key as any)}
+                  className={cn(
+                    "text-xs font-bold px-3 py-1.5 rounded-lg border whitespace-nowrap transition-all",
+                    paletteFilter === f.key
+                      ? "bg-[var(--duo-blue)] text-white border-[var(--duo-blue-dark)]"
+                      : "bg-muted text-muted-foreground border-transparent"
+                  )}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="space-y-4 max-h-[40vh] overflow-y-auto p-1">
+              {[1, 2, 3, 4, 5, 6, 7].map(part => {
+                const partQList = allQuestions.filter((q: any) => q.part_number === part);
+                if (partQList.length === 0) return null;
+
+                return (
+                  <div key={part} className="space-y-2">
+                    <p className="text-xs font-black text-muted-foreground uppercase">{partShortNames[part - 1]}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {allQuestions.map((q: any, globalIdx: number) => {
+                        if (q.part_number !== part) return null;
+                        if (paletteFilter === "done" && answers[globalIdx] === undefined) return null;
+                        if (paletteFilter === "flagged" && !flagged.has(globalIdx)) return null;
+                        if (paletteFilter === "todo" && answers[globalIdx] !== undefined) return null;
+
+                        const hasAns = answers[globalIdx] !== undefined;
+                        const isFlagged = flagged.has(globalIdx);
+
+                        return (
+                          <button
+                            key={globalIdx}
+                            onClick={() => {
+                              setCurrentPart(part - 1);
+                              setMobilePaletteOpen(false);
+                              setTimeout(() => {
+                                document.getElementById(`question-${globalIdx}`)?.scrollIntoView({ behavior: "smooth" });
+                              }, 100);
+                            }}
+                            className={cn(
+                              "w-11 h-11 text-xs font-bold rounded-xl border-2 transition-all flex items-center justify-center relative",
+                              isFlagged ? "border-[var(--duo-orange)] ring-2 ring-[var(--duo-orange)]/30" : "",
+                              hasAns
+                                ? "bg-[var(--duo-correct)] text-white border-[var(--duo-correct)] shadow-[0_2px_0_var(--duo-correct-dark)]"
+                                : "bg-white text-muted-foreground border-[var(--duo-gray)] hover:border-[var(--duo-blue)]"
+                            )}
+                          >
+                            {globalIdx + 1}
+                            {isFlagged && (
+                              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-[var(--duo-orange)] border border-white" />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Confirmation Submit Dialog */}
       {showConfirm && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
@@ -869,13 +1046,26 @@ const FullTestExam = () => {
             <span className="text-4xl block">📢</span>
             <h2 className="text-xl font-black text-foreground">Bạn có chắc muốn nộp bài?</h2>
             
-            <div className="bg-slate-50 p-4 rounded-xl text-sm font-bold text-slate-600 space-y-1.5">
-              <p>Tổng số câu hỏi: {allQuestions.length}</p>
-              <p className="text-[var(--duo-correct)]">Đã trả lời: {answeredCount} câu</p>
+            <div className="bg-slate-50 p-4 rounded-xl text-sm font-bold text-slate-600 space-y-2 border-2 border-[var(--duo-gray)]">
+              <div className="flex justify-between items-center">
+                <span>Tổng số câu hỏi:</span>
+                <span className="font-extrabold text-foreground">{allQuestions.length} câu</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span>Đã trả lời:</span>
+                <span className="text-[var(--duo-correct)] font-extrabold">{answeredCount} câu</span>
+              </div>
+              {flagged.size > 0 && (
+                <div className="flex justify-between items-center">
+                  <span>Đang đánh dấu xem lại:</span>
+                  <span className="text-[var(--duo-orange)] font-extrabold">{flagged.size} câu 🚩</span>
+                </div>
+              )}
               {unansweredCount > 0 && (
-                <p className="text-[var(--duo-red)] flex items-center justify-center gap-1.5">
-                  <AlertTriangle className="w-4 h-4" /> Chưa trả lời: {unansweredCount} câu
-                </p>
+                <div className="pt-2 border-t border-[var(--duo-gray)] flex items-center justify-center gap-1.5 text-[var(--duo-red)] font-extrabold text-xs">
+                  <AlertTriangle className="w-4 h-4 shrink-0" />
+                  <span>Còn {unansweredCount} câu chưa điền đáp án!</span>
+                </div>
               )}
             </div>
 
@@ -898,6 +1088,7 @@ const FullTestExam = () => {
         </div>
       )}
     </div>
+
   );
 };
 

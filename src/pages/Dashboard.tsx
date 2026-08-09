@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState, useEffect, useMemo } from "react";
+import OnboardingModal, { useOnboarding } from "@/components/OnboardingModal";
 
 // Count-up animation for premium feeling
 const AnimatedCounter = ({ value, suffix = "", duration = 800 }: { value: number; suffix?: string; duration?: number }) => {
@@ -43,6 +44,7 @@ const AnimatedCounter = ({ value, suffix = "", duration = 800 }: { value: number
 const Dashboard = () => {
   const { user, profile } = useAuth();
   const displayName = profile?.full_name || user?.user_metadata?.full_name || "Bạn";
+  const { shouldShow: showOnboarding, markDone: doneOnboarding } = useOnboarding();
 
   const { data: enrollments, isLoading: enrollLoading } = useQuery({
     queryKey: ["my-enrollments", user?.id],
@@ -228,6 +230,9 @@ const Dashboard = () => {
 
   return (
     <StudentLayout>
+      {/* Onboarding Modal - chỉ hiện 1 lần cho user mới */}
+      {showOnboarding && <OnboardingModal onDone={doneOnboarding} />}
+
       <div className="space-y-6 max-w-6xl">
         {/* Welcome banner & A1 Streak Widget */}
         <div className="card-duo p-0 overflow-hidden">
@@ -274,6 +279,61 @@ const Dashboard = () => {
           </div>
         )}
 
+        {/* Quick Actions Shortcuts */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <Link
+            to="/courses"
+            className="card-duo p-3.5 flex items-center gap-3 bg-white hover:bg-[var(--duo-green)]/5 hover:border-[var(--duo-green)] transition-all group"
+          >
+            <div className="w-10 h-10 rounded-xl bg-[var(--duo-green)]/10 text-[var(--duo-green)] flex items-center justify-center font-black text-lg group-hover:scale-110 transition-transform">
+              📚
+            </div>
+            <div>
+              <p className="font-extrabold text-xs text-foreground group-hover:text-[var(--duo-green)] transition-colors">Tất cả khóa học</p>
+              <p className="text-[10px] text-muted-foreground font-semibold">Khám phá lộ trình</p>
+            </div>
+          </Link>
+
+          <Link
+            to="/courses?filter=fulltest"
+            className="card-duo p-3.5 flex items-center gap-3 bg-white hover:bg-[var(--duo-orange)]/5 hover:border-[var(--duo-orange)] transition-all group"
+          >
+            <div className="w-10 h-10 rounded-xl bg-[var(--duo-orange)]/10 text-[var(--duo-orange)] flex items-center justify-center font-black text-lg group-hover:scale-110 transition-transform">
+              📋
+            </div>
+            <div>
+              <p className="font-extrabold text-xs text-foreground group-hover:text-[var(--duo-orange)] transition-colors">Luyện đề Full Test</p>
+              <p className="text-[10px] text-muted-foreground font-semibold">Thi thử bấm giờ</p>
+            </div>
+          </Link>
+
+          <Link
+            to="/courses?filter=flashcard"
+            className="card-duo p-3.5 flex items-center gap-3 bg-white hover:bg-[var(--duo-blue)]/5 hover:border-[var(--duo-blue)] transition-all group"
+          >
+            <div className="w-10 h-10 rounded-xl bg-[var(--duo-blue)]/10 text-[var(--duo-blue)] flex items-center justify-center font-black text-lg group-hover:scale-110 transition-transform">
+              🃏
+            </div>
+            <div>
+              <p className="font-extrabold text-xs text-foreground group-hover:text-[var(--duo-blue)] transition-colors">Kho từ vựng</p>
+              <p className="text-[10px] text-muted-foreground font-semibold">Flashcard 3 vòng</p>
+            </div>
+          </Link>
+
+          <Link
+            to="/courses?filter=listening"
+            className="card-duo p-3.5 flex items-center gap-3 bg-white hover:bg-[var(--duo-purple)]/5 hover:border-[var(--duo-purple)] transition-all group"
+          >
+            <div className="w-10 h-10 rounded-xl bg-[var(--duo-purple)]/10 text-[var(--duo-purple)] flex items-center justify-center font-black text-lg group-hover:scale-110 transition-transform">
+              🎧
+            </div>
+            <div>
+              <p className="font-extrabold text-xs text-foreground group-hover:text-[var(--duo-purple)] transition-colors">Luyện nghe chép</p>
+              <p className="text-[10px] text-muted-foreground font-semibold">Tăng phản xạ tai</p>
+            </div>
+          </Link>
+        </div>
+
         {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {stats.map((s) => (
@@ -291,7 +351,17 @@ const Dashboard = () => {
 
         {/* My courses */}
         <div>
-          <h2 className="text-lg font-extrabold text-foreground mb-4">Khóa học của tôi 📚</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-extrabold text-foreground flex items-center gap-2">
+              Khóa học của tôi 📚
+            </h2>
+            {enrollments && enrollments.length > 0 && (
+              <Link to="/courses" className="text-xs font-bold text-[var(--duo-blue)] hover:underline flex items-center gap-1">
+                Xem tất cả <ArrowRight className="w-3 h-3" />
+              </Link>
+            )}
+          </div>
+
           {enrollLoading ? (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {[1, 2, 3].map(i => <Skeleton key={i} className="h-40 rounded-2xl" />)}
@@ -307,7 +377,7 @@ const Dashboard = () => {
                   <div key={e.id} className="card-duo flex flex-col h-full overflow-hidden hover:translate-y-[-2px] transition-transform">
                     <div className="aspect-video w-full bg-muted relative overflow-hidden">
                       {e.courses?.thumbnail_url ? (
-                        <img src={e.courses.thumbnail_url} alt={e.courses.title} className="w-full h-full object-cover" />
+                        <img src={e.courses.thumbnail_url} alt={e.courses.title} className="w-full h-full object-cover transition-transform duration-300 hover:scale-105" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-muted-foreground uppercase font-bold text-xs bg-gradient-to-br from-[var(--duo-correct)]/10 to-[var(--duo-blue)]/10">
                           {e.courses?.title?.substring(0, 20)}...
@@ -317,7 +387,7 @@ const Dashboard = () => {
                       {/* D6: Completed badge */}
                       {isCompleted && (
                         <div className="absolute top-3 left-3">
-                          <span className="badge-duo badge-green text-[9px]">✅ Hoàn thành</span>
+                          <span className="badge-duo badge-green text-[9px] shadow-sm">✅ Hoàn thành</span>
                         </div>
                       )}
                     </div>
@@ -350,7 +420,10 @@ const Dashboard = () => {
                         <p className="text-[10px] text-muted-foreground font-bold">
                           {e.expires_at ? `📅 Hạn: ${new Date(e.expires_at).toLocaleDateString("vi-VN")}` : "♾️ Vĩnh viễn"}
                         </p>
-                        <Link to={e.courses?.course_type === 'flashcard' ? `/courses/${e.course_id}/vocab` : `/courses/${e.course_id}/learn`} className="btn-3d btn-3d-primary w-full py-2 text-xs mt-3 block text-center">
+                        <Link 
+                          to={e.courses?.course_type === 'flashcard' ? `/courses/${e.course_id}/vocab` : e.courses?.course_type === 'fulltest' ? `/courses/${e.course_id}/fulltest` : `/courses/${e.course_id}/learn`} 
+                          className="btn-3d btn-3d-primary w-full py-2 text-xs mt-3 block text-center"
+                        >
                           {isCompleted ? "Học lại 🔁" : "Tiếp tục học →"}
                         </Link>
                       </div>
@@ -360,10 +433,14 @@ const Dashboard = () => {
               })}
             </div>
           ) : (
-            <div className="card-duo p-8 text-center">
-              <p className="text-muted-foreground font-medium">Bạn chưa đăng ký khóa học nào.</p>
-              <Link to="/courses" className="btn-3d btn-3d-primary py-2.5 px-6 mt-4 inline-block text-sm">
-                Xem khóa học
+            <div className="card-duo p-8 text-center bg-white space-y-3">
+              <div className="w-16 h-16 rounded-full bg-[var(--duo-blue)]/10 text-[var(--duo-blue)] flex items-center justify-center text-2xl mx-auto">
+                📚
+              </div>
+              <p className="text-foreground font-extrabold text-base">Bạn chưa tham gia khóa học nào</p>
+              <p className="text-muted-foreground text-xs font-medium max-w-sm mx-auto">Khám phá các khóa học TOEIC 4 kỹ năng được thiết kế trực quan, dễ hiểu để bắt đầu ngay hôm nay.</p>
+              <Link to="/courses" className="btn-3d btn-3d-primary py-2.5 px-6 inline-flex items-center gap-2 text-sm mt-2">
+                Xem danh sách khóa học <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
           )}
@@ -371,28 +448,36 @@ const Dashboard = () => {
 
         {/* Recent quiz results */}
         <div>
-          <h2 className="text-lg font-extrabold text-foreground mb-4 flex items-center gap-2">
-            <Trophy className="w-5 h-5 text-[var(--duo-orange)]" /> Kết quả bài thi gần đây 📝
-          </h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-extrabold text-foreground flex items-center gap-2">
+              <Trophy className="w-5 h-5 text-[var(--duo-orange)]" /> Kết quả bài thi gần đây 📝
+            </h2>
+            <Link to="/profile" className="text-xs font-bold text-[var(--duo-blue)] hover:underline">
+              Xem chi tiết hồ sơ →
+            </Link>
+          </div>
+
           {quizResults && quizResults.length > 0 ? (
-            <div className="card-duo divide-y-2 divide-[var(--duo-gray)]">
+            <div className="card-duo divide-y-2 divide-[var(--duo-gray)] bg-white">
               {quizResults.map((r: any) => {
                 const pct = r.total_questions > 0 ? (r.correct_answers / r.total_questions) * 100 : 0;
                 const scoreColor = pct >= 80 ? "badge-green" : pct >= 50 ? "badge-yellow" : "badge-orange";
                 return (
-                  <div key={r.id} className="px-5 py-4 flex items-center justify-between hover:bg-muted/10 transition-colors">
-                    <span className="text-foreground font-bold text-sm">{r.quizzes?.title || `Quiz #${r.quiz_id}`}</span>
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs text-muted-foreground font-semibold">{new Date(r.completed_at).toLocaleDateString("vi-VN")}</span>
-                      <span className={`badge-duo ${scoreColor}`}>{r.correct_answers}/{r.total_questions} đúng</span>
+                  <div key={r.id} className="px-5 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 hover:bg-muted/10 transition-colors">
+                    <div className="space-y-0.5">
+                      <span className="text-foreground font-bold text-sm line-clamp-1">{r.quizzes?.title || `Quiz #${r.quiz_id}`}</span>
+                      <span className="text-xs text-muted-foreground font-semibold block">{new Date(r.completed_at).toLocaleDateString("vi-VN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit", year: "numeric" })}</span>
+                    </div>
+                    <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+                      <span className={`badge-duo ${scoreColor}`}>{r.correct_answers}/{r.total_questions} đúng ({Math.round(pct)}%)</span>
                     </div>
                   </div>
                 );
               })}
             </div>
           ) : (
-            <div className="card-duo p-6 text-center">
-              <p className="text-sm text-muted-foreground font-medium">Bạn chưa làm bài thi nào.</p>
+            <div className="card-duo p-6 text-center bg-white">
+              <p className="text-sm text-muted-foreground font-medium">Bạn chưa làm bài thi nào gần đây.</p>
             </div>
           )}
         </div>

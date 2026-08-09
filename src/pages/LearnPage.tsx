@@ -11,7 +11,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Lock } from "lucide-react";
-import learnBg from "@/assets/learn-bg.jpg";
 
 const LearnPage = () => {
   const { courseId } = useParams();
@@ -321,187 +320,330 @@ const LearnPage = () => {
   };
 
   return (
-    <div className="min-h-screen relative">
-      {/* Fixed background — always fills screen, sharp image, no blur */}
-      <div className="fixed inset-0 -z-10" style={{ backgroundImage: `url(${learnBg})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }} />
-
-      <div className="relative z-10 flex flex-col lg:flex-row min-h-screen">
+    <div className="min-h-screen lg:h-screen lg:overflow-hidden relative bg-background">
+      <div className="relative z-10 flex flex-col lg:flex-row h-full">
         {/* Main content */}
-        <div className="flex-1 min-w-0 flex flex-col justify-between">
-          {(isVideoLesson || isPdfLesson) && (
-            <div className="lg:rounded-br-none overflow-hidden border-b-4 border-black/20 bg-muted/10">
-              {isVideoLesson && isPdfLesson ? (
-                <Tabs defaultValue="video" className="w-full">
-                  <div className="bg-card border-b p-2">
-                    <TabsList className="grid w-full max-w-[400px] grid-cols-2">
-                      <TabsTrigger value="video" className="font-bold">🎬 Xem Video</TabsTrigger>
-                      <TabsTrigger value="pdf" className="font-bold">📄 Đọc Tài liệu PDF</TabsTrigger>
-                    </TabsList>
-                  </div>
-                  <TabsContent value="video" className="m-0 border-none outline-none focus-visible:ring-0">
-                    <div className="aspect-video bg-black">
-                      <iframe
-                        src={getEmbedUrl(currentLesson.video_url)}
-                        className="w-full h-full"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                        title={currentLesson.title}
-                      />
-                    </div>
-                  </TabsContent>
-                  <TabsContent value="pdf" className="m-0 border-none outline-none focus-visible:ring-0">
-                    <div className="w-full h-[80vh] bg-muted">
-                      <iframe
-                        src={`${currentLesson.pdf_url}#toolbar=0`}
-                        className="w-full h-full border-none"
-                        title={currentLesson.title}
-                      />
-                    </div>
-                  </TabsContent>
-                </Tabs>
-              ) : isVideoLesson ? (
-                <div className="aspect-video bg-black">
-                  <iframe
-                    src={getEmbedUrl(currentLesson.video_url)}
-                    className="w-full h-full"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    title={currentLesson.title}
-                  />
-                </div>
-              ) : (
-                <div className="w-full h-[80vh] bg-muted">
-                  <iframe
-                    src={`${currentLesson.pdf_url}#toolbar=0`}
-                    className="w-full h-full border-none"
-                    title={currentLesson.title}
-                  />
-                </div>
-              )}
+        <div className="flex-1 min-w-0 flex flex-col h-full overflow-hidden bg-background">
+          {/* Top Header */}
+          <div className="h-16 px-4 lg:px-6 border-b-2 border-border bg-card flex items-center justify-between gap-4 shrink-0">
+            <div className="flex items-center gap-3 min-w-0">
+              <Button
+                variant="ghost"
+                className="p-2 hover:bg-muted rounded-xl shrink-0"
+                onClick={() => setShowExitConfirm(true)}
+                title="Thoát bài học"
+              >
+                <X className="w-6 h-6 text-muted-foreground hover:text-foreground" />
+              </Button>
+              <div className="w-px h-6 bg-border shrink-0" />
+              <div className="flex flex-col min-w-0">
+                <span className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-wider truncate">
+                  Bài {currentIndex + 1} / {allLessons.length}
+                </span>
+                <h1 className="text-sm sm:text-base font-extrabold text-foreground truncate max-w-[150px] sm:max-w-[300px] md:max-w-[450px] lg:max-w-[600px]" title={currentLesson.title}>
+                  {currentLesson.title}
+                </h1>
+              </div>
             </div>
-          )}
-
-          {isPracticeLesson && (() => {
-            const quizId = currentLesson.quiz_id || currentLesson.id;
-            const latestResult = quizResults.find((r: any) => r.quiz_id === quizId);
-
-            return (
-              <div className="p-8 lg:p-12 flex items-center justify-center min-h-[50vh]">
-                <div className="card-duo w-full max-w-2xl text-center space-y-6 p-8">
-                  <div className="w-24 h-24 bg-[var(--duo-blue)]/10 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-[var(--duo-blue)]/20">
-                    <FileQuestion className="w-12 h-12 text-[var(--duo-blue)]" />
-                  </div>
-                  <h2 className="text-2xl font-extrabold text-foreground">{currentLesson.title}</h2>
-                  <p className="text-muted-foreground font-bold text-lg">Bài {currentLesson.lesson_type === "exam" ? "thi online 🏆" : "luyện tập 🎯"}</p>
-
-                  {latestResult && (
-                    <div className="flex flex-col items-center justify-center gap-2 mb-6">
-                      <span className="text-lg font-extrabold text-[var(--duo-correct)] bg-[var(--duo-correct)]/10 px-6 py-3 rounded-2xl border-2 border-[var(--duo-correct)]/20">
-                        Điểm gần nhất: {latestResult.score}/10 ⭐
-                      </span>
-                      <span className="text-sm font-bold text-muted-foreground">
-                        Đúng {latestResult.correct_answers}/{latestResult.total_questions} câu
-                      </span>
-                    </div>
-                  )}
-
-                  <Button className="btn-3d btn-3d-primary w-full sm:w-auto text-lg px-10 py-6 h-auto" onClick={() => navigate(`/courses/${courseId}/quiz/${quizId}`)}>
-                    {latestResult ? "Làm lại bài thi 🔄" : "Bắt đầu làm bài 🚀"}
-                  </Button>
-                </div>
-              </div>
-            );
-          })()}
-
-          {isDictationLesson && (() => {
-            const quizId = currentLesson.quiz_id || currentLesson.id;
-            const latestResult = quizResults.find((r: any) => r.quiz_id === quizId);
-
-            return (
-              <div className="p-8 lg:p-12 flex items-center justify-center min-h-[50vh]">
-                <div className="card-duo w-full max-w-2xl text-center space-y-6 p-8">
-                  <div className="w-24 h-24 bg-[var(--duo-purple)]/10 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-[var(--duo-purple)]/20">
-                    <Headphones className="w-12 h-12 text-[var(--duo-purple)]" />
-                  </div>
-                  <h2 className="text-2xl font-extrabold text-foreground">{currentLesson.title}</h2>
-                  <p className="text-muted-foreground font-bold text-lg">Bài luyện nghe điền từ 🎧</p>
-
-                  {latestResult && (
-                    <div className="flex flex-col items-center justify-center gap-2 mb-6">
-                      <span className="text-lg font-extrabold text-[var(--duo-purple)] bg-[var(--duo-purple)]/10 px-6 py-3 rounded-2xl border-2 border-[var(--duo-purple)]/20">
-                        Đã làm: {latestResult.correct_answers || 0} câu 🌟
-                      </span>
-                    </div>
-                  )}
-
-                  <Button className="btn-3d w-full sm:w-auto text-lg px-10 py-6 h-auto" style={{ backgroundColor: '#A855F7', borderColor: '#9333EA', color: 'white' }} onClick={() => navigate(`/courses/${courseId}/dictation/${quizId}`)}>
-                    {latestResult ? "Tiếp tục luyện nghe 🎧" : "Bắt đầu bài tập này 🚀"}
-                  </Button>
-                </div>
-              </div>
-            );
-          })()}
-
-          {/* Controls */}
-          <div className="p-4 border-b-2 border-border bg-card shadow-sm sticky top-0 z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-            <h1 className="text-xl font-extrabold text-foreground flex items-center gap-3">
-              <span className="badge-duo badge-blue text-sm py-1 px-3">Bài {currentIndex + 1}</span>
-              {currentLesson.title}
-            </h1>
-            <div className="flex flex-wrap items-center gap-2">
-              <Button size="sm" className="btn-3d btn-3d-white" disabled={currentIndex === 0}
-                onClick={() => setCurrentLessonId(allLessons[currentIndex - 1].id)}>
-                <ChevronLeft className="w-5 h-5 mr-1" /> Trước
-              </Button>
-              <Button size="sm" className="btn-3d btn-3d-white" disabled={currentIndex === allLessons.length - 1}
-                onClick={() => setCurrentLessonId(allLessons[currentIndex + 1].id)}>
-                Tiếp <ChevronRight className="w-5 h-5 ml-1" />
-              </Button>
-              <Button size="sm" className={isCompleted ? "btn-3d btn-3d-green" : "btn-3d btn-3d-white"} onClick={() => completionMutation.mutate()}>
-                <Check className="w-5 h-5 mr-1" />
-                {isCompleted ? "Đã xong" : "Đánh dấu xong"}
-              </Button>
-              <Button size="sm" className="btn-3d bg-white border-[var(--duo-red)]/30 text-[var(--duo-red)] hover:bg-[var(--duo-red)]/5 font-extrabold" onClick={() => setShowExitConfirm(true)}>
-                <X className="w-5 h-5 mr-1" /> Thoát
-              </Button>
-              {/* B1: Sidebar toggle button (hidden on mobile, only on desktop) */}
-              <Button size="sm" variant="outline" className="btn-3d btn-3d-white hidden lg:flex items-center gap-1" onClick={toggleSidebar}>
+            <div className="flex items-center gap-2 shrink-0">
+              {/* Sidebar toggle button */}
+              <Button size="sm" variant="outline" className="btn-3d btn-3d-white flex items-center gap-2 text-xs sm:text-sm font-extrabold h-9 px-3" onClick={toggleSidebar}>
                 {sidebarCollapsed ? <PanelRight className="w-4 h-4" /> : <PanelRightClose className="w-4 h-4" />}
-                <span>{sidebarCollapsed ? "Hiện mục lục" : "Thu gọn"}</span>
+                <span className="hidden sm:inline">{sidebarCollapsed ? "Hiện mục lục" : "Thu gọn mục lục"}</span>
+                <span className="sm:hidden">Mục lục</span>
               </Button>
-              {/* Manual practice buttons */}
-              {practices.length > 0 && (
-                <div className="flex gap-2 ml-2 md:border-l-2 md:pl-3 border-border">
-                  {practices.map((p: any) => (
-                    <Button key={p.id} size="sm" className="btn-3d bg-[var(--duo-orange)] hover:bg-[var(--duo-orange)]/90 text-white border-[#E58700] text-xs py-2 h-auto" onClick={() => openPractice(p)}>
-                      📝 {p.title || "Luyện tập"}
-                    </Button>
-                  ))}
-                </div>
-              )}
             </div>
           </div>
 
-          {/* Description */}
-          <div className="p-6 max-w-4xl mx-auto">
-            <div className="card-duo p-6 bg-white">
-              <h3 className="text-lg font-extrabold text-foreground mb-4 flex items-center gap-2">📖 Mô tả bài học</h3>
-              <p className="text-base font-medium text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                {currentLesson.description || "Chưa có mô tả cho bài học này. 🤫"}
-              </p>
+          {/* Scrollable Content Container */}
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 bg-background">
+            {/* YouTube/PDF Player */}
+            {(isVideoLesson || isPdfLesson) && (
+              <div className="overflow-hidden rounded-2xl border-4 border-border bg-muted/10 max-w-4xl mx-auto w-full shadow-sm">
+                {isVideoLesson && isPdfLesson ? (
+                  <Tabs defaultValue="video" className="w-full">
+                    <div className="bg-card border-b p-2">
+                      <TabsList className="grid w-full max-w-[400px] grid-cols-2">
+                        <TabsTrigger value="video" className="font-bold text-xs sm:text-sm">🎬 Xem Video</TabsTrigger>
+                        <TabsTrigger value="pdf" className="font-bold text-xs sm:text-sm">📄 Đọc Tài liệu PDF</TabsTrigger>
+                      </TabsList>
+                    </div>
+                    <TabsContent value="video" className="m-0 border-none outline-none focus-visible:ring-0">
+                      <div className="aspect-video bg-black max-h-[70vh]">
+                        <iframe
+                          src={getEmbedUrl(currentLesson.video_url)}
+                          className="w-full h-full"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                          title={currentLesson.title}
+                        />
+                      </div>
+                    </TabsContent>
+                    <TabsContent value="pdf" className="m-0 border-none outline-none focus-visible:ring-0">
+                      <div className="w-full h-[75vh] bg-muted">
+                        <iframe
+                          src={`${currentLesson.pdf_url}#toolbar=0`}
+                          className="w-full h-full border-none"
+                          title={currentLesson.title}
+                        />
+                      </div>
+                    </TabsContent>
+                  </Tabs>
+                ) : isVideoLesson ? (
+                  <div className="aspect-video bg-black max-h-[70vh]">
+                    <iframe
+                      src={getEmbedUrl(currentLesson.video_url)}
+                      className="w-full h-full"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      title={currentLesson.title}
+                    />
+                  </div>
+                ) : (
+                  <div className="w-full h-[75vh] bg-muted">
+                    <iframe
+                      src={`${currentLesson.pdf_url}#toolbar=0`}
+                      className="w-full h-full border-none"
+                      title={currentLesson.title}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Banner for manual practices */}
+            {practices.length > 0 && (
+              <div className="bg-[var(--duo-orange)]/10 border-2 border-[var(--duo-orange)]/20 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 max-w-4xl mx-auto w-full">
+                <div className="flex items-center gap-3">
+                  <span className="text-3xl shrink-0">📝</span>
+                  <div>
+                    <h4 className="text-sm sm:text-base font-extrabold text-[var(--duo-orange)]">Bài tập thực hành đính kèm</h4>
+                    <p className="text-xs sm:text-sm font-semibold text-muted-foreground mt-0.5">Hãy hoàn thành các bài tập này để tự đánh giá mức độ tiếp thu bài học nhé!</p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-end">
+                  {practices.map((p: any) => (
+                    <Button
+                      key={p.id}
+                      className="btn-3d bg-[var(--duo-orange)] hover:bg-[var(--duo-orange)]/90 text-white border-[#E58700] text-xs sm:text-sm font-extrabold py-2 px-4 h-10 w-full sm:w-auto shrink-0"
+                      onClick={() => openPractice(p)}
+                    >
+                      {p.title || "Làm bài tập 🚀"}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {isPracticeLesson && (() => {
+              const quizId = currentLesson.quiz_id || currentLesson.id;
+              const latestResult = quizResults.find((r: any) => r.quiz_id === quizId);
+
+              return (
+                <div className="p-4 flex items-center justify-center min-h-[40vh] max-w-4xl mx-auto w-full">
+                  <div className="card-duo w-full text-center space-y-6 p-6 sm:p-8 bg-card shadow-sm border-2">
+                    <div className="w-20 h-20 bg-[var(--duo-blue)]/10 rounded-full flex items-center justify-center mx-auto border-4 border-[var(--duo-blue)]/20">
+                      <FileQuestion className="w-10 h-10 text-[var(--duo-blue)]" />
+                    </div>
+                    <h2 className="text-xl sm:text-2xl font-extrabold text-foreground">{currentLesson.title}</h2>
+                    <p className="text-muted-foreground font-bold text-sm sm:text-base">Bài {currentLesson.lesson_type === "exam" ? "thi online 🏆" : "luyện tập 🎯"}</p>
+
+                    {latestResult && (
+                      <div className="flex flex-col items-center justify-center gap-1.5 mb-4">
+                        <span className="text-base font-extrabold text-[var(--duo-correct)] bg-[var(--duo-correct)]/10 px-5 py-2.5 rounded-xl border-2 border-[var(--duo-correct)]/20">
+                          Điểm gần nhất: {latestResult.score}/10 ⭐
+                        </span>
+                        <span className="text-xs font-bold text-muted-foreground">
+                          Đúng {latestResult.correct_answers}/{latestResult.total_questions} câu
+                        </span>
+                      </div>
+                    )}
+
+                    <Button className="btn-3d btn-3d-primary w-full sm:w-auto text-base px-8 py-4 h-auto" onClick={() => navigate(`/courses/${courseId}/quiz/${quizId}`)}>
+                      {latestResult ? "Làm lại bài thi 🔄" : "Bắt đầu làm bài 🚀"}
+                    </Button>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {isDictationLesson && (() => {
+              const quizId = currentLesson.quiz_id || currentLesson.id;
+              const latestResult = quizResults.find((r: any) => r.quiz_id === quizId);
+
+              return (
+                <div className="p-4 flex items-center justify-center min-h-[40vh] max-w-4xl mx-auto w-full">
+                  <div className="card-duo w-full text-center space-y-6 p-6 sm:p-8 bg-card shadow-sm border-2">
+                    <div className="w-20 h-20 bg-[var(--duo-purple)]/10 rounded-full flex items-center justify-center mx-auto border-4 border-[var(--duo-purple)]/20">
+                      <Headphones className="w-10 h-10 text-[var(--duo-purple)]" />
+                    </div>
+                    <h2 className="text-xl sm:text-2xl font-extrabold text-foreground">{currentLesson.title}</h2>
+                    <p className="text-muted-foreground font-bold text-sm sm:text-base">Bài luyện nghe điền từ 🎧</p>
+
+                    {latestResult && (
+                      <div className="flex flex-col items-center justify-center gap-1.5 mb-4">
+                        <span className="text-base font-extrabold text-[var(--duo-purple)] bg-[var(--duo-purple)]/10 px-5 py-2.5 rounded-xl border-2 border-[var(--duo-purple)]/20">
+                          Đã làm: {latestResult.correct_answers || 0} câu 🌟
+                        </span>
+                      </div>
+                    )}
+
+                    <Button className="btn-3d w-full sm:w-auto text-base px-8 py-4 h-auto" style={{ backgroundColor: '#A855F7', borderColor: '#9333EA', color: 'white' }} onClick={() => navigate(`/courses/${courseId}/dictation/${quizId}`)}>
+                      {latestResult ? "Tiếp tục luyện nghe 🎧" : "Bắt đầu bài tập này 🚀"}
+                    </Button>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Tabs for Description, Materials, Notes */}
+            <div className="max-w-4xl mx-auto w-full">
+              <Tabs defaultValue="description" className="w-full bg-card rounded-2xl border-2 border-border shadow-sm overflow-hidden">
+                <TabsList className="flex border-b bg-muted/20 p-0 h-11 rounded-none">
+                  <TabsTrigger value="description" className="flex-1 font-extrabold text-xs sm:text-sm h-full rounded-none border-b-2 border-transparent data-[state=active]:border-[var(--duo-blue)] data-[state=active]:bg-card">
+                    📖 Mô tả
+                  </TabsTrigger>
+                  <TabsTrigger value="materials" className="flex-1 font-extrabold text-xs sm:text-sm h-full rounded-none border-b-2 border-transparent data-[state=active]:border-[var(--duo-blue)] data-[state=active]:bg-card">
+                    📎 Tài liệu ({materials.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="notes" className="flex-1 font-extrabold text-xs sm:text-sm h-full rounded-none border-b-2 border-transparent data-[state=active]:border-[var(--duo-blue)] data-[state=active]:bg-card">
+                    📝 Ghi chú ({savedNotes.length})
+                  </TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="description" className="p-5 sm:p-6 focus-visible:outline-none">
+                  <p className="text-sm sm:text-base font-semibold text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                    {currentLesson.description || "Chưa có mô tả cho bài học này. 🤫"}
+                  </p>
+                </TabsContent>
+
+                <TabsContent value="materials" className="p-5 sm:p-6 focus-visible:outline-none space-y-3">
+                  {materials.length === 0 ? (
+                    <p className="text-xs sm:text-sm font-bold text-muted-foreground text-center py-4">Bài học này chưa đính kèm tài liệu nào. 📁</p>
+                  ) : (
+                    <div className="grid gap-3">
+                      {materials.map((m: any) => (
+                        <a
+                          key={m.id}
+                          href={m.file_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-between p-3.5 rounded-xl border bg-card hover:bg-muted/30 transition-colors"
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <span className="text-xl shrink-0">
+                              {m.file_url?.endsWith(".pdf") ? "📄" : m.file_url?.match(/\.(mp3|wav|ogg)$/i) ? "🎵" : "🔗"}
+                            </span>
+                            <div className="min-w-0">
+                              <p className="font-extrabold text-foreground text-xs sm:text-sm truncate">{m.title || "Tài liệu đính kèm"}</p>
+                              {m.description && <p className="text-[10px] sm:text-xs text-muted-foreground font-semibold mt-0.5 truncate">{m.description}</p>}
+                            </div>
+                          </div>
+                          <Button size="sm" variant="outline" className="btn-3d btn-3d-white text-[10px] px-2.5 py-1 h-7 shrink-0">Tải xuống</Button>
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="notes" className="p-5 sm:p-6 focus-visible:outline-none space-y-4">
+                  <div className="space-y-3">
+                    <textarea
+                      value={noteText}
+                      onChange={(e) => setNoteText(e.target.value)}
+                      placeholder="Viết ghi chú của bạn cho bài học này tại đây..."
+                      className="w-full min-h-[90px] p-3 rounded-xl border-2 border-border focus:border-[var(--duo-blue)] focus:outline-none font-bold text-xs sm:text-sm bg-background resize-y"
+                    />
+                    <div className="flex justify-end">
+                      <Button
+                        onClick={() => noteMutation.mutate()}
+                        disabled={!noteText.trim() || noteMutation.isPending}
+                        className="btn-3d btn-3d-primary py-2 px-5 h-8 text-xs font-extrabold"
+                      >
+                        {noteMutation.isPending ? "Đang lưu..." : "Lưu ghi chú 💾"}
+                      </Button>
+                    </div>
+                  </div>
+
+                  {savedNotes.length > 0 && (
+                    <div className="space-y-2 border-t pt-3">
+                      <h4 className="text-xs font-extrabold text-foreground">Ghi chú đã lưu:</h4>
+                      <div className="space-y-2.5 max-h-[220px] overflow-y-auto pr-1">
+                        {savedNotes.map((note: any) => (
+                          <div key={note.id} className="p-3 rounded-xl border bg-muted/10 relative group">
+                            <p className="text-xs sm:text-sm font-semibold text-foreground whitespace-pre-wrap">{note.content}</p>
+                            <span className="text-[9px] text-muted-foreground font-bold mt-1.5 block">
+                              {new Date(note.created_at).toLocaleDateString("vi-VN", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
             </div>
+          </div>
+
+          {/* Sticky Bottom Navigation Bar */}
+          <div className="h-16 px-4 sm:px-6 border-t-2 border-border bg-card flex items-center justify-between shrink-0">
+            <Button
+              variant="outline"
+              className="btn-3d btn-3d-white text-xs sm:text-sm font-extrabold h-9 px-3 sm:px-4"
+              disabled={currentIndex === 0}
+              onClick={() => setCurrentLessonId(allLessons[currentIndex - 1].id)}
+            >
+              <ChevronLeft className="w-4 h-4 mr-0.5 sm:mr-1" />
+              <span className="hidden sm:inline">Bài trước</span>
+              <span className="sm:hidden">Trước</span>
+            </Button>
+            
+            <Button
+              className={cn(
+                "btn-3d text-xs sm:text-sm font-extrabold h-9 px-4 sm:px-6 transition-all",
+                isCompleted ? "btn-3d-green" : "btn-3d-primary"
+              )}
+              onClick={() => completionMutation.mutate()}
+            >
+              <Check className="w-4 h-4 mr-1 sm:mr-2" />
+              {isCompleted ? (
+                <>
+                  <span className="hidden sm:inline">Bài học đã hoàn thành</span>
+                  <span className="sm:hidden">Đã hoàn thành</span>
+                </>
+              ) : (
+                <>
+                  <span className="hidden sm:inline">Hoàn thành bài học</span>
+                  <span className="sm:hidden">Hoàn thành</span>
+                </>
+              )}
+            </Button>
+
+            <Button
+              variant="outline"
+              className="btn-3d btn-3d-white text-xs sm:text-sm font-extrabold h-9 px-3 sm:px-4"
+              disabled={currentIndex === allLessons.length - 1}
+              onClick={() => setCurrentLessonId(allLessons[currentIndex + 1].id)}
+            >
+              <span className="hidden sm:inline">Bài tiếp theo</span>
+              <span className="sm:hidden">Tiếp</span>
+              <ChevronRight className="w-4 h-4 ml-0.5 sm:ml-1" />
+            </Button>
           </div>
         </div>
 
         {/* Sidebar (B1: Conditionally collapsed with smooth transition properties) */}
         <div className={cn(
-          "w-full lg:w-[350px] lg:border-l-2 border-border bg-card/90 backdrop-blur-md overflow-y-auto lg:h-screen lg:sticky lg:top-0 transition-all duration-300",
+          "w-full lg:w-[350px] lg:border-l-2 border-border bg-card flex flex-col lg:h-full transition-all duration-300",
           sidebarCollapsed ? "lg:w-0 lg:opacity-0 lg:overflow-hidden lg:border-l-0" : "lg:w-[350px]"
         )}>
-          <div className="p-6 border-b-2 bg-card sticky top-0 z-10 flex items-center justify-between">
-            <h2 className="text-lg font-extrabold text-foreground flex items-center gap-2">📋 Nội dung khóa học</h2>
+          <div className="h-16 px-6 border-b flex items-center bg-card sticky top-0 z-10 justify-between shrink-0">
+            <h2 className="text-sm sm:text-base font-extrabold text-foreground flex items-center gap-2">📋 Nội dung khóa học</h2>
           </div>
-          <div className="p-6 pt-2 border-b-2 bg-card/50">
+          <div className="p-6 pt-2 border-b shrink-0 bg-card/50">
             <div className="flex items-center justify-between text-sm font-bold text-muted-foreground mb-2">
               <span>{completedCount}/{totalLessons} bài</span>
               <span className="text-[var(--duo-correct)]">{progressPct}%</span>
@@ -510,14 +652,15 @@ const LearnPage = () => {
               <div className="h-full bg-[var(--duo-correct)] transition-all rounded-full" style={{ width: `${progressPct}%` }} />
             </div>
           </div>
-          <Accordion
-            type="multiple"
-            defaultValue={modules.reduce((acc: string[], mod: any, pi: number) => {
-              if (mod.lessons.some((l: any) => l.id === currentLessonId)) acc.push(`part-${pi}`);
-              return acc;
-            }, [])}
-            className="p-4 space-y-4"
-          >
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <Accordion
+              type="multiple"
+              defaultValue={modules.reduce((acc: string[], mod: any, pi: number) => {
+                if (mod.lessons.some((l: any) => l.id === currentLessonId)) acc.push(`part-${pi}`);
+                return acc;
+              }, [])}
+              className="space-y-4"
+            >
             {modules.map((mod: any, pi: number) => (
               <AccordionItem key={mod.id} value={`part-${pi}`} className="border-none bg-card rounded-2xl overflow-hidden shadow-[0_2px_0_var(--border)] border-2">
                 <AccordionTrigger className="py-4 px-5 text-base font-extrabold hover:no-underline hover:bg-muted/30 transition-colors">
@@ -527,8 +670,11 @@ const LearnPage = () => {
                   {mod.lessons.length === 0 ? (
                     <p className="text-sm font-bold text-muted-foreground px-3 py-2">Đang cập nhật... ⏳</p>
                   ) : (
-                    <div className="space-y-2 mt-2">
-                      {mod.lessons.map((lesson: any) => {
+                    <div className="space-y-2 mt-2 relative">
+                      {/* Vertical stepper timeline connector */}
+                      <div className="absolute left-[30px] -translate-x-1/2 top-8 bottom-8 w-[3px] bg-muted-foreground/30 dark:bg-muted-foreground/50 z-0" />
+
+                      {mod.lessons.map((lesson: any, lessonIdx: number) => {
                         const globalIdx = allLessons.findIndex((al: any) => al.id === lesson.id);
                         const done = progress.some((p: any) => p.lesson_id === lesson.id && p.is_completed);
                         const isCurrent = currentLessonId === lesson.id;
@@ -541,7 +687,7 @@ const LearnPage = () => {
                             key={lesson.id}
                             onClick={() => {
                               if (canStudy) {
-                                setCurrentLessonId(lesson.id);
+                                  setCurrentLessonId(lesson.id);
                               } else {
                                 toast({
                                   title: "Nội dung có phí 🔒",
@@ -550,25 +696,28 @@ const LearnPage = () => {
                                 });
                               }
                             }}
-                            className={`w-full flex items-start gap-3 px-3 py-3.5 rounded-xl text-sm font-bold transition-all text-left border-2 ${isCurrent
+                            className={`w-full flex items-start gap-3 px-3 py-3.5 rounded-xl text-sm font-bold transition-all text-left border-2 relative z-10 ${isCurrent
                                 ? "bg-[var(--duo-blue)] text-white border-[var(--duo-blue-dark)] shadow-[0_3px_0_var(--duo-blue-dark)] -translate-y-0.5"
-                                : "text-muted-foreground border-transparent hover:bg-muted/50 hover:border-border/60"
+                                : "text-muted-foreground border-transparent hover:bg-muted/50 hover:border-border/60 bg-card"
                               } cursor-pointer`}
                           >
-                            <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 mt-0.5 border-2 ${isCurrent ? 'bg-white/20 text-white border-white/40' :
-                                done ? 'bg-[var(--duo-correct)] text-white border-[var(--duo-correct)]' :
-                                  'bg-muted border-border text-muted-foreground'
+                            <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 mt-0.5 border-2 text-[13px] font-black relative z-10 transition-all ${isCurrent
+                                ? 'bg-white text-[var(--duo-blue)] border-white shadow-[0_2px_0_rgba(0,0,0,0.12)]'
+                                : done
+                                  ? 'bg-[var(--duo-correct)] text-white border-[var(--duo-correct-dark)] shadow-[0_2.5px_0_var(--duo-correct-dark)]'
+                                  : 'bg-card border-muted-foreground/35 text-foreground shadow-[0_2.5px_0_var(--border)]'
                               }`}>
-                              {done ? <Check className="w-4 h-4" /> : isVideo ? <PlayCircle className="w-4 h-4" /> : isDictation ? <Headphones className="w-4 h-4" /> : <FileQuestion className="w-4 h-4" />}
+                              {done ? <Check className="w-4.5 h-4.5" strokeWidth={3.5} /> : (lessonIdx + 1).toString().padStart(2, '0')}
                             </div>
 
                             <div className="flex-1 min-w-0">
-                              <span className={`block text-[10px] uppercase font-extrabold mb-0.5 tracking-wider ${isCurrent ? 'text-white/70' : 'text-muted-foreground'
-                                }`}>{mod.title}</span>
-                              <span className={`block text-[15px] font-extrabold leading-snug ${isCurrent ? 'text-white' : 'text-foreground'
-                                }`}>{lesson.title}</span>
-                              <span className={`text-[10px] uppercase font-extrabold block mt-0.5 ${isCurrent ? 'text-white/60' : 'text-muted-foreground'
-                                }`}>Bài {(globalIdx + 1).toString().padStart(2, '0')}</span>
+                              <span className={`block text-[15px] font-extrabold leading-snug truncate ${isCurrent ? 'text-white' : 'text-foreground'}`}>
+                                {lesson.title}
+                              </span>
+                              <span className={`text-[10px] uppercase font-extrabold flex items-center gap-1.5 mt-0.5 ${isCurrent ? 'text-white/60' : 'text-muted-foreground'}`}>
+                                {isVideo ? <PlayCircle className="w-3.5 h-3.5" /> : isDictation ? <Headphones className="w-3.5 h-3.5" /> : <FileQuestion className="w-3.5 h-3.5" />}
+                                <span>Bài tổng thể {(globalIdx + 1).toString().padStart(2, '0')}</span>
+                              </span>
                             </div>
 
                             {!canStudy ? (
@@ -585,6 +734,7 @@ const LearnPage = () => {
               </AccordionItem>
             ))}
           </Accordion>
+          </div>
         </div>
       </div>
 
@@ -700,7 +850,7 @@ const LearnPage = () => {
             <p className="text-sm font-semibold text-muted-foreground">Tiến độ bài học hiện tại của bạn sẽ được lưu giữ tự động.</p>
             <div className="flex gap-3 pt-2">
               <Button className="btn-3d btn-3d-white flex-1 py-3 text-sm font-bold" onClick={() => setShowExitConfirm(false)}>Ở lại học</Button>
-              <Button className="btn-3d btn-3d-primary flex-1 py-3 text-sm font-bold" onClick={() => navigate("/courses")}>Rời đi</Button>
+              <Button className="btn-3d btn-3d-primary flex-1 py-3 text-sm font-bold" onClick={() => navigate(`/courses/${courseId}`)}>Rời đi</Button>
             </div>
           </div>
         </div>

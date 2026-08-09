@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, BookOpen, Users, ClipboardList, FileText, BarChart3, Settings, LogOut, Menu, X, Sun, Moon, ChevronRight, ShieldAlert, Home } from "lucide-react";
+import { LayoutDashboard, BookOpen, Users, ClipboardList, FileText, BarChart3, Settings, LogOut, Menu, X, Sun, Moon, ChevronRight, ShieldAlert, Home, FileJson } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -11,6 +11,7 @@ const navItems = [
   { to: "/admin/categories", label: "Danh mục", icon: BookOpen, color: "text-[var(--duo-purple)]" },
   { to: "/admin/courses", label: "Khóa học", icon: BookOpen, color: "text-[var(--duo-blue)]" },
   { to: "/admin/fulltests", label: "Full Test TOEIC", icon: ClipboardList, color: "text-[var(--duo-orange)]" },
+  { to: "/admin/import-json", label: "Import Part JSON", icon: FileJson, color: "text-[var(--duo-green)]" },
   { to: "/admin/students", label: "Học viên", icon: Users, color: "text-[var(--duo-purple)]" },
   { to: "/admin/enrollments", label: "Đăng ký", icon: ClipboardList, color: "text-[var(--duo-orange)]" },
   { to: "/admin/materials", label: "Tài liệu", icon: FileText, color: "text-[var(--duo-yellow)]" },

@@ -44,6 +44,7 @@ const AdminReports = lazy(() => import("./pages/admin/AdminReports"));
 const AdminSettings = lazy(() => import("./pages/admin/AdminSettings"));
 const AdminFullTestManager = lazy(() => import("./pages/admin/AdminFullTestManager"));
 const AdminFullTestQuestions = lazy(() => import("./pages/admin/AdminFullTestQuestions"));
+const AdminCourseJsonImport = lazy(() => import("./pages/admin/AdminCourseJsonImport"));
 
 
 const PageLoader = () => (
@@ -104,6 +105,7 @@ const App = () => (
                 <Route path="/admin/courses/:courseId" element={<AdminRoute><AdminCourseDetail /></AdminRoute>} />
                 <Route path="/admin/fulltests" element={<AdminRoute><AdminFullTestManager /></AdminRoute>} />
                 <Route path="/admin/fulltests/:testId/questions" element={<AdminRoute><AdminFullTestQuestions /></AdminRoute>} />
+                <Route path="/admin/import-json" element={<AdminRoute><AdminCourseJsonImport /></AdminRoute>} />
                 <Route path="/admin/students" element={<AdminRoute><AdminStudents /></AdminRoute>} />
                 <Route path="/admin/students/:userId" element={<AdminRoute><AdminStudentDetail /></AdminRoute>} />
                 <Route path="/admin/enrollments" element={<AdminRoute><AdminEnrollments /></AdminRoute>} />

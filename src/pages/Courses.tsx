@@ -1,10 +1,10 @@
 import StudentLayout from "@/components/StudentLayout";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, X } from "lucide-react";
@@ -29,10 +29,28 @@ const filterTypes = [
 const Courses = () => {
   const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [zaloDialogOpen, setZaloDialogOpen] = useState(false);
   const [selectedCourseTitle, setSelectedCourseTitle] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeFilter, setActiveFilter] = useState("all");
+  const [activeFilter, setActiveFilter] = useState(() => searchParams.get("filter") || "all");
+
+  useEffect(() => {
+    const filterFromUrl = searchParams.get("filter");
+    if (filterFromUrl && filterTypes.some(f => f.key === filterFromUrl)) {
+      setActiveFilter(filterFromUrl);
+    }
+  }, [searchParams]);
+
+  const handleFilterChange = (filterKey: string) => {
+    setActiveFilter(filterKey);
+    if (filterKey === "all") {
+      searchParams.delete("filter");
+      setSearchParams(searchParams);
+    } else {
+      setSearchParams({ ...Object.fromEntries(searchParams.entries()), filter: filterKey });
+    }
+  };
 
   const { data: courses, isLoading } = useQuery({
     queryKey: ["courses"],
@@ -284,8 +302,8 @@ const Courses = () => {
             {filterTypes.map(f => (
               <button
                 key={f.key}
-                onClick={() => setActiveFilter(f.key)}
-                className={`px-4 py-1.5 rounded-full border-2 text-xs font-extrabold transition-all ${
+                onClick={() => handleFilterChange(f.key)}
+                className={`px-4 py-1.5 rounded-full border-2 text-xs font-extrabold transition-all cursor-pointer ${
                   activeFilter === f.key
                     ? "bg-[var(--duo-blue)] text-white border-[var(--duo-blue-dark)] shadow-[0_2px_0_var(--duo-blue-dark)]"
                     : "bg-card border-[var(--duo-gray)] text-muted-foreground hover:border-[var(--duo-blue)]/50 hover:text-foreground"

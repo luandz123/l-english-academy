@@ -28,13 +28,13 @@ dist-ssr
 !.env.example
 .env*.local
 
-# Scraping data and temporary files
-scraping/*.json
-scraping/*.bak
-scraping/*.png
-scraping/*.html
-scraping/*.log
-scraping/.venv/
-scraping/__pycache__/
-scraping/.playwright_user_data/
+# Backups and temporary files
+*.tar.gz
+*.zip
+*.bak
+
+# Scripts and scrapers (if any created locally)
+scraping/
+.venv/
+
 
