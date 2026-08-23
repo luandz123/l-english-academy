@@ -224,6 +224,55 @@ export type Database = {
           },
         ]
       }
+      full_test_answer_details: {
+        Row: {
+          id: number
+          is_correct: boolean | null
+          part_number: number | null
+          question_id: number
+          result_id: number
+          selected_answer_id: number | null
+        }
+        Insert: {
+          id?: number
+          is_correct?: boolean | null
+          part_number?: number | null
+          question_id: number
+          result_id: number
+          selected_answer_id?: number | null
+        }
+        Update: {
+          id?: number
+          is_correct?: boolean | null
+          part_number?: number | null
+          question_id?: number
+          result_id?: number
+          selected_answer_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "full_test_answer_details_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "full_test_answer_details_result_id_fkey"
+            columns: ["result_id"]
+            isOneToOne: false
+            referencedRelation: "user_full_test_results"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "full_test_answer_details_selected_answer_id_fkey"
+            columns: ["selected_answer_id"]
+            isOneToOne: false
+            referencedRelation: "answers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       full_test_sections: {
         Row: {
           id: number
@@ -306,55 +355,6 @@ export type Database = {
             columns: ["course_id"]
             isOneToOne: false
             referencedRelation: "courses"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      full_test_answer_details: {
-        Row: {
-          id: number
-          is_correct: boolean | null
-          part_number: number | null
-          question_id: number
-          result_id: number
-          selected_answer_id: number | null
-        }
-        Insert: {
-          id?: number
-          is_correct?: boolean | null
-          part_number?: number | null
-          question_id: number
-          result_id: number
-          selected_answer_id?: number | null
-        }
-        Update: {
-          id?: number
-          is_correct?: boolean | null
-          part_number?: number | null
-          question_id?: number
-          result_id?: number
-          selected_answer_id?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "full_test_answer_details_result_id_fkey"
-            columns: ["result_id"]
-            isOneToOne: false
-            referencedRelation: "user_full_test_results"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "full_test_answer_details_question_id_fkey"
-            columns: ["question_id"]
-            isOneToOne: false
-            referencedRelation: "questions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "full_test_answer_details_selected_answer_id_fkey"
-            columns: ["selected_answer_id"]
-            isOneToOne: false
-            referencedRelation: "answers"
             referencedColumns: ["id"]
           },
         ]
