@@ -69,7 +69,9 @@ const FullTestList = () => {
           <h1 className="text-2xl font-bold text-foreground tracking-tight flex items-center gap-2">
             <FileText className="w-6 h-6 text-primary" /> Kho Đề Thi Full Test TOEIC
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">Luyện thi mô phỏng đề thi thật chuẩn format 200 câu có bấm giờ và tính điểm.</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Luyện thi chuẩn format TOEIC. Bạn có thể chọn thi thử toàn bộ 7 Parts (200 câu) hoặc chọn riêng từng Part để luyện tập.
+          </p>
         </div>
 
         <Accordion type="multiple" defaultValue={Object.keys(grouped).map((_, i) => `cat-${i}`)} className="space-y-4">
@@ -104,7 +106,7 @@ const FullTestList = () => {
                               {test.title}
                             </p>
                             <p className="text-xs text-muted-foreground mt-0.5">
-                              {test.total_questions || 200} câu hỏi • Thời gian: 120 phút
+                              {test.total_questions || 200} câu • Hỗ trợ chọn Part & Thi thử
                             </p>
                           </div>
                         </div>
@@ -124,17 +126,17 @@ const FullTestList = () => {
 
                           {released && !done && (
                             <Link to={`/courses/${courseId}/fulltest/${test.id}`} className="btn-3d btn-3d-primary py-1.5 px-4 text-xs inline-flex items-center gap-1">
-                              Làm bài <ArrowRight className="w-3 h-3" />
+                              Vào làm đề <ArrowRight className="w-3 h-3" />
                             </Link>
                           )}
 
                           {done && (
                             <div className="flex items-center gap-1.5">
                               <Link to={`/courses/${courseId}/fulltest/${test.id}/result`} className="btn-3d btn-3d-white py-1.5 px-3 text-xs">
-                                Xem lại
+                                Kết quả
                               </Link>
                               <Link to={`/courses/${courseId}/fulltest/${test.id}`} className="btn-3d btn-3d-primary py-1.5 px-3 text-xs inline-flex items-center gap-1">
-                                <RotateCcw className="w-3 h-3" /> Làm lại
+                                <RotateCcw className="w-3 h-3" /> Luyện tiếp
                               </Link>
                             </div>
                           )}

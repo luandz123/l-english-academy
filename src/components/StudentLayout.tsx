@@ -14,6 +14,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+import { useGamification } from "@/hooks/useGamification";
+import { Flame, Zap } from "lucide-react";
+
 const navItems = [
   { to: "/dashboard", label: "Tổng quan", icon: LayoutDashboard },
   { to: "/courses", label: "Khóa học", icon: BookOpen },
@@ -25,6 +28,7 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, profile, signOut, isAdmin } = useAuth();
+  const { streak, xp, levelInfo } = useGamification();
 
   const displayName = profile?.full_name || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Học viên";
   const initials = displayName.charAt(0).toUpperCase();
@@ -163,10 +167,23 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
             </div>
           </div>
           
-          <div className="flex items-center gap-3">
-            <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Học tập mỗi ngày</span>
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Streak Badge */}
+            <div 
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-xs font-black shadow-2xs cursor-default"
+              title="Ngọn lửa Chuỗi ngày học tập của bạn"
+            >
+              <Flame className="w-4 h-4 fill-amber-500 text-amber-500 animate-pulse" />
+              <span>{streak} Ngày</span>
+            </div>
+
+            {/* XP & Level Badge */}
+            <div 
+              className={cn("flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-black shadow-2xs", levelInfo.color)}
+              title={`${levelInfo.title} - Còn ${levelInfo.xpToNextLevel} XP để lên Cấp tiếp theo`}
+            >
+              <Zap className="w-3.5 h-3.5 fill-amber-400 text-amber-500 shrink-0" />
+              <span>Lv.{levelInfo.level} • {xp} XP</span>
             </div>
 
             {/* User Profile Dropdown */}

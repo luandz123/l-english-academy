@@ -1,5 +1,5 @@
 import StudentLayout from "@/components/StudentLayout";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useState, useEffect, useRef } from "react";
@@ -11,13 +11,16 @@ import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useSound } from "@/hooks/useSound";
+import { useGamification } from "@/hooks/useGamification";
+import { MysteryChestModal } from "@/components/MysteryChestModal";
 
 export default function VocabLessonPage() {
   const { courseId, lessonId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   
-  const filteredQuestionIds = (window.history.state?.usr as any)?.questionIds as number[] | undefined;
+  const filteredQuestionIds = (location.state?.questionIds || (window.history.state?.usr as any)?.questionIds) as number[] | undefined;
   
   const [round, setRound] = useState<1 | 2 | 3>(1);
   // Persist index for each round separately
@@ -28,16 +31,61 @@ export default function VocabLessonPage() {
   const [showResult, setShowResult] = useState(false);
   const [wrongChars, setWrongChars] = useState<{ char: string, correct: boolean }[] | null>(null);
   const [isFinished, setIsFinished] = useState(false);
+  const [showChestModal, setShowChestModal] = useState(false);
   const [quizId, setQuizId] = useState<number | null>(null);
   const { playSound } = useSound();
+  const { recordVocabProgress, addXp } = useGamification();
 
   const currentIdx = indices[round];
 
   const { data: words, isLoading } = useQuery({
-    queryKey: ["vocab-lesson-student", lessonId],
+    queryKey: ["vocab-lesson-student", lessonId, filteredQuestionIds],
     queryFn: async () => {
-      const { data: quiz } = await supabase.from("vocab_quizzes").select("id").eq("lesson_id", Number(lessonId)).maybeSingle();
-      if (!quiz) return [];
+      if (!lessonId) return [];
+
+      let { data: quiz } = await supabase
+        .from("vocab_quizzes")
+        .select("id")
+        .eq("lesson_id", Number(lessonId))
+        .maybeSingle();
+
+      if (!quiz) {
+        const { data: vqById } = await supabase
+          .from("vocab_quizzes")
+          .select("id")
+          .eq("id", Number(lessonId))
+          .maybeSingle();
+        quiz = vqById;
+      }
+
+      if (!quiz) {
+        const { data: lesson } = await supabase
+          .from("lessons")
+          .select("id")
+          .eq("quiz_id", Number(lessonId))
+          .maybeSingle();
+        if (lesson) {
+          const { data: vqByLesson } = await supabase
+            .from("vocab_quizzes")
+            .select("id")
+            .eq("lesson_id", lesson.id)
+            .maybeSingle();
+          quiz = vqByLesson;
+        }
+      }
+
+      if (!quiz) {
+        if (filteredQuestionIds && filteredQuestionIds.length > 0) {
+          const { data: vocabByQuestions } = await supabase
+            .from("vocab_questions")
+            .select("*")
+            .in("question_id", filteredQuestionIds)
+            .order("display_order");
+          return vocabByQuestions || [];
+        }
+        return [];
+      }
+
       let query = supabase.from("vocab_questions").select("*").eq("vocab_quiz_id", quiz.id);
       if (filteredQuestionIds && filteredQuestionIds.length > 0) {
         query = query.in("question_id", filteredQuestionIds);
@@ -98,6 +146,9 @@ export default function VocabLessonPage() {
       } else {
         playSound("complete");
         setIsFinished(true);
+        recordVocabProgress(words?.length || 5);
+        addXp((words?.length || 5) * 10, "Hoàn thành bài học từ vựng!");
+        setShowChestModal(true);
       }
     }
   };
@@ -478,6 +529,7 @@ export default function VocabLessonPage() {
         .backface-hidden { backface-visibility: hidden; }
         .rotate-y-180 { transform: rotateY(180deg); }
       `}} />
+      <MysteryChestModal isOpen={showChestModal} onClose={() => setShowChestModal(false)} />
     </StudentLayout>
   );
 }

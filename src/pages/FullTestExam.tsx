@@ -1,22 +1,37 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Loader2, ChevronLeft, Clock, AlertTriangle, CheckCircle, Volume2, Info, ShieldAlert, LayoutGrid, Bookmark, BookmarkCheck } from "lucide-react";
+import {
+  Loader2,
+  ChevronLeft,
+  Clock,
+  AlertTriangle,
+  Volume2,
+  ShieldAlert,
+  LayoutGrid,
+  Bookmark,
+  BookmarkCheck,
+  Headphones,
+  BookOpen,
+  Check,
+  Sparkles,
+  Settings2,
+  CheckCircle2
+} from "lucide-react";
 import { useSound } from "@/hooks/useSound";
-import StudentLayout from "@/components/StudentLayout";
 
-const partNames = [
-  "Part 1: Photo Description",
-  "Part 2: Question & Response",
-  "Part 3: Conversations",
-  "Part 4: Short Talks",
-  "Part 5: Incomplete Sentences",
-  "Part 6: Text Completion",
-  "Part 7: Reading Comprehension"
-];
+const partMeta: Record<number, { name: string; shortName: string; section: "listening" | "reading"; desc: string; defaultCount: number; defaultTime: number }> = {
+  1: { name: "Part 1: Photo Description", shortName: "Part 1", section: "listening", desc: "Mô tả hình ảnh", defaultCount: 6, defaultTime: 3 },
+  2: { name: "Part 2: Question & Response", shortName: "Part 2", section: "listening", desc: "Hỏi & Đáp", defaultCount: 25, defaultTime: 10 },
+  3: { name: "Part 3: Conversations", shortName: "Part 3", section: "listening", desc: "Đoạn hội thoại", defaultCount: 39, defaultTime: 16 },
+  4: { name: "Part 4: Short Talks", shortName: "Part 4", section: "listening", desc: "Bài nói ngắn", defaultCount: 30, defaultTime: 16 },
+  5: { name: "Part 5: Incomplete Sentences", shortName: "Part 5", section: "reading", desc: "Điền vào câu", defaultCount: 30, defaultTime: 15 },
+  6: { name: "Part 6: Text Completion", shortName: "Part 6", section: "reading", desc: "Điền đoạn văn", defaultCount: 16, defaultTime: 10 },
+  7: { name: "Part 7: Reading Comprehension", shortName: "Part 7", section: "reading", desc: "Đọc hiểu đoạn văn", defaultCount: 54, defaultTime: 50 },
+};
 
 const partShortNames = ["Part 1", "Part 2", "Part 3", "Part 4", "Part 5", "Part 6", "Part 7"];
 
@@ -24,7 +39,6 @@ const partShortNames = ["Part 1", "Part 2", "Part 3", "Part 4", "Part 5", "Part 
 const getToeicListeningScore = (correct: number): number => {
   if (correct <= 5) return 5;
   if (correct >= 96) return 495;
-  // Bảng quy đổi gần đúng
   const listeningScores: Record<number, number> = {
     6: 10, 7: 15, 8: 20, 9: 25, 10: 30, 11: 35, 12: 40, 13: 45, 14: 50, 15: 55,
     16: 60, 17: 65, 18: 70, 19: 75, 20: 80, 21: 85, 22: 90, 23: 95, 24: 100, 25: 110,
@@ -42,7 +56,6 @@ const getToeicListeningScore = (correct: number): number => {
 const getToeicReadingScore = (correct: number): number => {
   if (correct <= 5) return 5;
   if (correct >= 97) return 495;
-  // Bảng quy đổi gần đúng
   const readingScores: Record<number, number> = {
     6: 10, 7: 15, 8: 20, 9: 25, 10: 30, 11: 35, 12: 40, 13: 45, 14: 50, 15: 55,
     16: 60, 17: 65, 18: 70, 19: 75, 20: 80, 21: 85, 22: 90, 23: 95, 24: 100, 25: 110,
@@ -64,40 +77,30 @@ const FullTestExam = () => {
   const { user, isAdmin } = useAuth();
   const { playSound } = useSound();
 
-  // States
+  // Selection & Configuration States
   const [started, setStarted] = useState(false);
   const [testMode, setTestMode] = useState<"exam" | "practice">("exam");
+  const [selectedParts, setSelectedParts] = useState<number[]>([1, 2, 3, 4, 5, 6, 7]);
+  const [customTimeMinutes, setCustomTimeMinutes] = useState<number | null>(null);
+
+  // Exam runtime states
   const [volumeChecked, setVolumeChecked] = useState(false);
-  const [answers, setAnswers] = useState<Record<number, number>>({}); // key: globalIndex, value: answerId
-  const [flagged, setFlagged] = useState<Set<number>>(new Set()); // key: globalIndex
+  const [answers, setAnswers] = useState<Record<number, number>>({}); // key: sessionIdx, value: answerId
+  const [flagged, setFlagged] = useState<Set<number>>(new Set()); // key: sessionIdx
   const [paletteFilter, setPaletteFilter] = useState<"all" | "done" | "flagged" | "todo">("all");
   const [mobilePaletteOpen, setMobilePaletteOpen] = useState(false);
-  const [checkedAnswers, setCheckedAnswers] = useState<Record<number, boolean>>({}); // key: questionId, value: true/false (luyện tập)
-  const [currentPart, setCurrentPart] = useState(0); // 0 to 6
+  const [checkedAnswers, setCheckedAnswers] = useState<Record<number, boolean>>({}); // key: questionId, value: true/false (practice mode)
+  const [currentPart, setCurrentPart] = useState(0);
   const [timeLeft, setTimeLeft] = useState(120 * 60);
-  const [elapsedTime, setElapsedTime] = useState(0); // For practice mode
+  const [elapsedTime, setElapsedTime] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [pauseCount, setPauseCount] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
 
-  const toggleFlag = (globalIdx: number) => {
-    setFlagged(prev => {
-      const next = new Set(prev);
-      if (next.has(globalIdx)) {
-        next.delete(globalIdx);
-      } else {
-        next.add(globalIdx);
-      }
-      return next;
-    });
-  };
-
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const volumeAudioRef = useRef<HTMLAudioElement>(null);
-  // BUG FIX #2: useRef lock to prevent duplicate submits
   const submittingRef = useRef(false);
-  // BUG FIX #1: Keep latest answers in ref for timer callback
   const answersRef = useRef<Record<number, number>>({});
   useEffect(() => { answersRef.current = answers; }, [answers]);
 
@@ -110,19 +113,17 @@ const FullTestExam = () => {
     },
   });
 
-  // BUG FIX #3: Check enrollment to prevent unauthorized access
+  // Check enrollment
   const { data: enrollment, isLoading: loadingEnrollment } = useQuery({
     queryKey: ["fulltest-enrollment", courseId, user?.id, isAdmin],
     queryFn: async () => {
       if (isAdmin) return { enrolled: true };
-      // Check if course is free first
       const { data: course } = await supabase
         .from("courses")
         .select("is_free")
         .eq("id", Number(courseId))
         .maybeSingle();
       if (course?.is_free) return { enrolled: true };
-      // Check enrollment
       const { data } = await supabase
         .from("enrollments")
         .select("id")
@@ -134,11 +135,10 @@ const FullTestExam = () => {
     enabled: !!user && !!courseId,
   });
 
-  // Fetch Full Test Questions
+  // Fetch All Questions of this Full Test
   const { data: allQuestions = [], isLoading: loadingQuestions } = useQuery({
     queryKey: ["full-test-questions", testId],
     queryFn: async () => {
-      // 1. Get sections and quizzes
       const { data: sections, error: secErr } = await supabase
         .from("full_test_sections")
         .select("part_number, quiz_id")
@@ -149,7 +149,6 @@ const FullTestExam = () => {
       const quizIds = sections.map(s => s.quiz_id).filter(Boolean) as number[];
       if (quizIds.length === 0) return [];
 
-      // 2. Fetch questions and answers
       const { data: questions, error: qErr } = await supabase
         .from("questions")
         .select("*, answers(*)")
@@ -157,10 +156,9 @@ const FullTestExam = () => {
 
       if (qErr || !questions) return [];
 
-      // Sort and map questions
       const mapped = questions.map((q: any) => {
         const sec = sections.find(s => s.quiz_id === q.quiz_id);
-        const part = sec ? sec.part_number : 5; // default to 5 if not found
+        const part = sec ? sec.part_number : 5;
         return {
           ...q,
           part_number: part,
@@ -168,7 +166,7 @@ const FullTestExam = () => {
         };
       });
 
-      // Sort globally: by part_number, then by questions.display_order
+      // Sort globally: by part_number, then by display_order
       mapped.sort((a, b) => {
         if (a.part_number !== b.part_number) return a.part_number - b.part_number;
         return a.display_order - b.display_order;
@@ -179,7 +177,99 @@ const FullTestExam = () => {
     enabled: !!testId,
   });
 
-  // BUG FIX #1: Use ref-based flag for timer auto-submit to avoid stale closure
+  // Count available questions per Part in this test
+  const questionsPerPart = useMemo(() => {
+    const counts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0 };
+    allQuestions.forEach((q: any) => {
+      if (counts[q.part_number] !== undefined) {
+        counts[q.part_number]++;
+      }
+    });
+    return counts;
+  }, [allQuestions]);
+
+  // Filter questions according to user's selected parts
+  const examQuestions = useMemo(() => {
+    if (!allQuestions || allQuestions.length === 0) return [];
+    const filtered = allQuestions.filter((q: any) => selectedParts.includes(q.part_number));
+    return filtered.map((q: any, sessionIdx: number) => {
+      // Find global index in the full 200-question test
+      const originalGlobalIdx = allQuestions.findIndex((orig: any) => orig.id === q.id) + 1;
+      return {
+        ...q,
+        sessionIdx,
+        originalGlobalIdx: originalGlobalIdx > 0 ? originalGlobalIdx : sessionIdx + 1,
+      };
+    });
+  }, [allQuestions, selectedParts]);
+
+  // Calculate default recommended time in minutes for selected parts
+  const recommendedMinutes = useMemo(() => {
+    if (selectedParts.length === 7) return 120;
+    const isOnlyListening = selectedParts.every(p => p <= 4);
+    if (isOnlyListening && selectedParts.length === 4) return 45;
+    const isOnlyReading = selectedParts.every(p => p >= 5);
+    if (isOnlyReading && selectedParts.length === 3) return 75;
+
+    // Sum of part times based on questions ratio
+    let totalMinutes = 0;
+    selectedParts.forEach(p => {
+      const pInfo = partMeta[p];
+      if (pInfo) {
+        const count = questionsPerPart[p] || pInfo.defaultCount;
+        totalMinutes += Math.round(count * (pInfo.defaultTime / (pInfo.defaultCount || 1)));
+      }
+    });
+    return Math.max(5, totalMinutes || Math.round(examQuestions.length * 0.6));
+  }, [selectedParts, questionsPerPart, examQuestions.length]);
+
+  // Actual time limit to use when starting
+  const effectiveTimeMinutes = customTimeMinutes ?? recommendedMinutes;
+
+  // Toggle single part selection
+  const togglePart = (partNum: number) => {
+    setSelectedParts(prev => {
+      if (prev.includes(partNum)) {
+        if (prev.length === 1) return prev; // At least 1 part must be selected
+        return prev.filter(p => p !== partNum).sort((a, b) => a - b);
+      } else {
+        return [...prev, partNum].sort((a, b) => a - b);
+      }
+    });
+  };
+
+  // Quick preset selections
+  const selectAllParts = () => setSelectedParts([1, 2, 3, 4, 5, 6, 7]);
+  const selectListeningOnly = () => setSelectedParts([1, 2, 3, 4]);
+  const selectReadingOnly = () => setSelectedParts([5, 6, 7]);
+  const selectSinglePart = (partNum: number) => setSelectedParts([partNum]);
+
+  // Handle start test
+  const handleStartExam = () => {
+    if (selectedParts.length === 0) return;
+    const initialTimeSeconds = effectiveTimeMinutes * 60;
+    setTimeLeft(initialTimeSeconds);
+    setAnswers({});
+    setFlagged(new Set());
+    setCheckedAnswers({});
+    setElapsedTime(0);
+    setStarted(true);
+  };
+
+  // Flag toggle
+  const toggleFlag = (sessionIdx: number) => {
+    setFlagged(prev => {
+      const next = new Set(prev);
+      if (next.has(sessionIdx)) {
+        next.delete(sessionIdx);
+      } else {
+        next.add(sessionIdx);
+      }
+      return next;
+    });
+  };
+
+  // Auto-submit lock ref
   const autoSubmitTriggeredRef = useRef(false);
 
   // Timer Effect
@@ -189,7 +279,6 @@ const FullTestExam = () => {
       if (testMode === "exam") {
         setTimeLeft(prev => {
           if (prev <= 1) {
-            // Set flag; actual submit happens in separate effect
             autoSubmitTriggeredRef.current = true;
             return 0;
           }
@@ -198,11 +287,11 @@ const FullTestExam = () => {
       } else {
         setElapsedTime(prev => prev + 1);
       }
-    }, 1000);
+    });
     return () => clearInterval(interval);
   }, [started, testMode, isPaused]);
 
-  // BUG FIX #1: Separate effect to handle auto-submit with latest state
+  // Timer auto-submit handler
   useEffect(() => {
     if (autoSubmitTriggeredRef.current && !submittingRef.current) {
       autoSubmitTriggeredRef.current = false;
@@ -210,20 +299,20 @@ const FullTestExam = () => {
     }
   }, [timeLeft]);
 
-  // Grouping logic for rendering in the exam scroller
-  const groupedQuestions = (() => {
+  // Grouping logic for rendering questions in the exam scroller
+  const groupedQuestions = useMemo(() => {
     const groups: any[] = [];
     let currentGroup: any = null;
 
-    allQuestions.forEach((q: any, idx: number) => {
+    examQuestions.forEach((q: any) => {
       const isPart34 = q.part_number === 3 || q.part_number === 4;
       const isPart67 = q.part_number === 6 || q.part_number === 7;
 
       let passageText = q.passage_text || "";
-      let cleanQuestionText = q.question_text;
+      let cleanQuestionText = q.question_text || "";
 
-      if (q.question_text.includes("[PASSAGE]")) {
-        const parts = q.question_text.split("[ENDPASSAGE]");
+      if (cleanQuestionText.includes("[PASSAGE]")) {
+        const parts = cleanQuestionText.split("[ENDPASSAGE]");
         passageText = parts[0].replace("[PASSAGE]", "");
         cleanQuestionText = parts[1] || "";
       }
@@ -234,7 +323,6 @@ const FullTestExam = () => {
       } else if (currentGroup.part_number !== q.part_number) {
         shouldStartNew = true;
       } else if (isPart34) {
-        // Gom nhóm theo group_id hoặc audio_url chung
         if (q.group_id && q.group_id !== currentGroup.group_id) {
           shouldStartNew = true;
         } else if (!q.group_id && q.audio_url && q.audio_url !== currentGroup.audio_url) {
@@ -249,7 +337,6 @@ const FullTestExam = () => {
           shouldStartNew = true;
         } else if (currentGroup.questions.length >= 4 && q.part_number === 6) {
           shouldStartNew = true;
-        // BUG FIX #7: Limit Part 7 groups to max 5 questions when no group_id
         } else if (!q.group_id && q.part_number === 7 && currentGroup.questions.length >= 5) {
           shouldStartNew = true;
         }
@@ -270,42 +357,39 @@ const FullTestExam = () => {
         groups.push(currentGroup);
       }
 
-      currentGroup.questions.push({ ...q, globalIdx: idx, cleanText: cleanQuestionText });
+      currentGroup.questions.push({ ...q, cleanText: cleanQuestionText });
     });
 
     return groups;
-  })();
+  }, [examQuestions]);
 
   // Navigate to Part
   const goToPart = (partNum: number) => {
     setCurrentPart(partNum - 1);
-    // Find the first global index of this part
-    const firstQ = allQuestions.findIndex((q: any) => q.part_number === partNum);
+    const firstQ = examQuestions.findIndex((q: any) => q.part_number === partNum);
     if (firstQ !== -1) {
       document.getElementById(`question-${firstQ}`)?.scrollIntoView({ behavior: "smooth" });
     }
   };
 
-  const handleSelectAnswer = (globalIdx: number, answerId: number) => {
+  const handleSelectAnswer = (sessionIdx: number, answerId: number) => {
     playSound("click");
-    setAnswers(prev => ({ ...prev, [globalIdx]: answerId }));
+    setAnswers(prev => ({ ...prev, [sessionIdx]: answerId }));
   };
 
-  // Submit Exam — BUG FIX #2: use ref lock to prevent duplicate submits
+  // Submit Exam
   const submit = useCallback(async () => {
     if (submittingRef.current) return;
     submittingRef.current = true;
     setSubmitting(true);
     playSound("complete");
 
-    // BUG FIX #1: Use ref to get latest answers (for timer auto-submit)
     const currentAnswers = answersRef.current;
-
     let totalCorrect = 0;
     let listeningCorrect = 0;
     let readingCorrect = 0;
 
-    allQuestions.forEach((q: any, idx: number) => {
+    examQuestions.forEach((q: any, idx: number) => {
       const selectedId = currentAnswers[idx];
       const isCorrect = q.answers.find((a: any) => a.id === selectedId)?.is_correct;
       if (isCorrect) {
@@ -315,15 +399,25 @@ const FullTestExam = () => {
       }
     });
 
+    const isFullTest = selectedParts.length === 7;
     const listeningScore = getToeicListeningScore(listeningCorrect);
     const readingScore = getToeicReadingScore(readingCorrect);
-    const totalScore = listeningScore + readingScore;
-    const timeSpent = testMode === "exam" ? 120 * 60 - timeLeft : elapsedTime;
+    const totalScore = isFullTest ? listeningScore + readingScore : Math.round((totalCorrect / Math.max(1, examQuestions.length)) * 990);
+    const timeSpent = testMode === "exam" ? effectiveTimeMinutes * 60 - timeLeft : elapsedTime;
 
     let resultId = null;
     if (user) {
-      // 1. Insert results
-      const { data: resData, error: insertErr } = await supabase
+      const answersPayload = {
+        answers: currentAnswers,
+        _meta: {
+          selected_parts: selectedParts,
+          test_mode: testMode,
+          total_in_test: allQuestions.length,
+          time_allocated_minutes: effectiveTimeMinutes,
+        }
+      };
+
+      const { data: resData } = await supabase
         .from("user_full_test_results")
         .insert({
           user_id: user.id,
@@ -333,21 +427,19 @@ const FullTestExam = () => {
           reading_score: readingScore,
           total_score: totalScore,
           time_spent_seconds: timeSpent,
-          total_questions: allQuestions.length,
+          total_questions: examQuestions.length,
           listening_correct: listeningCorrect,
           reading_correct: readingCorrect,
           pause_count: pauseCount,
           test_mode: testMode,
-          answers_detail: currentAnswers as any,
+          answers_detail: answersPayload as any,
         })
         .select("id")
         .single();
 
       if (resData) {
         resultId = resData.id;
-
-        // 2. Insert answer details
-        const details = allQuestions.map((q: any, idx: number) => ({
+        const details = examQuestions.map((q: any, idx: number) => ({
           result_id: resultId,
           question_id: q.id,
           selected_answer_id: currentAnswers[idx] || null,
@@ -365,21 +457,21 @@ const FullTestExam = () => {
       state: {
         resultId,
         score: totalCorrect,
-        total: allQuestions.length,
+        total: examQuestions.length,
         listeningScore,
         readingScore,
         totalScore,
         time: timeSpent,
         answers: currentAnswers,
         testMode,
+        selectedParts,
       },
     });
-  }, [allQuestions, testMode, timeLeft, elapsedTime, user, testId, courseId, pauseCount, navigate, playSound]);
+  }, [examQuestions, selectedParts, testMode, effectiveTimeMinutes, timeLeft, elapsedTime, user, testId, courseId, pauseCount, allQuestions.length, navigate, playSound]);
 
   const answeredCount = Object.keys(answers).length;
-  const unansweredCount = allQuestions.length - answeredCount;
+  const unansweredCount = examQuestions.length - answeredCount;
 
-  // Format Time Helper
   const formatTime = (sec: number) => {
     const h = Math.floor(sec / 3600);
     const m = Math.floor((sec % 3600) / 60);
@@ -395,7 +487,7 @@ const FullTestExam = () => {
     );
   }
 
-  // BUG FIX #3: Block access if not enrolled
+  // Block access if not enrolled
   if (!enrollment) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -418,49 +510,46 @@ const FullTestExam = () => {
     );
   }
 
-  // 1. Pre-exam Intro page
+  // 1. Pre-exam Configuration & Part Selection Page
   if (!started) {
+    const isListeningSelected = selectedParts.some(p => p <= 4);
+    const isReadingSelected = selectedParts.some(p => p >= 5);
+    const totalSelectedQuestionsCount = examQuestions.length;
+
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4 relative">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 sm:p-6 relative font-sans">
         <button
           onClick={() => navigate(`/courses/${courseId}/fulltest`)}
-          className="absolute top-4 left-4 flex items-center gap-1.5 text-sm font-bold text-muted-foreground hover:text-foreground transition-colors bg-card border-2 border-[var(--duo-gray)] px-3 py-2 rounded-xl hover:border-[var(--duo-blue)] shadow-[0_2px_0_var(--duo-gray)]"
+          className="absolute top-4 left-4 flex items-center gap-1.5 text-xs sm:text-sm font-bold text-muted-foreground hover:text-foreground transition-colors bg-card border-2 border-[var(--duo-gray)] px-3.5 py-2 rounded-xl hover:border-[var(--duo-blue)] shadow-sm"
         >
-          <ChevronLeft className="w-4 h-4" /> Quay lại
+          <ChevronLeft className="w-4 h-4" /> Danh sách đề thi
         </button>
-        <div className="card-duo p-8 max-w-2xl text-center space-y-6 bg-card shadow-xl rounded-2xl border-2">
-          <div className="w-20 h-20 rounded-2xl bg-[var(--duo-blue)] shadow-[0_4px_0_var(--duo-blue-dark)] flex items-center justify-center mx-auto text-4xl">
-            🏆
-          </div>
-          <div>
-            <h1 className="text-2xl font-black text-foreground">{testInfo?.title ?? `Đề thi TOEIC`}</h1>
-            <p className="text-sm text-muted-foreground font-semibold mt-1">
-              {testInfo?.description || "Luyện thi với bộ đề thi thử chất lượng cao sát đề thi thật 2026."}
+
+        <div className="card-duo p-6 sm:p-8 max-w-3xl w-full bg-card shadow-2xl rounded-3xl border-2 border-[var(--duo-gray)] space-y-6 my-10">
+          {/* Header Banner */}
+          <div className="text-center space-y-2">
+            <div className="w-16 h-16 rounded-2xl bg-[var(--duo-blue)] shadow-[0_4px_0_var(--duo-blue-dark)] flex items-center justify-center mx-auto text-3xl">
+              🎯
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-black text-foreground">{testInfo?.title ?? `Đề thi TOEIC`}</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground font-semibold max-w-xl mx-auto">
+              {testInfo?.description || "Tùy chọn luyện thi toàn bộ đề 200 câu hoặc chọn riêng các phần (Parts) bạn muốn ôn luyện."}
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 text-left border-y-2 border-[var(--duo-gray)] py-5 my-4">
-            <div className="p-3 bg-slate-50 rounded-xl">
-              <span className="text-xs text-muted-foreground font-bold">Số lượng câu hỏi</span>
-              <p className="text-lg font-extrabold text-foreground">{allQuestions.length || 200} câu</p>
-            </div>
-            <div className="p-3 bg-slate-50 rounded-xl">
-              <span className="text-xs text-muted-foreground font-bold">Thời gian làm bài</span>
-              <p className="text-lg font-extrabold text-foreground">120 phút</p>
-            </div>
-          </div>
-
           {/* Mode Selection */}
-          <div className="space-y-3">
-            <p className="text-sm font-bold text-left text-foreground">Chọn chế độ làm bài:</p>
+          <div className="space-y-2">
+            <label className="text-xs font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <Sparkles className="w-4 h-4 text-primary" /> 1. Chọn chế độ làm bài
+            </label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <button
                 type="button"
                 onClick={() => setTestMode("exam")}
                 className={cn(
-                  "p-4 rounded-xl border-2 text-left transition-all",
+                  "p-4 rounded-2xl border-2 text-left transition-all relative overflow-hidden",
                   testMode === "exam"
-                    ? "border-[var(--duo-correct)] bg-[var(--duo-correct)]/5"
+                    ? "border-[var(--duo-correct)] bg-[var(--duo-correct)]/5 shadow-[0_3px_0_var(--duo-correct-dark)]/20"
                     : "border-[var(--duo-gray)] hover:border-[var(--duo-blue)] bg-card"
                 )}
               >
@@ -468,45 +557,254 @@ const FullTestExam = () => {
                   <span className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0", testMode === "exam" ? "border-[var(--duo-correct)] bg-[var(--duo-correct)] text-white" : "border-[var(--duo-gray-dark)]")}>
                     {testMode === "exam" && <span className="w-2.5 h-2.5 rounded-full bg-white block" />}
                   </span>
-                  <span className="font-extrabold text-foreground text-sm">Thi thử (Exam Mode)</span>
+                  <span className="font-black text-foreground text-sm">⏱ Thi thử (Exam Mode)</span>
                 </div>
-                <p className="text-xs text-muted-foreground mt-2 font-medium">Làm bài tính giờ 120 phút. Chỉ xem giải thích sau khi nộp bài.</p>
+                <p className="text-xs text-muted-foreground mt-2 font-medium">Bấm giờ làm bài. Xem điểm số và giải thích chi tiết sau khi nộp bài.</p>
               </button>
 
               <button
                 type="button"
                 onClick={() => setTestMode("practice")}
                 className={cn(
-                  "p-4 rounded-xl border-2 text-left transition-all",
+                  "p-4 rounded-2xl border-2 text-left transition-all relative overflow-hidden",
                   testMode === "practice"
-                    ? "border-[var(--duo-correct)] bg-[var(--duo-correct)]/5"
-                    : "border-[var(--duo-gray)] hover:border-[var(--duo-blue)] bg-white"
+                    ? "border-[var(--duo-correct)] bg-[var(--duo-correct)]/5 shadow-[0_3px_0_var(--duo-correct-dark)]/20"
+                    : "border-[var(--duo-gray)] hover:border-[var(--duo-blue)] bg-card"
                 )}
               >
                 <div className="flex items-center gap-2">
                   <span className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0", testMode === "practice" ? "border-[var(--duo-correct)] bg-[var(--duo-correct)] text-white" : "border-[var(--duo-gray-dark)]")}>
                     {testMode === "practice" && <span className="w-2.5 h-2.5 rounded-full bg-white block" />}
                   </span>
-                  <span className="font-extrabold text-foreground text-sm">Luyện tập (Practice Mode)</span>
+                  <span className="font-black text-foreground text-sm">📚 Luyện tập (Practice Mode)</span>
                 </div>
-                <p className="text-xs text-muted-foreground mt-2 font-medium">Không giới hạn thời gian. Có thể kiểm tra đáp án và xem giải thích chi tiết ngay.</p>
+                <p className="text-xs text-muted-foreground mt-2 font-medium">Không áp lực thời gian. Có thể bấm kiểm tra và xem ngay đáp án & lời giải từng câu.</p>
               </button>
             </div>
           </div>
 
-          <button
-            onClick={() => setStarted(true)}
-            className="btn-3d btn-3d-primary w-full py-4 text-lg font-black tracking-wide"
-          >
-            🚀 BẮT ĐẦU NGAY
-          </button>
+          {/* Part Selection Section */}
+          <div className="space-y-3 pt-1 border-t-2 border-[var(--duo-gray)]">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <label className="text-xs font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <Settings2 className="w-4 h-4 text-primary" /> 2. Chọn phần thi (Parts) muốn làm
+              </label>
+
+              {/* Quick Preset Buttons */}
+              <div className="flex flex-wrap gap-1.5">
+                <button
+                  type="button"
+                  onClick={selectAllParts}
+                  className={cn(
+                    "text-xs font-bold px-2.5 py-1 rounded-lg border transition-all",
+                    selectedParts.length === 7
+                      ? "bg-[var(--duo-blue)] text-white border-[var(--duo-blue-dark)] shadow-sm"
+                      : "bg-white text-muted-foreground border-[var(--duo-gray)] hover:border-[var(--duo-blue)]"
+                  )}
+                >
+                  🚀 Toàn bộ đề (7 Parts)
+                </button>
+                <button
+                  type="button"
+                  onClick={selectListeningOnly}
+                  className={cn(
+                    "text-xs font-bold px-2.5 py-1 rounded-lg border transition-all",
+                    selectedParts.length === 4 && isListeningSelected && !isReadingSelected
+                      ? "bg-[var(--duo-blue)] text-white border-[var(--duo-blue-dark)] shadow-sm"
+                      : "bg-white text-muted-foreground border-[var(--duo-gray)] hover:border-[var(--duo-blue)]"
+                  )}
+                >
+                  🎧 Chỉ Listening
+                </button>
+                <button
+                  type="button"
+                  onClick={selectReadingOnly}
+                  className={cn(
+                    "text-xs font-bold px-2.5 py-1 rounded-lg border transition-all",
+                    selectedParts.length === 3 && isReadingSelected && !isListeningSelected
+                      ? "bg-[var(--duo-blue)] text-white border-[var(--duo-blue-dark)] shadow-sm"
+                      : "bg-white text-muted-foreground border-[var(--duo-gray)] hover:border-[var(--duo-blue)]"
+                  )}
+                >
+                  📖 Chỉ Reading
+                </button>
+              </div>
+            </div>
+
+            {/* Grid of Parts */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Listening Column */}
+              <div className="space-y-2 bg-slate-50/80 p-3.5 rounded-2xl border-2 border-[var(--duo-gray)]">
+                <div className="flex items-center justify-between pb-1">
+                  <span className="text-xs font-black text-[var(--duo-blue-dark)] uppercase tracking-wider flex items-center gap-1.5">
+                    <Headphones className="w-3.5 h-3.5" /> Listening (Part 1 - 4)
+                  </span>
+                  <span className="text-[11px] font-bold text-muted-foreground">
+                    {[1, 2, 3, 4].reduce((sum, p) => sum + (questionsPerPart[p] || 0), 0)} câu
+                  </span>
+                </div>
+                <div className="space-y-1.5">
+                  {[1, 2, 3, 4].map(part => {
+                    const isSelected = selectedParts.includes(part);
+                    const count = questionsPerPart[part] || partMeta[part].defaultCount;
+                    return (
+                      <div
+                        key={part}
+                        onClick={() => togglePart(part)}
+                        className={cn(
+                          "p-2.5 rounded-xl border-2 flex items-center justify-between cursor-pointer transition-all select-none",
+                          isSelected
+                            ? "border-[var(--duo-blue)] bg-white shadow-sm ring-1 ring-[var(--duo-blue)]/20"
+                            : "border-[var(--duo-gray)] bg-white/50 opacity-60 hover:opacity-100 hover:border-slate-400"
+                        )}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className={cn(
+                            "w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors",
+                            isSelected ? "bg-[var(--duo-blue)] border-[var(--duo-blue)] text-white" : "border-[var(--duo-gray-dark)] bg-white"
+                          )}>
+                            {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-black text-foreground truncate">
+                              {partMeta[part].shortName}: {partMeta[part].desc}
+                            </p>
+                          </div>
+                        </div>
+                        <span className="badge-duo badge-blue text-[10px] font-bold shrink-0 ml-2">
+                          {count} câu
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Reading Column */}
+              <div className="space-y-2 bg-slate-50/80 p-3.5 rounded-2xl border-2 border-[var(--duo-gray)]">
+                <div className="flex items-center justify-between pb-1">
+                  <span className="text-xs font-black text-[var(--duo-correct-dark)] uppercase tracking-wider flex items-center gap-1.5">
+                    <BookOpen className="w-3.5 h-3.5" /> Reading (Part 5 - 7)
+                  </span>
+                  <span className="text-[11px] font-bold text-muted-foreground">
+                    {[5, 6, 7].reduce((sum, p) => sum + (questionsPerPart[p] || 0), 0)} câu
+                  </span>
+                </div>
+                <div className="space-y-1.5">
+                  {[5, 6, 7].map(part => {
+                    const isSelected = selectedParts.includes(part);
+                    const count = questionsPerPart[part] || partMeta[part].defaultCount;
+                    return (
+                      <div
+                        key={part}
+                        onClick={() => togglePart(part)}
+                        className={cn(
+                          "p-2.5 rounded-xl border-2 flex items-center justify-between cursor-pointer transition-all select-none",
+                          isSelected
+                            ? "border-[var(--duo-correct)] bg-white shadow-sm ring-1 ring-[var(--duo-correct)]/20"
+                            : "border-[var(--duo-gray)] bg-white/50 opacity-60 hover:opacity-100 hover:border-slate-400"
+                        )}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className={cn(
+                            "w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors",
+                            isSelected ? "bg-[var(--duo-correct)] border-[var(--duo-correct)] text-white" : "border-[var(--duo-gray-dark)] bg-white"
+                          )}>
+                            {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-black text-foreground truncate">
+                              {partMeta[part].shortName}: {partMeta[part].desc}
+                            </p>
+                          </div>
+                        </div>
+                        <span className="badge-duo badge-green text-[10px] font-bold shrink-0 ml-2">
+                          {count} câu
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Time Limit Setting (Exam Mode Only) */}
+          {testMode === "exam" && (
+            <div className="space-y-2 pt-1 border-t-2 border-[var(--duo-gray)]">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <Clock className="w-4 h-4 text-primary" /> 3. Thời gian làm bài (Phút)
+                </label>
+                <span className="text-xs font-extrabold text-[var(--duo-blue-dark)]">
+                  Thời gian chọn: {effectiveTimeMinutes} phút
+                </span>
+              </div>
+
+              <div className="flex flex-wrap gap-1.5 items-center">
+                <button
+                  type="button"
+                  onClick={() => setCustomTimeMinutes(null)}
+                  className={cn(
+                    "text-xs font-bold px-3 py-1.5 rounded-xl border transition-all",
+                    customTimeMinutes === null
+                      ? "bg-[var(--duo-blue)] text-white border-[var(--duo-blue-dark)] shadow-sm"
+                      : "bg-white text-muted-foreground border-[var(--duo-gray)] hover:border-[var(--duo-blue)]"
+                  )}
+                >
+                  ⚡ Đề xuất ({recommendedMinutes} phút)
+                </button>
+
+                {[15, 30, 45, 60, 75, 90, 120].map(mins => (
+                  <button
+                    key={mins}
+                    type="button"
+                    onClick={() => setCustomTimeMinutes(mins)}
+                    className={cn(
+                      "text-xs font-bold px-3 py-1.5 rounded-xl border transition-all",
+                      customTimeMinutes === mins
+                        ? "bg-[var(--duo-blue)] text-white border-[var(--duo-blue-dark)] shadow-sm"
+                        : "bg-white text-muted-foreground border-[var(--duo-gray)] hover:border-[var(--duo-blue)]"
+                    )}
+                  >
+                    {mins}p
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Summary Box & Start Action */}
+          <div className="bg-slate-100 p-4 rounded-2xl border-2 border-[var(--duo-gray)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-extrabold text-foreground text-sm sm:text-base">
+                  Tổng {totalSelectedQuestionsCount} câu hỏi
+                </span>
+                <span className="badge-duo badge-blue text-xs font-black">
+                  {selectedParts.length === 7 ? "Toàn bộ 7 Parts" : `Part ${selectedParts.join(", ")}`}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground font-semibold mt-0.5">
+                {testMode === "exam" ? `Chế độ Thi thử • Giới hạn ${effectiveTimeMinutes} phút` : `Chế độ Luyện tập • Không giới hạn giờ`}
+              </p>
+            </div>
+
+            <button
+              disabled={selectedParts.length === 0 || totalSelectedQuestionsCount === 0}
+              onClick={handleStartExam}
+              className="btn-3d btn-3d-primary py-3.5 px-6 text-sm sm:text-base font-black tracking-wide shrink-0 disabled:opacity-50"
+            >
+              🚀 BẮT ĐẦU LÀM BÀI ({totalSelectedQuestionsCount} CÂU)
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
-  // 2. Sound test page (if Listening parts and exam mode / volume test not done)
-  if (!volumeChecked && testMode === "exam" && allQuestions.some((q: any) => q.part_number <= 4)) {
+  // 2. Sound test page (if Listening parts are included and exam mode / volume test not done)
+  if (!volumeChecked && testMode === "exam" && examQuestions.some((q: any) => q.part_number <= 4)) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="card-duo p-8 max-w-lg text-center space-y-6 bg-card rounded-2xl border-2">
@@ -554,16 +852,21 @@ const FullTestExam = () => {
           </button>
           <div>
             <h1 className="font-extrabold text-sm lg:text-base hidden sm:block truncate max-w-xs">{testInfo?.title}</h1>
-            <span className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">
-              Chế độ: {testMode === "exam" ? "Thi thử ⏱" : "Luyện tập 📚"}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">
+                Chế độ: {testMode === "exam" ? "Thi thử ⏱" : "Luyện tập 📚"}
+              </span>
+              <span className="badge-duo badge-blue text-[9px] py-0 px-1.5 font-bold">
+                {selectedParts.length === 7 ? "Full 7 Parts" : `Part ${selectedParts.join(", ")}`}
+              </span>
+            </div>
           </div>
         </div>
 
-        {/* Quick Part Tabs */}
+        {/* Quick Part Tabs for selected parts */}
         <div className="hidden xl:flex items-center gap-1">
-          {[1, 2, 3, 4, 5, 6, 7].map(part => {
-            const hasQuestions = allQuestions.some((q: any) => q.part_number === part);
+          {selectedParts.map(part => {
+            const hasQuestions = examQuestions.some((q: any) => q.part_number === part);
             if (!hasQuestions) return null;
             return (
               <button
@@ -585,7 +888,7 @@ const FullTestExam = () => {
         {/* Timer, Answer count and submit actions */}
         <div className="flex items-center gap-3">
           <div className="text-xs font-bold text-muted-foreground hidden md:block">
-            {answeredCount}/{allQuestions.length} đã trả lời
+            {answeredCount}/{examQuestions.length} đã trả lời
           </div>
 
           {testMode === "exam" ? (
@@ -645,7 +948,7 @@ const FullTestExam = () => {
         <aside className="hidden lg:flex w-80 flex-col border-r-2 border-[var(--duo-gray)] bg-card shrink-0 select-none h-full">
           <div className="p-4 border-b-2 border-[var(--duo-gray)] space-y-3">
             <h3 className="font-extrabold text-sm flex items-center gap-2">
-              <LayoutGrid className="w-4 h-4 text-[var(--duo-correct)]" /> Bảng câu hỏi ({answeredCount}/{allQuestions.length})
+              <LayoutGrid className="w-4 h-4 text-[var(--duo-correct)]" /> Bảng câu hỏi ({answeredCount}/{examQuestions.length})
             </h3>
             
             {/* Filter chips */}
@@ -673,16 +976,15 @@ const FullTestExam = () => {
           </div>
 
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {[1, 2, 3, 4, 5, 6, 7].map(part => {
-              const partQList = allQuestions.filter((q: any) => q.part_number === part);
+            {selectedParts.map(part => {
+              const partQList = examQuestions.filter((q: any) => q.part_number === part);
               if (partQList.length === 0) return null;
 
-              // Check if any question in this part matches filter
-              const filteredPartQs = allQuestions.filter((q: any, gIdx: number) => {
+              const filteredPartQs = examQuestions.filter((q: any) => {
                 if (q.part_number !== part) return false;
-                if (paletteFilter === "done") return answers[gIdx] !== undefined;
-                if (paletteFilter === "flagged") return flagged.has(gIdx);
-                if (paletteFilter === "todo") return answers[gIdx] === undefined;
+                if (paletteFilter === "done") return answers[q.sessionIdx] !== undefined;
+                if (paletteFilter === "flagged") return flagged.has(q.sessionIdx);
+                if (paletteFilter === "todo") return answers[q.sessionIdx] === undefined;
                 return true;
               });
 
@@ -695,21 +997,21 @@ const FullTestExam = () => {
                     <span className="text-[10px] lowercase font-bold">({partQList.length} câu)</span>
                   </p>
                   <div className="grid grid-cols-5 gap-1.5">
-                    {allQuestions.map((q: any, globalIdx: number) => {
+                    {examQuestions.map((q: any) => {
                       if (q.part_number !== part) return null;
-                      if (paletteFilter === "done" && answers[globalIdx] === undefined) return null;
-                      if (paletteFilter === "flagged" && !flagged.has(globalIdx)) return null;
-                      if (paletteFilter === "todo" && answers[globalIdx] !== undefined) return null;
+                      if (paletteFilter === "done" && answers[q.sessionIdx] === undefined) return null;
+                      if (paletteFilter === "flagged" && !flagged.has(q.sessionIdx)) return null;
+                      if (paletteFilter === "todo" && answers[q.sessionIdx] !== undefined) return null;
 
-                      const hasAns = answers[globalIdx] !== undefined;
-                      const isFlagged = flagged.has(globalIdx);
+                      const hasAns = answers[q.sessionIdx] !== undefined;
+                      const isFlagged = flagged.has(q.sessionIdx);
 
                       return (
                         <button
-                          key={globalIdx}
+                          key={q.sessionIdx}
                           onClick={() => {
                             setCurrentPart(part - 1);
-                            document.getElementById(`question-${globalIdx}`)?.scrollIntoView({ behavior: "smooth" });
+                            document.getElementById(`question-${q.sessionIdx}`)?.scrollIntoView({ behavior: "smooth" });
                           }}
                           className={cn(
                             "w-10 h-10 text-xs font-bold rounded-xl border-2 transition-all flex items-center justify-center hover:-translate-y-0.5 relative cursor-pointer",
@@ -719,7 +1021,7 @@ const FullTestExam = () => {
                               : "bg-white text-muted-foreground border-[var(--duo-gray)] hover:border-[var(--duo-blue)]"
                           )}
                         >
-                          {globalIdx + 1}
+                          {q.sessionIdx + 1}
                           {isFlagged && (
                             <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-[var(--duo-orange)] border border-white" />
                           )}
@@ -744,7 +1046,6 @@ const FullTestExam = () => {
                 {/* Group Headers & Passages / Shared Audio */}
                 {(group.passage || group.audio_url || group.image_url) && (
                   <div className="card-duo p-5 sm:p-7 bg-slate-50 border-2 border-[var(--duo-gray)] rounded-2xl space-y-4">
-                    {/* Part title inside card */}
                     <span className="badge-duo badge-blue">{partShortNames[group.part_number - 1]}</span>
 
                     {group.image_url && (
@@ -784,9 +1085,9 @@ const FullTestExam = () => {
                 {/* Sub Questions */}
                 {group.questions.map((q: any) => {
                   const isChecked = checkedAnswers[q.id];
-                  const selectedId = answers[q.globalIdx];
+                  const selectedId = answers[q.sessionIdx];
                   const hasSelected = selectedId !== undefined;
-                  const isFlagged = flagged.has(q.globalIdx);
+                  const isFlagged = flagged.has(q.sessionIdx);
 
                   const isPart1 = q.part_number === 1;
                   const isPart2 = q.part_number === 2;
@@ -794,14 +1095,19 @@ const FullTestExam = () => {
                   return (
                     <div
                       key={q.id}
-                      id={`question-${q.globalIdx}`}
+                      id={`question-${q.sessionIdx}`}
                       className="card-duo p-6 bg-white border-2 border-[var(--duo-gray)] rounded-2xl space-y-4 relative scroll-mt-6"
                     >
                       <div className="flex justify-between items-center border-b-2 border-[var(--duo-gray)] pb-3">
                         <div className="flex items-center gap-2">
                           <span className="badge-duo badge-orange font-black">
-                            Câu {q.globalIdx + 1}
+                            Câu {q.sessionIdx + 1}
                           </span>
+                          {selectedParts.length < 7 && q.originalGlobalIdx && (
+                            <span className="text-[10px] text-muted-foreground font-bold">
+                              (Đề gốc: #{q.originalGlobalIdx})
+                            </span>
+                          )}
                           <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest bg-muted px-2 py-0.5 rounded-full">
                             {partShortNames[q.part_number - 1]}
                           </span>
@@ -809,7 +1115,7 @@ const FullTestExam = () => {
 
                         {/* Bookmark Button */}
                         <button
-                          onClick={() => toggleFlag(q.globalIdx)}
+                          onClick={() => toggleFlag(q.sessionIdx)}
                           className={cn(
                             "flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full border-2 transition-all cursor-pointer",
                             isFlagged
@@ -839,7 +1145,7 @@ const FullTestExam = () => {
                         />
                       )}
 
-                      {/* Clean Text (blank spaces format) */}
+                      {/* Clean Text */}
                       {q.cleanText && !isPart1 && !isPart2 && (
                         <p className="text-base font-extrabold text-foreground leading-relaxed">
                           {q.cleanText}
@@ -880,7 +1186,7 @@ const FullTestExam = () => {
                             <button
                               key={opt.id}
                               disabled={testMode === "practice" && isChecked}
-                              onClick={() => handleSelectAnswer(q.globalIdx, opt.id)}
+                              onClick={() => handleSelectAnswer(q.sessionIdx, opt.id)}
                               className={cn("w-full text-left p-4 rounded-xl border-2 text-sm transition-all flex items-center group disabled:opacity-90 active:scale-[0.99]", btnClass)}
                             >
                               <div className={cn("w-7 h-7 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors mr-3 font-extrabold text-sm", indicatorClass)}>
@@ -914,13 +1220,11 @@ const FullTestExam = () => {
                             </button>
                           ) : (
                             <div className="space-y-3">
-                              {/* Show translation / transcript / explanation */}
                               {q.translation && (
                                 <div className="p-3 bg-slate-50 border-2 rounded-xl text-xs font-medium text-slate-700">
                                   🇻🇳 <b>Dịch nghĩa:</b> {q.translation}
                                 </div>
                               )}
-                              {/* BUG FIX #5: Check both question-level and answer-level explanation */}
                               {(q.explanation || q.answers.find((a: any) => a.is_correct)?.explanation) && (
                                 <div className="p-3 bg-emerald-50 border-2 border-emerald-100 rounded-xl text-xs font-medium text-emerald-800">
                                   💡 <b>Giải thích:</b> {q.explanation || q.answers.find((a: any) => a.is_correct)?.explanation}
@@ -951,7 +1255,7 @@ const FullTestExam = () => {
           className="btn-3d btn-3d-white w-full py-2.5 text-xs font-extrabold flex items-center justify-center gap-2"
         >
           <LayoutGrid className="w-4 h-4" />
-          Danh sách câu hỏi ({answeredCount}/{allQuestions.length})
+          Danh sách câu hỏi ({answeredCount}/{examQuestions.length})
           {flagged.size > 0 && <span className="text-[var(--duo-orange)] font-black">🚩 {flagged.size}</span>}
         </button>
       </footer>
@@ -967,7 +1271,7 @@ const FullTestExam = () => {
 
             <div className="flex gap-1.5 overflow-x-auto pb-1">
               {[
-                { key: "all", label: `Tất cả (${allQuestions.length})` },
+                { key: "all", label: `Tất cả (${examQuestions.length})` },
                 { key: "done", label: `Đã làm (${answeredCount})` },
                 { key: "flagged", label: `🚩 (${flagged.size})` },
                 { key: "todo", label: `Chưa làm (${unansweredCount})` },
@@ -988,31 +1292,31 @@ const FullTestExam = () => {
             </div>
 
             <div className="space-y-4 max-h-[40vh] overflow-y-auto p-1">
-              {[1, 2, 3, 4, 5, 6, 7].map(part => {
-                const partQList = allQuestions.filter((q: any) => q.part_number === part);
+              {selectedParts.map(part => {
+                const partQList = examQuestions.filter((q: any) => q.part_number === part);
                 if (partQList.length === 0) return null;
 
                 return (
                   <div key={part} className="space-y-2">
                     <p className="text-xs font-black text-muted-foreground uppercase">{partShortNames[part - 1]}</p>
                     <div className="flex flex-wrap gap-2">
-                      {allQuestions.map((q: any, globalIdx: number) => {
+                      {examQuestions.map((q: any) => {
                         if (q.part_number !== part) return null;
-                        if (paletteFilter === "done" && answers[globalIdx] === undefined) return null;
-                        if (paletteFilter === "flagged" && !flagged.has(globalIdx)) return null;
-                        if (paletteFilter === "todo" && answers[globalIdx] !== undefined) return null;
+                        if (paletteFilter === "done" && answers[q.sessionIdx] === undefined) return null;
+                        if (paletteFilter === "flagged" && !flagged.has(q.sessionIdx)) return null;
+                        if (paletteFilter === "todo" && answers[q.sessionIdx] !== undefined) return null;
 
-                        const hasAns = answers[globalIdx] !== undefined;
-                        const isFlagged = flagged.has(globalIdx);
+                        const hasAns = answers[q.sessionIdx] !== undefined;
+                        const isFlagged = flagged.has(q.sessionIdx);
 
                         return (
                           <button
-                            key={globalIdx}
+                            key={q.sessionIdx}
                             onClick={() => {
                               setCurrentPart(part - 1);
                               setMobilePaletteOpen(false);
                               setTimeout(() => {
-                                document.getElementById(`question-${globalIdx}`)?.scrollIntoView({ behavior: "smooth" });
+                                document.getElementById(`question-${q.sessionIdx}`)?.scrollIntoView({ behavior: "smooth" });
                               }, 100);
                             }}
                             className={cn(
@@ -1023,7 +1327,7 @@ const FullTestExam = () => {
                                 : "bg-white text-muted-foreground border-[var(--duo-gray)] hover:border-[var(--duo-blue)]"
                             )}
                           >
-                            {globalIdx + 1}
+                            {q.sessionIdx + 1}
                             {isFlagged && (
                               <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-[var(--duo-orange)] border border-white" />
                             )}
@@ -1048,8 +1352,8 @@ const FullTestExam = () => {
             
             <div className="bg-slate-50 p-4 rounded-xl text-sm font-bold text-slate-600 space-y-2 border-2 border-[var(--duo-gray)]">
               <div className="flex justify-between items-center">
-                <span>Tổng số câu hỏi:</span>
-                <span className="font-extrabold text-foreground">{allQuestions.length} câu</span>
+                <span>Số câu trong phần đã chọn:</span>
+                <span className="font-extrabold text-foreground">{examQuestions.length} câu</span>
               </div>
               <div className="flex justify-between items-center">
                 <span>Đã trả lời:</span>
@@ -1088,7 +1392,6 @@ const FullTestExam = () => {
         </div>
       )}
     </div>
-
   );
 };
 

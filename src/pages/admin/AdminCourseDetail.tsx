@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import ModuleManager from "@/components/admin/ModuleManager";
+import { CourseFullTestManager } from "@/components/admin/CourseFullTestManager";
 import { Upload } from "lucide-react";
 
 const AdminCourseDetail = () => {
@@ -20,6 +21,18 @@ const AdminCourseDetail = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const id = Number(courseId);
+
+  const { data: fullTests = [] } = useQuery({
+    queryKey: ["admin-course-fulltests", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("full_tests")
+        .select("id, title")
+        .eq("course_id", id);
+      if (error) throw error;
+      return data || [];
+    },
+  });
 
   const { data: course, isLoading } = useQuery({
     queryKey: ["admin-course", id],
@@ -210,13 +223,29 @@ const AdminCourseDetail = () => {
           </div>
         </div>
 
-        <Tabs defaultValue="content">
-          <TabsList>
-            <TabsTrigger value="content">📚 Nội dung ({modules.length} parts)</TabsTrigger>
-            <TabsTrigger value="info">⚙️ Thông tin</TabsTrigger>
-            <TabsTrigger value="materials">📎 Tài liệu ({materials.length})</TabsTrigger>
-            <TabsTrigger value="students">👥 Học viên ({enrolledStudents.length})</TabsTrigger>
+        <Tabs defaultValue={course.course_type === "fulltest" ? "fulltests" : "content"}>
+          <TabsList className="flex flex-wrap h-auto p-1 gap-1">
+            <TabsTrigger value="fulltests" className="py-2 px-3">
+              📋 Đề thi Full Test ({fullTests.length})
+            </TabsTrigger>
+            <TabsTrigger value="content" className="py-2 px-3">
+              📚 Nội dung ({modules.length} parts)
+            </TabsTrigger>
+            <TabsTrigger value="info" className="py-2 px-3">
+              ⚙️ Thông tin
+            </TabsTrigger>
+            <TabsTrigger value="materials" className="py-2 px-3">
+              📎 Tài liệu ({materials.length})
+            </TabsTrigger>
+            <TabsTrigger value="students" className="py-2 px-3">
+              👥 Học viên ({enrolledStudents.length})
+            </TabsTrigger>
           </TabsList>
+
+          {/* Full Test Tab */}
+          <TabsContent value="fulltests" className="mt-4">
+            <CourseFullTestManager courseId={id} courseTitle={course.title} />
+          </TabsContent>
 
           {/* Content Tab - Main feature */}
           <TabsContent value="content" className="mt-4">

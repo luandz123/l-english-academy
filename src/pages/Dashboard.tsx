@@ -8,6 +8,9 @@ import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMemo } from "react";
 import OnboardingModal, { useOnboarding } from "@/components/OnboardingModal";
+import { DailyQuestsWidget } from "@/components/DailyQuestsWidget";
+import { LeaderboardWidget } from "@/components/LeaderboardWidget";
+import { AchievementsWidget } from "@/components/AchievementsWidget";
 
 const Dashboard = () => {
   const { user, profile } = useAuth();
@@ -224,6 +227,15 @@ const Dashboard = () => {
               <p className="text-white/80 text-[11px] font-medium mt-1">Chuỗi học tập</p>
             </div>
           </div>
+        </div>
+
+        {/* Daily Quests Widget */}
+        <DailyQuestsWidget />
+
+        {/* Leaderboard & Achievements Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <LeaderboardWidget />
+          <AchievementsWidget />
         </div>
 
         {/* Continue Learning Widget */}

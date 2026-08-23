@@ -1,25 +1,24 @@
 import StudentLayout from "@/components/StudentLayout";
 import { useParams, useLocation, Link } from "react-router-dom";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
-import { CheckCircle, XCircle, LayoutGrid, Clock, Award, Eye, FileText, ChevronLeft, Loader2 } from "lucide-react";
+import { CheckCircle, LayoutGrid, Clock, Award, Eye, ChevronLeft, Loader2, Headphones, BookOpen } from "lucide-react";
 
-// BUG FIX #11: Default part totals for TOEIC standard, used as fallback only
 const defaultPartTotals: Record<number, number> = {
   1: 6, 2: 25, 3: 39, 4: 30, 5: 30, 6: 16, 7: 54
 };
 
 const partBreakdownMeta = [
-  { part: 1, name: "Part 1: Photo Description" },
-  { part: 2, name: "Part 2: Question & Response" },
-  { part: 3, name: "Part 3: Conversations" },
-  { part: 4, name: "Part 4: Short Talks" },
-  { part: 5, name: "Part 5: Incomplete Sentences" },
-  { part: 6, name: "Part 6: Text Completion" },
-  { part: 7, name: "Part 7: Reading Comprehension" },
+  { part: 1, name: "Part 1: Photo Description", section: "listening" },
+  { part: 2, name: "Part 2: Question & Response", section: "listening" },
+  { part: 3, name: "Part 3: Conversations", section: "listening" },
+  { part: 4, name: "Part 4: Short Talks", section: "listening" },
+  { part: 5, name: "Part 5: Incomplete Sentences", section: "reading" },
+  { part: 6, name: "Part 6: Text Completion", section: "reading" },
+  { part: 7, name: "Part 7: Reading Comprehension", section: "reading" },
 ];
 
 const partShortNames = ["Part 1", "Part 2", "Part 3", "Part 4", "Part 5", "Part 6", "Part 7"];
@@ -32,7 +31,7 @@ const FullTestResult = () => {
 
   const [showReview, setShowReview] = useState(false);
   const [onlyShowIncorrect, setOnlyShowIncorrect] = useState(false);
-  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [filterOnlyAttempted, setFilterOnlyAttempted] = useState(true);
 
   // 1. Get resultId from state or query latest result from DB
   const stateResultId = state?.resultId;
@@ -76,7 +75,7 @@ const FullTestResult = () => {
     enabled: !!resultId,
   });
 
-  // 3. Fetch questions & answers of this test
+  // 3. Fetch all questions & answers of this test
   const { data: questions = [], isLoading: loadingQuestions } = useQuery({
     queryKey: ["fulltest-result-questions", testId],
     queryFn: async () => {
@@ -117,7 +116,29 @@ const FullTestResult = () => {
     enabled: !!testId,
   });
 
-  // Map user answers for quick access: questionId -> selected_answer_id
+  // Detect which parts were attempted in this test session
+  const attemptedParts = useMemo(() => {
+    if (state?.selectedParts && Array.isArray(state.selectedParts) && state.selectedParts.length > 0) {
+      return state.selectedParts;
+    }
+    const metaParts = (latestResult?.answers_detail as any)?._meta?.selected_parts;
+    if (Array.isArray(metaParts) && metaParts.length > 0) {
+      return metaParts;
+    }
+    const detailsArray = Array.isArray(answerDetails) ? answerDetails : [];
+    const partsInDetails = Array.from(new Set(detailsArray.map((d: any) => d.part_number).filter(Boolean))) as number[];
+    if (partsInDetails.length > 0) {
+      return partsInDetails.sort((a, b) => a - b);
+    }
+    return [1, 2, 3, 4, 5, 6, 7];
+  }, [state?.selectedParts, latestResult?.answers_detail, answerDetails]);
+
+  const isFullTest = attemptedParts.length === 7;
+  const isOnlyListening = attemptedParts.length > 0 && attemptedParts.every(p => p <= 4);
+  const isOnlyReading = attemptedParts.length > 0 && attemptedParts.every(p => p >= 5);
+  const isSinglePart = attemptedParts.length === 1;
+
+  // Map user answers: questionId -> selected_answer_id
   const answerLookup: Record<number, number | null> = {};
   const correctnessLookup: Record<number, boolean> = {};
 
@@ -129,21 +150,23 @@ const FullTestResult = () => {
     }
   });
 
-  // Calculate stats per Part — BUG FIX #11: use actual question counts
+  // Calculate stats per Part
   const partStats = partBreakdownMeta.map(meta => {
     const partQuestions = questions.filter(q => q.part_number === meta.part);
+    const isAttempted = attemptedParts.includes(meta.part);
     const correctCount = partQuestions.reduce((acc, q) => {
       return acc + (correctnessLookup[q.id] ? 1 : 0);
     }, 0);
     return {
       ...meta,
+      isAttempted,
       correct: correctCount,
       total: partQuestions.length || defaultPartTotals[meta.part] || 0,
     };
   });
 
-  // Grouping questions for detailed review y hệt lúc thi
-  const groupedQuestions = (() => {
+  // Grouping questions for detailed review
+  const groupedQuestions = useMemo(() => {
     const groups: any[] = [];
     let currentGroup: any = null;
 
@@ -152,10 +175,10 @@ const FullTestResult = () => {
       const isPart67 = q.part_number === 6 || q.part_number === 7;
 
       let passageText = q.passage_text || "";
-      let cleanQuestionText = q.question_text;
+      let cleanQuestionText = q.question_text || "";
 
-      if (q.question_text.includes("[PASSAGE]")) {
-        const parts = q.question_text.split("[ENDPASSAGE]");
+      if (cleanQuestionText.includes("[PASSAGE]")) {
+        const parts = cleanQuestionText.split("[ENDPASSAGE]");
         passageText = parts[0].replace("[PASSAGE]", "");
         cleanQuestionText = parts[1] || "";
       }
@@ -180,7 +203,6 @@ const FullTestResult = () => {
           shouldStartNew = true;
         } else if (currentGroup.questions.length >= 4 && q.part_number === 6) {
           shouldStartNew = true;
-        // BUG FIX #7: Limit Part 7 groups to max 5 questions when no group_id
         } else if (!q.group_id && q.part_number === 7 && currentGroup.questions.length >= 5) {
           shouldStartNew = true;
         }
@@ -205,7 +227,7 @@ const FullTestResult = () => {
     });
 
     return groups;
-  })();
+  }, [questions]);
 
   if (loadingResult || loadingQuestions || loadingDetails) {
     return (
@@ -240,23 +262,33 @@ const FullTestResult = () => {
   // Determine score details
   const totalScore = latestResult?.total_score ?? 10;
   const correct = latestResult?.correct_answers ?? 0;
-  const totalQCount = (latestResult?.total_questions ?? questions.length) || 200;
+  const totalQCount = latestResult?.total_questions || questions.length || 200;
   const listeningScore = latestResult?.listening_score ?? 5;
   const readingScore = latestResult?.reading_score ?? 5;
   const timeSpent = latestResult?.time_spent_seconds ?? 0;
   const timeMin = Math.floor(timeSpent / 60);
   const timeSec = timeSpent % 60;
+  const accuracyPct = totalQCount > 0 ? Math.round((correct / totalQCount) * 100) : 0;
 
   const getScoreEmoji = () => {
-    if (totalScore >= 800) return "🏆";
-    if (totalScore >= 600) return "🌟";
-    if (totalScore >= 400) return "💪";
+    if (accuracyPct >= 85) return "🏆";
+    if (accuracyPct >= 70) return "🌟";
+    if (accuracyPct >= 50) return "💪";
     return "📚";
+  };
+
+  const getHeaderTitle = () => {
+    if (isFullTest) return "KẾT QUẢ ĐỀ THI FULL TEST TOEIC";
+    if (isOnlyListening && attemptedParts.length === 4) return "KẾT QUẢ LUYỆN TẬP LISTENING (PART 1 - 4)";
+    if (isOnlyReading && attemptedParts.length === 3) return "KẾT QUẢ LUYỆN TẬP READING (PART 5 - 7)";
+    if (isSinglePart) return `KẾT QUẢ LUYỆN TẬP ${partShortNames[attemptedParts[0] - 1]}`;
+    return `KẾT QUẢ LUYỆN TẬP (PART ${attemptedParts.join(", ")})`;
   };
 
   const scoreDisplay = {
     emoji: getScoreEmoji(),
-    title: totalScore >= 750 ? "Xuất sắc!" : totalScore >= 550 ? "Khá tốt!" : totalScore >= 350 ? "Có tiến bộ!" : "Cần cố gắng ôn tập thêm!"
+    mainTitle: getHeaderTitle(),
+    subtitle: accuracyPct >= 80 ? "Xuất sắc! Đạt độ chính xác cao" : accuracyPct >= 60 ? "Khá tốt! Đang tiến bộ rõ rệt" : "Cần tiếp tục ôn luyện thêm!"
   };
 
   // Review Details Subview
@@ -272,10 +304,27 @@ const FullTestResult = () => {
             >
               <ChevronLeft className="w-5 h-5 text-foreground" />
             </button>
-            <h1 className="font-extrabold text-sm lg:text-base hidden sm:block truncate max-w-xs">Giải thích chi tiết đề thi</h1>
+            <div>
+              <h1 className="font-extrabold text-sm lg:text-base hidden sm:block truncate max-w-xs">Giải thích chi tiết</h1>
+              <span className="text-[10px] text-muted-foreground font-bold">
+                {isFullTest ? "Toàn bộ 200 câu" : `Các phần đã làm: Part ${attemptedParts.join(", ")}`}
+              </span>
+            </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            {!isFullTest && (
+              <label className="flex items-center gap-2 cursor-pointer font-bold text-xs bg-slate-100 text-slate-700 px-3 py-2 rounded-full border-2 border-slate-200 hover:bg-slate-200 transition-all select-none hidden md:flex">
+                <input
+                  type="checkbox"
+                  checked={filterOnlyAttempted}
+                  onChange={(e) => setFilterOnlyAttempted(e.target.checked)}
+                  className="w-4 h-4 rounded accent-primary cursor-pointer"
+                />
+                <span>Chỉ hiện Part đã làm</span>
+              </label>
+            )}
+
             <label className="flex items-center gap-2 cursor-pointer font-bold text-xs bg-red-50 text-[var(--duo-red)] px-3 py-2 rounded-full border-2 border-red-200 hover:bg-red-100/50 transition-all select-none">
               <input
                 type="checkbox"
@@ -286,7 +335,7 @@ const FullTestResult = () => {
               <span>Chỉ xem câu sai ❌</span>
             </label>
 
-            <button onClick={() => setShowReview(false)} className="btn-3d btn-3d-white py-2 px-4 text-sm font-bold">
+            <button onClick={() => setShowReview(false)} className="btn-3d btn-3d-white py-2 px-4 text-xs sm:text-sm font-bold">
               Đóng xem giải
             </button>
           </div>
@@ -296,7 +345,10 @@ const FullTestResult = () => {
           {/* List of questions */}
           <div className="flex-1 h-full overflow-y-auto p-4 lg:p-8 space-y-6 scroll-smooth pb-32">
             {groupedQuestions.map((group: any, gIdx: number) => {
-              // Filter out correct answers if onlyShowIncorrect is enabled
+              if (filterOnlyAttempted && !attemptedParts.includes(group.part_number)) {
+                return null;
+              }
+
               const questionsToRender = group.questions.filter((q: any) => {
                 const isCorrect = correctnessLookup[q.id];
                 if (onlyShowIncorrect) return !isCorrect;
@@ -365,7 +417,7 @@ const FullTestResult = () => {
                           "absolute top-0 right-0 px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-bl-xl text-white",
                           selectedId ? (isCorrect ? "bg-[var(--duo-correct)]" : "bg-[var(--duo-red)]") : "bg-slate-400"
                         )}>
-                          {selectedId ? (isCorrect ? "Đúng" : "Sai") : "Chưa trả lời"}
+                          {selectedId ? (isCorrect ? "Đúng" : "Sai") : "Chưa làm"}
                         </div>
 
                         <div className="flex justify-between items-center mr-16">
@@ -446,7 +498,6 @@ const FullTestResult = () => {
                               🇻🇳 <b>Dịch nghĩa:</b> {q.translation}
                             </div>
                           )}
-                          {/* BUG FIX #5: Check both question-level and answer-level explanation */}
                           {(q.explanation || correctOpt?.explanation) && (
                             <div className="p-3 bg-emerald-50 border-2 border-emerald-100 rounded-xl text-xs font-medium text-emerald-800">
                               💡 <b>Giải thích:</b> {q.explanation || correctOpt?.explanation}
@@ -481,6 +532,7 @@ const FullTestResult = () => {
 
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {[1, 2, 3, 4, 5, 6, 7].map(part => {
+                if (filterOnlyAttempted && !attemptedParts.includes(part)) return null;
                 const partQList = questions.filter(q => q.part_number === part);
                 if (partQList.length === 0) return null;
 
@@ -525,52 +577,104 @@ const FullTestResult = () => {
     );
   }
 
-  // 4. Score dashboard view
+  // 4. Score Dashboard View
   return (
     <StudentLayout>
-      <div className="max-w-4xl mx-auto space-y-8 pb-20">
-        {/* Banner header */}
+      <div className="max-w-4xl mx-auto space-y-8 pb-20 font-sans">
+        {/* Banner Header */}
         <div className="card-duo p-8 text-center space-y-5 bg-white rounded-2xl shadow-lg border-2 relative overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[var(--duo-blue)] via-[var(--duo-correct)] to-[var(--duo-yellow)]" />
 
           <div className="text-6xl mb-2">{scoreDisplay.emoji}</div>
-          <h1 className="text-3xl font-black text-foreground tracking-wide">KẾT QUẢ BÀI THI TOEIC</h1>
-          <p className="text-lg font-extrabold text-[var(--duo-blue-dark)] uppercase tracking-widest">{scoreDisplay.title}</p>
+          <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-wide">{scoreDisplay.mainTitle}</h1>
+          <p className="text-sm sm:text-base font-extrabold text-[var(--duo-blue-dark)] uppercase tracking-widest">{scoreDisplay.subtitle}</p>
 
+          {/* Main Score Callout */}
           <div className="flex flex-col items-center justify-center my-6">
-            <span className="text-6xl font-black text-[var(--duo-correct)] tracking-tight">
-              {totalScore} <span className="text-xl font-bold text-muted-foreground">/ 990</span>
-            </span>
-            <p className="text-xs text-muted-foreground font-black uppercase mt-1">Điểm TOEIC ước tính</p>
+            {isFullTest ? (
+              <>
+                <span className="text-6xl font-black text-[var(--duo-correct)] tracking-tight">
+                  {totalScore} <span className="text-xl font-bold text-muted-foreground">/ 990</span>
+                </span>
+                <p className="text-xs text-muted-foreground font-black uppercase mt-1">Điểm TOEIC ước tính</p>
+              </>
+            ) : isOnlyListening && attemptedParts.length === 4 ? (
+              <>
+                <span className="text-6xl font-black text-[var(--duo-blue)] tracking-tight">
+                  {listeningScore} <span className="text-xl font-bold text-muted-foreground">/ 495</span>
+                </span>
+                <p className="text-xs text-muted-foreground font-black uppercase mt-1">Điểm Listening ước tính</p>
+              </>
+            ) : isOnlyReading && attemptedParts.length === 3 ? (
+              <>
+                <span className="text-6xl font-black text-[var(--duo-correct)] tracking-tight">
+                  {readingScore} <span className="text-xl font-bold text-muted-foreground">/ 495</span>
+                </span>
+                <p className="text-xs text-muted-foreground font-black uppercase mt-1">Điểm Reading ước tính</p>
+              </>
+            ) : (
+              <>
+                <span className="text-6xl font-black text-[var(--duo-correct)] tracking-tight">
+                  {correct} <span className="text-2xl font-bold text-muted-foreground">/ {totalQCount}</span>
+                </span>
+                <p className="text-xs text-muted-foreground font-black uppercase mt-1">Số câu trả lời đúng ({accuracyPct}%)</p>
+              </>
+            )}
           </div>
 
           {/* Listening & Reading breakout cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
-            <div className="bg-muted/50 p-5 rounded-2xl border-2 border-[var(--duo-gray)] flex items-center justify-between">
+            <div className={cn(
+              "p-5 rounded-2xl border-2 flex items-center justify-between transition-all",
+              attemptedParts.some(p => p <= 4)
+                ? "bg-[#DDF4FF]/40 border-[#A8E0FD]"
+                : "bg-muted/30 border-[var(--duo-gray)] opacity-60"
+            )}>
               <div className="text-left">
-                <span className="text-[10px] font-black text-muted-foreground uppercase">Phần Listening</span>
-                <p className="text-2xl font-black text-[var(--duo-blue)]">{listeningScore} điểm</p>
-                <p className="text-xs text-muted-foreground font-semibold mt-1">
-                  Đúng {latestResult?.listening_correct ?? 0}/{questions.filter(q => q.part_number <= 4).length || 100} câu
-                </p>
+                <span className="text-[10px] font-black text-muted-foreground uppercase flex items-center gap-1">
+                  <Headphones className="w-3 h-3" /> Phần Listening (Part 1 - 4)
+                </span>
+                {attemptedParts.some(p => p <= 4) ? (
+                  <>
+                    <p className="text-2xl font-black text-[var(--duo-blue)]">{listeningScore} điểm</p>
+                    <p className="text-xs text-muted-foreground font-semibold mt-1">
+                      Đúng {latestResult?.listening_correct ?? 0}/{questions.filter(q => q.part_number <= 4 && attemptedParts.includes(q.part_number)).length || 100} câu
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-sm font-bold text-muted-foreground mt-2">Không làm trong lần thi này</p>
+                )}
               </div>
-              <div className="w-12 h-12 bg-[var(--duo-blue)]/10 rounded-full flex items-center justify-center text-xl text-[var(--duo-blue)]">🎧</div>
+              <div className="w-12 h-12 bg-[var(--duo-blue)]/10 rounded-full flex items-center justify-center text-xl text-[var(--duo-blue)] shrink-0">🎧</div>
             </div>
 
-            <div className="bg-muted/50 p-5 rounded-2xl border-2 border-[var(--duo-gray)] flex items-center justify-between">
+            <div className={cn(
+              "p-5 rounded-2xl border-2 flex items-center justify-between transition-all",
+              attemptedParts.some(p => p >= 5)
+                ? "bg-[#E8F8EE] border-[#B7EFC5]"
+                : "bg-muted/30 border-[var(--duo-gray)] opacity-60"
+            )}>
               <div className="text-left">
-                <span className="text-[10px] font-black text-muted-foreground uppercase">Phần Reading</span>
-                <p className="text-2xl font-black text-[var(--duo-correct)]">{readingScore} điểm</p>
-                <p className="text-xs text-muted-foreground font-semibold mt-1">
-                  Đúng {latestResult?.reading_correct ?? 0}/{questions.filter(q => q.part_number >= 5).length || 100} câu
-                </p>
+                <span className="text-[10px] font-black text-muted-foreground uppercase flex items-center gap-1">
+                  <BookOpen className="w-3 h-3" /> Phần Reading (Part 5 - 7)
+                </span>
+                {attemptedParts.some(p => p >= 5) ? (
+                  <>
+                    <p className="text-2xl font-black text-[var(--duo-correct)]">{readingScore} điểm</p>
+                    <p className="text-xs text-muted-foreground font-semibold mt-1">
+                      Đúng {latestResult?.reading_correct ?? 0}/{questions.filter(q => q.part_number >= 5 && attemptedParts.includes(q.part_number)).length || 100} câu
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-sm font-bold text-muted-foreground mt-2">Không làm trong lần thi này</p>
+                )}
               </div>
-              <div className="w-12 h-12 bg-[var(--duo-correct)]/10 rounded-full flex items-center justify-center text-xl text-[var(--duo-correct)]">📖</div>
+              <div className="w-12 h-12 bg-[var(--duo-correct)]/10 rounded-full flex items-center justify-center text-xl text-[var(--duo-correct)] shrink-0">📖</div>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-6 text-sm font-bold text-muted-foreground pt-4 border-t border-[var(--duo-gray)]">
-            <span className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-[var(--duo-correct)]" /> Tổng đúng: {correct}/{totalQCount} câu</span>
+            <span className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-[var(--duo-correct)]" /> Tổng đúng: {correct}/{totalQCount} câu ({accuracyPct}%)</span>
             <span className="flex items-center gap-2"><Clock className="w-4 h-4 text-[var(--duo-blue)]" /> Thời gian: {timeMin} phút {timeSec} giây</span>
             {latestResult?.pause_count ? (
               <span className="badge-duo badge-yellow">Tạm dừng {latestResult.pause_count} lần</span>
@@ -587,7 +691,7 @@ const FullTestResult = () => {
             onClick={() => setShowReview(true)}
             className="btn-3d btn-3d-primary py-3 px-6 text-sm font-black flex items-center gap-2"
           >
-            <Eye className="w-4 h-4" /> Xem giải chi tiết
+            <Eye className="w-4 h-4" /> Xem giải chi tiết ({totalQCount} câu)
           </button>
           <Link to={`/courses/${courseId}/fulltest/${testId}`} className="btn-3d btn-3d-blue py-3 px-6 text-sm font-bold">
             🔄 Làm lại đề này
@@ -613,36 +717,51 @@ const FullTestResult = () => {
               </thead>
               <tbody>
                 {partStats.map(stat => {
-                  const pct = stat.total > 0 ? Math.round((stat.correct / stat.total) * 100) : 0;
+                  const pct = stat.total > 0 && stat.isAttempted ? Math.round((stat.correct / stat.total) * 100) : 0;
                   return (
-                    <tr key={stat.part} className="border-b-2 border-[var(--duo-gray)] last:border-0 hover:bg-slate-50/50">
+                    <tr key={stat.part} className={cn("border-b-2 border-[var(--duo-gray)] last:border-0 hover:bg-slate-50/50", !stat.isAttempted && "opacity-50")}>
                       <td className="p-4 font-bold text-foreground">
-                        {stat.name}
-                      </td>
-                      <td className="p-4 text-center font-extrabold text-slate-800">
-                        {stat.correct} / {stat.total}
-                      </td>
-                      <td className="p-4 w-1/3">
-                        <div className="flex items-center gap-3">
-                          <div className="progress-duo flex-1">
-                            <div
-                              className="progress-duo-fill"
-                              style={{
-                                width: `${pct}%`,
-                                backgroundColor: pct >= 80 ? "var(--duo-correct)" : pct >= 50 ? "var(--duo-blue)" : "var(--duo-red)"
-                              }}
-                            />
-                          </div>
-                          <span className="text-xs font-black text-slate-700 w-8 text-right">{pct}%</span>
+                        <div className="flex items-center gap-2">
+                          <span>{stat.name}</span>
+                          {!stat.isAttempted && (
+                            <span className="badge-duo badge-white text-[10px] text-muted-foreground font-bold">Không chọn</span>
+                          )}
                         </div>
                       </td>
+                      <td className="p-4 text-center font-extrabold text-slate-800">
+                        {stat.isAttempted ? `${stat.correct} / ${stat.total}` : `- / ${stat.total}`}
+                      </td>
+                      <td className="p-4 w-1/3">
+                        {stat.isAttempted ? (
+                          <div className="flex items-center gap-3">
+                            <div className="progress-duo flex-1">
+                              <div
+                                className="progress-duo-fill"
+                                style={{
+                                 width: `${pct}%`,
+                                  backgroundColor: pct >= 80 ? "var(--duo-correct)" : pct >= 50 ? "var(--duo-blue)" : "var(--duo-red)"
+                                }}
+                              />
+                            </div>
+                            <span className="text-xs font-black text-slate-700 w-8 text-right">{pct}%</span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground italic">Không có dữ liệu</span>
+                        )}
+                      </td>
                       <td className="p-4 text-center">
-                        <span className={cn(
-                          "badge-duo text-[10px] uppercase font-black tracking-widest",
-                          pct >= 80 ? "badge-green" : pct >= 50 ? "badge-blue" : "badge-orange"
-                        )}>
-                          {pct >= 80 ? "Tốt" : pct >= 50 ? "Trung bình" : "Cần ôn thêm"}
-                        </span>
+                        {stat.isAttempted ? (
+                          <span className={cn(
+                            "badge-duo text-[10px] uppercase font-black tracking-widest",
+                            pct >= 80 ? "badge-green" : pct >= 50 ? "badge-blue" : "badge-orange"
+                          )}>
+                            {pct >= 80 ? "Tốt" : pct >= 50 ? "Trung bình" : "Cần ôn thêm"}
+                          </span>
+                        ) : (
+                          <span className="badge-duo badge-white text-[10px] text-muted-foreground">
+                            Chưa làm
+                          </span>
+                        )}
                       </td>
                     </tr>
                   );
