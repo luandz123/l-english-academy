@@ -17,6 +17,7 @@ interface CourseRow {
   is_free: boolean | null;
   display_order: number | null;
   category_id: number | null;
+  duration_months?: number | null;
 }
 
 const courseTypeMap: Record<string, string> = {
