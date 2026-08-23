@@ -2645,7 +2645,7 @@ const DragDropKeywordItem = ({
       word: b.expectedWord,
       expectedBlankIdx: b.blankIdx
     }));
-    return shuffleArray(tokens);
+    return shuffleArray(tokens) as { id: string; word: string; expectedBlankIdx: number }[];
   }, [expectedBlanks]);
 
   // Placed map: blankIdx -> token | null
@@ -2705,7 +2705,7 @@ const DragDropKeywordItem = ({
   }, [placedMap]);
 
   const availableBankTokens = useMemo(() => {
-    return bankTokens.filter(t => !placedTokenIds.has(t.id));
+    return bankTokens.filter((t) => !placedTokenIds.has(t.id));
   }, [bankTokens, placedTokenIds]);
 
   // Validate answers
@@ -3015,7 +3015,7 @@ const DragDropKeywordItem = ({
           </div>
 
           {/* Action Check Bar */}
-          {Object.keys(placedMap).length > 0 && status !== "correct" && (
+          {Object.keys(placedMap).length > 0 && (status as string) !== "correct" && (
             <div className="flex items-center justify-between pt-1">
               <div className="text-xs font-bold">
                 {status === "error" ? (
@@ -3092,7 +3092,7 @@ const DragDropClozeSection = ({
       word: b.expectedWord,
       expectedBlankIdx: b.blankIdx
     }));
-    return shuffleArray(tokens);
+    return shuffleArray(tokens) as { id: string; word: string; expectedBlankIdx: number }[];
   }, [expectedAnswers]);
 
   // Placed map: blankIdx -> token | null
@@ -3142,7 +3142,7 @@ const DragDropClozeSection = ({
   }, [placedMap]);
 
   const availableBankTokens = useMemo(() => {
-    return bankTokens.filter(t => !placedTokenIds.has(t.id));
+    return bankTokens.filter((t) => !placedTokenIds.has(t.id));
   }, [bankTokens, placedTokenIds]);
 
   const checkAnswers = (currentPlacedMap: Record<number, any>) => {
@@ -3387,7 +3387,7 @@ const DragDropClozeSection = ({
             )}
           </div>
 
-          {Object.keys(placedMap).length > 0 && status !== "correct" && (
+          {Object.keys(placedMap).length > 0 && (status as string) !== "correct" && (
             <div className="flex items-center justify-between pt-1">
               <div className="text-xs font-bold">
                 {status === "error" ? (

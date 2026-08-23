@@ -691,7 +691,7 @@ const AdminFullTestQuestions = () => {
   const missingExplanation = allQuestions.filter((q) => [3, 4, 5, 6, 7].includes(q.part_number) && !q.answers.some((a) => a.is_correct && a.explanation)).length;
 
   return (
-    <AdminLayout title="Chỉnh sửa Chi tiết Đề thi & Câu hỏi">
+    <AdminLayout>
       <div className="space-y-6">
         {/* Header Breadcrumb & Actions */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between bg-card p-5 rounded-2xl border border-border/70 shadow-sm">
