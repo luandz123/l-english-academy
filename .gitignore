@@ -32,9 +32,13 @@ dist-ssr
 *.tar.gz
 *.zip
 *.bak
+*.backup
+*.sql
+supabase/.temp/
 
 # Scripts and scrapers (if any created locally)
 scraping/
 .venv/
+
 
 
