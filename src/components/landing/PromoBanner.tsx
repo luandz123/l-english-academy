@@ -62,7 +62,7 @@ const PromoBanner = () => {
             </span>
           </h2>
           <p className="text-muted-foreground font-semibold mt-3 text-sm md:text-base max-w-xl mx-auto">
-            Không cần đăng ký nhiều nơi. Dictation, Flashcard, Full Test — tất cả ở một chỗ, chi phí tối ưu.
+            Không cần đăng ký nhiều nơi. Dictation, Flashcard, Full Test — tất cả tích hợp trong một nền tảng tiện lợi &amp; hiệu quả.
           </p>
         </div>
 

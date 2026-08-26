@@ -19,11 +19,11 @@ const courseTypeMap: Record<string, string> = {
 
 const filterTypes = [
   { key: "all", label: "Tất cả" },
-  { key: "video_quiz", label: "Video" },
-  { key: "flashcard", label: "Từ vựng Flashcard" },
-  { key: "listening", label: "Luyện nghe" },
-  { key: "speaking", label: "Speaking" },
-  { key: "fulltest", label: "Full Test" },
+  { key: "fulltest", label: "📝 Luyện đề Full Test", isHot: true },
+  { key: "listening", label: "🎧 Luyện nghe Điền từ", isHot: true },
+  { key: "flashcard", label: "🎴 Từ vựng Flashcard" },
+  { key: "video_quiz", label: "🎬 Khóa học Video" },
+  { key: "speaking", label: "🗣️ Speaking" },
 ];
 
 const Courses = () => {
@@ -300,21 +300,27 @@ const Courses = () => {
             )}
           </div>
 
-          {/* Filter Pills */}
-          <div className="flex flex-wrap gap-2">
-            {filterTypes.map(f => (
-              <button
-                key={f.key}
-                onClick={() => handleFilterChange(f.key)}
-                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all ${
-                  activeFilter === f.key
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "bg-card border border-border text-muted-foreground hover:text-foreground hover:bg-muted"
-                }`}
-              >
-                {f.label}
-              </button>
-            ))}
+          {/* Filter Pills with smooth horizontal scrolling on mobile */}
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1.5 pt-0.5 -mx-3.5 px-3.5 sm:mx-0 sm:px-0 sm:flex-wrap">
+            {filterTypes.map(f => {
+              const isActive = activeFilter === f.key;
+              return (
+                <button
+                  key={f.key}
+                  onClick={() => handleFilterChange(f.key)}
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 active:scale-95 flex items-center gap-1.5 ${
+                    isActive
+                      ? "bg-primary text-primary-foreground shadow-sm ring-2 ring-primary/20"
+                      : "bg-card border border-border/80 text-muted-foreground hover:text-foreground hover:bg-muted"
+                  }`}
+                >
+                  <span>{f.label}</span>
+                  {f.isHot && !isActive && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
 

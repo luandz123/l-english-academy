@@ -104,16 +104,7 @@ const getYesterdayString = () => {
   return d.toISOString().split("T")[0];
 };
 
-// Peer mock learners for realistic competitive leaderboard
-const MOCK_PEERS: Omit<LeaderboardUser, "rank">[] = [
-  { id: "peer_1", name: "Minh Anh", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=Minh", xp: 480, streak: 12 },
-  { id: "peer_2", name: "Hoàng Nam", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=Hoang", xp: 390, streak: 9 },
-  { id: "peer_3", name: "Thảo Nhi", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=Thao", xp: 320, streak: 7 },
-  { id: "peer_4", name: "Đức Huy", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=Duc", xp: 260, streak: 5 },
-  { id: "peer_5", name: "Khánh Linh", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=Linh", xp: 210, streak: 4 },
-  { id: "peer_6", name: "Tuấn Kiệt", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=Kiet", xp: 140, streak: 2 },
-  { id: "peer_7", name: "Bảo Ngọc", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=Ngoc", xp: 90, streak: 1 },
-];
+
 
 export const useGamification = () => {
   const { user, profile } = useAuth();
@@ -444,8 +435,7 @@ export const useGamification = () => {
       isCurrentUser: true,
     };
 
-    const combined = [...MOCK_PEERS, currentUserEntry];
-    combined.sort((a, b) => b.xp - a.xp);
+    const combined = [currentUserEntry];
 
     return combined.map((item, index) => ({
       ...item,

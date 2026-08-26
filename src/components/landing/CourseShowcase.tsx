@@ -81,15 +81,9 @@ const CourseShowcase = () => {
     <section className="py-14 md:py-20 bg-[#fffaf7] dark:bg-zinc-900 border-t border-[var(--duo-gray)] dark:border-zinc-800" id="courses">
       <div className="container mx-auto px-4 max-w-6xl">
         <div className="text-center mb-12">
-          <span className="inline-flex items-center gap-1 bg-[var(--primary-light)] border border-[var(--duo-green)]/15 rounded-full px-3 py-1 text-xs font-black text-[var(--duo-green-dark)] uppercase tracking-wider mb-3">
-            📚 HỌC THẬT - KẾT QUẢ THẬT
-          </span>
           <h2 className="text-3xl md:text-5xl font-black text-foreground mb-3 tracking-tight">
             Kho Khóa Học <span className="bg-clip-text text-transparent bg-gradient-to-r from-[var(--duo-green)] to-[var(--duo-orange)]">Trên Hệ Thống</span>
           </h2>
-          <p className="text-muted-foreground font-semibold text-base md:text-lg max-w-2xl mx-auto">
-            Học tập chủ động trực tuyến với cơ sở dữ liệu thật 100%. Cam kết cung cấp tài liệu tự học hiệu quả, giải thích từng câu chi tiết.
-          </p>
         </div>
 
         {/* Dynamic Tab Filters */}

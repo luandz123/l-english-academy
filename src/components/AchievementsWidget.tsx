@@ -35,7 +35,7 @@ export const AchievementsWidget: React.FC = () => {
       </div>
 
       {/* Badges Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
         {badges.map((badge) => {
           const isUnlocked = badge.unlocked;
           const isClaimed = badge.claimed;

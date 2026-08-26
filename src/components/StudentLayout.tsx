@@ -1,5 +1,19 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, BookOpen, User, LogOut, Menu, X, ChevronRight, Sparkles, ShieldCheck } from "lucide-react";
+import { 
+  LayoutDashboard, 
+  BookOpen, 
+  User, 
+  LogOut, 
+  Menu, 
+  X, 
+  ChevronRight, 
+  Sparkles, 
+  ShieldCheck,
+  FileCheck2,
+  Headphones,
+  Flame, 
+  Zap 
+} from "lucide-react";
 import React, { useState } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -13,14 +27,22 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
 import { useGamification } from "@/hooks/useGamification";
-import { Flame, Zap } from "lucide-react";
 
 const navItems = [
   { to: "/dashboard", label: "Tổng quan", icon: LayoutDashboard },
-  { to: "/courses", label: "Khóa học", icon: BookOpen },
+  { to: "/courses?filter=fulltest", label: "Luyện đề Full Test", icon: FileCheck2, badge: "Thi thử", badgeColor: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" },
+  { to: "/courses?filter=listening", label: "Luyện nghe điền từ", icon: Headphones, badge: "Dictation", badgeColor: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20" },
+  { to: "/courses", label: "Kho khóa học", icon: BookOpen },
   { to: "/profile", label: "Hồ sơ cá nhân", icon: User },
+];
+
+const mobileNavItems = [
+  { to: "/dashboard", label: "Tổng quan", icon: LayoutDashboard },
+  { to: "/courses?filter=fulltest", label: "Luyện đề", icon: FileCheck2, isHighlight: true },
+  { to: "/courses?filter=listening", label: "Điền từ", icon: Headphones, isHighlight: true },
+  { to: "/courses", label: "Khóa học", icon: BookOpen },
+  { to: "/profile", label: "Hồ sơ", icon: User },
 ];
 
 const StudentLayout = ({ children }: { children: React.ReactNode }) => {
@@ -38,6 +60,10 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
     await signOut();
     navigate("/login");
   };
+
+  const isFullTestActive = (location.pathname === "/courses" && location.search.includes("filter=fulltest")) || location.pathname.includes("/fulltest");
+  const isListeningActive = (location.pathname === "/courses" && location.search.includes("filter=listening")) || location.pathname.includes("/dictation");
+  const isAllCoursesActive = location.pathname === "/courses" && !location.search.includes("filter=fulltest") && !location.search.includes("filter=listening");
 
   const pathSegments = location.pathname.split("/").filter(Boolean);
   const breadcrumbs = pathSegments.map((segment, index) => {
@@ -62,7 +88,7 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
         />
       )}
 
-      {/* Sidebar */}
+      {/* Desktop & Drawer Sidebar */}
       <aside
         className={cn(
           "fixed md:sticky top-0 z-50 h-screen w-[260px] bg-card border-r border-border flex flex-col transition-transform duration-300 ease-in-out shrink-0",
@@ -93,23 +119,43 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
         </div>
 
         {/* Navigation list */}
-        <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto">
+        <nav className="flex-1 px-3 py-2 space-y-1.5 overflow-y-auto">
           {navItems.map((item) => {
-            const active = location.pathname === item.to || (item.to !== "/dashboard" && location.pathname.startsWith(item.to));
+            const active = 
+              item.to === "/dashboard"
+                ? location.pathname === "/dashboard"
+                : item.to.includes("fulltest")
+                ? isFullTestActive
+                : item.to.includes("listening")
+                ? isListeningActive
+                : item.to === "/courses"
+                ? isAllCoursesActive
+                : location.pathname === item.to;
+
             return (
               <Link
                 key={item.to}
                 to={item.to}
                 onClick={() => setSidebarOpen(false)}
                 className={cn(
-                  "flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all",
+                  "flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all group",
                   active
                     ? "bg-primary text-primary-foreground font-semibold shadow-sm"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted"
                 )}
               >
-                <item.icon className={cn("w-4 h-4 shrink-0", active ? "text-primary-foreground" : "text-muted-foreground")} />
-                {item.label}
+                <div className="flex items-center gap-3 min-w-0">
+                  <item.icon className={cn("w-4 h-4 shrink-0", active ? "text-primary-foreground" : "text-muted-foreground group-hover:text-foreground")} />
+                  <span className="truncate">{item.label}</span>
+                </div>
+                {item.badge && (
+                  <span className={cn(
+                    "text-[10px] font-black uppercase px-2 py-0.5 rounded-md border tracking-wider shrink-0",
+                    active ? "bg-white/20 text-primary-foreground border-white/30" : item.badgeColor
+                  )}>
+                    {item.badge}
+                  </span>
+                )}
               </Link>
             );
           })}
@@ -117,7 +163,7 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
           {isAdmin && (
             <Link
               to="/admin/dashboard"
-              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition-colors"
+              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition-colors mt-2"
             >
               <ShieldCheck className="w-4 h-4 shrink-0" />
               Quản trị Admin
@@ -140,10 +186,15 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <header className="sticky top-0 z-30 h-16 bg-card/80 backdrop-blur-md border-b border-border flex items-center px-4 md:px-6 justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" className="md:hidden h-9 w-9" onClick={() => setSidebarOpen(true)}>
-              <Menu className="w-5 h-5" />
+        <header className="sticky top-0 z-30 h-16 bg-card/85 backdrop-blur-md border-b border-border flex items-center px-4 md:px-6 justify-between gap-3">
+          <div className="flex items-center gap-2.5 min-w-0">
+            {/* Logo on mobile for instant brand identity */}
+            <div className="md:hidden flex items-center gap-2 shrink-0">
+              <Logo imgClassName="w-7 h-7" />
+            </div>
+
+            <Button variant="ghost" size="icon" className="md:hidden h-8 w-8 text-muted-foreground shrink-0" onClick={() => setSidebarOpen(true)} title="Mở menu">
+              <Menu className="w-4 h-4" />
             </Button>
             
             <div className="hidden sm:flex items-center gap-2 text-xs font-medium text-muted-foreground overflow-hidden">
@@ -152,7 +203,7 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
               </Link>
               {breadcrumbs.map((crumb, i) => (
                 <React.Fragment key={crumb.path}>
-                  <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/50" />
+                  <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/50 shrink-0" />
                   <Link 
                     to={crumb.path} 
                     className={cn(
@@ -167,23 +218,23 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
             </div>
           </div>
           
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {/* Streak Badge */}
             <div 
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-xs font-black shadow-2xs cursor-default"
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-xs font-black shadow-2xs cursor-default"
               title="Ngọn lửa Chuỗi ngày học tập của bạn"
             >
               <Flame className="w-4 h-4 fill-amber-500 text-amber-500 animate-pulse" />
-              <span>{streak} Ngày</span>
+              <span className="text-[11px] sm:text-xs">{streak} <span className="hidden xs:inline">Ngày</span></span>
             </div>
 
             {/* XP & Level Badge */}
             <div 
-              className={cn("flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-black shadow-2xs", levelInfo.color)}
+              className={cn("flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-full border text-xs font-black shadow-2xs", levelInfo.color)}
               title={`${levelInfo.title} - Còn ${levelInfo.xpToNextLevel} XP để lên Cấp tiếp theo`}
             >
               <Zap className="w-3.5 h-3.5 fill-amber-400 text-amber-500 shrink-0" />
-              <span>Lv.{levelInfo.level} • {xp} XP</span>
+              <span className="text-[11px] sm:text-xs">Lv.{levelInfo.level} <span className="hidden sm:inline">• {xp} XP</span></span>
             </div>
 
             {/* User Profile Dropdown */}
@@ -229,8 +280,58 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
           </div>
         </header>
 
-        {/* Main page content container */}
-        <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-x-hidden bg-background">{children}</main>
+        {/* Main page content container - padding bottom ensures content isn't covered by mobile bottom nav */}
+        <main className="flex-1 p-3.5 sm:p-4 md:p-6 lg:p-8 overflow-x-hidden bg-background pb-24 md:pb-8">{children}</main>
+
+        {/* Mobile Bottom Navigation Bar (Ultra Ergonomic & Modern) */}
+        <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-card/95 backdrop-blur-xl border-t border-border/80 shadow-[0_-4px_24px_rgba(0,0,0,0.06)] pb-[env(safe-area-inset-bottom,0px)]">
+          <div className="flex items-center justify-around h-16 px-1">
+            {mobileNavItems.map((item) => {
+              const isActive = 
+                item.to === "/dashboard" 
+                  ? location.pathname === "/dashboard"
+                  : item.to.includes("fulltest")
+                  ? isFullTestActive
+                  : item.to.includes("listening")
+                  ? isListeningActive
+                  : item.to === "/courses"
+                  ? isAllCoursesActive
+                  : location.pathname === item.to;
+
+              return (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  className={cn(
+                    "flex flex-col items-center justify-center flex-1 py-1.5 px-0.5 rounded-xl transition-all relative select-none active:scale-90",
+                    isActive
+                      ? "text-[var(--duo-blue)] font-black"
+                      : "text-muted-foreground hover:text-foreground font-semibold"
+                  )}
+                >
+                  {isActive && (
+                    <span className="absolute top-1 w-6 h-1 rounded-full bg-[var(--duo-blue)] shadow-[0_0_8px_var(--duo-blue)] animate-in fade-in zoom-in-50 duration-200" />
+                  )}
+                  
+                  <div className={cn(
+                    "w-8 h-8 rounded-lg flex items-center justify-center transition-all",
+                    isActive ? "bg-[var(--duo-blue)]/10 text-[var(--duo-blue)] scale-110" : ""
+                  )}>
+                    <item.icon className="w-5 h-5" />
+                  </div>
+                  
+                  <span className="text-[10px] tracking-tight leading-tight mt-0.5 truncate max-w-[62px]">
+                    {item.label}
+                  </span>
+
+                  {item.isHighlight && !isActive && (
+                    <span className="absolute top-1.5 right-3 w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  )}
+                </Link>
+              );
+            })}
+          </div>
+        </nav>
       </div>
     </div>
   );

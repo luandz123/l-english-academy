@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import heroImg from "@/assets/hero-student.webp";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Shield, Zap, Star } from "lucide-react";
+import { Shield, Zap, Star, FileCheck2, Headphones, ChevronRight, ArrowRight, Sparkles } from "lucide-react";
 
 const HeroSection = () => {
   const { user } = useAuth();
@@ -81,17 +81,83 @@ const HeroSection = () => {
               </div>
             </div>
 
-            {/* CTA Buttons */}
-            <div className="flex flex-wrap gap-3 pt-1">
-              <Link
-                to={user ? "/courses" : "/register"}
-                className="btn-3d btn-3d-green text-sm px-8 py-3 inline-block"
-              >
-                {user ? "Vào học ngay 🚀" : "Bắt đầu miễn phí 🚀"}
-              </Link>
-              <Link to="/courses" className="btn-3d btn-3d-white text-sm px-6 py-3 inline-block">
-                Xem khóa học
-              </Link>
+            {/* Quick ce Launcher - Nổi bật mục đích Luyện đề / Luyện nghe */}
+            <div className="pt-2 space-y-3 w-full max-w-lg">
+              <div className="flex items-center gap-2">
+                <span className="flex h-2.5 w-2.5 relative">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                </span>
+                <p className="text-xs font-black uppercase text-[var(--duo-blue)] tracking-wider">
+                  Vào luyện tập ngay
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Button 1: Luyện đề Full Test */}
+                <Link
+                  to="/courses?filter=fulltest"
+                  className="btn-3d btn-3d-green p-3.5 rounded-2xl flex items-center justify-between gap-3 group text-left shadow-md hover:-translate-y-0.5 transition-all"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                      <FileCheck2 className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <span className="font-black text-sm sm:text-base text-white block leading-tight">
+                        Luyện Đề Full Test
+                      </span>
+                      <span className="text-[11px] text-white/80 font-bold block mt-0.5">
+                        Thi thử TOEIC 200 câu
+                      </span>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-white/70 group-hover:translate-x-1 transition-transform shrink-0" />
+                </Link>
+
+                {/* Button 2: Luyện nghe điền từ */}
+                <Link
+                  to="/courses?filter=listening"
+                  className="btn-3d btn-3d-blue p-3.5 rounded-2xl flex items-center justify-between gap-3 group text-left shadow-md hover:-translate-y-0.5 transition-all"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                      <Headphones className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <span className="font-black text-sm sm:text-base text-white block leading-tight">
+                        Luyện Nghe Điền Từ
+                      </span>
+                      <span className="text-[11px] text-white/80 font-bold block mt-0.5">
+                        Dictation cảm ứng
+                      </span>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-white/70 group-hover:translate-x-1 transition-transform shrink-0" />
+                </Link>
+              </div>
+
+              {/* Secondary links */}
+              <div className="flex items-center gap-4 pt-0.5">
+                <Link
+                  to={user ? "/dashboard" : "/courses"}
+                  className="text-xs font-black text-foreground hover:text-[var(--duo-green)] flex items-center gap-1.5 transition-colors"
+                >
+                  <span>{user ? "Vào Dashboard học viên" : "Xem tất cả khóa học"}</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+                {!user && (
+                  <>
+                    <span className="text-muted-foreground/30">•</span>
+                    <Link
+                      to="/register"
+                      className="text-xs font-bold text-muted-foreground hover:text-[var(--duo-blue)] transition-colors"
+                    >
+                      Đăng ký tài khoản miễn phí
+                    </Link>
+                  </>
+                )}
+              </div>
             </div>
 
             {/* Live stats */}

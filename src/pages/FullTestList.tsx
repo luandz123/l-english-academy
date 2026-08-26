@@ -111,31 +111,31 @@ const FullTestList = () => {
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                        <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto shrink-0 pt-1 sm:pt-0 border-t sm:border-t-0 border-border/50">
                           {done && score !== undefined && (
-                            <span className="badge-duo badge-green">
-                              Điểm cao nhất: {score}/990
+                            <span className="badge-duo badge-green text-xs font-bold">
+                              Điểm: {score}/990
                             </span>
                           )}
                           
                           {!released && test.release_date && (
-                            <span className="badge-duo badge-yellow flex items-center gap-1">
+                            <span className="badge-duo badge-yellow flex items-center gap-1 text-xs">
                               <Clock className="w-3 h-3" /> Mở ngày {new Date(test.release_date).toLocaleDateString("vi-VN")}
                             </span>
                           )}
 
                           {released && !done && (
-                            <Link to={`/courses/${courseId}/fulltest/${test.id}`} className="btn-3d btn-3d-primary py-1.5 px-4 text-xs inline-flex items-center gap-1">
+                            <Link to={`/courses/${courseId}/fulltest/${test.id}`} className="btn-3d btn-3d-primary py-2 sm:py-1.5 px-4 text-xs font-bold inline-flex items-center justify-center gap-1.5 ml-auto sm:ml-0">
                               Vào làm đề <ArrowRight className="w-3 h-3" />
                             </Link>
                           )}
 
                           {done && (
-                            <div className="flex items-center gap-1.5">
-                              <Link to={`/courses/${courseId}/fulltest/${test.id}/result`} className="btn-3d btn-3d-white py-1.5 px-3 text-xs">
+                            <div className="flex items-center gap-1.5 ml-auto sm:ml-0">
+                              <Link to={`/courses/${courseId}/fulltest/${test.id}/result`} className="btn-3d btn-3d-white py-2 sm:py-1.5 px-3 text-xs font-bold">
                                 Kết quả
                               </Link>
-                              <Link to={`/courses/${courseId}/fulltest/${test.id}`} className="btn-3d btn-3d-primary py-1.5 px-3 text-xs inline-flex items-center gap-1">
+                              <Link to={`/courses/${courseId}/fulltest/${test.id}`} className="btn-3d btn-3d-primary py-2 sm:py-1.5 px-3 text-xs font-bold inline-flex items-center gap-1">
                                 <RotateCcw className="w-3 h-3" /> Luyện tiếp
                               </Link>
                             </div>

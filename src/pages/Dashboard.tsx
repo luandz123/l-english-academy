@@ -9,7 +9,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useMemo } from "react";
 import OnboardingModal, { useOnboarding } from "@/components/OnboardingModal";
 import { DailyQuestsWidget } from "@/components/DailyQuestsWidget";
-import { LeaderboardWidget } from "@/components/LeaderboardWidget";
 import { AchievementsWidget } from "@/components/AchievementsWidget";
 
 const Dashboard = () => {
@@ -201,58 +200,128 @@ const Dashboard = () => {
 
       <div className="space-y-6 max-w-6xl mx-auto">
         {/* Welcome banner */}
-        <div className="rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-sky-600 p-6 md:p-8 text-white shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-sky-600 p-5 sm:p-7 md:p-8 text-white shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="space-y-1">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 text-white text-xs font-semibold backdrop-blur-sm mb-2">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 text-white text-xs font-semibold backdrop-blur-sm mb-1.5">
               <Sparkles className="w-3.5 h-3.5 text-amber-300" />
               <span>Chào mừng trở lại</span>
             </div>
-            <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight text-white">
               Xin chào, {displayName}!
             </h1>
-            <p className="text-white/80 text-sm font-normal">
+            <p className="text-white/85 text-xs sm:text-sm font-normal">
               Tiếp tục hành trình chinh phục mục tiêu TOEIC hôm nay nhé.
             </p>
           </div>
           
           {/* Streak Widget */}
-          <div className="flex items-center gap-3.5 bg-white/15 backdrop-blur-md rounded-xl px-4 py-3 border border-white/20 shrink-0">
-            <div className="w-10 h-10 rounded-lg bg-amber-400/20 flex items-center justify-center text-amber-300">
-              <Flame className="w-6 h-6 fill-amber-400 text-amber-400" />
+          <div className="flex items-center gap-3 bg-white/15 backdrop-blur-md rounded-xl px-4 py-2.5 border border-white/20 shrink-0 self-stretch sm:self-auto justify-between sm:justify-start">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-amber-400/20 flex items-center justify-center text-amber-300">
+              <Flame className="w-5 h-5 sm:w-6 sm:h-6 fill-amber-400 text-amber-400" />
             </div>
             <div>
-              <div className="text-xl font-extrabold leading-none text-white">
+              <div className="text-lg sm:text-xl font-black leading-none text-white">
                 {streak} ngày
               </div>
-              <p className="text-white/80 text-[11px] font-medium mt-1">Chuỗi học tập</p>
+              <p className="text-white/80 text-[10px] sm:text-[11px] font-medium mt-0.5">Chuỗi học tập</p>
             </div>
           </div>
         </div>
 
-        {/* Daily Quests Widget */}
-        <DailyQuestsWidget />
+        {/* ⚡ TRUNG TÂM LUYỆN TẬP SIÊU TỐC - Quick Practice Hub */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-amber-500/15 flex items-center justify-center text-amber-600 dark:text-amber-400">
+                <Sparkles className="w-4 h-4 text-amber-500" />
+              </div>
+              <h2 className="text-base sm:text-lg font-black text-foreground tracking-tight">
+                Vào Luyện Tập Nhanh
+              </h2>
+            </div>
+            <span className="text-xs font-bold text-muted-foreground hidden sm:inline">
+              Chọn chế độ luyện tập 1 chạm
+            </span>
+          </div>
 
-        {/* Leaderboard & Achievements Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <LeaderboardWidget />
-          <AchievementsWidget />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
+            {/* Card 1: Luyện Đề Full Test */}
+            <div className="relative overflow-hidden rounded-2xl border-2 border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 via-teal-500/5 to-card p-4 sm:p-5 flex flex-col justify-between gap-4 shadow-sm hover:shadow-md hover:border-emerald-500/50 transition-all group">
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="w-11 h-11 rounded-xl bg-emerald-500 text-white flex items-center justify-center shadow-md shadow-emerald-500/20 group-hover:scale-105 transition-transform">
+                    <FileText className="w-6 h-6" />
+                  </div>
+                  <span className="bg-emerald-500 text-white text-[10px] uppercase font-black px-2.5 py-1 rounded-full shadow-2xs tracking-wider">
+                    200 Câu • Bấm Giờ
+                  </span>
+                </div>
+                <div>
+                  <h3 className="font-black text-base sm:text-lg text-foreground group-hover:text-emerald-600 transition-colors">
+                    Luyện Đề Full Test TOEIC
+                  </h3>
+                  <p className="text-xs text-muted-foreground font-medium leading-relaxed mt-1">
+                    Bộ đề thi thử sát đề thật 2026/2025, bấm giờ làm bài 120 phút, chấm điểm Listening & Reading tự động kèm giải thích từng câu.
+                  </p>
+                </div>
+              </div>
+
+              <Link
+                to="/courses?filter=fulltest"
+                className="btn-3d btn-3d-green w-full py-3 sm:py-3.5 text-sm sm:text-base font-black flex items-center justify-center gap-2 shadow-sm text-center"
+              >
+                <span>Vào Luyện Đề Ngay 🎯</span>
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </Link>
+            </div>
+
+            {/* Card 2: Luyện Nghe Điền Từ (Dictation) */}
+            <div className="relative overflow-hidden rounded-2xl border-2 border-[var(--duo-blue)]/30 bg-gradient-to-br from-[var(--duo-blue)]/10 via-indigo-500/5 to-card p-4 sm:p-5 flex flex-col justify-between gap-4 shadow-sm hover:shadow-md hover:border-[var(--duo-blue)]/50 transition-all group">
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="w-11 h-11 rounded-xl bg-[var(--duo-blue)] text-white flex items-center justify-center shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform">
+                    <Headphones className="w-6 h-6" />
+                  </div>
+                  <span className="bg-[var(--duo-blue)] text-white text-[10px] uppercase font-black px-2.5 py-1 rounded-full shadow-2xs tracking-wider">
+                    Kéo Thả Cảm Ứng
+                  </span>
+                </div>
+                <div>
+                  <h3 className="font-black text-base sm:text-lg text-foreground group-hover:text-[var(--duo-blue)] transition-colors">
+                    Luyện Nghe Điền Từ (Dictation)
+                  </h3>
+                  <p className="text-xs text-muted-foreground font-medium leading-relaxed mt-1">
+                    Luyện nghe chép chính tả chuyên sâu, kéo thả từ khóa mượt mà trên điện thoại, nhận diện phát âm nuốt âm, bứt phá điểm số.
+                  </p>
+                </div>
+              </div>
+
+              <Link
+                to="/courses?filter=listening"
+                className="btn-3d btn-3d-blue w-full py-3 sm:py-3.5 text-sm sm:text-base font-black flex items-center justify-center gap-2 shadow-sm text-center"
+              >
+                <span>Vào Luyện Nghe Điền Từ 🎧</span>
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </Link>
+            </div>
+          </div>
         </div>
 
         {/* Continue Learning Widget */}
         {lastLessonDetails && (
-          <div className="rounded-2xl border border-blue-200 dark:border-blue-900/50 bg-blue-50/50 dark:bg-blue-950/20 p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition-all hover:border-blue-300">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+          <div className="rounded-2xl border border-blue-200 dark:border-blue-900/50 bg-blue-50/50 dark:bg-blue-950/20 p-4 sm:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition-all hover:border-blue-300">
+            <div className="flex items-center gap-3.5 sm:gap-4">
+              <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-sm">
                 <Play className="w-5 h-5 fill-white" />
               </div>
-              <div className="space-y-0.5">
-                <span className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
+              <div className="space-y-0.5 min-w-0">
+                <span className="text-[11px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
                   Học tiếp bài gần nhất
                 </span>
-                <h3 className="font-bold text-foreground text-base leading-snug">
+                <h3 className="font-bold text-foreground text-sm sm:text-base leading-snug truncate">
                   {lastLessonDetails.title}
                 </h3>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground truncate">
                   Khóa học: <span className="text-foreground font-medium">{(lastLessonDetails.modules as any)?.courses?.title}</span>
                 </p>
               </div>
@@ -265,6 +334,12 @@ const Dashboard = () => {
             </Link>
           </div>
         )}
+
+        {/* Daily Quests Widget */}
+        <DailyQuestsWidget />
+
+        {/* Achievements Widget */}
+        <AchievementsWidget />
 
         {/* Quick Navigation Shortcuts */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

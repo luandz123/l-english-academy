@@ -44,6 +44,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { useSound } from "@/hooks/useSound";
+import { useTouchDrag, TouchDragGhost } from "@/hooks/useTouchDrag";
 
 // Web Speech API helper for clear TTS pronunciation
 const speakText = (text: string) => {
@@ -224,8 +225,21 @@ export const isQuestionValidForMode = (
 ): { isValid: boolean; reason?: string } => {
   if (!question) return { isValid: false, reason: "Câu hỏi không tồn tại" };
 
+  // Audio is mandatory for dictation
+  if (!question.audio_url || !question.audio_url.trim()) {
+    return { isValid: false, reason: "Thiếu file nghe audio" };
+  }
+
   const hasQuestionText = Boolean(question.question_text?.trim() && question.question_text !== 'Audio dictation');
-  const validAnswers = Array.isArray(question.answers) ? question.answers.filter((a: any) => Boolean(a.answer_text?.trim())) : [];
+  
+  // Valid answers must have actual text (not just single multiple-choice letters like A, B, C, D)
+  const validAnswers = Array.isArray(question.answers) ? question.answers.filter((a: any) => {
+    const txt = a.answer_text?.trim();
+    if (!txt) return false;
+    if (/^[A-D]$/i.test(txt) && !hasQuestionText) return false;
+    return true;
+  }) : [];
+
   const hasAnyText = hasQuestionText || validAnswers.length > 0;
 
   if (!hasAnyText) {
@@ -654,7 +668,7 @@ const DictationPage = () => {
   const isKeywordMode = dictationMode === "drag" || dictationMode === "keyword";
   const [isPlaying, setIsPlaying] = useState(false);
   const [questionFilter, setQuestionFilter] = useState<"all" | "uncompleted">("all");
-  const [reviewFilter, setReviewFilter] = useState<"all" | "correct" | "skipped" | "auto">("all");
+  const [reviewFilter, setReviewFilter] = useState<"all" | "correct" | "skipped">("all");
   const [correctKeywordsMap, setCorrectKeywordsMap] = useState<Record<number, Set<string>>>({});
   const [timeLimitMinutes, setTimeLimitMinutes] = useState<number>(0);
   const [timeLeftSeconds, setTimeLeftSeconds] = useState<number | null>(null);
@@ -732,7 +746,7 @@ const DictationPage = () => {
     queryKey: ["dictation-vocab", quizId],
     queryFn: async () => {
       if (!quizData?.questions || quizData.questions.length === 0) return [];
-      const questionIds = quizData.questions.map((q: any) => q.id);
+      const questionIds = quizData.questions.map((q: any) => q?.id).filter(Boolean);
       
       const { data, error } = await supabase
         .from("vocab_questions")
@@ -817,16 +831,29 @@ const DictationPage = () => {
   // Raw questions from quiz
   const rawQuestions = useMemo(() => quizData?.questions ?? [], [quizData?.questions]);
 
-  // Valid questions for the selected dictation mode (filter out faulty / missing keyword questions)
+  // Valid questions for the selected dictation mode (strictly filtered to only include complete, standard questions)
   const questions = useMemo(() => {
     return rawQuestions.filter((q: any) => isQuestionValidForMode(q, dictationMode, vocabWords).isValid);
   }, [rawQuestions, dictationMode, vocabWords]);
 
-  const invalidQuestionsCount = useMemo(() => {
-    return rawQuestions.length - questions.length;
-  }, [rawQuestions.length, questions.length]);
-
   const completedQuestionIds = useMemo(() => new Set(userAnswers.map((ua: any) => ua.question_id)), [userAnswers]);
+
+  // Mode availability counts
+  const modeCounts = useMemo(() => {
+    const dragCount = rawQuestions.filter((q: any) => isQuestionValidForMode(q, "drag", vocabWords).isValid).length;
+    const keywordCount = rawQuestions.filter((q: any) => isQuestionValidForMode(q, "keyword", vocabWords).isValid).length;
+    const fullCount = rawQuestions.filter((q: any) => isQuestionValidForMode(q, "full", vocabWords).isValid).length;
+    return { drag: dragCount, keyword: keywordCount, full: fullCount };
+  }, [rawQuestions, vocabWords]);
+
+  // Auto-switch to full mode if current mode has no valid questions for this quiz
+  useEffect(() => {
+    if (!quizLoading && rawQuestions.length > 0 && !hasInitializedSelection.current) {
+      if ((dictationMode === "drag" || dictationMode === "keyword") && modeCounts[dictationMode] === 0 && modeCounts.full > 0) {
+        setDictationMode("full");
+      }
+    }
+  }, [quizLoading, rawQuestions.length, dictationMode, modeCounts]);
 
   // Active questions selected for this practice session
   const activeQuestions = useMemo(() => {
@@ -839,22 +866,13 @@ const DictationPage = () => {
     return getAllLessonKeywords(activeQuestions, vocabWords);
   }, [activeQuestions, vocabWords]);
 
-  // Check if a question is considered auto-completed in Keyword Mode (has no keywords)
-  const isQuestionNoKeyword = useCallback((q: any) => {
-    if (!q) return false;
-    return !checkQuestionHasKeywords(q, vocabWords);
-  }, [vocabWords]);
-
-  // Check if a question is considered completed in current session or previous sessions (any mode)
-  const isQuestionDone = useCallback((qId: number) => {
+  // Check if a question is considered completed in current session or previous sessions
+  const isQuestionDone = useCallback((qId?: number) => {
+    if (!qId) return false;
     if (sessionDone.has(qId)) return true;
     if (completedQuestionIds.has(qId)) return true;
-    if (isKeywordMode && vocabWords.length > 0) {
-      const q = questions.find((item: any) => item.id === qId);
-      if (q && isQuestionNoKeyword(q)) return true;
-    }
     return false;
-  }, [sessionDone, completedQuestionIds, isKeywordMode, vocabWords.length, questions, isQuestionNoKeyword]);
+  }, [sessionDone, completedQuestionIds]);
 
   // Save answer mutation
   const saveAnswerMutation = useMutation({
@@ -1104,12 +1122,17 @@ const DictationPage = () => {
 
   // Handle smart active questions initialization
   useEffect(() => {
-    const qs = quizData?.questions || [];
-    if (qs.length === 0 || started) return;
+    if (questions.length === 0 || started) {
+      if (questions.length === 0 && activeQuestionIndices.length > 0) {
+        setActiveQuestionIndices([]);
+        setCurrentIndex(0);
+      }
+      return;
+    }
 
     if (passedQuestionIds && passedQuestionIds.length > 0) {
-      const indices = qs
-        .map((q, i) => passedQuestionIds.includes(q.id) ? i : -1)
+      const indices = questions
+        .map((q, i) => (q && passedQuestionIds.includes(q.id)) ? i : -1)
         .filter(i => i !== -1);
       
       if (indices.length > 0) {
@@ -1121,8 +1144,8 @@ const DictationPage = () => {
     }
 
     if (!hasInitializedSelection.current && !answersLoading && !resultLoading) {
-      const uncompletedIndices = qs
-        .map((q, idx) => (!isQuestionDone(q.id) ? idx : -1))
+      const uncompletedIndices = questions
+        .map((q, idx) => (q && !isQuestionDone(q.id) ? idx : -1))
         .filter(idx => idx !== -1);
 
       if (uncompletedIndices.length > 0) {
@@ -1130,13 +1153,31 @@ const DictationPage = () => {
         setActiveQuestionIndices(nextBatch);
         setCurrentIndex(nextBatch[0]);
       } else {
-        const defaultBatch = qs.map((_, i) => i).slice(0, Math.min(5, qs.length));
+        const defaultBatch = questions.map((_, i) => i).slice(0, Math.min(5, questions.length));
         setActiveQuestionIndices(defaultBatch);
         setCurrentIndex(0);
       }
       hasInitializedSelection.current = true;
     }
-  }, [quizData?.questions, started, passedQuestionIds, isQuestionDone, answersLoading, resultLoading]);
+  }, [questions, started, passedQuestionIds, isQuestionDone, answersLoading, resultLoading]);
+
+  // Sanitize activeQuestionIndices whenever valid questions change
+  useEffect(() => {
+    setActiveQuestionIndices(prev => {
+      const valid = prev.filter(idx => idx >= 0 && idx < questions.length);
+      if (valid.length !== prev.length) {
+        return valid;
+      }
+      return prev;
+    });
+  }, [questions.length]);
+
+  // Ensure currentIndex stays within bounds of questions
+  useEffect(() => {
+    if (questions.length > 0 && currentIndex >= questions.length) {
+      setCurrentIndex(0);
+    }
+  }, [questions.length, currentIndex]);
 
   // Completed question count across active or total
   const completedTotalCount = useMemo(() => {
@@ -1146,7 +1187,10 @@ const DictationPage = () => {
   // Questions displayed in matrix according to filter
   const displayedQuestions = useMemo(() => {
     if (questionFilter === "uncompleted") {
-      const uncompleted = activeQuestionIndices.filter(idx => !isQuestionDone(questions[idx]?.id));
+      const uncompleted = activeQuestionIndices.filter(idx => {
+        const q = questions[idx];
+        return q && !isQuestionDone(q.id);
+      });
       return uncompleted.length > 0 ? uncompleted : activeQuestionIndices;
     }
     return activeQuestionIndices;
@@ -1205,6 +1249,7 @@ const DictationPage = () => {
       let kwCount = 0;
       activeQuestionIndices.forEach(idx => {
         const q = questions[idx];
+        if (!q) return;
         const st = getQuestionKeywordStats(q, vocabWords, isQuestionDone(q.id), correctKeywordsMap[q.id]);
         kwCount += st.correctWords;
       });
@@ -1328,108 +1373,117 @@ const DictationPage = () => {
                    <Sparkles className="w-5 h-5 text-[var(--duo-blue)]" />
                    <span className="text-base font-extrabold text-foreground">Chế độ luyện tập</span>
                  </div>
-                 <span className="text-xs font-black text-[var(--duo-blue)] bg-blue-100 px-2.5 py-1 rounded-lg border border-blue-200">
-                   {dictationMode === "drag" ? "🎯 Kéo thả từ khóa" : dictationMode === "keyword" ? "✍️ Gõ từ khóa" : "📝 Chép chính tả cả câu"}
-                 </span>
                </div>
 
                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                 {/* Mode 1: Drag & Drop */}
-                 <button
-                   type="button"
-                   onClick={() => handleModeChange("drag")}
-                   className={cn(
-                     "p-3.5 sm:p-4 rounded-xl border-2 text-left transition-all relative flex flex-col justify-between gap-1.5 cursor-pointer",
-                     dictationMode === "drag"
-                       ? "bg-[var(--duo-blue)]/10 border-[var(--duo-blue)] shadow-[0_2px_0_var(--duo-blue)] -translate-y-0.5"
-                       : "bg-white border-border hover:bg-muted/40"
-                   )}
-                 >
-                   <div className="space-y-1">
-                     <div className="flex items-center justify-between">
-                       <span className="font-black text-sm sm:text-base text-foreground flex items-center gap-1.5">
-                         🎯 Kéo thả từ khóa
-                       </span>
-                       <span className="bg-[var(--duo-blue)] text-white text-[9px] uppercase font-black px-1.5 py-0.5 rounded-full">
-                         Mới
-                       </span>
-                     </div>
-                     <p className="text-xs font-bold text-muted-foreground leading-relaxed">
-                       Kéo hoặc chạm các từ khóa (keys trong câu) vào chỗ trống. Nhanh & trực quan.
-                     </p>
-                   </div>
-                 </button>
+                  {/* Mode 1: Drag & Drop */}
+                  <button
+                    type="button"
+                    disabled={modeCounts.drag === 0}
+                    onClick={() => handleModeChange("drag")}
+                    className={cn(
+                      "p-3.5 sm:p-4 rounded-xl border-2 text-left transition-all relative flex flex-col justify-between gap-1.5",
+                      modeCounts.drag === 0
+                        ? "opacity-50 cursor-not-allowed bg-muted/20 border-dashed"
+                        : dictationMode === "drag"
+                        ? "bg-[var(--duo-blue)]/10 border-[var(--duo-blue)] shadow-[0_2px_0_var(--duo-blue)] -translate-y-0.5 cursor-pointer"
+                        : "bg-white border-border hover:bg-muted/40 cursor-pointer"
+                    )}
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="font-black text-sm sm:text-base text-foreground flex items-center gap-1.5">
+                          🎯 Kéo thả từ khóa
+                        </span>
+                        {modeCounts.drag === 0 ? (
+                          <span className="bg-muted text-muted-foreground text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+                            Chưa hỗ trợ
+                          </span>
+                        ) : (
+                          <span className="bg-[var(--duo-blue)] text-white text-[9px] uppercase font-black px-1.5 py-0.5 rounded-full">
+                            Mới
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs font-bold text-muted-foreground leading-relaxed">
+                        Kéo hoặc chạm các từ khóa vào chỗ trống. Nhanh & trực quan.
+                      </p>
+                    </div>
+                  </button>
 
-                 {/* Mode 2: Keyword Typing */}
-                 <button
-                   type="button"
-                   onClick={() => handleModeChange("keyword")}
-                   className={cn(
-                     "p-3.5 sm:p-4 rounded-xl border-2 text-left transition-all relative flex flex-col justify-between gap-1.5 cursor-pointer",
-                     dictationMode === "keyword"
-                       ? "bg-[var(--duo-blue)]/10 border-[var(--duo-blue)] shadow-[0_2px_0_var(--duo-blue)] -translate-y-0.5"
-                       : "bg-white border-border hover:bg-muted/40"
-                   )}
-                 >
-                   <div className="space-y-1">
-                     <div className="flex items-center justify-between">
-                       <span className="font-black text-sm sm:text-base text-foreground flex items-center gap-1.5">
-                         ✍️ Gõ từ khóa
-                       </span>
-                     </div>
-                     <p className="text-xs font-bold text-muted-foreground leading-relaxed">
-                       Tự nhập bàn phím các từ khóa còn thiếu vào từng ô trống.
-                     </p>
-                   </div>
-                 </button>
+                  {/* Mode 2: Keyword Typing */}
+                  <button
+                    type="button"
+                    disabled={modeCounts.keyword === 0}
+                    onClick={() => handleModeChange("keyword")}
+                    className={cn(
+                      "p-3.5 sm:p-4 rounded-xl border-2 text-left transition-all relative flex flex-col justify-between gap-1.5",
+                      modeCounts.keyword === 0
+                        ? "opacity-50 cursor-not-allowed bg-muted/20 border-dashed"
+                        : dictationMode === "keyword"
+                        ? "bg-[var(--duo-blue)]/10 border-[var(--duo-blue)] shadow-[0_2px_0_var(--duo-blue)] -translate-y-0.5 cursor-pointer"
+                        : "bg-white border-border hover:bg-muted/40 cursor-pointer"
+                    )}
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="font-black text-sm sm:text-base text-foreground flex items-center gap-1.5">
+                          ✍️ Gõ từ khóa
+                        </span>
+                        {modeCounts.keyword === 0 && (
+                          <span className="bg-muted text-muted-foreground text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+                            Chưa hỗ trợ
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs font-bold text-muted-foreground leading-relaxed">
+                        Tự nhập bàn phím các từ khóa còn thiếu vào từng ô trống.
+                      </p>
+                    </div>
+                  </button>
 
-                 {/* Mode 3: Full Dictation */}
-                 <button
-                   type="button"
-                   onClick={() => handleModeChange("full")}
-                   className={cn(
-                     "p-3.5 sm:p-4 rounded-xl border-2 text-left transition-all relative flex flex-col justify-between gap-1.5 cursor-pointer",
-                     dictationMode === "full"
-                       ? "bg-[var(--duo-blue)]/10 border-[var(--duo-blue)] shadow-[0_2px_0_var(--duo-blue)] -translate-y-0.5"
-                       : "bg-white border-border hover:bg-muted/40"
-                   )}
-                 >
-                   <div className="space-y-1">
-                     <div className="flex items-center justify-between">
-                       <span className="font-black text-sm sm:text-base text-foreground flex items-center gap-1.5">
-                         📝 Gõ cả câu
-                       </span>
-                     </div>
-                     <p className="text-xs font-bold text-muted-foreground leading-relaxed">
-                       Luyện nghe nâng cao và tự gõ lại toàn bộ câu đầy đủ.
-                     </p>
-                   </div>
-                 </button>
-               </div>
+                  {/* Mode 3: Full Dictation */}
+                  <button
+                    type="button"
+                    disabled={modeCounts.full === 0}
+                    onClick={() => handleModeChange("full")}
+                    className={cn(
+                      "p-3.5 sm:p-4 rounded-xl border-2 text-left transition-all relative flex flex-col justify-between gap-1.5",
+                      modeCounts.full === 0
+                        ? "opacity-50 cursor-not-allowed bg-muted/20 border-dashed"
+                        : dictationMode === "full"
+                        ? "bg-[var(--duo-blue)]/10 border-[var(--duo-blue)] shadow-[0_2px_0_var(--duo-blue)] -translate-y-0.5 cursor-pointer"
+                        : "bg-white border-border hover:bg-muted/40 cursor-pointer"
+                    )}
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="font-black text-sm sm:text-base text-foreground flex items-center gap-1.5">
+                          📝 Gõ cả câu
+                        </span>
+                        {modeCounts.full === 0 && (
+                          <span className="bg-muted text-muted-foreground text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+                            Chưa hỗ trợ
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs font-bold text-muted-foreground leading-relaxed">
+                        Luyện nghe nâng cao và tự gõ lại toàn bộ câu đầy đủ.
+                      </p>
+                    </div>
+                  </button>
+                </div>
              </div>
-
-             {/* Invalid Questions Filtered Notification Banner */}
-             {invalidQuestionsCount > 0 && (
-               <div className="p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-center justify-between text-xs text-amber-800 font-bold animate-in fade-in">
-                 <span className="flex items-center gap-2">
-                   <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
-                   <span>Đã tự động lọc và ẩn <strong>{invalidQuestionsCount} câu</strong> thiếu từ khóa / dữ liệu trong chế độ này.</span>
-                 </span>
-                 <span className="text-[11px] bg-white px-2.5 py-0.5 rounded-lg border border-amber-200 shadow-2xs font-extrabold text-amber-900 shrink-0">
-                   {questions.length}/{rawQuestions.length} câu khả dụng
-                 </span>
-               </div>
-             )}
 
              {questions.length === 0 ? (
                <div className="p-8 text-center bg-white rounded-2xl border-2 space-y-4 shadow-sm">
-                 <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-2xl mx-auto flex items-center justify-center font-black">
-                   ⚠️
+                 <div className="w-12 h-12 bg-blue-100 text-[var(--duo-blue)] rounded-2xl mx-auto flex items-center justify-center font-black">
+                   🎧
                  </div>
                  <div className="space-y-1">
-                   <h3 className="text-lg font-black text-foreground">Không có câu hỏi từ khóa khả dụng</h3>
+                   <h3 className="text-lg font-black text-foreground">Chế độ này chưa có câu hỏi phù hợp</h3>
                    <p className="text-sm font-bold text-muted-foreground max-w-md mx-auto">
-                     Các câu trong bài này chưa được cấu hình từ khóa. Bạn có thể chuyển sang chế độ "Gõ cả câu" để luyện tập ngay nhé!
+                     Bạn có thể chuyển sang chế độ "Gõ cả câu" để bắt đầu luyện tập ngay nhé!
                    </p>
                  </div>
                  <Button
@@ -1566,7 +1620,12 @@ const DictationPage = () => {
                   <div className="flex items-center gap-3 text-[var(--duo-blue)]">
                     <Library className="w-5 h-5" />
                     <span className="text-base font-extrabold">
-                      Các câu đã chọn có {vocabWords.filter((w: any) => activeQuestionIndices.map(idx => questions[idx].id).includes(w.question_id)).length} từ vựng
+                      Các câu đã chọn có {vocabWords.filter((w: any) => {
+                        const selectedQuestionIds = activeQuestionIndices
+                          .map(idx => questions[idx]?.id)
+                          .filter((id): id is number => typeof id === "number");
+                        return selectedQuestionIds.includes(w.question_id);
+                      }).length} từ vựng
                     </span>
                   </div>
                   <Button 
@@ -1574,7 +1633,9 @@ const DictationPage = () => {
                     size="sm" 
                     className="text-[var(--duo-blue)] font-extrabold text-base hover:text-[var(--duo-blue)]/80 p-0"
                     onClick={() => {
-                      const selectedIds = activeQuestionIndices.map(idx => questions[idx].id);
+                      const selectedIds = activeQuestionIndices
+                        .map(idx => questions[idx]?.id)
+                        .filter((id): id is number => typeof id === "number");
                       if (effectiveLessonId) {
                         navigate(`/courses/${courseId}/vocab-lesson/${effectiveLessonId}`, { state: { questionIds: selectedIds } });
                       } else {
@@ -1606,7 +1667,6 @@ const DictationPage = () => {
                  {questions.map((q: any, idx: number) => {
                    const isDone = isQuestionDone(q.id);
                    const isSelected = activeQuestionIndices.includes(idx);
-                   const isAuto = isKeywordMode && isQuestionNoKeyword(q);
                    const qVocabCount = vocabWords.filter((w: any) => w.question_id === q.id).length;
 
                    return (
@@ -1645,15 +1705,9 @@ const DictationPage = () => {
                            )}
                          </div>
 
-                         {isAuto ? (
-                           <span className="text-[10px] font-extrabold text-[var(--duo-blue)] block">
-                             Tự động hoàn thành (Không có keyword)
-                           </span>
-                         ) : (
-                           <span className="text-xs text-muted-foreground font-medium block truncate">
-                             {qVocabCount > 0 ? `${qVocabCount} từ vựng` : "Từ khóa câu"} • {q.question_text?.trim() && q.question_text !== 'Audio dictation' ? q.question_text : "Audio bài nghe"}
-                           </span>
-                         )}
+                         <span className="text-xs text-muted-foreground font-medium block truncate">
+                           {qVocabCount > 0 ? `${qVocabCount} từ vựng` : "Từ khóa câu"} • {q.question_text?.trim() && q.question_text !== 'Audio dictation' ? q.question_text : "Audio bài nghe"}
+                         </span>
                        </div>
                      </label>
                    );
@@ -1679,21 +1733,26 @@ const DictationPage = () => {
   // ==========================================
   if (isSubmitted) {
     const totalPracticed = activeQuestionIndices.length;
-    const correctIndices = activeQuestionIndices.filter(idx => isQuestionDone(questions[idx]?.id));
-    const autoCompletedIndices = activeQuestionIndices.filter(idx => isKeywordMode && isQuestionNoKeyword(questions[idx]));
+    const correctIndices = activeQuestionIndices.filter(idx => {
+      const q = questions[idx];
+      return q && isQuestionDone(q.id);
+    });
     const skippedIndices = activeQuestionIndices.filter(idx => !correctIndices.includes(idx));
 
     // Word level stats calculation for each question
-    const wordStatsByQuestion = activeQuestionIndices.map(idx => {
-      const q = questions[idx];
-      const isDone = isQuestionDone(q?.id);
-      const stats = getQuestionKeywordStats(q, vocabWords, isDone, correctKeywordsMap[q?.id]);
-      return {
-        idx,
-        question: q,
-        stats
-      };
-    });
+    const wordStatsByQuestion = activeQuestionIndices
+      .map(idx => {
+        const q = questions[idx];
+        if (!q) return null;
+        const isDone = isQuestionDone(q.id);
+        const stats = getQuestionKeywordStats(q, vocabWords, isDone, correctKeywordsMap[q.id]);
+        return {
+          idx,
+          question: q,
+          stats
+        };
+      })
+      .filter((item): item is NonNullable<typeof item> => item !== null);
 
     const totalKeywordsCount = wordStatsByQuestion.reduce((sum, item) => sum + item.stats.totalWords, 0);
     const correctKeywordsCount = wordStatsByQuestion.reduce((sum, item) => sum + item.stats.correctWords, 0);
@@ -1707,7 +1766,7 @@ const DictationPage = () => {
     if (isKeywordMode && totalKeywordsCount > 0) {
       accuracy = Math.round((correctKeywordsCount / totalKeywordsCount) * 100);
       scoreOutOf10 = Number(((correctKeywordsCount / totalKeywordsCount) * 10).toFixed(1));
-      xpEarned = Math.max(10, correctKeywordsCount * 5 + autoCompletedIndices.length * 5);
+      xpEarned = Math.max(10, correctKeywordsCount * 5);
     } else {
       accuracy = totalPracticed > 0 ? Math.round((correctIndices.length / totalPracticed) * 100) : 0;
       scoreOutOf10 = totalPracticed > 0 ? Number(((correctIndices.length / totalPracticed) * 10).toFixed(1)) : 0;
@@ -1717,12 +1776,11 @@ const DictationPage = () => {
     // Filter questions for review list
     const filteredReviewIndices = activeQuestionIndices.filter(idx => {
       const q = questions[idx];
-      const isDone = isQuestionDone(q?.id);
-      const isAuto = isKeywordMode && isQuestionNoKeyword(q);
+      if (!q) return false;
+      const isDone = isQuestionDone(q.id);
 
       if (reviewFilter === "correct") return isDone;
       if (reviewFilter === "skipped") return !isDone;
-      if (reviewFilter === "auto") return isAuto;
       return true;
     });
 
@@ -1859,7 +1917,7 @@ const DictationPage = () => {
                   className="btn-3d bg-white text-[var(--duo-blue)] border-[var(--duo-blue)]/30 hover:bg-blue-50 py-5 px-6 text-base font-extrabold h-auto"
                   onClick={() => {
                     navigate(`/courses/${courseId}/vocab-lesson/${effectiveLessonId}`, { 
-                      state: { questionIds: activeQuestionIndices.map(idx => questions[idx].id) } 
+                      state: { questionIds: activeQuestionIndices.map(idx => questions[idx]?.id).filter(Boolean) } 
                     });
                   }}
                 >
@@ -1903,7 +1961,7 @@ const DictationPage = () => {
                   onClick={() => setReviewFilter("all")}
                   className={cn(
                     "px-3 py-1.5 rounded-lg transition-all",
-                    reviewFilter === "all" ? "bg-white text-[var(--duo-blue)] shadow-sm border border-[var(--duo-blue)]/20" : "text-muted-foreground hover:text-foreground"
+                    reviewFilter === "all" ? "bg-white text-foreground shadow-sm font-bold" : "text-muted-foreground hover:text-foreground"
                   )}
                 >
                   Tất cả ({totalPracticed})
@@ -1913,33 +1971,21 @@ const DictationPage = () => {
                   onClick={() => setReviewFilter("correct")}
                   className={cn(
                     "px-3 py-1.5 rounded-lg transition-all",
-                    reviewFilter === "correct" ? "bg-white text-[var(--duo-correct)] shadow-sm border border-[var(--duo-correct)]/20" : "text-muted-foreground hover:text-foreground"
+                    reviewFilter === "correct" ? "bg-white text-[var(--duo-correct)] shadow-sm border border-[var(--duo-correct)]/20 font-bold" : "text-muted-foreground hover:text-foreground"
                   )}
                 >
-                  Đúng ({correctIndices.length})
+                  Đã hoàn thành ({correctIndices.length})
                 </button>
                 <button
                   type="button"
                   onClick={() => setReviewFilter("skipped")}
                   className={cn(
                     "px-3 py-1.5 rounded-lg transition-all",
-                    reviewFilter === "skipped" ? "bg-white text-[var(--duo-red)] shadow-sm border border-[var(--duo-red)]/20" : "text-muted-foreground hover:text-foreground"
+                    reviewFilter === "skipped" ? "bg-white text-[var(--duo-red)] shadow-sm border border-[var(--duo-red)]/20 font-bold" : "text-muted-foreground hover:text-foreground"
                   )}
                 >
                   Bỏ qua / Chưa xong ({skippedIndices.length})
                 </button>
-                {autoCompletedIndices.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setReviewFilter("auto")}
-                    className={cn(
-                      "px-3 py-1.5 rounded-lg transition-all",
-                      reviewFilter === "auto" ? "bg-white text-[var(--duo-blue)] shadow-sm border border-[var(--duo-blue)]/20" : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    Tự động ({autoCompletedIndices.length})
-                  </button>
-                )}
               </div>
             </div>
 
@@ -1947,8 +1993,8 @@ const DictationPage = () => {
             <div className="space-y-4">
               {filteredReviewIndices.map((idx) => {
                 const q = questions[idx];
+                if (!q) return null;
                 const isDone = isQuestionDone(q.id);
-                const isAuto = isKeywordMode && isQuestionNoKeyword(q);
                 const qVocab = vocabWords.filter((w: any) => w.question_id === q.id);
                 const qKeywords = getQuestionKeywords(q, vocabWords);
                 const qStats = getQuestionKeywordStats(q, vocabWords, isDone, correctKeywordsMap[q.id]);
@@ -1957,9 +2003,7 @@ const DictationPage = () => {
                   <div key={q.id} className={cn(
                     "card-duo p-5 sm:p-6 space-y-4 bg-white border-2 transition-all",
                     isDone 
-                      ? isAuto 
-                        ? "border-[var(--duo-blue)]/30 hover:border-[var(--duo-blue)]/60" 
-                        : "border-[var(--duo-correct)]/40 hover:border-[var(--duo-correct)]" 
+                      ? "border-[var(--duo-correct)]/40 hover:border-[var(--duo-correct)]" 
                       : qStats.correctWords > 0 
                       ? "border-amber-300 bg-amber-50/20 hover:border-amber-400"
                       : "border-red-300 bg-red-50/20 hover:border-red-400"
@@ -1974,11 +2018,7 @@ const DictationPage = () => {
                         
                         {/* Status Badge */}
                         {isDone ? (
-                          isAuto ? (
-                            <span className="inline-flex items-center gap-1 text-xs font-black text-[var(--duo-blue)] bg-[var(--duo-blue)]/10 px-2.5 py-1 rounded-xl border border-[var(--duo-blue)]/30">
-                              <Sparkles className="w-3.5 h-3.5" /> Tự động hoàn thành (Không có từ khóa)
-                            </span>
-                          ) : isKeywordMode ? (
+                          isKeywordMode ? (
                             <span className="inline-flex items-center gap-1 text-xs font-black text-[var(--duo-correct)] bg-[var(--duo-correct)]/10 px-2.5 py-1 rounded-xl border border-[var(--duo-correct)]/30">
                               <CheckCircle className="w-3.5 h-3.5" /> Đúng đủ {qStats.totalWords}/{qStats.totalWords} từ khóa (+{qStats.totalWords * 5} XP)
                             </span>
@@ -2133,7 +2173,23 @@ const DictationPage = () => {
   // ==========================================
   // Active Dictation Training Screen
   // ==========================================
-  const isCurrentAuto = isKeywordMode && isQuestionNoKeyword(currentQuestion);
+  if (started && (!currentQuestion || questions.length === 0)) {
+    return (
+      <StudentLayout>
+        <div className="max-w-xl mx-auto card-duo p-8 text-center bg-white border-2 space-y-4 my-12">
+          <AlertCircle className="w-12 h-12 text-[var(--duo-orange)] mx-auto" />
+          <h2 className="text-xl font-black text-foreground">Không tìm thấy câu hỏi</h2>
+          <p className="text-sm font-bold text-muted-foreground">
+            Danh sách câu hỏi đã chọn không còn khả dụng hoặc chưa có câu hỏi nào.
+          </p>
+          <Button onClick={() => setStarted(false)} className="btn-3d btn-3d-primary font-black">
+            <ArrowLeft className="w-4 h-4 mr-2" /> Quay lại chọn câu
+          </Button>
+        </div>
+      </StudentLayout>
+    );
+  }
+
   const isCurrentDone = currentQuestion ? isQuestionDone(currentQuestion.id) : false;
 
   return (
@@ -2221,6 +2277,7 @@ const DictationPage = () => {
                     <div className="grid grid-cols-5 gap-2">
                       {activeQuestionIndices.map((idx: number) => {
                         const q = questions[idx];
+                        if (!q) return null;
                         const isDone = isQuestionDone(q.id);
                         const isCurrent = currentIndex === idx;
                         return (
@@ -2308,11 +2365,6 @@ const DictationPage = () => {
                 <span className="text-xs font-bold text-muted-foreground bg-muted px-2.5 py-1 rounded-lg border">
                   {currentIndex + 1} / {questions.length}
                 </span>
-                {isCurrentAuto && (
-                  <span className="hidden sm:inline-flex items-center gap-1 text-xs font-extrabold text-[var(--duo-blue)] bg-[var(--duo-blue)]/10 px-2.5 py-0.5 rounded-full border border-[var(--duo-blue)]/20">
-                    <Sparkles className="w-3.5 h-3.5" /> Tự động hoàn thành
-                  </span>
-                )}
               </div>
               <div className="hidden sm:flex items-center gap-2 text-xs font-bold text-muted-foreground bg-muted/40 px-3 py-1.5 rounded-xl border">
                 <span className="flex items-center gap-1">
@@ -2511,6 +2563,7 @@ const DictationPage = () => {
               <div className="grid grid-cols-5 xl:grid-cols-6 gap-2">
                 {displayedQuestions.map((idx: number) => {
                   const q = questions[idx];
+                  if (!q) return null;
                   const isDone = isQuestionDone(q.id);
                   const isCurrent = currentIndex === idx;
                   return (
@@ -2525,7 +2578,7 @@ const DictationPage = () => {
                           ? "bg-[var(--duo-correct)] border-[var(--duo-correct-dark)] text-white shadow-[0_2px_0_var(--duo-correct-dark)] hover:brightness-105"
                           : "bg-white border-border text-foreground hover:border-[var(--duo-blue)]/50 hover:bg-blue-50/50 shadow-sm"
                       )}
-                      title={`Câu ${idx + 1}: ${isDone ? 'Đã làm / Tự động hoàn thành' : 'Chưa làm'}`}
+                      title={`Câu ${idx + 1}: ${isDone ? 'Đã hoàn thành' : 'Chưa làm'}`}
                     >
                       {idx + 1}
                       {isDone && !isCurrent && (
@@ -3014,7 +3067,70 @@ const DragDropQuestionGroup = ({
     }
   };
 
-  // Drag & Drop Handlers
+  // Place token helper (used by drop, touch drop, and click)
+  const placeToken = (token: any, targetBlankKey: string, fromBlankKey?: string) => {
+    if (status === "correct") return;
+
+    setPlacedMap(prev => {
+      const next = { ...prev };
+      const existingTargetToken = next[targetBlankKey];
+      if (fromBlankKey !== undefined && fromBlankKey !== null && fromBlankKey !== targetBlankKey) {
+        next[fromBlankKey] = existingTargetToken || null;
+      } else if (fromBlankKey === targetBlankKey) {
+        return prev;
+      }
+
+      next[targetBlankKey] = token;
+
+      // Auto check if all filled
+      const filledCount = Object.values(next).filter(Boolean).length;
+      if (filledCount === allBlanks.length) {
+        setTimeout(() => checkAnswers(next), 150);
+      }
+
+      return next;
+    });
+
+    setWrongBlanks(prev => {
+      const next = new Set(prev);
+      next.delete(targetBlankKey);
+      if (fromBlankKey) next.delete(fromBlankKey);
+      return next;
+    });
+    if (status === "error") setStatus("idle");
+  };
+
+  // Remove token helper (used when dragging out or tapping filled blank)
+  const removeTokenFromBlank = (token: any, blankKey: string) => {
+    if (status === "correct") return;
+    setPlacedMap(prev => {
+      const next = { ...prev };
+      delete next[blankKey];
+      return next;
+    });
+    setWrongBlanks(prev => {
+      const next = new Set(prev);
+      next.delete(blankKey);
+      return next;
+    });
+    if (status === "error") setStatus("idle");
+  };
+
+  // Mobile Touch Drag & Drop Hook
+  const touchDrag = useTouchDrag({
+    onDrop: (token, targetKey, fromKey) => {
+      placeToken(token, targetKey as string, fromKey as string | undefined);
+    },
+    onRemove: (token, fromKey) => {
+      removeTokenFromBlank(token, fromKey as string);
+    },
+    dataAttribute: "data-blank-key",
+  });
+
+  // State to track tap-selected blank (Tap-to-Place)
+  const [focusedBlankKey, setFocusedBlankKey] = useState<string | null>(null);
+
+  // Desktop Mouse Drag & Drop Handlers
   const handleDragStart = (e: React.DragEvent, token: any, fromBlankKey?: string) => {
     e.dataTransfer.setData("application/json", JSON.stringify({ token, fromBlankKey }));
     e.dataTransfer.effectAllowed = "move";
@@ -3043,81 +3159,39 @@ const DragDropQuestionGroup = ({
       const dataStr = e.dataTransfer.getData("application/json");
       if (!dataStr) return;
       const { token, fromBlankKey } = JSON.parse(dataStr);
-
-      setPlacedMap(prev => {
-        const next = { ...prev };
-        const existingTargetToken = next[targetBlankKey];
-        if (fromBlankKey !== undefined && fromBlankKey !== null && fromBlankKey !== targetBlankKey) {
-          next[fromBlankKey] = existingTargetToken || null;
-        } else if (fromBlankKey === targetBlankKey) {
-          return prev;
-        }
-
-        next[targetBlankKey] = token;
-
-        // Auto check if all filled
-        const filledCount = Object.values(next).filter(Boolean).length;
-        if (filledCount === allBlanks.length) {
-          setTimeout(() => checkAnswers(next), 150);
-        }
-
-        return next;
-      });
-
-      setWrongBlanks(prev => {
-        const next = new Set(prev);
-        next.delete(targetBlankKey);
-        if (fromBlankKey) next.delete(fromBlankKey);
-        return next;
-      });
-      if (status === "error") setStatus("idle");
-
+      placeToken(token, targetBlankKey, fromBlankKey);
     } catch (err) {
       console.warn("Drop error:", err);
     }
   };
 
-  // Click token in Word Bank -> fills first empty blank
+  // Click token in Word Bank -> fills focused blank, or first empty blank
   const handleTokenClick = (token: any) => {
     if (status === "correct") return;
 
-    const emptyBlank = allBlanks.find(b => !placedMap[b.blankKey]);
-    if (!emptyBlank) return;
+    const targetKey = focusedBlankKey && !placedMap[focusedBlankKey]
+      ? focusedBlankKey
+      : allBlanks.find(b => !placedMap[b.blankKey])?.blankKey;
 
-    setPlacedMap(prev => {
-      const next = { ...prev, [emptyBlank.blankKey]: token };
-      const filledCount = Object.values(next).filter(Boolean).length;
-      if (filledCount === allBlanks.length) {
-        setTimeout(() => checkAnswers(next), 150);
-      }
-      return next;
-    });
+    if (!targetKey) return;
 
-    setWrongBlanks(prev => {
-      const next = new Set(prev);
-      next.delete(emptyBlank.blankKey);
-      return next;
-    });
-    if (status === "error") setStatus("idle");
+    placeToken(token, targetKey);
+
+    // Auto advance focus to the next empty blank if available
+    const remainingEmpty = allBlanks.find(b => b.blankKey !== targetKey && !placedMap[b.blankKey]);
+    setFocusedBlankKey(remainingEmpty ? remainingEmpty.blankKey : null);
   };
 
-  // Click placed blank -> returns token to word bank
+  // Click blank -> if filled, returns token to bank and focuses blank; if empty, toggles focus
   const handleBlankClick = (blankKey: string) => {
     if (status === "correct") return;
-    if (!placedMap[blankKey]) return;
 
-    setPlacedMap(prev => {
-      const next = { ...prev };
-      delete next[blankKey];
-      return next;
-    });
-
-    setWrongBlanks(prev => {
-      const next = new Set(prev);
-      next.delete(blankKey);
-      return next;
-    });
-    if (status === "error") setStatus("idle");
+    if (placedMap[blankKey]) {
+      removeTokenFromBlank(placedMap[blankKey], blankKey);
+      setFocusedBlankKey(blankKey);
+    } else {
+      setFocusedBlankKey(prev => prev === blankKey ? null : blankKey);
+    }
   };
 
   return (
@@ -3158,18 +3232,21 @@ const DragDropQuestionGroup = ({
                   const currentBlankKey = `${itemIdx}-${blankCounter}`;
                   blankCounter++;
                   const placedToken = placedMap[currentBlankKey];
-                  const isHovered = hoveredBlankKey === currentBlankKey;
+                  const isHovered = (hoveredBlankKey === currentBlankKey) || (touchDrag.hoveredKey === currentBlankKey);
+                  const isFocused = (focusedBlankKey === currentBlankKey);
                   const isWrong = wrongBlanks.has(currentBlankKey);
 
                   return (
                     <div
                       key={`blank-${currentBlankKey}`}
+                      data-blank-key={currentBlankKey}
                       onDragOver={(e) => handleDragOver(e, currentBlankKey)}
                       onDragLeave={(e) => handleDragLeave(e, currentBlankKey)}
                       onDrop={(e) => handleDrop(e, currentBlankKey)}
                       onClick={() => handleBlankClick(currentBlankKey)}
+                      onTouchStart={(e) => placedToken && status !== "correct" && touchDrag.handleTouchStart(e, placedToken, currentBlankKey)}
                       className={cn(
-                        "inline-flex items-center justify-center min-w-[90px] sm:min-w-[120px] px-2.5 sm:px-3 py-1 mx-1.5 align-middle rounded-xl border-2 transition-all select-none",
+                        "inline-flex items-center justify-center min-w-[90px] sm:min-w-[120px] px-2.5 sm:px-3 py-1.5 sm:py-1 mx-1.5 my-1 align-middle rounded-xl border-2 transition-all select-none touch-none",
                         isLineCorrect
                           ? "bg-[var(--duo-correct)]/20 border-[var(--duo-correct)] text-[var(--duo-correct-dark)] font-black"
                           : isWrong
@@ -3177,8 +3254,10 @@ const DragDropQuestionGroup = ({
                           : placedToken
                           ? "bg-blue-50 border-[var(--duo-blue)] text-[var(--duo-blue)] cursor-grab active:cursor-grabbing font-black shadow-sm group/blank"
                           : isHovered
-                          ? "bg-blue-100/60 border-[var(--duo-blue)] border-dashed scale-105"
-                          : "bg-muted/40 border-dashed border-border text-muted-foreground/60"
+                          ? "bg-blue-100 border-[var(--duo-blue)] border-solid scale-105 shadow-md ring-2 ring-[var(--duo-blue)]/50"
+                          : isFocused
+                          ? "bg-blue-50/70 border-[var(--duo-blue)] border-dashed ring-2 ring-[var(--duo-blue)]/40 animate-pulse text-[var(--duo-blue)] cursor-pointer"
+                          : "bg-muted/40 border-dashed border-border text-muted-foreground/60 hover:border-[var(--duo-blue)]/50 hover:bg-blue-50/30 cursor-pointer"
                       )}
                       draggable={!!placedToken && status !== "correct"}
                       onDragStart={(e) => placedToken && handleDragStart(e, placedToken, currentBlankKey)}
@@ -3190,6 +3269,10 @@ const DragDropQuestionGroup = ({
                           {!isLineCorrect && !isWrong && (
                             <span className="text-[10px] text-muted-foreground group-hover/blank:text-red-500 opacity-60 ml-0.5">✕</span>
                           )}
+                        </span>
+                      ) : isFocused ? (
+                        <span className="text-xs font-black text-[var(--duo-blue)] tracking-wide animate-pulse">
+                          [ Chọn từ ở dưới ]
                         </span>
                       ) : (
                         <span className="text-xs font-bold text-muted-foreground/60 tracking-wider">
@@ -3219,12 +3302,14 @@ const DragDropQuestionGroup = ({
       {/* SINGLE UNIFIED WORD BANK FOR THIS QUESTION */}
       {status !== "correct" && allBlanks.length > 0 && (
         <div className="mt-4 pt-3 border-t-2 border-dashed border-border/80 space-y-2">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-1">
             <span className="text-xs font-extrabold text-muted-foreground uppercase flex items-center gap-1">
               <span>Ngân hàng từ khóa ({availableBankTokens.length}/{bankTokens.length}):</span>
             </span>
-            <span className="text-[11px] font-bold text-muted-foreground">
-              Nhấp hoặc kéo từ vào ô trống bất kỳ
+            <span className="text-[11px] font-bold text-[var(--duo-blue)]">
+              {focusedBlankKey 
+                ? "👉 Đang chọn ô trống: Chạm 1 từ dưới đây để điền" 
+                : "Kéo từ hoặc chạm ô trống để điền"}
             </span>
           </div>
 
@@ -3234,19 +3319,26 @@ const DragDropQuestionGroup = ({
                 Đã xếp hết các từ khóa vào các ô trống. Nhấn "Kiểm tra đáp án" để chấm điểm.
               </span>
             ) : (
-              availableBankTokens.map((token) => (
-                <button
-                  key={token.id}
-                  type="button"
-                  draggable={true}
-                  onDragStart={(e) => handleDragStart(e, token)}
-                  onClick={() => handleTokenClick(token)}
-                  className="btn-3d px-3.5 py-2 rounded-xl bg-white hover:bg-blue-50 text-foreground hover:text-[var(--duo-blue)] border-2 border-border hover:border-[var(--duo-blue)] text-sm sm:text-base font-black shadow-sm active:scale-95 transition-all cursor-grab active:cursor-grabbing flex items-center gap-1.5"
-                  title="Nhấp để điền nhanh hoặc kéo vào bất kỳ ô trống nào"
-                >
-                  <span>{token.word}</span>
-                </button>
-              ))
+              availableBankTokens.map((token) => {
+                const isBeingDragged = touchDrag.isDragging && touchDrag.activeToken?.id === token.id;
+                return (
+                  <button
+                    key={token.id}
+                    type="button"
+                    draggable={true}
+                    onDragStart={(e) => handleDragStart(e, token)}
+                    onTouchStart={(e) => touchDrag.handleTouchStart(e, token)}
+                    onClick={() => handleTokenClick(token)}
+                    className={cn(
+                      "btn-3d px-3.5 py-2.5 sm:py-2 rounded-xl bg-white hover:bg-blue-50 text-foreground hover:text-[var(--duo-blue)] border-2 border-border hover:border-[var(--duo-blue)] text-sm sm:text-base font-black shadow-sm active:scale-95 transition-all cursor-grab active:cursor-grabbing flex items-center gap-1.5 touch-none select-none",
+                      isBeingDragged && "opacity-40 scale-95"
+                    )}
+                    title="Nhấp để điền nhanh hoặc kéo vào bất kỳ ô trống nào"
+                  >
+                    <span>{token.word}</span>
+                  </button>
+                );
+              })
             )}
           </div>
 
@@ -3278,6 +3370,13 @@ const DragDropQuestionGroup = ({
           )}
         </div>
       )}
+
+      {/* Floating Ghost for Touch Dragging */}
+      <TouchDragGhost
+        isDragging={touchDrag.isDragging}
+        token={touchDrag.activeToken}
+        position={touchDrag.position}
+      />
 
       {/* Correct Celebration Card */}
       {status === "correct" && (
@@ -3409,6 +3508,67 @@ const DragDropClozeSection = ({
     }
   };
 
+  // Place token helper (used by drop, touch drop, and click)
+  const placeToken = (token: any, targetBlankIdx: number, fromBlankIdx?: number) => {
+    if (status === "correct") return;
+
+    setPlacedMap(prev => {
+      const next = { ...prev };
+      const existingTarget = next[targetBlankIdx];
+      if (fromBlankIdx !== undefined && fromBlankIdx !== null && fromBlankIdx !== targetBlankIdx) {
+        next[fromBlankIdx] = existingTarget || null;
+      } else if (fromBlankIdx === targetBlankIdx) {
+        return prev;
+      }
+      next[targetBlankIdx] = token;
+
+      const filledCount = Object.values(next).filter(Boolean).length;
+      if (filledCount === expectedAnswers.length) {
+        setTimeout(() => checkAnswers(next), 150);
+      }
+      return next;
+    });
+
+    setWrongBlanks(prev => {
+      const next = new Set(prev);
+      next.delete(targetBlankIdx);
+      if (fromBlankIdx !== undefined) next.delete(fromBlankIdx);
+      return next;
+    });
+    if (status === "error") setStatus("idle");
+  };
+
+  // Remove token helper (used when dragging out or tapping filled blank)
+  const removeTokenFromBlank = (token: any, blankIdx: number) => {
+    if (status === "correct") return;
+    setPlacedMap(prev => {
+      const next = { ...prev };
+      delete next[blankIdx];
+      return next;
+    });
+    setWrongBlanks(prev => {
+      const next = new Set(prev);
+      next.delete(blankIdx);
+      return next;
+    });
+    if (status === "error") setStatus("idle");
+  };
+
+  // Mobile Touch Drag & Drop Hook
+  const touchDrag = useTouchDrag({
+    onDrop: (token, targetKey, fromKey) => {
+      placeToken(token, Number(targetKey), fromKey !== undefined ? Number(fromKey) : undefined);
+    },
+    onRemove: (token, fromKey) => {
+      removeTokenFromBlank(token, Number(fromKey));
+    },
+    dataAttribute: "data-blank-idx",
+  });
+
+  // State to track tap-selected blank (Tap-to-Place)
+  const [focusedBlankIdx, setFocusedBlankIdx] = useState<number | null>(null);
+
+  // Desktop Mouse Drag & Drop Handlers
   const handleDragStart = (e: React.DragEvent, token: any, fromBlankIdx?: number) => {
     e.dataTransfer.setData("application/json", JSON.stringify({ token, fromBlankIdx }));
     e.dataTransfer.effectAllowed = "move";
@@ -3433,80 +3593,44 @@ const DragDropClozeSection = ({
       const dataStr = e.dataTransfer.getData("application/json");
       if (!dataStr) return;
       const { token, fromBlankIdx } = JSON.parse(dataStr);
-
-      setPlacedMap(prev => {
-        const next = { ...prev };
-        const existingTarget = next[targetBlankIdx];
-        if (fromBlankIdx !== undefined && fromBlankIdx !== null && fromBlankIdx !== targetBlankIdx) {
-          next[fromBlankIdx] = existingTarget || null;
-        } else if (fromBlankIdx === targetBlankIdx) {
-          return prev;
-        }
-        next[targetBlankIdx] = token;
-
-        const filledCount = Object.values(next).filter(Boolean).length;
-        if (filledCount === expectedAnswers.length) {
-          setTimeout(() => checkAnswers(next), 150);
-        }
-        return next;
-      });
-
-      setWrongBlanks(prev => {
-        const next = new Set(prev);
-        next.delete(targetBlankIdx);
-        if (fromBlankIdx !== undefined) next.delete(fromBlankIdx);
-        return next;
-      });
-      if (status === "error") setStatus("idle");
+      placeToken(token, targetBlankIdx, fromBlankIdx);
     } catch (err) {
       console.warn("Drop error:", err);
     }
   };
 
+  // Click token in Word Bank -> fills focused blank, or first empty blank
   const handleTokenClick = (token: any) => {
     if (status === "correct") return;
-    const emptyBlank = expectedAnswers.find((b: any) => !placedMap[b.blankIdx]);
-    if (!emptyBlank) return;
+    const targetIdx = focusedBlankIdx !== null && !placedMap[focusedBlankIdx]
+      ? focusedBlankIdx
+      : expectedAnswers.find((b: any) => !placedMap[b.blankIdx])?.blankIdx;
 
-    setPlacedMap(prev => {
-      const next = { ...prev, [emptyBlank.blankIdx]: token };
-      const filledCount = Object.values(next).filter(Boolean).length;
-      if (filledCount === expectedAnswers.length) {
-        setTimeout(() => checkAnswers(next), 150);
-      }
-      return next;
-    });
+    if (targetIdx === undefined || targetIdx === null) return;
 
-    setWrongBlanks(prev => {
-      const next = new Set(prev);
-      next.delete(emptyBlank.blankIdx);
-      return next;
-    });
-    if (status === "error") setStatus("idle");
+    placeToken(token, targetIdx);
+
+    const remainingEmpty = expectedAnswers.find((b: any) => b.blankIdx !== targetIdx && !placedMap[b.blankIdx]);
+    setFocusedBlankIdx(remainingEmpty !== undefined ? remainingEmpty.blankIdx : null);
   };
 
+  // Click blank -> if filled, returns token to bank and focuses blank; if empty, toggles focus
   const handleBlankClick = (blankIdx: number) => {
     if (status === "correct") return;
-    if (!placedMap[blankIdx]) return;
 
-    setPlacedMap(prev => {
-      const next = { ...prev };
-      delete next[blankIdx];
-      return next;
-    });
-
-    setWrongBlanks(prev => {
-      const next = new Set(prev);
-      next.delete(blankIdx);
-      return next;
-    });
-    if (status === "error") setStatus("idle");
+    if (placedMap[blankIdx]) {
+      removeTokenFromBlank(placedMap[blankIdx], blankIdx);
+      setFocusedBlankIdx(blankIdx);
+    } else {
+      setFocusedBlankIdx(prev => prev === blankIdx ? null : blankIdx);
+    }
   };
 
   const handleReset = () => {
     if (status === "correct") return;
     setPlacedMap({});
     setWrongBlanks(new Set());
+    setFocusedBlankIdx(null);
     setStatus("idle");
   };
 
@@ -3548,7 +3672,8 @@ const DragDropClozeSection = ({
           const currentBlankIdx = pIdx;
           const placedToken = placedMap[currentBlankIdx];
           const isWrong = wrongBlanks.has(currentBlankIdx);
-          const isHovered = hoveredBlankIdx === currentBlankIdx;
+          const isHovered = (hoveredBlankIdx === currentBlankIdx) || (touchDrag.hoveredKey === currentBlankIdx);
+          const isFocused = (focusedBlankIdx === currentBlankIdx);
           const isCorrect = status === "correct";
 
           return (
@@ -3556,14 +3681,17 @@ const DragDropClozeSection = ({
               <span className="whitespace-pre-wrap">{part}</span>
               {hasBlankAfter && (
                 <div
+                  data-blank-idx={currentBlankIdx}
                   onDragOver={(e) => handleDragOver(e, currentBlankIdx)}
                   onDragLeave={(e) => handleDragLeave(e, currentBlankIdx)}
                   onDrop={(e) => handleDrop(e, currentBlankIdx)}
                   onClick={() => handleBlankClick(currentBlankIdx)}
+                  onTouchStart={(e) => placedToken && status !== "correct" && touchDrag.handleTouchStart(e, placedToken, currentBlankIdx)}
                   className={cn(
-                    "inline-flex items-center justify-center mx-1.5 px-3 py-1 min-w-[90px] min-h-[38px] rounded-xl border-2 transition-all cursor-pointer select-none text-center font-black text-sm sm:text-base align-middle shadow-2xs",
-                    !placedToken && !isHovered && "border-dashed border-border/90 bg-muted/30 text-muted-foreground/50 hover:border-[var(--duo-blue)]/50 hover:bg-blue-50/30",
-                    !placedToken && isHovered && "border-solid border-[var(--duo-blue)] bg-[var(--duo-blue)]/15 scale-105 shadow-sm text-[var(--duo-blue)]",
+                    "inline-flex items-center justify-center mx-1.5 my-1 px-3 py-1.5 sm:py-1 min-w-[90px] min-h-[38px] rounded-xl border-2 transition-all cursor-pointer select-none text-center font-black text-sm sm:text-base align-middle shadow-2xs touch-none",
+                    !placedToken && !isHovered && !isFocused && "border-dashed border-border/90 bg-muted/30 text-muted-foreground/50 hover:border-[var(--duo-blue)]/50 hover:bg-blue-50/30",
+                    !placedToken && isHovered && "border-solid border-[var(--duo-blue)] bg-[var(--duo-blue)]/20 scale-105 shadow-md ring-2 ring-[var(--duo-blue)]/50 text-[var(--duo-blue)]",
+                    !placedToken && isFocused && "border-dashed border-[var(--duo-blue)] bg-blue-50/70 ring-2 ring-[var(--duo-blue)]/40 animate-pulse text-[var(--duo-blue)]",
                     placedToken && isCorrect && "border-[var(--duo-correct)] bg-[var(--duo-correct)]/15 text-[var(--duo-correct-dark)] shadow-[0_2px_0_var(--duo-correct)] animate-[dictation-correct_0.4s_ease-in-out]",
                     placedToken && isWrong && "border-[var(--duo-red)] bg-[var(--duo-red)]/15 text-[var(--duo-red)] shadow-[0_2px_0_var(--duo-red)] animate-[dictation-shake_0.3s_ease-in-out]",
                     placedToken && !isCorrect && !isWrong && "border-[var(--duo-blue)] bg-white text-[var(--duo-blue)] shadow-[0_2px_0_#1899D6] hover:bg-red-50 hover:border-red-300 hover:text-red-600 group/blank"
@@ -3581,6 +3709,10 @@ const DragDropClozeSection = ({
                         <span className="text-[10px] text-muted-foreground group-hover/blank:text-red-500 opacity-60 ml-0.5">✕</span>
                       )}
                     </span>
+                  ) : isFocused ? (
+                    <span className="text-xs font-black text-[var(--duo-blue)] tracking-wide animate-pulse">
+                      [ Chọn từ ở dưới ]
+                    </span>
                   ) : (
                     <span className="text-xs font-bold text-muted-foreground/60 tracking-wider">
                       [ ô trống {currentBlankIdx + 1} ]
@@ -3596,12 +3728,14 @@ const DragDropClozeSection = ({
       {/* Word Bank for Cloze */}
       {status !== "correct" && (
         <div className="mt-2 pt-3 border-t-2 border-dashed border-border/80 space-y-2">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-1">
             <span className="text-xs font-extrabold text-muted-foreground uppercase">
               Ngân hàng từ ({availableBankTokens.length}/{bankTokens.length}):
             </span>
-            <span className="text-[11px] font-bold text-muted-foreground">
-              Nhấp hoặc kéo từ vào ô trống
+            <span className="text-[11px] font-bold text-[var(--duo-blue)]">
+              {focusedBlankIdx !== null 
+                ? `👉 Đang chọn ô ${focusedBlankIdx + 1}: Chạm 1 từ để điền` 
+                : "Kéo từ hoặc chạm ô trống để điền"}
             </span>
           </div>
 
@@ -3611,18 +3745,25 @@ const DragDropClozeSection = ({
                 Đã đặt hết các từ vào ô trống. Nhấn "Kiểm tra" để chấm điểm.
               </span>
             ) : (
-              availableBankTokens.map((token) => (
-                <button
-                  key={token.id}
-                  type="button"
-                  draggable={true}
-                  onDragStart={(e) => handleDragStart(e, token)}
-                  onClick={() => handleTokenClick(token)}
-                  className="btn-3d px-3.5 py-2 rounded-xl bg-white hover:bg-blue-50 text-foreground hover:text-[var(--duo-blue)] border-2 border-border hover:border-[var(--duo-blue)] text-sm sm:text-base font-black shadow-sm active:scale-95 transition-all cursor-grab active:cursor-grabbing"
-                >
-                  <span>{token.word}</span>
-                </button>
-              ))
+              availableBankTokens.map((token) => {
+                const isBeingDragged = touchDrag.isDragging && touchDrag.activeToken?.id === token.id;
+                return (
+                  <button
+                    key={token.id}
+                    type="button"
+                    draggable={true}
+                    onDragStart={(e) => handleDragStart(e, token)}
+                    onTouchStart={(e) => touchDrag.handleTouchStart(e, token)}
+                    onClick={() => handleTokenClick(token)}
+                    className={cn(
+                      "btn-3d px-3.5 py-2.5 sm:py-2 rounded-xl bg-white hover:bg-blue-50 text-foreground hover:text-[var(--duo-blue)] border-2 border-border hover:border-[var(--duo-blue)] text-sm sm:text-base font-black shadow-sm active:scale-95 transition-all cursor-grab active:cursor-grabbing touch-none select-none",
+                      isBeingDragged && "opacity-40 scale-95"
+                    )}
+                  >
+                    <span>{token.word}</span>
+                  </button>
+                );
+              })
             )}
           </div>
 
@@ -3652,6 +3793,13 @@ const DragDropClozeSection = ({
           )}
         </div>
       )}
+
+      {/* Floating Ghost for Touch Dragging */}
+      <TouchDragGhost
+        isDragging={touchDrag.isDragging}
+        token={touchDrag.activeToken}
+        position={touchDrag.position}
+      />
 
       {/* Correct Cloze Indicator */}
       {status === "correct" && (
@@ -3725,22 +3873,16 @@ const KeywordModeItem = ({ item, question, vocabWords, isDoneInSession, onComple
 
   if (keywordIndices.length === 0) {
     return (
-      <div className="bg-white p-4 sm:p-5 rounded-2xl border-2 leading-loose sm:leading-[2.6] text-base sm:text-lg font-medium shadow-sm space-y-2.5">
-        <div className="flex items-center gap-2 text-xs sm:text-sm font-extrabold text-[var(--duo-blue)] bg-[var(--duo-blue)]/10 px-3 py-1.5 rounded-xl border border-[var(--duo-blue)]/20 w-fit">
-          <Sparkles className="w-4 h-4 text-[var(--duo-blue)]" />
-          <span>Câu này không có từ khóa cần điền — Tự động tính hoàn thành ✓</span>
-        </div>
-        <div className="flex items-start justify-between gap-3 text-foreground font-bold">
-          <p className="text-base sm:text-lg leading-relaxed flex-1">{item.text}</p>
-          <button
-            type="button"
-            onClick={() => speakText(item.text)}
-            className="p-1.5 rounded-lg text-muted-foreground hover:text-[var(--duo-blue)] hover:bg-muted transition-colors shrink-0"
-            title="Nghe phát âm câu này"
-          >
-            <Volume2 className="w-4 h-4" />
-          </button>
-        </div>
+      <div className="bg-white p-4 sm:p-5 rounded-2xl border-2 leading-loose sm:leading-[2.6] text-base sm:text-lg font-medium shadow-sm flex items-start justify-between gap-3 text-foreground font-bold">
+        <p className="text-base sm:text-lg leading-relaxed flex-1">{item.text}</p>
+        <button
+          type="button"
+          onClick={() => speakText(item.text)}
+          className="p-1.5 rounded-lg text-muted-foreground hover:text-[var(--duo-blue)] hover:bg-muted transition-colors shrink-0 mt-0.5"
+          title="Nghe phát âm câu này"
+        >
+          <Volume2 className="w-4 h-4" />
+        </button>
       </div>
     );
   }

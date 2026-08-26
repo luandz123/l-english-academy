@@ -5,7 +5,7 @@ import { Trophy } from "lucide-react";
 const SOCIAL_LINKS = {
   tiktok: "https://www.tiktok.com/@YOUR_TIKTOK",
   youtube: "https://www.youtube.com/@YOUR_YOUTUBE",
-  facebook: "https://www.facebook.com/YOUR_FACEBOOK",
+  facebook: "https://www.facebook.com/luan25032000",
 };
 
 const BottomBanner = () => {
