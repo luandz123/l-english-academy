@@ -138,6 +138,59 @@ export const getQuestionKeywords = (question: any, vocabWords: any[] = []): stri
   return kw.sort((a, b) => b.length - a.length);
 };
 
+// Helper to get all unique keywords across the specified questions and their vocabulary
+export const getAllLessonKeywords = (questions: any[] = [], vocabWords: any[] = []): string[] => {
+  const keywordMap = new Map<string, string>(); // lowercase -> original case
+
+  // Get set of IDs for the provided questions
+  const questionIdSet = new Set(questions.map((q: any) => q?.id).filter(Boolean));
+
+  // 1. From vocabWords belonging to the provided questions (or all if questionIdSet is empty)
+  (vocabWords || []).forEach((w: any) => {
+    if (questionIdSet.size > 0 && w.question_id && !questionIdSet.has(w.question_id)) {
+      return;
+    }
+    const word = w?.word?.trim();
+    if (word && !keywordMap.has(word.toLowerCase())) {
+      keywordMap.set(word.toLowerCase(), word);
+    }
+  });
+
+  // 2. From the questions in this selection
+  (questions || []).forEach((q: any) => {
+    // Check dictation_keywords column
+    if (q?.dictation_keywords?.trim()) {
+      q.dictation_keywords.split(',').forEach((k: string) => {
+        const kw = k.trim();
+        if (kw && !keywordMap.has(kw.toLowerCase())) {
+          keywordMap.set(kw.toLowerCase(), kw);
+        }
+      });
+    }
+
+    // Check cloze answers
+    if (q?.question_text?.includes('[___]') && Array.isArray(q.answers)) {
+      q.answers.forEach((ans: any) => {
+        const aText = ans?.answer_text?.trim();
+        if (aText && !keywordMap.has(aText.toLowerCase())) {
+          keywordMap.set(aText.toLowerCase(), aText);
+        }
+      });
+    }
+
+    // Check getQuestionKeywords
+    const qKws = getQuestionKeywords(q, vocabWords);
+    qKws.forEach((kw: string) => {
+      const trimmed = kw?.trim();
+      if (trimmed && !keywordMap.has(trimmed.toLowerCase())) {
+        keywordMap.set(trimmed.toLowerCase(), trimmed);
+      }
+    });
+  });
+
+  return Array.from(keywordMap.values());
+};
+
 export const checkQuestionHasKeywords = (question: any, vocabWords: any[] = []): boolean => {
   if (!question) return false;
   if (question.question_text?.includes('[___]')) return true;
@@ -161,6 +214,43 @@ export const checkQuestionHasKeywords = (question: any, vocabWords: any[] = []):
   }
 
   return false;
+};
+
+// Validator to filter out faulty / incomplete questions for each mode
+export const isQuestionValidForMode = (
+  question: any,
+  mode: "drag" | "keyword" | "full",
+  vocabWords: any[] = []
+): { isValid: boolean; reason?: string } => {
+  if (!question) return { isValid: false, reason: "Câu hỏi không tồn tại" };
+
+  const hasQuestionText = Boolean(question.question_text?.trim() && question.question_text !== 'Audio dictation');
+  const validAnswers = Array.isArray(question.answers) ? question.answers.filter((a: any) => Boolean(a.answer_text?.trim())) : [];
+  const hasAnyText = hasQuestionText || validAnswers.length > 0;
+
+  if (!hasAnyText) {
+    return { isValid: false, reason: "Thiếu nội dung câu hỏi và đáp án" };
+  }
+
+  // Cloze questions [___]
+  if (question.question_text?.includes('[___]')) {
+    if (validAnswers.length === 0) {
+      return { isValid: false, reason: "Câu đục lỗ nhưng thiếu nội dung đáp án" };
+    }
+    return { isValid: true };
+  }
+
+  // For Drag & Drop and Keyword Typing modes -> MUST have keywords present in the sentence
+  if (mode === "drag" || mode === "keyword") {
+    const hasKeywords = checkQuestionHasKeywords(question, vocabWords);
+    if (!hasKeywords) {
+      return { isValid: false, reason: "Thiếu từ khóa (keywords) trong câu" };
+    }
+    return { isValid: true };
+  }
+
+  // For Full Dictation mode
+  return { isValid: true };
 };
 
 export const getQuestionKeywordStats = (
@@ -579,6 +669,7 @@ const DictationPage = () => {
 
   const audioRef = useRef<HTMLAudioElement>(null);
   const passedQuestionIds = location.state?.questionIds as number[] | undefined;
+  const hasInitializedSelection = useRef(false);
 
   // Fetch Quiz Data
   const { data: quizData, isLoading: quizLoading } = useQuery({
@@ -694,25 +785,59 @@ const DictationPage = () => {
 
   const targetResultId = userResult?.id;
 
-  // Fetch already completed answers
-  const { data: userAnswers = [] } = useQuery({
-    queryKey: ["dictation-answers", targetResultId],
+  // Fetch already completed answers across all attempts/modes for this quiz
+  const { data: userAnswers = [], isLoading: answersLoading } = useQuery({
+    queryKey: ["dictation-answers", targetResultId, quizId, user?.id],
     queryFn: async () => {
-      if (!targetResultId) return [];
+      if (!user || !quizId) return [];
+      
+      const { data: results } = await supabase
+        .from("user_quiz_results")
+        .select("id")
+        .eq("quiz_id", Number(quizId))
+        .eq("user_id", user.id);
+
+      const resultIds = results ? results.map((r: any) => r.id) : [];
+      if (targetResultId && !resultIds.includes(targetResultId)) {
+        resultIds.push(targetResultId);
+      }
+      if (resultIds.length === 0) return [];
+
       const { data, error } = await supabase
         .from("user_answers")
         .select("*")
-        .eq("result_id", targetResultId)
+        .in("result_id", resultIds)
         .eq("is_correct", true);
       if (error) throw error;
       return data || [];
     },
-    enabled: !!targetResultId
+    enabled: !!user && !!quizId
   });
 
-  // Questions array
-  const questions = quizData?.questions ?? [];
+  // Raw questions from quiz
+  const rawQuestions = useMemo(() => quizData?.questions ?? [], [quizData?.questions]);
+
+  // Valid questions for the selected dictation mode (filter out faulty / missing keyword questions)
+  const questions = useMemo(() => {
+    return rawQuestions.filter((q: any) => isQuestionValidForMode(q, dictationMode, vocabWords).isValid);
+  }, [rawQuestions, dictationMode, vocabWords]);
+
+  const invalidQuestionsCount = useMemo(() => {
+    return rawQuestions.length - questions.length;
+  }, [rawQuestions.length, questions.length]);
+
   const completedQuestionIds = useMemo(() => new Set(userAnswers.map((ua: any) => ua.question_id)), [userAnswers]);
+
+  // Active questions selected for this practice session
+  const activeQuestions = useMemo(() => {
+    if (!activeQuestionIndices || activeQuestionIndices.length === 0) return questions;
+    return activeQuestionIndices.map(idx => questions[idx]).filter(Boolean);
+  }, [activeQuestionIndices, questions]);
+
+  // Keywords pool from only the selected questions in this session
+  const allLessonKeywords = useMemo(() => {
+    return getAllLessonKeywords(activeQuestions, vocabWords);
+  }, [activeQuestions, vocabWords]);
 
   // Check if a question is considered auto-completed in Keyword Mode (has no keywords)
   const isQuestionNoKeyword = useCallback((q: any) => {
@@ -720,15 +845,16 @@ const DictationPage = () => {
     return !checkQuestionHasKeywords(q, vocabWords);
   }, [vocabWords]);
 
-  // Check if a question is considered completed in current session
+  // Check if a question is considered completed in current session or previous sessions (any mode)
   const isQuestionDone = useCallback((qId: number) => {
     if (sessionDone.has(qId)) return true;
+    if (completedQuestionIds.has(qId)) return true;
     if (isKeywordMode && vocabWords.length > 0) {
       const q = questions.find((item: any) => item.id === qId);
       if (q && isQuestionNoKeyword(q)) return true;
     }
     return false;
-  }, [sessionDone, isKeywordMode, vocabWords.length, questions, isQuestionNoKeyword]);
+  }, [sessionDone, completedQuestionIds, isKeywordMode, vocabWords.length, questions, isQuestionNoKeyword]);
 
   // Save answer mutation
   const saveAnswerMutation = useMutation({
@@ -845,22 +971,32 @@ const DictationPage = () => {
 
   const resetAllMutation = useMutation({
     mutationFn: async () => {
-      if (!targetResultId) return;
-      const { error } = await supabase.from("user_answers")
-        .update({ is_correct: false })
-        .eq("result_id", targetResultId);
-        
-      if (error) throw new Error(error.message);
-      
-      await supabase.from("user_quiz_results")
-        .update({ correct_answers: 0, score: 0 })
-        .eq("id", targetResultId);
+      if (!user || !quizId) return;
+      const { data: results } = await supabase
+        .from("user_quiz_results")
+        .select("id")
+        .eq("quiz_id", Number(quizId))
+        .eq("user_id", user.id);
+
+      const resultIds = results ? results.map((r: any) => r.id) : [];
+      if (resultIds.length > 0) {
+        await supabase
+          .from("user_answers")
+          .update({ is_correct: false })
+          .in("result_id", resultIds);
+
+        await supabase
+          .from("user_quiz_results")
+          .update({ correct_answers: 0, score: 0 })
+          .in("id", resultIds);
+      }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["dictation-answers", targetResultId] });
+      queryClient.invalidateQueries({ queryKey: ["dictation-answers"] });
       queryClient.invalidateQueries({ queryKey: ["quiz-results"] });
       setSessionDone(new Set());
       setCorrectKeywordsMap({});
+      hasInitializedSelection.current = false;
       toast({ title: "Đã reset toàn bộ tiến trình!", description: "Bạn có thể bắt đầu luyện tập lại từ đầu." });
     },
     onError: (err: any) => {
@@ -921,7 +1057,7 @@ const DictationPage = () => {
     return () => window.removeEventListener("keydown", handleGlobalKeyDown);
   }, [currentQuestion?.id, isQuestionDone]);
 
-  // Quick preset selectors for questions
+  // Quick preset selectors for questions (5, 10, etc.)
   const selectPresetCount = (count: number) => {
     const uncompletedIndices = questions
       .map((q, idx) => (!isQuestionDone(q.id) ? idx : -1))
@@ -930,14 +1066,25 @@ const DictationPage = () => {
     let selected: number[] = [];
     if (uncompletedIndices.length >= count) {
       selected = uncompletedIndices.slice(0, count);
-    } else {
+    } else if (uncompletedIndices.length > 0) {
       const otherIndices = questions
         .map((_, idx) => idx)
         .filter(idx => !uncompletedIndices.includes(idx));
       selected = [...uncompletedIndices, ...otherIndices].slice(0, count);
+    } else {
+      selected = questions.map((_, idx) => idx).slice(0, count);
     }
-    setActiveQuestionIndices(selected.sort((a, b) => a - b));
-    toast({ title: `Đã chọn ${selected.length} câu`, description: "Sẵn sàng để bắt đầu luyện tập." });
+    const sorted = selected.sort((a, b) => a - b);
+    setActiveQuestionIndices(sorted);
+    if (sorted.length > 0) {
+      setCurrentIndex(sorted[0]);
+    }
+    toast({
+      title: `Đã chọn ${sorted.length} câu tiếp theo`,
+      description: uncompletedIndices.length > 0 
+        ? `Tự động chọn ${Math.min(sorted.length, uncompletedIndices.length)} câu chưa làm tiếp theo.` 
+        : "Đã hoàn thành tất cả các câu trong bài!"
+    });
   };
 
   const selectUncompletedOnly = () => {
@@ -945,35 +1092,51 @@ const DictationPage = () => {
       .map((q, idx) => (!isQuestionDone(q.id) ? idx : -1))
       .filter(idx => idx !== -1);
     if (uncompleted.length === 0) {
-      toast({ title: "Đã hoàn thành tất cả!", description: "Tất cả các câu đã được làm xong. Chọn tất cả để luyện lại." });
+      toast({ title: "Đã hoàn thành tất cả!", description: "Tất cả các câu đã được làm xong. Bạn có thể chọn để luyện lại." });
       setActiveQuestionIndices(questions.map((_, idx) => idx));
+      setCurrentIndex(0);
     } else {
       setActiveQuestionIndices(uncompleted);
-      toast({ title: `Đã chọn ${uncompleted.length} câu chưa làm` });
+      setCurrentIndex(uncompleted[0]);
+      toast({ title: `Đã chọn ${uncompleted.length} câu chưa làm tiếp theo` });
     }
   };
 
-  // Handle active questions initialization
+  // Handle smart active questions initialization
   useEffect(() => {
     const qs = quizData?.questions || [];
-    if (qs.length > 0 && activeQuestionIndices.length === 0 && !started) {
-      if (passedQuestionIds && passedQuestionIds.length > 0) {
-        const indices = qs
-          .map((q, i) => passedQuestionIds.includes(q.id) ? i : -1)
-          .filter(i => i !== -1);
-        
-        if (indices.length > 0) {
-          setActiveQuestionIndices(indices);
-          setCurrentIndex(indices[0]);
-          setStarted(true);
-        } else {
-          setActiveQuestionIndices(qs.map((_, i) => i));
-        }
-      } else {
-        setActiveQuestionIndices(qs.map((_, i) => i));
+    if (qs.length === 0 || started) return;
+
+    if (passedQuestionIds && passedQuestionIds.length > 0) {
+      const indices = qs
+        .map((q, i) => passedQuestionIds.includes(q.id) ? i : -1)
+        .filter(i => i !== -1);
+      
+      if (indices.length > 0) {
+        setActiveQuestionIndices(indices);
+        setCurrentIndex(indices[0]);
+        setStarted(true);
+        return;
       }
     }
-  }, [quizData?.questions, started, passedQuestionIds]);
+
+    if (!hasInitializedSelection.current && !answersLoading && !resultLoading) {
+      const uncompletedIndices = qs
+        .map((q, idx) => (!isQuestionDone(q.id) ? idx : -1))
+        .filter(idx => idx !== -1);
+
+      if (uncompletedIndices.length > 0) {
+        const nextBatch = uncompletedIndices.slice(0, Math.min(5, uncompletedIndices.length));
+        setActiveQuestionIndices(nextBatch);
+        setCurrentIndex(nextBatch[0]);
+      } else {
+        const defaultBatch = qs.map((_, i) => i).slice(0, Math.min(5, qs.length));
+        setActiveQuestionIndices(defaultBatch);
+        setCurrentIndex(0);
+      }
+      hasInitializedSelection.current = true;
+    }
+  }, [quizData?.questions, started, passedQuestionIds, isQuestionDone, answersLoading, resultLoading]);
 
   // Completed question count across active or total
   const completedTotalCount = useMemo(() => {
@@ -1053,25 +1216,6 @@ const DictationPage = () => {
     setShowChestModal(true);
   };
 
-  if (quizLoading || resultLoading) {
-    return (
-      <StudentLayout>
-        <div className="flex justify-center items-center h-64"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
-      </StudentLayout>
-    );
-  }
-
-  if (!quizData || quizData.questions.length === 0) {
-    return (
-      <StudentLayout>
-        <div className="text-center p-8 bg-card rounded-xl border">
-          <p className="text-muted-foreground mb-4">Bài luyện nghe này chưa có câu hỏi.</p>
-          <Button onClick={() => navigate(`/courses/${courseId}`)}><ArrowLeft className="w-4 h-4 mr-2" /> Quay lại</Button>
-        </div>
-      </StudentLayout>
-    );
-  }
-
   const handleNext = (auto = false) => {
     const currentActiveIdx = activeQuestionIndices.indexOf(currentIndex);
     if (currentActiveIdx < activeQuestionIndices.length - 1) {
@@ -1135,6 +1279,31 @@ const DictationPage = () => {
     return () => clearInterval(timer);
   }, [started, isSubmitted, timeLeftSeconds]);
 
+  if (quizLoading || resultLoading) {
+    return (
+      <StudentLayout>
+        <div className="flex justify-center items-center h-64"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
+      </StudentLayout>
+    );
+  }
+
+  if (!quizData || quizData.questions.length === 0) {
+    return (
+      <StudentLayout>
+        <div className="text-center p-8 bg-card rounded-xl border">
+          <p className="text-muted-foreground mb-4">Bài luyện nghe này chưa có câu hỏi.</p>
+          <Button onClick={() => navigate(`/courses/${courseId}`)}><ArrowLeft className="w-4 h-4 mr-2" /> Quay lại</Button>
+        </div>
+      </StudentLayout>
+    );
+  }
+
+  const handleModeChange = (newMode: "drag" | "keyword" | "full") => {
+    setDictationMode(newMode);
+    setActiveQuestionIndices([]);
+    hasInitializedSelection.current = false;
+  };
+
   // Pre-Start Setup Screen
   if (!started) {
     return (
@@ -1152,172 +1321,206 @@ const DictationPage = () => {
           
           <div className="bg-muted/20 border-2 rounded-2xl p-5 sm:p-6 space-y-5 max-h-[60vh] overflow-y-auto">
              
-             {/* Header with Quick Presets (5 questions, 10 questions, all, uncompleted) */}
-             <div className="space-y-3 pb-4 border-b-2">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <span className="font-black text-lg text-foreground">
-                    Chọn nhanh số lượng câu ({activeQuestionIndices.length}/{questions.length} câu đã chọn)
-                  </span>
-                  {completedTotalCount > 0 && (
-                    <Button size="sm" className="btn-3d bg-white text-[var(--duo-red)] hover:bg-red-50 border-[var(--duo-red)]/30 font-bold self-start sm:self-auto" onClick={() => resetAllMutation.mutate()}>
-                      <RefreshCcw className="w-4 h-4 mr-2" /> Làm lại từ đầu
-                    </Button>
-                  )}
-                </div>
+             {/* Mode Selector */}
+             <div className="p-4 sm:p-5 bg-muted/30 rounded-2xl border-2 shadow-sm space-y-3">
+               <div className="flex items-center justify-between">
+                 <div className="flex items-center gap-2">
+                   <Sparkles className="w-5 h-5 text-[var(--duo-blue)]" />
+                   <span className="text-base font-extrabold text-foreground">Chế độ luyện tập</span>
+                 </div>
+                 <span className="text-xs font-black text-[var(--duo-blue)] bg-blue-100 px-2.5 py-1 rounded-lg border border-blue-200">
+                   {dictationMode === "drag" ? "🎯 Kéo thả từ khóa" : dictationMode === "keyword" ? "✍️ Gõ từ khóa" : "📝 Chép chính tả cả câu"}
+                 </span>
+               </div>
 
-                {/* Preset Buttons Bar */}
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs font-bold text-muted-foreground mr-1">Chế độ chọn:</span>
-                  
-                  {/* Preset 5 */}
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() => selectPresetCount(5)}
-                    className={cn(
-                      "btn-3d font-black text-xs sm:text-sm h-9 px-3.5",
-                      activeQuestionIndices.length === 5 && questions.length >= 5
-                        ? "bg-[var(--duo-blue)] text-white border-[var(--duo-blue)] hover:bg-[var(--duo-blue)]/90"
-                        : "bg-white text-foreground hover:bg-blue-50 border-border"
-                    )}
-                  >
-                    ⚡ Luyện 5 câu
-                  </Button>
+               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                 {/* Mode 1: Drag & Drop */}
+                 <button
+                   type="button"
+                   onClick={() => handleModeChange("drag")}
+                   className={cn(
+                     "p-3.5 sm:p-4 rounded-xl border-2 text-left transition-all relative flex flex-col justify-between gap-1.5 cursor-pointer",
+                     dictationMode === "drag"
+                       ? "bg-[var(--duo-blue)]/10 border-[var(--duo-blue)] shadow-[0_2px_0_var(--duo-blue)] -translate-y-0.5"
+                       : "bg-white border-border hover:bg-muted/40"
+                   )}
+                 >
+                   <div className="space-y-1">
+                     <div className="flex items-center justify-between">
+                       <span className="font-black text-sm sm:text-base text-foreground flex items-center gap-1.5">
+                         🎯 Kéo thả từ khóa
+                       </span>
+                       <span className="bg-[var(--duo-blue)] text-white text-[9px] uppercase font-black px-1.5 py-0.5 rounded-full">
+                         Mới
+                       </span>
+                     </div>
+                     <p className="text-xs font-bold text-muted-foreground leading-relaxed">
+                       Kéo hoặc chạm các từ khóa (keys trong câu) vào chỗ trống. Nhanh & trực quan.
+                     </p>
+                   </div>
+                 </button>
 
-                  {/* Preset 10 */}
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() => selectPresetCount(10)}
-                    className={cn(
-                      "btn-3d font-black text-xs sm:text-sm h-9 px-3.5",
-                      activeQuestionIndices.length === 10 && questions.length >= 10
-                        ? "bg-[var(--duo-blue)] text-white border-[var(--duo-blue)] hover:bg-[var(--duo-blue)]/90"
-                        : "bg-white text-foreground hover:bg-blue-50 border-border"
-                    )}
-                  >
-                    🔥 Luyện 10 câu
-                  </Button>
+                 {/* Mode 2: Keyword Typing */}
+                 <button
+                   type="button"
+                   onClick={() => handleModeChange("keyword")}
+                   className={cn(
+                     "p-3.5 sm:p-4 rounded-xl border-2 text-left transition-all relative flex flex-col justify-between gap-1.5 cursor-pointer",
+                     dictationMode === "keyword"
+                       ? "bg-[var(--duo-blue)]/10 border-[var(--duo-blue)] shadow-[0_2px_0_var(--duo-blue)] -translate-y-0.5"
+                       : "bg-white border-border hover:bg-muted/40"
+                   )}
+                 >
+                   <div className="space-y-1">
+                     <div className="flex items-center justify-between">
+                       <span className="font-black text-sm sm:text-base text-foreground flex items-center gap-1.5">
+                         ✍️ Gõ từ khóa
+                       </span>
+                     </div>
+                     <p className="text-xs font-bold text-muted-foreground leading-relaxed">
+                       Tự nhập bàn phím các từ khóa còn thiếu vào từng ô trống.
+                     </p>
+                   </div>
+                 </button>
 
-                  {/* Uncompleted Only */}
-                  {questions.length - completedTotalCount > 0 && (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      onClick={selectUncompletedOnly}
-                      className="btn-3d font-black text-xs sm:text-sm h-9 px-3.5 bg-white text-[var(--duo-orange)] hover:bg-orange-50 border-[var(--duo-orange)]/30"
-                    >
-                      🎯 Chỉ câu chưa làm ({questions.length - completedTotalCount})
-                    </Button>
-                  )}
+                 {/* Mode 3: Full Dictation */}
+                 <button
+                   type="button"
+                   onClick={() => handleModeChange("full")}
+                   className={cn(
+                     "p-3.5 sm:p-4 rounded-xl border-2 text-left transition-all relative flex flex-col justify-between gap-1.5 cursor-pointer",
+                     dictationMode === "full"
+                       ? "bg-[var(--duo-blue)]/10 border-[var(--duo-blue)] shadow-[0_2px_0_var(--duo-blue)] -translate-y-0.5"
+                       : "bg-white border-border hover:bg-muted/40"
+                   )}
+                 >
+                   <div className="space-y-1">
+                     <div className="flex items-center justify-between">
+                       <span className="font-black text-sm sm:text-base text-foreground flex items-center gap-1.5">
+                         📝 Gõ cả câu
+                       </span>
+                     </div>
+                     <p className="text-xs font-bold text-muted-foreground leading-relaxed">
+                       Luyện nghe nâng cao và tự gõ lại toàn bộ câu đầy đủ.
+                     </p>
+                   </div>
+                 </button>
+               </div>
+             </div>
 
-                  {/* All Questions */}
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setActiveQuestionIndices(activeQuestionIndices.length === questions.length ? [] : questions.map((_, i) => i))}
-                    className={cn(
-                      "btn-3d font-black text-xs sm:text-sm h-9 px-3.5",
-                      activeQuestionIndices.length === questions.length
-                        ? "bg-[var(--duo-correct)] text-white border-[var(--duo-correct)] hover:bg-[var(--duo-correct)]/90"
-                        : "bg-white text-foreground hover:bg-gray-50 border-border"
-                    )}
-                  >
-                    {activeQuestionIndices.length === questions.length ? "Bỏ chọn tất cả" : `Toàn bộ (${questions.length} câu)`}
-                  </Button>
-                </div>
-              </div>
+             {/* Invalid Questions Filtered Notification Banner */}
+             {invalidQuestionsCount > 0 && (
+               <div className="p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-center justify-between text-xs text-amber-800 font-bold animate-in fade-in">
+                 <span className="flex items-center gap-2">
+                   <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
+                   <span>Đã tự động lọc và ẩn <strong>{invalidQuestionsCount} câu</strong> thiếu từ khóa / dữ liệu trong chế độ này.</span>
+                 </span>
+                 <span className="text-[11px] bg-white px-2.5 py-0.5 rounded-lg border border-amber-200 shadow-2xs font-extrabold text-amber-900 shrink-0">
+                   {questions.length}/{rawQuestions.length} câu khả dụng
+                 </span>
+               </div>
+             )}
 
-              {/* Mode Selector */}
-              <div className="p-4 sm:p-5 bg-muted/30 rounded-2xl border-2 shadow-sm space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 text-[var(--duo-blue)]" />
-                    <span className="text-base font-extrabold text-foreground">Chế độ luyện tập</span>
-                  </div>
-                  <span className="text-xs font-black text-[var(--duo-blue)] bg-blue-100 px-2.5 py-1 rounded-lg border border-blue-200">
-                    {dictationMode === "drag" ? "🎯 Kéo thả từ khóa" : dictationMode === "keyword" ? "✍️ Gõ từ khóa" : "📝 Chép chính tả cả câu"}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {/* Mode 1: Drag & Drop */}
-                  <button
-                    type="button"
-                    onClick={() => setDictationMode("drag")}
-                    className={cn(
-                      "p-3.5 sm:p-4 rounded-xl border-2 text-left transition-all relative flex flex-col justify-between gap-1.5 cursor-pointer",
-                      dictationMode === "drag"
-                        ? "bg-[var(--duo-blue)]/10 border-[var(--duo-blue)] shadow-[0_2px_0_var(--duo-blue)] -translate-y-0.5"
-                        : "bg-white border-border hover:bg-muted/40"
-                    )}
-                  >
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className="font-black text-sm sm:text-base text-foreground flex items-center gap-1.5">
-                          🎯 Kéo thả từ khóa
-                        </span>
-                        <span className="bg-[var(--duo-blue)] text-white text-[9px] uppercase font-black px-1.5 py-0.5 rounded-full">
-                          Mới
-                        </span>
-                      </div>
-                      <p className="text-xs font-bold text-muted-foreground leading-relaxed">
-                        Kéo hoặc chạm các từ khóa (keys trong câu) vào chỗ trống. Nhanh & trực quan.
-                      </p>
+             {questions.length === 0 ? (
+               <div className="p-8 text-center bg-white rounded-2xl border-2 space-y-4 shadow-sm">
+                 <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-2xl mx-auto flex items-center justify-center font-black">
+                   ⚠️
+                 </div>
+                 <div className="space-y-1">
+                   <h3 className="text-lg font-black text-foreground">Không có câu hỏi từ khóa khả dụng</h3>
+                   <p className="text-sm font-bold text-muted-foreground max-w-md mx-auto">
+                     Các câu trong bài này chưa được cấu hình từ khóa. Bạn có thể chuyển sang chế độ "Gõ cả câu" để luyện tập ngay nhé!
+                   </p>
+                 </div>
+                 <Button
+                   type="button"
+                   onClick={() => handleModeChange("full")}
+                   className="btn-3d btn-3d-primary font-black px-6 py-2.5 h-auto text-sm"
+                 >
+                   Chuyển sang chế độ Gõ cả câu
+                 </Button>
+               </div>
+             ) : (
+               <>
+                 {/* Header with Quick Presets (5 questions, 10 questions, all, uncompleted) */}
+                 <div className="space-y-3 pb-4 border-b-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <span className="font-black text-lg text-foreground">
+                        Chọn nhanh số lượng câu ({activeQuestionIndices.length}/{questions.length} câu đã chọn)
+                      </span>
+                      {completedTotalCount > 0 && (
+                        <Button size="sm" className="btn-3d bg-white text-[var(--duo-red)] hover:bg-red-50 border-[var(--duo-red)]/30 font-bold self-start sm:self-auto" onClick={() => resetAllMutation.mutate()}>
+                          <RefreshCcw className="w-4 h-4 mr-2" /> Làm lại từ đầu
+                        </Button>
+                      )}
                     </div>
-                  </button>
 
-                  {/* Mode 2: Keyword Typing */}
-                  <button
-                    type="button"
-                    onClick={() => setDictationMode("keyword")}
-                    className={cn(
-                      "p-3.5 sm:p-4 rounded-xl border-2 text-left transition-all relative flex flex-col justify-between gap-1.5 cursor-pointer",
-                      dictationMode === "keyword"
-                        ? "bg-[var(--duo-blue)]/10 border-[var(--duo-blue)] shadow-[0_2px_0_var(--duo-blue)] -translate-y-0.5"
-                        : "bg-white border-border hover:bg-muted/40"
-                    )}
-                  >
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className="font-black text-sm sm:text-base text-foreground flex items-center gap-1.5">
-                          ✍️ Gõ từ khóa
-                        </span>
-                      </div>
-                      <p className="text-xs font-bold text-muted-foreground leading-relaxed">
-                        Tự nhập bàn phím các từ khóa còn thiếu vào từng ô trống.
-                      </p>
-                    </div>
-                  </button>
+                    {/* Preset Buttons Bar */}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-xs font-bold text-muted-foreground mr-1">Chế độ chọn:</span>
+                      
+                      {/* Preset 5 */}
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => selectPresetCount(5)}
+                        className={cn(
+                          "btn-3d font-black text-xs sm:text-sm h-9 px-3.5",
+                          activeQuestionIndices.length === 5 && questions.length >= 5
+                            ? "bg-[var(--duo-blue)] text-white border-[var(--duo-blue)] hover:bg-[var(--duo-blue)]/90"
+                            : "bg-white text-foreground hover:bg-blue-50 border-border"
+                        )}
+                      >
+                        ⚡ Luyện 5 câu
+                      </Button>
 
-                  {/* Mode 3: Full Dictation */}
-                  <button
-                    type="button"
-                    onClick={() => setDictationMode("full")}
-                    className={cn(
-                      "p-3.5 sm:p-4 rounded-xl border-2 text-left transition-all relative flex flex-col justify-between gap-1.5 cursor-pointer",
-                      dictationMode === "full"
-                        ? "bg-[var(--duo-blue)]/10 border-[var(--duo-blue)] shadow-[0_2px_0_var(--duo-blue)] -translate-y-0.5"
-                        : "bg-white border-border hover:bg-muted/40"
-                    )}
-                  >
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className="font-black text-sm sm:text-base text-foreground flex items-center gap-1.5">
-                          📝 Gõ cả câu
-                        </span>
-                      </div>
-                      <p className="text-xs font-bold text-muted-foreground leading-relaxed">
-                        Luyện nghe nâng cao và tự gõ lại toàn bộ câu đầy đủ.
-                      </p>
+                      {/* Preset 10 */}
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => selectPresetCount(10)}
+                        className={cn(
+                          "btn-3d font-black text-xs sm:text-sm h-9 px-3.5",
+                          activeQuestionIndices.length === 10 && questions.length >= 10
+                            ? "bg-[var(--duo-blue)] text-white border-[var(--duo-blue)] hover:bg-[var(--duo-blue)]/90"
+                            : "bg-white text-foreground hover:bg-blue-50 border-border"
+                        )}
+                      >
+                        🔥 Luyện 10 câu
+                      </Button>
+
+                      {/* Uncompleted Only */}
+                      {questions.length - completedTotalCount > 0 && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={selectUncompletedOnly}
+                          className="btn-3d font-black text-xs sm:text-sm h-9 px-3.5 bg-white text-[var(--duo-orange)] hover:bg-orange-50 border-[var(--duo-orange)]/30"
+                        >
+                          🎯 Chỉ câu chưa làm ({questions.length - completedTotalCount})
+                        </Button>
+                      )}
+
+                      {/* All Questions */}
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setActiveQuestionIndices(activeQuestionIndices.length === questions.length ? [] : questions.map((_, i) => i))}
+                        className={cn(
+                          "btn-3d font-black text-xs sm:text-sm h-9 px-3.5",
+                          activeQuestionIndices.length === questions.length
+                            ? "bg-[var(--duo-correct)] text-white border-[var(--duo-correct)] hover:bg-[var(--duo-correct)]/90"
+                            : "bg-white text-foreground hover:bg-gray-50 border-border"
+                        )}
+                      >
+                        {activeQuestionIndices.length === questions.length ? "Bỏ chọn tất cả" : `Toàn bộ (${questions.length} câu)`}
+                      </Button>
                     </div>
-                  </button>
-                </div>
-              </div>
+                 </div>
 
               {/* Time Limit Setting */}
               <div className="p-4 bg-muted/30 rounded-2xl border-2 shadow-sm space-y-3">
@@ -1385,29 +1588,71 @@ const DictationPage = () => {
               )}
 
              {/* Individual Question Checkbox Matrix */}
-             <div className="space-y-2 pt-1">
+             <div className="space-y-3 pt-2">
                <div className="flex items-center justify-between text-xs font-bold text-muted-foreground">
-                 <span>Hoặc tùy chọn từng câu bên dưới:</span>
-                 <span>Đã chọn {activeQuestionIndices.length} câu</span>
+                 <span>Danh sách câu hỏi ({completedTotalCount}/{questions.length} câu đã hoàn thành):</span>
+                 <span className="text-[var(--duo-blue)] font-black">Đã chọn {activeQuestionIndices.length} câu</span>
                </div>
-               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+               
+               {/* Progress bar */}
+               <div className="w-full bg-muted/60 rounded-full h-2.5 overflow-hidden border">
+                 <div 
+                   className="bg-[var(--duo-correct)] h-full transition-all duration-500 rounded-full"
+                   style={{ width: `${questions.length > 0 ? (completedTotalCount / questions.length) * 100 : 0}%` }}
+                 />
+               </div>
+
+               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 pt-1">
                  {questions.map((q: any, idx: number) => {
                    const isDone = isQuestionDone(q.id);
+                   const isSelected = activeQuestionIndices.includes(idx);
                    const isAuto = isKeywordMode && isQuestionNoKeyword(q);
+                   const qVocabCount = vocabWords.filter((w: any) => w.question_id === q.id).length;
+
                    return (
-                     <label key={q.id} className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${activeQuestionIndices.includes(idx) ? 'bg-[var(--duo-blue)]/10 border-[var(--duo-blue)] shadow-[0_2px_0_var(--duo-blue)] -translate-y-0.5' : 'bg-white border-border hover:bg-muted/50 hover:border-border/80'}`}>
+                     <label 
+                       key={q.id} 
+                       className={cn(
+                         "flex items-start gap-3 p-4 rounded-2xl border-2 cursor-pointer transition-all relative select-none",
+                         isSelected 
+                           ? "bg-[var(--duo-blue)]/10 border-[var(--duo-blue)] shadow-[0_2px_0_var(--duo-blue)] -translate-y-0.5" 
+                           : isDone
+                           ? "bg-emerald-50/40 border-emerald-200/80 hover:bg-emerald-50"
+                           : "bg-white border-border hover:bg-muted/40 hover:border-border/80"
+                       )}
+                     >
                        <Checkbox 
-                         checked={activeQuestionIndices.includes(idx)}
+                         checked={isSelected}
                          onCheckedChange={() => handleToggleQuestion(idx)}
-                         className={activeQuestionIndices.includes(idx) ? "data-[state=checked]:bg-[var(--duo-blue)] data-[state=checked]:border-[var(--duo-blue)]" : ""}
+                         className={cn(
+                           "mt-0.5",
+                           isSelected ? "data-[state=checked]:bg-[var(--duo-blue)] data-[state=checked]:border-[var(--duo-blue)]" : ""
+                         )}
                        />
-                       <div className="flex flex-col">
-                         <span className="text-base font-bold text-foreground">
-                           Câu số {idx + 1} 
-                           {isDone && <CheckCircle className="w-4 h-4 text-[var(--duo-correct)] inline ml-1.5" />}
-                         </span>
-                         {isAuto && (
-                           <span className="text-[10px] font-extrabold text-[var(--duo-blue)]">Tự động hoàn thành (Không có keyword)</span>
+                       <div className="flex-1 min-w-0 space-y-1">
+                         <div className="flex items-center justify-between gap-1.5">
+                           <span className="text-base font-extrabold text-foreground">
+                             Câu số {idx + 1}
+                           </span>
+                           {isDone ? (
+                             <span className="px-2 py-0.5 rounded-full text-[11px] font-black bg-[var(--duo-correct)]/15 text-[var(--duo-correct-dark)] border border-[var(--duo-correct)]/30 inline-flex items-center gap-1">
+                               <CheckCircle className="w-3 h-3 text-[var(--duo-correct)]" /> Đã làm
+                             </span>
+                           ) : (
+                             <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                               Chưa làm
+                             </span>
+                           )}
+                         </div>
+
+                         {isAuto ? (
+                           <span className="text-[10px] font-extrabold text-[var(--duo-blue)] block">
+                             Tự động hoàn thành (Không có keyword)
+                           </span>
+                         ) : (
+                           <span className="text-xs text-muted-foreground font-medium block truncate">
+                             {qVocabCount > 0 ? `${qVocabCount} từ vựng` : "Từ khóa câu"} • {q.question_text?.trim() && q.question_text !== 'Audio dictation' ? q.question_text : "Audio bài nghe"}
+                           </span>
                          )}
                        </div>
                      </label>
@@ -1415,6 +1660,8 @@ const DictationPage = () => {
                  })}
                </div>
              </div>
+             </>
+           )}
           </div>
           
           <div className="flex justify-end pt-4 border-t-2">
@@ -2166,6 +2413,7 @@ const DictationPage = () => {
                 onKeywordCorrect={(word) => handleKeywordCorrect(currentQuestion.id, word)}
                 dictationMode={dictationMode}
                 vocabWords={vocabWords}
+                allLessonKeywords={allLessonKeywords}
               />
             </div>
 
@@ -2381,7 +2629,8 @@ const QuestionDictationSection = ({
   onRedo,
   onKeywordCorrect,
   dictationMode = "drag",
-  vocabWords
+  vocabWords,
+  allLessonKeywords
 }: { 
   question: any, 
   isCompleted: boolean, 
@@ -2390,14 +2639,15 @@ const QuestionDictationSection = ({
   onRedo: () => void,
   onKeywordCorrect?: (word: string) => void,
   dictationMode?: "drag" | "keyword" | "full",
-  vocabWords?: any[]
+  vocabWords?: any[],
+  allLessonKeywords?: string[]
 }) => {
   const isKeywordMode = dictationMode === "drag" || dictationMode === "keyword";
   const [fields, setFields] = useState<boolean[]>([]);
   const [focusedIndex, setFocusedIndex] = useState(0);
   
   const expectedItems = useMemo(() => {
-    const items = [];
+    const items: { type: string; text: string; placeholder: string }[] = [];
     if (question.question_text?.trim() && question.question_text !== 'Audio dictation') {
        items.push({ type: 'question', text: question.question_text, placeholder: "Nhập nội dung câu hỏi..." });
     }
@@ -2445,126 +2695,120 @@ const QuestionDictationSection = ({
     });
   };
 
-  const renderItem = (item: any, idx: number) => {
-    const isQuestionType = item.type === 'question';
-    const labelLetter = isQuestionType ? 'Q' : String.fromCharCode(65 + (idx - (expectedItems[0].type === 'question' ? 1 : 0)));
-    const isDone = fields[idx] || isDoneInSession || (isKeywordMode && !hasKeywords);
-    
+  // Drag mode for Non-Cloze (Question + Options A, B, C, D sharing ONE Word Bank)
+  if (dictationMode === "drag" && !isCloze) {
     return (
-      <div key={`field-${idx}`} className="flex items-start gap-3 sm:gap-4">
-        {/* Letter Badge */}
-        <div className={cn(
-          "w-9 h-9 sm:w-10 sm:h-10 rounded-xl shrink-0 flex items-center justify-center font-black text-sm sm:text-base border-2 shadow-sm transition-all mt-1",
-          isDone
-            ? "bg-[var(--duo-correct)] text-white border-[var(--duo-correct-dark)] shadow-[0_2px_0_var(--duo-correct-dark)]"
-            : "bg-white text-[var(--duo-blue)] border-[var(--duo-blue)]/30 shadow-[0_2px_0_rgba(24,153,214,0.25)]"
-        )}>
-          {labelLetter}
-        </div>
-        
-        {/* Input or Completed Content */}
-        {isCloze ? (
-          <div className="w-full flex-1 min-w-0">
-            {dictationMode === "drag" ? (
-              <DragDropClozeSection 
-                question={question}
-                clozeParts={clozeParts}
-                isCompleted={isCompleted}
-                isDoneInSession={isDone}
-                onComplete={() => setFieldComplete(idx)}
-                onKeywordCorrect={onKeywordCorrect}
-                onRedo={onRedo}
-              />
-            ) : (
-              <div className="bg-white p-4 sm:p-5 rounded-2xl border-2 leading-loose sm:leading-[2.6] text-base sm:text-lg font-bold shadow-sm">
-                {clozeParts.map((part: any, pIdx: number) => (
-                  <React.Fragment key={pIdx}>
-                    <span className="text-foreground">{part}</span>
-                    {pIdx < clozeParts.length - 1 && (
-                      <span className="inline-block mx-1.5 align-middle">
-                        {fields[idx + pIdx] ? (
-                          <span className="text-[var(--duo-correct)] font-black border-b-2 border-[var(--duo-correct)] px-2 py-0.5 bg-[var(--duo-correct)]/10 rounded-md">
-                            {question.answers[pIdx]?.answer_text}
-                          </span>
-                        ) : (
-                          <div className="min-w-[100px] sm:min-w-[130px] inline-block -my-2">
-                            <DictationInput 
-                              expected={question.answers[pIdx]?.answer_text || ""} 
-                              placeholder="..." 
-                              onCorrect={() => {
-                                setFieldComplete(idx + pIdx);
-                                onKeywordCorrect?.(question.answers[pIdx]?.answer_text || "");
-                              }}
-                              autoFocus={focusedIndex === idx + pIdx}
-                            />
-                          </div>
-                        )}
-                      </span>
-                    )}
-                  </React.Fragment>
-                ))}
-              </div>
-            )}
+      <DragDropQuestionGroup 
+        question={question}
+        items={expectedItems}
+        vocabWords={vocabWords}
+        isCompleted={isCompleted}
+        isDoneInSession={isDoneInSession}
+        onComplete={onComplete}
+        onRedo={onRedo}
+        onKeywordCorrect={onKeywordCorrect}
+      />
+    );
+  }
+
+  // Drag mode for Cloze
+  if (dictationMode === "drag" && isCloze) {
+    return (
+      <div className="space-y-4 sm:space-y-5">
+        <DragDropClozeSection 
+          question={question}
+          clozeParts={clozeParts}
+          isCompleted={isCompleted}
+          isDoneInSession={isDoneInSession}
+          onComplete={onComplete}
+          onKeywordCorrect={onKeywordCorrect}
+          onRedo={onRedo}
+          allLessonKeywords={allLessonKeywords}
+          vocabWords={vocabWords}
+        />
+
+        {isCompleted && question.translation && (
+          <div className="mt-5 p-4 sm:p-5 bg-[var(--duo-blue)]/5 rounded-2xl border-2 border-[var(--duo-blue)]/20 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-1.5">
+            <p className="text-xs font-black text-[var(--duo-blue)] uppercase tracking-wider flex items-center gap-1.5">
+              🇻🇳 Bản dịch nghĩa tiếng Việt:
+            </p>
+            <p className="text-base sm:text-lg font-bold text-foreground leading-relaxed whitespace-pre-wrap">
+              {question.translation}
+            </p>
           </div>
-        ) : (
-          <div className="w-full flex-1 min-w-0">
-            {dictationMode === "drag" ? (
-              <DragDropKeywordItem 
-                item={item} 
-                question={question}
-                vocabWords={vocabWords}
-                isDoneInSession={isDone}
-                onComplete={() => setFieldComplete(idx)}
-                onKeywordCorrect={onKeywordCorrect}
-                autoFocus={focusedIndex === idx}
-              />
-            ) : dictationMode === "keyword" ? (
-              <KeywordModeItem 
-                item={item} 
-                question={question}
-                vocabWords={vocabWords}
-                isDoneInSession={isDone}
-                onComplete={() => setFieldComplete(idx)}
-                onKeywordCorrect={onKeywordCorrect}
-                autoFocus={focusedIndex === idx}
-              />
-            ) : isDone ? (
-              <div className="w-full p-3.5 sm:p-4.5 flex items-start justify-between gap-3 bg-[var(--duo-correct)]/10 text-foreground font-bold border-2 border-[var(--duo-correct)]/30 rounded-2xl shadow-sm animate-in fade-in duration-300">
-                <p className="text-base sm:text-lg font-bold leading-relaxed break-words flex-1 text-foreground">
-                  {item.text}
-                </p>
-                <div className="flex items-center gap-2 shrink-0 pt-0.5">
-                  <button
-                    type="button"
-                    onClick={() => speakText(item.text)}
-                    className="p-1.5 rounded-lg text-muted-foreground hover:text-[var(--duo-blue)] hover:bg-white transition-colors"
-                    title="Nghe phát âm câu này"
-                  >
-                    <Volume2 className="w-4 h-4" />
-                  </button>
-                  <CheckCircle className="w-5 h-5 text-[var(--duo-correct)] shrink-0" />
-                </div>
-              </div>
-            ) : (
-              <DictationInput 
-                expected={item.text} 
-                placeholder={item.placeholder || "Nghe và điền câu trả lời..."} 
-                onCorrect={() => setFieldComplete(idx)}
-                autoFocus={focusedIndex === idx}
-              />
-            )}
+        )}
+        
+        {isCompleted && (
+          <div className="mt-4 flex justify-center">
+            <Button className="btn-3d bg-white text-muted-foreground hover:text-foreground hover:bg-gray-50 border-gray-200 py-2 px-5 text-xs sm:text-sm font-extrabold" size="sm" onClick={onRedo}>
+              <RefreshCcw className="w-4 h-4 mr-2" /> Làm lại câu này
+            </Button>
           </div>
         )}
       </div>
     );
-  };
+  }
 
+  // Typing modes (keyword / full)
   return (
     <div className="space-y-4 sm:space-y-5">
       {expectedItems.map((item, idx) => {
-        const isFirstItemCloze = expectedItems[0].type === 'question' && expectedItems[0].text.includes("[___]");
-        if (isFirstItemCloze && item.type === 'answer') return null;
-        return renderItem(item, idx);
+        const isQuestionType = item.type === 'question';
+        const labelLetter = isQuestionType ? 'Q' : String.fromCharCode(65 + (idx - (expectedItems[0].type === 'question' ? 1 : 0)));
+        const isDone = fields[idx] || isDoneInSession || (isKeywordMode && !hasKeywords);
+
+        return (
+          <div key={`field-${idx}`} className="flex items-start gap-3 sm:gap-4">
+            {/* Letter Badge */}
+            <div className={cn(
+              "w-9 h-9 sm:w-10 sm:h-10 rounded-xl shrink-0 flex items-center justify-center font-black text-sm sm:text-base border-2 shadow-sm transition-all mt-1",
+              isDone
+                ? "bg-[var(--duo-correct)] text-white border-[var(--duo-correct-dark)] shadow-[0_2px_0_var(--duo-correct-dark)]"
+                : "bg-white text-[var(--duo-blue)] border-[var(--duo-blue)]/30 shadow-[0_2px_0_rgba(24,153,214,0.25)]"
+            )}>
+              {labelLetter}
+            </div>
+
+            {/* Input Content */}
+            <div className="w-full flex-1 min-w-0">
+              {dictationMode === "keyword" ? (
+                <KeywordModeItem 
+                  item={item} 
+                  question={question}
+                  vocabWords={vocabWords}
+                  isDoneInSession={isDone}
+                  onComplete={() => setFieldComplete(idx)}
+                  onKeywordCorrect={onKeywordCorrect}
+                  autoFocus={focusedIndex === idx}
+                />
+              ) : isDone ? (
+                <div className="w-full p-3.5 sm:p-4.5 flex items-start justify-between gap-3 bg-[var(--duo-correct)]/10 text-foreground font-bold border-2 border-[var(--duo-correct)]/30 rounded-2xl shadow-sm animate-in fade-in duration-300">
+                  <p className="text-base sm:text-lg font-bold leading-relaxed break-words flex-1 text-foreground">
+                    {item.text}
+                  </p>
+                  <div className="flex items-center gap-2 shrink-0 pt-0.5">
+                    <button
+                      type="button"
+                      onClick={() => speakText(item.text)}
+                      className="p-1.5 rounded-lg text-muted-foreground hover:text-[var(--duo-blue)] hover:bg-white transition-colors"
+                      title="Nghe phát âm câu này"
+                    >
+                      <Volume2 className="w-4 h-4" />
+                    </button>
+                    <CheckCircle className="w-5 h-5 text-[var(--duo-correct)] shrink-0" />
+                  </div>
+                </div>
+              ) : (
+                <DictationInput 
+                  expected={item.text} 
+                  placeholder={item.placeholder || "Nghe và điền câu trả lời..."} 
+                  onCorrect={() => setFieldComplete(idx)}
+                  autoFocus={focusedIndex === idx}
+                />
+              )}
+            </div>
+          </div>
+        );
       })}
       
       {isCompleted && question.translation && (
@@ -2590,66 +2834,103 @@ const QuestionDictationSection = ({
 };
 
 // =========================================================================
-// Drag & Drop / Word Bank item for sentences and QA answers
+// Drag & Drop Unified Question Group: All Q, A, B, C, D share ONE Word Bank
 // =========================================================================
-const DragDropKeywordItem = ({
-  item,
+const DragDropQuestionGroup = ({
   question,
-  vocabWords,
+  items,
+  vocabWords = [],
+  isCompleted,
   isDoneInSession,
   onComplete,
-  onKeywordCorrect,
-  autoFocus
-}: any) => {
-  const [forceRevealAll, setForceRevealAll] = useState(false);
-  const [status, setStatus] = useState<"idle" | "correct" | "error">(isDoneInSession ? "correct" : "idle");
-  const [wrongBlanks, setWrongBlanks] = useState<Set<number>>(new Set());
-  const [hoveredBlankIdx, setHoveredBlankIdx] = useState<number | null>(null);
+  onRedo,
+  onKeywordCorrect
+}: {
+  question: any;
+  items: { type: string; text: string; placeholder?: string }[];
+  vocabWords?: any[];
+  isCompleted: boolean;
+  isDoneInSession: boolean;
+  onComplete: () => void;
+  onRedo: () => void;
+  onKeywordCorrect?: (word: string) => void;
+}) => {
+  const [status, setStatus] = useState<"idle" | "correct" | "error">(isDoneInSession || isCompleted ? "correct" : "idle");
+  const [wrongBlanks, setWrongBlanks] = useState<Set<string>>(new Set());
+  const [hoveredBlankKey, setHoveredBlankKey] = useState<string | null>(null);
   const { playSound } = useSound();
 
-  // Extract keywords in question
+  // 1. Extract keywords specifically for this question
   const keywords = useMemo(() => {
     return getQuestionKeywords(question, vocabWords);
   }, [question, vocabWords]);
 
-  // Parse text into parts
-  const parts = useMemo(() => {
-    if (keywords.length === 0) return [{ text: item.text, isKeyword: false }];
+  // 2. Parse each item (Q, A, B, C, D) into text chunks and keyword blanks
+  const parsedItems = useMemo(() => {
+    if (keywords.length === 0) {
+      return items.map(item => ({
+        ...item,
+        parts: [{ text: item.text, isKeyword: false }]
+      }));
+    }
+
     const escapeRegExp = (string: string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const pattern = new RegExp(`\\b(${keywords.map(escapeRegExp).join('|')})\\b`, 'gi');
-    const splitRes = item.text.split(pattern);
-    
-    return splitRes.map((part: string) => {
-      const isKw = keywords.some(k => k.toLowerCase() === part.toLowerCase());
-      return { text: part, isKeyword: isKw };
-    }).filter((p: any) => p.text);
-  }, [item.text, keywords]);
 
-  // Expected keyword blanks
-  const expectedBlanks = useMemo(() => {
-    const blanks: { blankIdx: number; expectedWord: string; partIdx: number }[] = [];
-    let bIdx = 0;
-    parts.forEach((p: any, pIdx: number) => {
-      if (p.isKeyword) {
-        blanks.push({ blankIdx: bIdx, expectedWord: p.text, partIdx: pIdx });
-        bIdx++;
-      }
+    return items.map(item => {
+      const splitRes = item.text.split(pattern);
+      const parts = splitRes.map((part: string) => {
+        const isKw = keywords.some(k => k.toLowerCase() === part.toLowerCase());
+        return { text: part, isKeyword: isKw };
+      }).filter((p: any) => p.text);
+
+      return {
+        ...item,
+        parts
+      };
     });
+  }, [items, keywords]);
+
+  // 3. Collect all blank locations across all lines (Q, A, B, C, D)
+  const allBlanks = useMemo(() => {
+    const blanks: {
+      blankKey: string;
+      itemIdx: number;
+      blankIdxInItem: number;
+      expectedWord: string;
+    }[] = [];
+
+    parsedItems.forEach((item, itemIdx) => {
+      let bIdxInItem = 0;
+      item.parts.forEach((p) => {
+        if (p.isKeyword) {
+          const blankKey = `${itemIdx}-${bIdxInItem}`;
+          blanks.push({
+            blankKey,
+            itemIdx,
+            blankIdxInItem: bIdxInItem,
+            expectedWord: p.text
+          });
+          bIdxInItem++;
+        }
+      });
+    });
+
     return blanks;
-  }, [parts]);
+  }, [parsedItems]);
 
-  // Shuffled word bank tokens
+  // 4. Word bank tokens containing all keywords in this question
   const bankTokens = useMemo(() => {
-    const tokens = expectedBlanks.map((b, i) => ({
-      id: `token-${i}-${b.expectedWord}`,
+    const tokens = allBlanks.map((b, i) => ({
+      id: `tok-${b.blankKey}-${i}-${b.expectedWord}`,
       word: b.expectedWord,
-      expectedBlankIdx: b.blankIdx
+      blankKey: b.blankKey
     }));
-    return shuffleArray(tokens) as { id: string; word: string; expectedBlankIdx: number }[];
-  }, [expectedBlanks]);
+    return shuffleArray(tokens) as { id: string; word: string; blankKey: string }[];
+  }, [allBlanks]);
 
-  // Placed map: blankIdx -> token | null
-  const [placedMap, setPlacedMap] = useState<Record<number, { id: string; word: string; expectedBlankIdx?: number } | null>>({});
+  // 5. Placed map: blankKey -> token | null
+  const [placedMap, setPlacedMap] = useState<Record<string, { id: string; word: string; blankKey?: string } | null>>({});
 
   // Keyboard shortcut Alt + A
   useEffect(() => {
@@ -2660,34 +2941,33 @@ const DragDropKeywordItem = ({
     };
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, [expectedBlanks]);
+  }, [allBlanks]);
 
-  // Auto-complete if no keywords
+  // Auto-complete if no keywords in question
   useEffect(() => {
-    if (expectedBlanks.length === 0) {
+    if (allBlanks.length === 0 && !isDoneInSession) {
       onComplete();
     }
-  }, [expectedBlanks.length, onComplete]);
+  }, [allBlanks.length, isDoneInSession, onComplete]);
 
-  // If question is done in session, reveal all correctly
+  // Sync if already done in session
   useEffect(() => {
-    if (isDoneInSession && status !== "correct") {
+    if ((isDoneInSession || isCompleted) && status !== "correct") {
       setStatus("correct");
-      const correctPlaced: Record<number, any> = {};
-      expectedBlanks.forEach((b) => {
-        correctPlaced[b.blankIdx] = { id: `auto-${b.blankIdx}`, word: b.expectedWord, expectedBlankIdx: b.blankIdx };
+      const correctPlaced: Record<string, any> = {};
+      allBlanks.forEach((b) => {
+        correctPlaced[b.blankKey] = { id: `auto-${b.blankKey}`, word: b.expectedWord, blankKey: b.blankKey };
       });
       setPlacedMap(correctPlaced);
     }
-  }, [isDoneInSession, status, expectedBlanks]);
+  }, [isDoneInSession, isCompleted, status, allBlanks]);
 
   const handleRevealAll = () => {
-    setForceRevealAll(true);
     setStatus("correct");
     setWrongBlanks(new Set());
-    const correctPlaced: Record<number, any> = {};
-    expectedBlanks.forEach((b) => {
-      correctPlaced[b.blankIdx] = { id: `reveal-${b.blankIdx}`, word: b.expectedWord, expectedBlankIdx: b.blankIdx };
+    const correctPlaced: Record<string, any> = {};
+    allBlanks.forEach((b) => {
+      correctPlaced[b.blankKey] = { id: `reveal-${b.blankKey}`, word: b.expectedWord, blankKey: b.blankKey };
       onKeywordCorrect?.(b.expectedWord);
     });
     setPlacedMap(correctPlaced);
@@ -2695,7 +2975,7 @@ const DragDropKeywordItem = ({
     onComplete();
   };
 
-  // Available tokens remaining in bank (not placed in any blank)
+  // Available tokens remaining in the question's word bank
   const placedTokenIds = useMemo(() => {
     const ids = new Set<string>();
     Object.values(placedMap).forEach(tok => {
@@ -2709,15 +2989,15 @@ const DragDropKeywordItem = ({
   }, [bankTokens, placedTokenIds]);
 
   // Validate answers
-  const checkAnswers = (currentPlacedMap: Record<number, any>) => {
+  const checkAnswers = (currentPlacedMap: Record<string, any>) => {
     let allCorrect = true;
-    const wrong = new Set<number>();
+    const wrong = new Set<string>();
 
-    expectedBlanks.forEach(b => {
-      const placed = currentPlacedMap[b.blankIdx];
+    allBlanks.forEach(b => {
+      const placed = currentPlacedMap[b.blankKey];
       if (!placed || !isFullMatch(placed.word, b.expectedWord)) {
         allCorrect = false;
-        wrong.add(b.blankIdx);
+        wrong.add(b.blankKey);
       }
     });
 
@@ -2725,7 +3005,7 @@ const DragDropKeywordItem = ({
       playSound("correct");
       setStatus("correct");
       setWrongBlanks(new Set());
-      expectedBlanks.forEach(b => onKeywordCorrect?.(b.expectedWord));
+      allBlanks.forEach(b => onKeywordCorrect?.(b.expectedWord));
       onComplete();
     } else {
       playSound("incorrect");
@@ -2735,51 +3015,49 @@ const DragDropKeywordItem = ({
   };
 
   // Drag & Drop Handlers
-  const handleDragStart = (e: React.DragEvent, token: { id: string; word: string; expectedBlankIdx?: number }, fromBlankIdx?: number) => {
-    e.dataTransfer.setData("application/json", JSON.stringify({ token, fromBlankIdx }));
+  const handleDragStart = (e: React.DragEvent, token: any, fromBlankKey?: string) => {
+    e.dataTransfer.setData("application/json", JSON.stringify({ token, fromBlankKey }));
     e.dataTransfer.effectAllowed = "move";
   };
 
-  const handleDragOver = (e: React.DragEvent, blankIdx: number) => {
+  const handleDragOver = (e: React.DragEvent, blankKey: string) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
-    if (hoveredBlankIdx !== blankIdx) {
-      setHoveredBlankIdx(blankIdx);
+    if (hoveredBlankKey !== blankKey) {
+      setHoveredBlankKey(blankKey);
     }
   };
 
-  const handleDragLeave = (e: React.DragEvent, blankIdx: number) => {
-    if (hoveredBlankIdx === blankIdx) {
-      setHoveredBlankIdx(null);
+  const handleDragLeave = (e: React.DragEvent, blankKey: string) => {
+    if (hoveredBlankKey === blankKey) {
+      setHoveredBlankKey(null);
     }
   };
 
-  const handleDrop = (e: React.DragEvent, targetBlankIdx: number) => {
+  const handleDrop = (e: React.DragEvent, targetBlankKey: string) => {
     e.preventDefault();
-    setHoveredBlankIdx(null);
+    setHoveredBlankKey(null);
     if (status === "correct") return;
 
     try {
       const dataStr = e.dataTransfer.getData("application/json");
       if (!dataStr) return;
-      const { token, fromBlankIdx } = JSON.parse(dataStr);
+      const { token, fromBlankKey } = JSON.parse(dataStr);
 
       setPlacedMap(prev => {
         const next = { ...prev };
-        
-        // If target already had a token and dragged from another blank, swap them!
-        const existingTargetToken = next[targetBlankIdx];
-        if (fromBlankIdx !== undefined && fromBlankIdx !== null && fromBlankIdx !== targetBlankIdx) {
-          next[fromBlankIdx] = existingTargetToken || null;
-        } else if (fromBlankIdx !== undefined && fromBlankIdx !== null && fromBlankIdx === targetBlankIdx) {
+        const existingTargetToken = next[targetBlankKey];
+        if (fromBlankKey !== undefined && fromBlankKey !== null && fromBlankKey !== targetBlankKey) {
+          next[fromBlankKey] = existingTargetToken || null;
+        } else if (fromBlankKey === targetBlankKey) {
           return prev;
         }
 
-        next[targetBlankIdx] = token;
+        next[targetBlankKey] = token;
 
         // Auto check if all filled
         const filledCount = Object.values(next).filter(Boolean).length;
-        if (filledCount === expectedBlanks.length) {
+        if (filledCount === allBlanks.length) {
           setTimeout(() => checkAnswers(next), 150);
         }
 
@@ -2788,8 +3066,8 @@ const DragDropKeywordItem = ({
 
       setWrongBlanks(prev => {
         const next = new Set(prev);
-        next.delete(targetBlankIdx);
-        if (fromBlankIdx !== undefined) next.delete(fromBlankIdx);
+        next.delete(targetBlankKey);
+        if (fromBlankKey) next.delete(fromBlankKey);
         return next;
       });
       if (status === "error") setStatus("idle");
@@ -2799,20 +3077,17 @@ const DragDropKeywordItem = ({
     }
   };
 
-  // Click / Tap token from Word Bank -> Fills first empty blank
-  const handleTokenClick = (token: { id: string; word: string; expectedBlankIdx?: number }) => {
+  // Click token in Word Bank -> fills first empty blank
+  const handleTokenClick = (token: any) => {
     if (status === "correct") return;
 
-    // Find first empty blank
-    const emptyBlank = expectedBlanks.find(b => !placedMap[b.blankIdx]);
+    const emptyBlank = allBlanks.find(b => !placedMap[b.blankKey]);
     if (!emptyBlank) return;
 
     setPlacedMap(prev => {
-      const next = { ...prev, [emptyBlank.blankIdx]: token };
-      
-      // Auto check if all filled
+      const next = { ...prev, [emptyBlank.blankKey]: token };
       const filledCount = Object.values(next).filter(Boolean).length;
-      if (filledCount === expectedBlanks.length) {
+      if (filledCount === allBlanks.length) {
         setTimeout(() => checkAnswers(next), 150);
       }
       return next;
@@ -2820,182 +3095,143 @@ const DragDropKeywordItem = ({
 
     setWrongBlanks(prev => {
       const next = new Set(prev);
-      next.delete(emptyBlank.blankIdx);
+      next.delete(emptyBlank.blankKey);
       return next;
     });
     if (status === "error") setStatus("idle");
   };
 
-  // Click / Tap placed blank -> Returns token to word bank
-  const handleBlankClick = (blankIdx: number) => {
+  // Click placed blank -> returns token to word bank
+  const handleBlankClick = (blankKey: string) => {
     if (status === "correct") return;
-    if (!placedMap[blankIdx]) return;
+    if (!placedMap[blankKey]) return;
 
     setPlacedMap(prev => {
       const next = { ...prev };
-      delete next[blankIdx];
+      delete next[blankKey];
       return next;
     });
 
     setWrongBlanks(prev => {
       const next = new Set(prev);
-      next.delete(blankIdx);
+      next.delete(blankKey);
       return next;
     });
     if (status === "error") setStatus("idle");
   };
 
-  // Reset all placed tokens back to bank
-  const handleReset = () => {
-    if (status === "correct") return;
-    setPlacedMap({});
-    setWrongBlanks(new Set());
-    setStatus("idle");
-  };
-
-  if (expectedBlanks.length === 0) {
-    return (
-      <div className="bg-white p-4 sm:p-5 rounded-2xl border-2 leading-loose sm:leading-[2.6] text-base sm:text-lg font-medium shadow-sm space-y-2.5">
-        <div className="flex items-center gap-2 text-xs sm:text-sm font-extrabold text-[var(--duo-blue)] bg-[var(--duo-blue)]/10 px-3 py-1.5 rounded-xl border border-[var(--duo-blue)]/20 w-fit">
-          <Sparkles className="w-4 h-4 text-[var(--duo-blue)]" />
-          <span>Câu này không có từ khóa cần điền — Tự động tính hoàn thành ✓</span>
-        </div>
-        <div className="flex items-start justify-between gap-3 text-foreground font-bold">
-          <p className="text-base sm:text-lg leading-relaxed flex-1">{item.text}</p>
-          <button
-            type="button"
-            onClick={() => speakText(item.text)}
-            className="p-1.5 rounded-lg text-muted-foreground hover:text-[var(--duo-blue)] hover:bg-muted transition-colors shrink-0"
-            title="Nghe phát âm câu này"
-          >
-            <Volume2 className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  let blankCounter = 0;
-
   return (
-    <div className="bg-white p-4 sm:p-6 rounded-2xl border-2 shadow-sm flex flex-col gap-4 relative group">
-      
-      {/* Top Bar Hint & Status */}
-      <div className="flex items-center justify-between w-full border-b border-border/60 pb-2.5">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-black uppercase text-[var(--duo-blue)] bg-[var(--duo-blue)]/10 px-2.5 py-1 rounded-lg border border-[var(--duo-blue)]/20 flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5" /> Kéo hoặc chạm từ để điền vào chỗ trống
-          </span>
-        </div>
+    <div className="space-y-4 sm:space-y-5">
+      {/* Sentences / Options list (Q, A, B, C, D) */}
+      <div className="space-y-3 sm:space-y-4">
+        {parsedItems.map((item, itemIdx) => {
+          const isQuestionType = item.type === 'question';
+          const labelLetter = isQuestionType ? 'Q' : String.fromCharCode(65 + (itemIdx - (parsedItems[0].type === 'question' ? 1 : 0)));
+          const isLineCorrect = status === "correct";
 
-        <div className="flex items-center gap-2">
-          {!isDoneInSession && status !== "correct" && Object.keys(placedMap).length > 0 && (
-            <button
-              type="button"
-              onClick={handleReset}
-              className="text-[11px] font-extrabold text-muted-foreground hover:text-[var(--duo-red)] bg-muted/50 hover:bg-red-50 px-2.5 py-1 rounded-lg border transition-colors flex items-center gap-1"
-              title="Đặt lại các từ đã chọn"
-            >
-              <RotateCcw className="w-3 h-3" /> Đặt lại
-            </button>
-          )}
-
-          {!isDoneInSession && status !== "correct" && !forceRevealAll && (
-            <button 
-              type="button"
-              onClick={handleRevealAll}
-              className="text-[11px] font-black bg-muted/60 hover:bg-muted text-muted-foreground px-2.5 py-1 rounded-lg border transition-colors shadow-2xs flex items-center gap-1"
-              title="Phím tắt: Alt + A"
-            >
-              <Eye className="w-3.5 h-3.5" /> Xem đáp án (Alt+A)
-            </button>
-          )}
-
-          {status === "correct" && (
-            <button
-              type="button"
-              onClick={() => speakText(item.text)}
-              className="p-1.5 rounded-lg text-muted-foreground hover:text-[var(--duo-blue)] hover:bg-muted transition-colors"
-              title="Nghe phát âm"
-            >
-              <Volume2 className="w-4 h-4" />
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Main Sentence with Drop Zones */}
-      <div className="leading-loose sm:leading-[3.2] text-base sm:text-lg font-bold text-foreground flex flex-wrap items-center gap-y-2">
-        {parts.map((part: any, idx: number) => {
-          if (!part.isKeyword) {
-            return <span key={idx} className="whitespace-pre-wrap">{part.text}</span>;
-          }
-
-          const currentBlankIdx = blankCounter++;
-          const placedToken = placedMap[currentBlankIdx];
-          const isWrong = wrongBlanks.has(currentBlankIdx);
-          const isHovered = hoveredBlankIdx === currentBlankIdx;
-          const isCorrect = status === "correct";
+          let blankCounter = 0;
 
           return (
-            <div
-              key={idx}
-              onDragOver={(e) => handleDragOver(e, currentBlankIdx)}
-              onDragLeave={(e) => handleDragLeave(e, currentBlankIdx)}
-              onDrop={(e) => handleDrop(e, currentBlankIdx)}
-              onClick={() => handleBlankClick(currentBlankIdx)}
-              className={cn(
-                "inline-flex items-center justify-center mx-1.5 px-3 py-1 min-w-[90px] min-h-[38px] rounded-xl border-2 transition-all cursor-pointer select-none text-center font-black text-sm sm:text-base align-middle shadow-2xs",
-                // Empty blank state
-                !placedToken && !isHovered && "border-dashed border-border/90 bg-muted/30 text-muted-foreground/50 hover:border-[var(--duo-blue)]/50 hover:bg-blue-50/30",
-                // Hovering over blank state
-                !placedToken && isHovered && "border-solid border-[var(--duo-blue)] bg-[var(--duo-blue)]/15 scale-105 shadow-sm text-[var(--duo-blue)]",
-                // Filled correct state
-                placedToken && isCorrect && "border-[var(--duo-correct)] bg-[var(--duo-correct)]/15 text-[var(--duo-correct-dark)] shadow-[0_2px_0_var(--duo-correct)] animate-[dictation-correct_0.4s_ease-in-out]",
-                // Filled wrong state
-                placedToken && isWrong && "border-[var(--duo-red)] bg-[var(--duo-red)]/15 text-[var(--duo-red)] shadow-[0_2px_0_var(--duo-red)] animate-[dictation-shake_0.3s_ease-in-out]",
-                // Filled active state
-                placedToken && !isCorrect && !isWrong && "border-[var(--duo-blue)] bg-white text-[var(--duo-blue)] shadow-[0_2px_0_#1899D6] hover:bg-red-50 hover:border-red-300 hover:text-red-600 group/blank"
-              )}
-              draggable={!!placedToken && status !== "correct"}
-              onDragStart={(e) => placedToken && handleDragStart(e, placedToken, currentBlankIdx)}
-              title={placedToken && status !== "correct" ? "Nhấp hoặc kéo để gỡ từ này" : "Ô trống cần điền từ"}
-            >
-              {placedToken ? (
-                <span className="flex items-center gap-1">
-                  <span>{placedToken.word}</span>
-                  {isCorrect && <CheckCircle2 className="w-3.5 h-3.5 inline ml-0.5 text-[var(--duo-correct)]" />}
-                  {isWrong && <span className="text-xs font-black text-[var(--duo-red)] ml-0.5">✕</span>}
-                  {!isCorrect && !isWrong && (
-                    <span className="text-[10px] text-muted-foreground group-hover/blank:text-red-500 opacity-60 ml-0.5">✕</span>
-                  )}
-                </span>
-              ) : (
-                <span className="text-xs font-bold text-muted-foreground/60 tracking-wider">
-                  [ chỗ trống {currentBlankIdx + 1} ]
-                </span>
-              )}
+            <div key={`item-${itemIdx}`} className="flex items-start gap-3 sm:gap-4">
+              {/* Badge */}
+              <div className={cn(
+                "w-9 h-9 sm:w-10 sm:h-10 rounded-xl shrink-0 flex items-center justify-center font-black text-sm sm:text-base border-2 shadow-sm transition-all mt-1",
+                isLineCorrect
+                  ? "bg-[var(--duo-correct)] text-white border-[var(--duo-correct-dark)] shadow-[0_2px_0_var(--duo-correct-dark)]"
+                  : "bg-white text-[var(--duo-blue)] border-[var(--duo-blue)]/30 shadow-[0_2px_0_rgba(24,153,214,0.25)]"
+              )}>
+                {labelLetter}
+              </div>
+
+              {/* Content box with blanks */}
+              <div className={cn(
+                "flex-1 p-3.5 sm:p-4 rounded-2xl border-2 transition-all leading-loose sm:leading-[2.5] text-base sm:text-lg font-bold shadow-sm",
+                isLineCorrect
+                  ? "bg-[var(--duo-correct)]/10 border-[var(--duo-correct)]/30 text-foreground"
+                  : "bg-white border-border text-foreground"
+              )}>
+                {item.parts.map((p, pIdx) => {
+                  if (!p.isKeyword) {
+                    return <span key={pIdx}>{p.text}</span>;
+                  }
+
+                  const currentBlankKey = `${itemIdx}-${blankCounter}`;
+                  blankCounter++;
+                  const placedToken = placedMap[currentBlankKey];
+                  const isHovered = hoveredBlankKey === currentBlankKey;
+                  const isWrong = wrongBlanks.has(currentBlankKey);
+
+                  return (
+                    <div
+                      key={`blank-${currentBlankKey}`}
+                      onDragOver={(e) => handleDragOver(e, currentBlankKey)}
+                      onDragLeave={(e) => handleDragLeave(e, currentBlankKey)}
+                      onDrop={(e) => handleDrop(e, currentBlankKey)}
+                      onClick={() => handleBlankClick(currentBlankKey)}
+                      className={cn(
+                        "inline-flex items-center justify-center min-w-[90px] sm:min-w-[120px] px-2.5 sm:px-3 py-1 mx-1.5 align-middle rounded-xl border-2 transition-all select-none",
+                        isLineCorrect
+                          ? "bg-[var(--duo-correct)]/20 border-[var(--duo-correct)] text-[var(--duo-correct-dark)] font-black"
+                          : isWrong
+                          ? "bg-red-50 border-[var(--duo-red)] text-[var(--duo-red)] animate-shake cursor-pointer shadow-sm"
+                          : placedToken
+                          ? "bg-blue-50 border-[var(--duo-blue)] text-[var(--duo-blue)] cursor-grab active:cursor-grabbing font-black shadow-sm group/blank"
+                          : isHovered
+                          ? "bg-blue-100/60 border-[var(--duo-blue)] border-dashed scale-105"
+                          : "bg-muted/40 border-dashed border-border text-muted-foreground/60"
+                      )}
+                      draggable={!!placedToken && status !== "correct"}
+                      onDragStart={(e) => placedToken && handleDragStart(e, placedToken, currentBlankKey)}
+                    >
+                      {placedToken ? (
+                        <span className="flex items-center gap-1">
+                          <span>{placedToken.word}</span>
+                          {isWrong && <span className="text-xs font-black text-[var(--duo-red)] ml-0.5">✕</span>}
+                          {!isLineCorrect && !isWrong && (
+                            <span className="text-[10px] text-muted-foreground group-hover/blank:text-red-500 opacity-60 ml-0.5">✕</span>
+                          )}
+                        </span>
+                      ) : (
+                        <span className="text-xs font-bold text-muted-foreground/60 tracking-wider">
+                          [ chỗ trống ]
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {isLineCorrect && (
+                  <button
+                    type="button"
+                    onClick={() => speakText(item.text)}
+                    className="inline-flex items-center p-1 rounded-lg text-muted-foreground hover:text-[var(--duo-blue)] ml-2 align-middle"
+                    title="Nghe phát âm"
+                  >
+                    <Volume2 className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
             </div>
           );
         })}
       </div>
 
-      {/* Word Bank Area */}
-      {status !== "correct" && (
-        <div className="mt-2 pt-3 border-t-2 border-dashed border-border/80 space-y-2">
+      {/* SINGLE UNIFIED WORD BANK FOR THIS QUESTION */}
+      {status !== "correct" && allBlanks.length > 0 && (
+        <div className="mt-4 pt-3 border-t-2 border-dashed border-border/80 space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-extrabold text-muted-foreground uppercase flex items-center gap-1">
               <span>Ngân hàng từ khóa ({availableBankTokens.length}/{bankTokens.length}):</span>
             </span>
             <span className="text-[11px] font-bold text-muted-foreground">
-              Nhấp hoặc kéo từ vào ô trống
+              Nhấp hoặc kéo từ vào ô trống bất kỳ
             </span>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 min-h-[44px] p-2.5 bg-muted/20 rounded-xl border border-border">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 min-h-[48px] p-3 bg-muted/20 rounded-2xl border-2 border-border">
             {availableBankTokens.length === 0 ? (
               <span className="text-xs font-bold text-muted-foreground italic py-1">
-                Đã đặt hết tất cả các từ vào ô trống. Nhấn "Kiểm tra" nếu chưa tự động chấm.
+                Đã xếp hết các từ khóa vào các ô trống. Nhấn "Kiểm tra đáp án" để chấm điểm.
               </span>
             ) : (
               availableBankTokens.map((token) => (
@@ -3006,7 +3242,7 @@ const DragDropKeywordItem = ({
                   onDragStart={(e) => handleDragStart(e, token)}
                   onClick={() => handleTokenClick(token)}
                   className="btn-3d px-3.5 py-2 rounded-xl bg-white hover:bg-blue-50 text-foreground hover:text-[var(--duo-blue)] border-2 border-border hover:border-[var(--duo-blue)] text-sm sm:text-base font-black shadow-sm active:scale-95 transition-all cursor-grab active:cursor-grabbing flex items-center gap-1.5"
-                  title="Nhấp để điền nhanh hoặc kéo vào ô trống"
+                  title="Nhấp để điền nhanh hoặc kéo vào bất kỳ ô trống nào"
                 >
                   <span>{token.word}</span>
                 </button>
@@ -3020,11 +3256,11 @@ const DragDropKeywordItem = ({
               <div className="text-xs font-bold">
                 {status === "error" ? (
                   <span className="text-[var(--duo-red)] flex items-center gap-1 font-black">
-                    <XCircle className="w-3.5 h-3.5" /> Có vị trí chưa chính xác, hãy nhấp vào từ sai để đổi lại nhé!
+                    <XCircle className="w-3.5 h-3.5" /> Có từ chưa chính xác vị trí, hãy nhấp vào từ sai để đổi lại nhé!
                   </span>
                 ) : (
                   <span className="text-muted-foreground">
-                    Đã điền {Object.keys(placedMap).length}/{expectedBlanks.length} chỗ trống
+                    Đã điền {Object.keys(placedMap).length}/{allBlanks.length} chỗ trống
                   </span>
                 )}
               </div>
@@ -3050,8 +3286,8 @@ const DragDropKeywordItem = ({
             <CheckCircle className="w-4 h-4 text-[var(--duo-correct)]" />
             Chính xác tuyệt đối! Đã hoàn thành các từ khóa của câu này.
           </span>
-          <span className="text-[11px] bg-white px-2 py-0.5 rounded-md border border-[var(--duo-correct)]/30 shadow-2xs">
-            +{expectedBlanks.length * 5} XP
+          <span className="text-[11px] bg-white px-2 py-0.5 rounded-md border border-[var(--duo-correct)]/30 shadow-2xs font-black text-[var(--duo-correct-dark)]">
+            +{allBlanks.length * 5 || 10} XP
           </span>
         </div>
       )}
@@ -3069,7 +3305,9 @@ const DragDropClozeSection = ({
   isDoneInSession,
   onComplete,
   onKeywordCorrect,
-  onRedo
+  onRedo,
+  allLessonKeywords,
+  vocabWords
 }: any) => {
   const [forceRevealAll, setForceRevealAll] = useState(false);
   const [status, setStatus] = useState<"idle" | "correct" | "error">(isDoneInSession || isCompleted ? "correct" : "idle");
@@ -3085,13 +3323,14 @@ const DragDropClozeSection = ({
     }));
   }, [question.answers]);
 
-  // Shuffled word bank tokens
+  // Shuffled word bank tokens for this question
   const bankTokens = useMemo(() => {
-    const tokens = expectedAnswers.map((b: any, i: number) => ({
+    const tokens: { id: string; word: string; expectedBlankIdx?: number }[] = expectedAnswers.map((b: any, i: number) => ({
       id: `cloze-tok-${i}-${b.expectedWord}`,
       word: b.expectedWord,
       expectedBlankIdx: b.blankIdx
     }));
+
     return shuffleArray(tokens) as { id: string; word: string; expectedBlankIdx: number }[];
   }, [expectedAnswers]);
 

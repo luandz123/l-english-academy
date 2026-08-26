@@ -610,7 +610,7 @@ const QuizManager = ({ quizId, courseId, lessonType, lessonId }: QuizManagerProp
     if (questions.length === 0) return toast({ title: "Không có câu hỏi để export" });
     
     // Fetch vocabulary if it's dictation
-    let vocabByQuestion: Record<number, any[]> = {};
+    const vocabByQuestion: Record<number, any[]> = {};
     if (isDictation && effectiveLessonId) {
       const { data: vQuiz } = await supabase.from("vocab_quizzes").select("id").eq("lesson_id", effectiveLessonId).maybeSingle();
       if (vQuiz) {

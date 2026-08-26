@@ -226,7 +226,7 @@ export const useGamification = () => {
       const newLevel = Math.floor(newXp / 100) + 1;
 
       if (newLevel > oldLevel) {
-        try { playSound?.("correct"); } catch (e) {}
+        try { playSound?.("correct"); } catch { /* ignore audio error */ }
         toast({
           title: `🎉 CHÚC MỪNG BẠN LÊN LEVEL ${newLevel}!`,
           description: `Danh hiệu: ${getLevelInfo(newXp).title}! Thưởng thêm +50 XP!`,
@@ -291,7 +291,7 @@ export const useGamification = () => {
       claimedQuestIds: [...prev.claimedQuestIds, questId],
     }));
 
-    try { playSound?.("correct"); } catch (e) {}
+    try { playSound?.("correct"); } catch { /* ignore audio error */ }
 
     toast({
       title: `🎁 ĐÃ NHẬN +${xpReward} XP THƯỞNG!`,
@@ -309,7 +309,7 @@ export const useGamification = () => {
       claimedBadgeIds: [...prev.claimedBadgeIds, badgeId],
     }));
 
-    try { playSound?.("correct"); } catch (e) {}
+    try { playSound?.("correct"); } catch { /* ignore audio error */ }
 
     toast({
       title: `🏅 HUY HIỆU MỚI: +${xpReward} XP!`,

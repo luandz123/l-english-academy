@@ -268,7 +268,7 @@ const AdminFullTestQuestions = () => {
   const addQuestionMutation = useMutation({
     mutationFn: async () => {
       // Find or create quiz_id for this part
-      let { data: section } = await supabase
+      const { data: section } = await supabase
         .from("full_test_sections")
         .select("id, quiz_id")
         .eq("test_id", Number(testId))

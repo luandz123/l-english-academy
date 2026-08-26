@@ -24,7 +24,7 @@ export const MysteryChestModal: React.FC<MysteryChestModalProps> = ({ isOpen, on
     setSelectedChest(index);
     setIsOpening(true);
 
-    try { playSound?.("correct"); } catch (e) {}
+    try { playSound?.("correct"); } catch { /* ignore audio error */ }
 
     setTimeout(() => {
       const res = openChestReward();

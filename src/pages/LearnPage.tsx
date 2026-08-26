@@ -146,7 +146,7 @@ const LearnPage = () => {
   });
   const toggleSidebar = () => setSidebarCollapsed(v => {
     const next = !v;
-    try { localStorage.setItem('learnpage-sidebar-collapsed', String(next)); } catch {}
+    try { localStorage.setItem('learnpage-sidebar-collapsed', String(next)); } catch { /* ignore storage error */ }
     return next;
   });
 
@@ -315,7 +315,7 @@ const LearnPage = () => {
       // youtube.com/shorts/VIDEO_ID
       const shortsMatch = url.match(/youtube\.com\/shorts\/([^?&]+)/);
       if (shortsMatch) return `https://www.youtube.com/embed/${shortsMatch[1]}`;
-    } catch {}
+    } catch { /* ignore parsing error */ }
     return url;
   };
 

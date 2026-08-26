@@ -46,10 +46,13 @@ const Register = () => {
     } else {
       if (data.session) {
         try {
-          await supabase.from("profiles").insert({
-            user_id: data.user!.id,
-            full_name: fullName,
-          });
+          await supabase.from("profiles").upsert(
+            {
+              user_id: data.user!.id,
+              full_name: fullName,
+            },
+            { onConflict: "user_id" }
+          );
         } catch (err) {
           console.error("Profile creation error (might already exist):", err);
         }

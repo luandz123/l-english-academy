@@ -66,8 +66,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
 
     // Then check existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) setLoading(false);
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        console.warn("Stale session detected, clearing session:", error.message);
+        setSession(null);
+        setUser(null);
+        setProfile(null);
+        setIsAdmin(false);
+        setLoading(false);
+      } else if (!session) {
+        setLoading(false);
+      }
+    }).catch(() => {
+      setLoading(false);
     });
 
     return () => subscription.unsubscribe();

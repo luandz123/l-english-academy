@@ -256,7 +256,7 @@ const AdminMaterials = () => {
               <label className="cursor-pointer">
                 <Folder className="w-4 h-4 mr-1" />
                 Upload thư mục
-                {/* @ts-ignore */}
+                {/* @ts-expect-error webkitdirectory is a non-standard browser attribute */}
                 <input type="file" className="hidden" onChange={handleUpload} {...{ webkitdirectory: "", directory: "", multiple: true } as any} />
               </label>
             </Button>
