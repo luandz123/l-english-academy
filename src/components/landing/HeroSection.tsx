@@ -45,7 +45,7 @@ const HeroSection = () => {
             <div className="inline-flex items-center gap-2 bg-[var(--primary-light)] border-2 border-[var(--duo-green)]/15 rounded-full px-4 py-1.5">
               <span className="flex h-2 w-2 rounded-full bg-[var(--duo-green)] animate-pulse" />
               <span className="text-xs font-extrabold text-[var(--duo-green-dark)] uppercase tracking-wider">
-                💰 Học tiếng Anh tiết kiệm &amp; hiệu quả
+                💰 Học tiếng Anh Miễn Phí &amp; hiệu quả
               </span>
             </div>
 

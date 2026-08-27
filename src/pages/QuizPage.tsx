@@ -140,10 +140,10 @@ const QuizPage = () => {
       const isPart67 = q.question_type === "part6" || q.question_type === "part7";
       
       let passageText = "";
-      let cleanQuestionText = q.question_text;
+      let cleanQuestionText = q.question_text || "";
       
-      if (q.question_text.includes("[PASSAGE]")) {
-        const parts = q.question_text.split("[ENDPASSAGE]");
+      if (cleanQuestionText.includes("[PASSAGE]")) {
+        const parts = cleanQuestionText.split("[ENDPASSAGE]");
         passageText = parts[0].replace("[PASSAGE]", "");
         cleanQuestionText = parts[1] || "";
       }
