@@ -1,7 +1,6 @@
 import StudentLayout from "@/components/StudentLayout";
 import { Link } from "react-router-dom";
-import { Flame, ArrowRight, Trophy, BookOpen, Headphones, FileText, Sparkles, CheckCircle2, Play } from "lucide-react";
-import { PlayCircle, ClipboardText, Star, BookBookmark } from "@phosphor-icons/react";
+import { Flame, ArrowRight, Trophy, BookOpen, Headphones, FileText, Sparkles, CheckCircle2, Play, PlayCircle, ClipboardCheck, Star, BookmarkCheck } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -161,7 +160,7 @@ const Dashboard = () => {
       bgColor: "bg-blue-50 dark:bg-blue-950/50",
     },
     {
-      Icon: ClipboardText,
+      Icon: ClipboardCheck,
       label: "Bài thi đã làm",
       value: totalQuizzes,
       suffix: " đề",
@@ -177,7 +176,7 @@ const Dashboard = () => {
       bgColor: "bg-amber-50 dark:bg-amber-950/50",
     },
     {
-      Icon: BookBookmark,
+      Icon: BookmarkCheck,
       label: "Khóa đã đăng ký",
       value: enrollments?.length || 0,
       suffix: " khóa",
@@ -401,7 +400,7 @@ const Dashboard = () => {
           {stats.map((s) => (
             <div key={s.label} className="p-4 rounded-xl border border-border bg-card shadow-sm flex items-center gap-3.5">
               <div className={`w-11 h-11 rounded-xl ${s.bgColor} ${s.color} flex items-center justify-center shrink-0`}>
-                <s.Icon size={22} weight="bold" />
+                <s.Icon className="w-5 h-5" />
               </div>
               <div className="min-w-0">
                 <p className="text-xl font-bold text-foreground leading-tight">

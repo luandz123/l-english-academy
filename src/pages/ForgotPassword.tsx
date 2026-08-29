@@ -5,6 +5,8 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import Logo from "@/components/Logo";
+import { getFriendlyErrorMessage } from "@/lib/errorHandler";
+import { Loader2 } from "lucide-react";
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
@@ -21,10 +23,10 @@ const ForgotPassword = () => {
     setLoading(false);
 
     if (error) {
-      toast({ title: "Lỗi", description: error.message, variant: "destructive" });
+      toast({ title: "Không thể gửi yêu cầu", description: getFriendlyErrorMessage(error), variant: "destructive" });
     } else {
       setSent(true);
-      toast({ title: "Đã gửi email", description: "Vui lòng kiểm tra hộp thư của bạn để khôi phục mật khẩu." });
+      toast({ title: "Đã gửi email khôi phục", description: "Vui lòng kiểm tra hộp thư của bạn để lấy liên kết đặt lại mật khẩu." });
     }
   };
 
@@ -51,8 +53,9 @@ const ForgotPassword = () => {
                 <Label htmlFor="email" className="font-bold">Email</Label>
                 <Input id="email" type="email" placeholder="name@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required className="h-12 rounded-xl border-2 border-[var(--duo-gray)] font-medium focus:border-[var(--duo-blue)] transition-colors" />
               </div>
-              <button type="submit" className="btn-3d btn-3d-primary w-full py-3.5" disabled={loading}>
-                {loading ? "Đang gửi..." : "GỬI LIÊN KẾT KHÔI PHỤC"}
+              <button type="submit" className="btn-3d btn-3d-primary w-full py-3.5 flex items-center justify-center gap-2" disabled={loading}>
+                {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+                <span>{loading ? "Đang gửi..." : "GỬI LIÊN KẾT KHÔI PHỤC"}</span>
               </button>
             </form>
           ) : (

@@ -1,114 +1,129 @@
 import { Link } from "react-router-dom";
 import {
   Headphones,
-  Cards,
-  FileMagnifyingGlass,
-  Trophy,
-  Sparkle,
+  Layers,
+  FileCheck2,
+  Sparkles,
   GraduationCap,
-} from "@phosphor-icons/react";
+  ArrowRight,
+} from "lucide-react";
 
 const realFeatures = [
   {
     Icon: Headphones,
-    gradient: "from-[var(--duo-green)] to-[var(--duo-orange)]",
-    glow: "shadow-[var(--duo-green)]/30",
-    border: "border-[var(--duo-green)]/15 dark:border-[var(--duo-green)]/20",
+    gradient: "from-blue-600 to-indigo-600",
+    glow: "shadow-blue-500/20",
+    border: "border-blue-500/20 hover:border-blue-500/50",
     title: "Nghe chép chính tả (Dictation)",
-    desc: "Luyện nghe Part 1–4 với chấm điểm tự động từng từ khóa.",
-    tag: "🎧 Dictation",
-    tagColor: "bg-[var(--primary-light)] text-[var(--duo-green-dark)]",
+    desc: "Luyện nghe TOEIC Part 1–4, gõ lại từng từ với hệ thống chấm điểm và tua câu thông minh.",
+    tag: "Dictation",
+    tagColor: "bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300",
+    link: "/courses?filter=listening",
+    cta: "Luyện nghe ngay",
   },
   {
-    Icon: Cards,
-    gradient: "from-[var(--duo-green-light)] to-[var(--duo-orange)]",
-    glow: "shadow-[var(--duo-orange)]/25",
-    border: "border-[var(--duo-orange)]/15 dark:border-[var(--duo-orange)]/20",
+    Icon: Layers,
+    gradient: "from-amber-500 to-orange-500",
+    glow: "shadow-orange-500/20",
+    border: "border-orange-500/20 hover:border-orange-500/50",
     title: "Flashcard từ vựng thông minh",
-    desc: "Học & ôn từ vựng theo chủ đề TOEIC với hệ thống lật thẻ.",
-    tag: "🃏 Flashcard",
-    tagColor: "bg-orange-50 text-[var(--accent-dark)]",
+    desc: "Học & ôn từ vựng theo chủ đề TOEIC với cơ chế lật thẻ, phát âm audio chuẩn và ví dụ thực tế.",
+    tag: "Flashcard",
+    tagColor: "bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300",
+    link: "/courses?filter=flashcard",
+    cta: "Học từ vựng ngay",
   },
   {
-    Icon: FileMagnifyingGlass,
-    gradient: "from-[var(--duo-blue)] to-[var(--duo-green)]",
-    glow: "shadow-[var(--duo-blue)]/25",
-    border: "border-[var(--duo-blue)]/15 dark:border-[var(--duo-blue)]/20",
+    Icon: FileCheck2,
+    gradient: "from-emerald-500 to-teal-600",
+    glow: "shadow-emerald-500/20",
+    border: "border-emerald-500/20 hover:border-emerald-500/50",
     title: "Đề thi thử Full Test TOEIC",
-    desc: "Làm đề 7 Part đầy đủ, giải thích đáp án chi tiết sau bài.",
-    tag: "📋 Full Test",
-    tagColor: "bg-slate-100 text-[var(--duo-blue-dark)]",
+    desc: "Làm đề 7 Part đầy đủ bấm giờ thật, bảng quy đổi điểm chuẩn ETS và giải thích chi tiết sau khi nộp.",
+    tag: "Full Test",
+    tagColor: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300",
+    link: "/courses?filter=fulltest",
+    cta: "Thi thử ngay",
   },
 ];
 
 const PromoBanner = () => {
   return (
-    <section className="py-14 bg-white dark:bg-zinc-950 border-t border-[var(--duo-gray)] dark:border-zinc-800 relative overflow-hidden">
-      {/* Decorative blobs */}
-      <div className="absolute -top-16 -left-16 w-56 h-56 rounded-full bg-[var(--duo-green)]/10 blur-3xl pointer-events-none opacity-60" />
-      <div className="absolute -bottom-16 -right-16 w-72 h-72 rounded-full bg-[var(--duo-orange)]/10 blur-3xl pointer-events-none opacity-60" />
+    <section className="py-16 bg-white dark:bg-zinc-950 border-t border-border relative overflow-hidden">
+      {/* Decorative subtle background gradient */}
+      <div className="absolute -top-24 -left-24 w-72 h-72 rounded-full bg-blue-500/5 blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-24 -right-24 w-80 h-80 rounded-full bg-emerald-500/5 blur-3xl pointer-events-none" />
 
       <div className="container mx-auto px-4 max-w-5xl relative z-10">
         {/* Header */}
-        <div className="text-center mb-10">
-          <span className="inline-flex items-center gap-2 bg-gradient-to-r from-[var(--duo-green)]/10 to-[var(--duo-orange)]/10 border border-[var(--duo-green)]/20 rounded-full px-4 py-1.5 text-sm font-black text-[var(--duo-green-dark)] mb-4">
-            <Sparkle size={14} weight="fill" />
-            TÍNH NĂNG NỔI BẬT
+        <div className="text-center mb-12">
+          <span className="inline-flex items-center gap-1.5 bg-primary/10 border border-primary/20 rounded-full px-3.5 py-1 text-xs font-bold text-primary mb-3">
+            <Sparkles className="w-3.5 h-3.5" />
+            PHƯƠNG PHÁP HỌC TẬP
           </span>
-          <h2 className="text-3xl md:text-4xl font-black text-foreground">
-            Một nền tảng —{" "}
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-[var(--duo-green)] to-[var(--duo-orange)]">
-              Toàn bộ công cụ học
-            </span>
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-foreground tracking-tight">
+            3 phương pháp cốt lõi để nâng điểm TOEIC
           </h2>
-          <p className="text-muted-foreground font-semibold mt-3 text-sm md:text-base max-w-xl mx-auto">
-            Không cần đăng ký nhiều nơi. Dictation, Flashcard, Full Test — tất cả tích hợp trong một nền tảng tiện lợi &amp; hiệu quả.
+          <p className="text-muted-foreground font-medium mt-3 text-sm md:text-base max-w-xl mx-auto">
+            Kết hợp luyện nghe chép chính tả, nạp từ vựng trọng tâm và thi thử 200 câu theo chuẩn format ETS.
           </p>
         </div>
 
-        {/* Feature cards — 3 columns */}
-        <div className="grid md:grid-cols-3 gap-5 mb-10">
+        {/* Feature cards — 3 columns with explicit Link & CTA affordance */}
+        <div className="grid md:grid-cols-3 gap-6 mb-12">
           {realFeatures.map((f) => (
-            <div
+            <Link
               key={f.title}
-              className={`relative bg-white dark:bg-zinc-900 rounded-2xl border-2 ${f.border} p-5 flex flex-col gap-4 hover:-translate-y-1 transition-all duration-300 shadow-sm hover:shadow-lg`}
+              to={f.link}
+              className={`group relative bg-card rounded-2xl border ${f.border} p-6 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-1`}
             >
-              {/* Tag */}
-              <span className={`self-start text-xs font-black px-2.5 py-1 rounded-full ${f.tagColor}`}>
-                {f.tag}
-              </span>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${f.tagColor}`}>
+                    {f.tag}
+                  </span>
+                  <div
+                    className={`w-12 h-12 rounded-xl bg-gradient-to-br ${f.gradient} flex items-center justify-center shadow-md ${f.glow} text-white shrink-0`}
+                  >
+                    <f.Icon className="w-6 h-6" />
+                  </div>
+                </div>
 
-              {/* Icon — gradient box with glow */}
-              <div
-                className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${f.gradient} flex items-center justify-center shadow-lg ${f.glow}`}
-              >
-                <f.Icon size={30} weight="duotone" color="white" />
+                <div>
+                  <h3 className="font-bold text-foreground text-base leading-snug group-hover:text-primary transition-colors">
+                    {f.title}
+                  </h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground font-medium mt-2 leading-relaxed">
+                    {f.desc}
+                  </p>
+                </div>
               </div>
 
-              <div>
-                <h4 className="font-extrabold text-foreground text-base leading-snug">{f.title}</h4>
-                <p className="text-sm text-muted-foreground font-medium mt-1.5 leading-relaxed">{f.desc}</p>
+              {/* Action link affordance */}
+              <div className="pt-5 mt-4 border-t border-border/60 flex items-center justify-between text-xs font-bold text-primary group-hover:underline">
+                <span>{f.cta}</span>
+                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
               </div>
-            </div>
+            </Link>
           ))}
         </div>
 
         {/* CTA strip */}
-        <div className="rounded-3xl bg-gradient-to-r from-[var(--duo-green)]/5 via-[var(--duo-orange)]/5 to-[var(--duo-blue)]/5 border-2 border-[var(--duo-gray)] dark:border-zinc-800 p-6 flex flex-col sm:flex-row items-center gap-5 justify-between">
+        <div className="rounded-2xl bg-gradient-to-r from-blue-500/5 via-emerald-500/5 to-indigo-500/5 border border-border p-6 sm:p-8 flex flex-col sm:flex-row items-center gap-6 justify-between">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[var(--duo-green)] to-[var(--duo-orange)] flex items-center justify-center shadow-lg shadow-[var(--duo-green)]/25 shrink-0">
-              <GraduationCap size={26} weight="duotone" color="white" />
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-md shadow-blue-500/20 text-white shrink-0">
+              <GraduationCap className="w-6 h-6" />
             </div>
             <div>
-              <p className="font-black text-foreground text-lg">Sẵn sàng bắt đầu?</p>
-              <p className="text-sm text-muted-foreground font-medium">Đăng ký miễn phí — không cần thẻ tín dụng</p>
+              <p className="font-bold text-foreground text-lg">Bắt đầu luyện tập ngay hôm nay</p>
+              <p className="text-xs sm:text-sm text-muted-foreground font-medium">Tạo tài khoản học thử không mất phí, làm quen với đề thi thực tế.</p>
             </div>
           </div>
-          <div className="flex gap-3 shrink-0">
-            <Link to="/register" className="btn-3d btn-3d-green text-sm px-6 py-3 inline-block whitespace-nowrap">
-              Đăng ký ngay 🚀
+          <div className="flex gap-3 shrink-0 w-full sm:w-auto">
+            <Link to="/register" className="btn-3d btn-3d-green text-xs sm:text-sm px-5 py-2.5 flex-1 sm:flex-none text-center">
+              Đăng ký học thử 🚀
             </Link>
-            <Link to="/courses" className="btn-3d btn-3d-white text-sm px-6 py-3 inline-block whitespace-nowrap">
+            <Link to="/courses" className="btn-3d btn-3d-white text-xs sm:text-sm px-5 py-2.5 flex-1 sm:flex-none text-center">
               Xem khóa học
             </Link>
           </div>

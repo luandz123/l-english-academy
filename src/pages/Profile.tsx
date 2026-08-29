@@ -7,13 +7,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
-import { User, BookOpen, Trophy, KeyRound, Calendar, Mail, CheckCircle2 } from "lucide-react";
+import { User, BookOpen, Trophy, KeyRound, Calendar, Mail, CheckCircle2, Loader2 } from "lucide-react";
+import { getFriendlyErrorMessage } from "@/lib/errorHandler";
 
 const Profile = () => {
   const { user, profile, isAdmin } = useAuth();
   const { toast } = useToast();
   const [fullName, setFullName] = useState(profile?.full_name || "");
   const [saving, setSaving] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
@@ -64,7 +66,7 @@ const Profile = () => {
       .eq("user_id", user.id);
     setSaving(false);
     if (error) {
-      toast({ title: "Lỗi", description: error.message, variant: "destructive" });
+      toast({ title: "Cập nhật thất bại", description: getFriendlyErrorMessage(error), variant: "destructive" });
     } else {
       toast({ title: "Đã cập nhật!", description: "Thông tin cá nhân đã được lưu thành công." });
     }
@@ -72,16 +74,18 @@ const Profile = () => {
 
   const handleChangePassword = async () => {
     if (newPassword !== confirmPassword) {
-      toast({ title: "Lỗi", description: "Mật khẩu xác nhận không khớp.", variant: "destructive" });
+      toast({ title: "Mật khẩu không khớp", description: "Mật khẩu xác nhận phải giống mật khẩu mới.", variant: "destructive" });
       return;
     }
     if (newPassword.length < 6) {
-      toast({ title: "Lỗi", description: "Mật khẩu mới phải có ít nhất 6 ký tự.", variant: "destructive" });
+      toast({ title: "Mật khẩu quá ngắn", description: "Mật khẩu mới phải có ít nhất 6 ký tự.", variant: "destructive" });
       return;
     }
+    setSavingPassword(true);
     const { error } = await supabase.auth.updateUser({ password: newPassword });
+    setSavingPassword(false);
     if (error) {
-      toast({ title: "Lỗi", description: error.message, variant: "destructive" });
+      toast({ title: "Đổi mật khẩu thất bại", description: getFriendlyErrorMessage(error), variant: "destructive" });
     } else {
       toast({ title: "Thành công!", description: "Mật khẩu đã được đổi thành công." });
       setNewPassword("");
@@ -165,9 +169,10 @@ const Profile = () => {
               <button
                 onClick={handleUpdateProfile}
                 disabled={saving}
-                className="btn-3d btn-3d-primary py-2 px-5 text-xs font-semibold"
+                className="btn-3d btn-3d-primary py-2 px-5 text-xs font-semibold flex items-center gap-1.5"
               >
-                {saving ? "Đang lưu..." : "Lưu thay đổi"}
+                {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                <span>{saving ? "Đang lưu..." : "Lưu thay đổi"}</span>
               </button>
             </div>
           </TabsContent>
@@ -257,9 +262,11 @@ const Profile = () => {
               </div>
               <button
                 onClick={handleChangePassword}
-                className="btn-3d btn-3d-primary py-2 px-5 text-xs font-semibold"
+                disabled={savingPassword}
+                className="btn-3d btn-3d-primary py-2 px-5 text-xs font-semibold flex items-center gap-1.5"
               >
-                Đổi mật khẩu
+                {savingPassword && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                <span>{savingPassword ? "Đang đổi mật khẩu..." : "Đổi mật khẩu"}</span>
               </button>
             </div>
           </TabsContent>

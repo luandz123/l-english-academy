@@ -7,7 +7,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import Logo from "@/components/Logo";
 import { signInWithGoogle } from "@/lib/googleOAuth";
-
+import { getFriendlyErrorMessage } from "@/lib/errorHandler";
+import { Loader2 } from "lucide-react";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -32,7 +33,7 @@ const Login = () => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) {
-      toast({ title: "Đăng nhập thất bại", description: error.message, variant: "destructive" });
+      toast({ title: "Đăng nhập không thành công", description: getFriendlyErrorMessage(error), variant: "destructive" });
     } else {
       toast({ title: "Đăng nhập thành công!", description: "Chào mừng bạn quay lại L-English." });
       // Auth state change will handle redirect via useAuth
@@ -42,7 +43,7 @@ const Login = () => {
   const handleGoogleLogin = async () => {
     const { error } = await signInWithGoogle();
     if (error) {
-      toast({ title: "Lỗi đăng nhập Google", description: error.message, variant: "destructive" });
+      toast({ title: "Đăng nhập Google thất bại", description: getFriendlyErrorMessage(error), variant: "destructive" });
     }
   };
 
@@ -75,8 +76,9 @@ const Login = () => {
               </div>
               <Input id="password" type="password" placeholder="Nhập mật khẩu" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" className="h-12 rounded-xl border-2 border-[var(--duo-gray)] font-medium focus:border-[var(--duo-blue)] transition-colors" />
             </div>
-            <button type="submit" className="btn-3d btn-3d-primary w-full py-3.5" disabled={loading}>
-              {loading ? "Đang đăng nhập..." : "ĐĂNG NHẬP"}
+            <button type="submit" className="btn-3d btn-3d-primary w-full py-3.5 flex items-center justify-center gap-2" disabled={loading}>
+              {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+              <span>{loading ? "Đang đăng nhập..." : "ĐĂNG NHẬP"}</span>
             </button>
           </form>
 

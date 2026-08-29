@@ -9,6 +9,18 @@ import { useState, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { getFriendlyErrorMessage } from "@/lib/errorHandler";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const typeIcon: Record<string, any> = { pdf: FileText, image: Image, audio: Music, jpg: Image, png: Image, mp3: Music, video: FileText };
 
@@ -41,14 +53,15 @@ const AdminMaterials = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-materials"] });
-      toast({ title: "Đã xóa tài liệu" });
+      toast({ title: "Đã xóa tài liệu thành công" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Không thể xóa tài liệu", description: getFriendlyErrorMessage(error), variant: "destructive" });
     },
   });
 
   const renameFolderMutation = useMutation({
     mutationFn: async ({ oldPath, newPath }: { oldPath: string; newPath: string }) => {
-      // oldPath might be like "/Course/Quiz"
-      // we need to find all materials where folder_path is oldPath OR folder_path starts with oldPath + "/"
       const { data: toUpdate } = await supabase.from("materials").select("id, folder_path");
       if (!toUpdate) return;
 
@@ -64,11 +77,13 @@ const AdminMaterials = () => {
       queryClient.invalidateQueries({ queryKey: ["admin-materials"] });
       toast({ title: "Đã đổi tên thư mục" });
     },
+    onError: (error: any) => {
+      toast({ title: "Không thể đổi tên thư mục", description: getFriendlyErrorMessage(error), variant: "destructive" });
+    },
   });
 
   const deleteFolderMutation = useMutation({
     mutationFn: async (folderPath: string) => {
-      // Delete all materials whose folder_path is folderPath or starts with it
       const { data: toDelete } = await supabase.from("materials").select("id, folder_path");
       if (!toDelete) return;
 
@@ -85,7 +100,10 @@ const AdminMaterials = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-materials"] });
-      toast({ title: "Đã xóa thư mục" });
+      toast({ title: "Đã xóa thư mục và các file bên trong" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Không thể xóa thư mục", description: getFriendlyErrorMessage(error), variant: "destructive" });
     },
   });
 
@@ -328,19 +346,36 @@ const AdminMaterials = () => {
                         >
                           <Edit className="h-3 w-3" />
                         </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-7 w-7 text-destructive hover:bg-destructive/10"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (confirm(`Bạn có chắc muốn xóa thư mục "${folder}" và TẤT CẢ FILE bên trong?`)) {
-                              deleteFolderMutation.mutate(fullPath);
-                            }
-                          }}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7 text-destructive hover:bg-destructive/10"
+                              onClick={(e) => e.stopPropagation()}
+                              disabled={deleteFolderMutation.isPending}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Xác nhận xóa thư mục?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Bạn có chắc chắn muốn xóa thư mục <strong>"{folder}"</strong>? Toàn bộ file và tài liệu nằm trong thư mục này sẽ bị xóa hoàn toàn khỏi hệ thống.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Hủy bỏ</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => deleteFolderMutation.mutate(fullPath)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                {deleteFolderMutation.isPending ? "Đang xóa..." : "Xóa vĩnh viễn"}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     </div>
                   );
@@ -380,9 +415,30 @@ const AdminMaterials = () => {
                           <Button size="sm" variant="secondary" className="h-7 text-xs" onClick={() => copyUrl(m.file_url)}>
                             <Copy className="w-3 h-3 mr-1" /> Copy
                           </Button>
-                          <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => { if (confirm("Xóa?")) deleteMutation.mutate(m.id); }}>
-                            <Trash2 className="w-3 h-3" />
-                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" disabled={deleteMutation.isPending}>
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Xác nhận xóa tài liệu?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Bạn có chắc muốn xóa tài liệu <strong>"{m.title}"</strong> không?
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Hủy bỏ</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => deleteMutation.mutate(m.id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  {deleteMutation.isPending ? "Đang xóa..." : "Xóa"}
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                        </div>
                     </div>
                   </div>

@@ -614,7 +614,7 @@ const KeywordDictationInput = ({
               ? "font-bold text-[var(--duo-red)] border-[var(--duo-red)] bg-[var(--duo-red)]/10 pr-6"
               : "font-bold border-border bg-white focus-visible:border-[var(--duo-blue)] focus-visible:ring-[var(--duo-blue)]/20 pr-6"
           }`}
-          readOnly={status === "correct"}
+          readOnly={status === "correct" || status === "error"}
           style={{ width: `${Math.max(70, Math.max(expected.length, value.length) * 10 + 26)}px` }}
         />
         {status === "correct" && (
@@ -622,14 +622,9 @@ const KeywordDictationInput = ({
         )}
         {status === "error" && (
           <>
-            <button
-              type="button"
-              onClick={handleCheck}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-black text-[var(--duo-red)] select-none hover:opacity-80"
-              title="Nhấn Enter để thử lại hoặc xem đáp án"
-            >
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-black text-[var(--duo-red)] select-none">
               !
-            </button>
+            </div>
             <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 z-50 pointer-events-none">
               <div className="bg-white border-2 border-[var(--duo-correct)] text-[var(--duo-correct)] text-xs font-bold px-2 py-1 rounded-md shadow-sm whitespace-nowrap animate-in fade-in slide-in-from-top-1">
                 {expected}
@@ -2307,28 +2302,23 @@ const DictationPage = () => {
                   </div>
 
                   {/* Vocab on Mobile Sheet */}
-                  <div className="space-y-2 pt-3 border-t">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-extrabold text-xs text-[var(--duo-orange)] flex items-center gap-1.5">
-                        <Library className="w-3.5 h-3.5" /> Từ vựng câu hiện tại {isCurrentDone && currentQuestionVocab.length > 0 ? `(${currentQuestionVocab.length})` : ""}
-                      </h4>
-                      {isCurrentDone && effectiveLessonId && currentQuestionVocab.length > 0 && (
-                        <Link
-                          to={`/courses/${courseId}/vocab-lesson/${effectiveLessonId}`}
-                          state={{ questionIds: [currentQuestion?.id].filter(Boolean) }}
-                          className="text-[11px] font-extrabold text-[var(--duo-blue)] hover:underline flex items-center gap-0.5"
-                        >
-                          Học Flashcard →
-                        </Link>
-                      )}
-                    </div>
-                    {!isCurrentDone ? (
-                      <div className="p-3 bg-muted/20 rounded-xl border border-dashed text-xs text-muted-foreground text-center space-y-1">
-                        <p className="font-bold text-foreground/80">🔒 Từ vựng đang được ẩn</p>
-                        <p className="text-[10px] text-muted-foreground">Hoàn thành câu để mở khóa từ vựng và phiên âm</p>
+                  {currentQuestionVocab.length > 0 && (
+                    <div className="space-y-2 pt-3 border-t">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-extrabold text-xs text-[var(--duo-orange)] flex items-center gap-1.5">
+                          <Library className="w-3.5 h-3.5" /> Từ vựng câu hiện tại ({currentQuestionVocab.length})
+                        </h4>
+                        {effectiveLessonId && (
+                          <Link
+                            to={`/courses/${courseId}/vocab-lesson/${effectiveLessonId}`}
+                            state={{ questionIds: [currentQuestion?.id].filter(Boolean) }}
+                            className="text-[11px] font-extrabold text-[var(--duo-blue)] hover:underline flex items-center gap-0.5"
+                          >
+                            Học Flashcard →
+                          </Link>
+                        )}
                       </div>
-                    ) : currentQuestionVocab.length > 0 ? (
-                      <div className="space-y-1.5 max-h-[200px] overflow-y-auto pr-1 animate-in fade-in duration-300">
+                      <div className="space-y-1.5 max-h-[200px] overflow-y-auto pr-1">
                         {currentQuestionVocab.map((w: any) => (
                           <div key={w.id} className="p-2 bg-[var(--duo-orange)]/5 rounded-xl border border-[var(--duo-orange)]/20 space-y-1">
                             <div className="flex justify-between items-center gap-1">
@@ -2351,10 +2341,8 @@ const DictationPage = () => {
                           </div>
                         ))}
                       </div>
-                    ) : (
-                      <p className="text-xs text-muted-foreground italic py-1">Không có từ vựng riêng câu này</p>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
               </SheetContent>
             </Sheet>
@@ -2611,23 +2599,13 @@ const DictationPage = () => {
                   <Library className="w-4 h-4 text-[var(--duo-orange)]" />
                   <h3 className="font-black text-sm sm:text-base text-foreground">Từ vựng trong câu</h3>
                 </div>
-                {isCurrentDone && currentQuestionVocab.length > 0 && (
-                  <span className="text-[11px] font-black text-[var(--duo-orange)] bg-[var(--duo-orange)]/10 px-2 py-0.5 rounded-full border border-[var(--duo-orange)]/20">
-                    {currentQuestionVocab.length} từ
-                  </span>
-                )}
+                <span className="text-[11px] font-black text-[var(--duo-orange)] bg-[var(--duo-orange)]/10 px-2 py-0.5 rounded-full border border-[var(--duo-orange)]/20">
+                  {currentQuestionVocab.length} từ
+                </span>
               </div>
 
-              {!isCurrentDone ? (
-                <div className="py-4 px-3 bg-muted/20 rounded-xl border border-dashed text-xs text-muted-foreground flex flex-col items-center justify-center text-center gap-1.5">
-                  <span className="text-base">🔒</span>
-                  <p className="font-bold text-foreground/80">Từ vựng đang được ẩn</p>
-                  <p className="text-[11px] text-muted-foreground">
-                    Hoàn thành câu này để xem danh sách từ vựng, phiên âm & giải nghĩa.
-                  </p>
-                </div>
-              ) : currentQuestionVocab.length > 0 ? (
-                <div className="space-y-1.5 max-h-[220px] overflow-y-auto pr-1 animate-in fade-in duration-300">
+              {currentQuestionVocab.length > 0 ? (
+                <div className="space-y-1.5 max-h-[220px] overflow-y-auto pr-1">
                   {currentQuestionVocab.map((w: any) => (
                     <div key={w.id} className="p-2 sm:p-2.5 bg-[var(--duo-orange)]/5 rounded-xl border border-[var(--duo-orange)]/20 space-y-1 hover:border-[var(--duo-orange)]/40 transition-colors">
                       <div className="flex justify-between items-center gap-1.5">
@@ -2672,7 +2650,7 @@ const DictationPage = () => {
                 </div>
               )}
 
-              {isCurrentDone && effectiveLessonId && currentQuestionVocab.length > 0 && (
+              {effectiveLessonId && currentQuestionVocab.length > 0 && (
                 <div className="pt-1.5 border-t flex justify-end">
                   <Link
                     to={`/courses/${courseId}/vocab-lesson/${effectiveLessonId}`}

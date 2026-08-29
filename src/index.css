@@ -165,25 +165,25 @@
 
   /* Clean Badge styles */
   .badge-duo {
-    @apply inline-flex items-center gap-1 font-semibold text-[11px] px-2.5 py-0.5 rounded-full border transition-colors select-none;
+    @apply inline-flex items-center gap-1.5 font-bold text-xs px-2.5 py-0.5 rounded-full border transition-colors select-none tracking-wide;
   }
   .badge-green {
-    @apply bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800;
+    @apply bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-700;
   }
   .badge-blue {
-    @apply bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800;
+    @apply bg-blue-50 text-blue-800 border-blue-300 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-700;
   }
   .badge-yellow {
-    @apply bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800;
+    @apply bg-amber-50 text-amber-900 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-700;
   }
   .badge-purple {
-    @apply bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800;
+    @apply bg-purple-50 text-purple-800 border-purple-300 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-700;
   }
   .badge-orange {
-    @apply bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/40 dark:text-orange-300 dark:border-orange-800;
+    @apply bg-orange-50 text-orange-900 border-orange-300 dark:bg-orange-950/60 dark:text-orange-300 dark:border-orange-700;
   }
   .badge-red {
-    @apply bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800;
+    @apply bg-rose-50 text-rose-800 border-rose-300 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-700;
   }
 }
 
@@ -210,3 +210,35 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Hero floating badges animation */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+@keyframes float-delayed {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+.animate-float-delayed {
+  animation: float-delayed 3.5s ease-in-out infinite 0.5s;
+}
+
+/* Fade in up for sections */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fade-in-up {
+  animation: fade-in-up 0.5s ease-out forwards;
+}
+

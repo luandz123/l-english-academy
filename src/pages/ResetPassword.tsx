@@ -5,6 +5,8 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import Logo from "@/components/Logo";
+import { getFriendlyErrorMessage } from "@/lib/errorHandler";
+import { Loader2 } from "lucide-react";
 
 const ResetPassword = () => {
   const [password, setPassword] = useState("");
@@ -16,11 +18,11 @@ const ResetPassword = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password !== confirmPassword) {
-      toast({ title: "Lỗi", description: "Mật khẩu xác nhận không khớp.", variant: "destructive" });
+      toast({ title: "Mật khẩu không khớp", description: "Mật khẩu xác nhận phải giống mật khẩu mới.", variant: "destructive" });
       return;
     }
     if (password.length < 6) {
-      toast({ title: "Lỗi", description: "Mật khẩu phải có ít nhất 6 ký tự.", variant: "destructive" });
+      toast({ title: "Mật khẩu quá ngắn", description: "Vui lòng đặt mật khẩu tối thiểu 6 ký tự để bảo mật tài khoản.", variant: "destructive" });
       return;
     }
 
@@ -30,7 +32,7 @@ const ResetPassword = () => {
     setLoading(false);
 
     if (error) {
-      toast({ title: "Lỗi", description: error.message, variant: "destructive" });
+      toast({ title: "Đặt lại mật khẩu thất bại", description: getFriendlyErrorMessage(error), variant: "destructive" });
     } else {
       await supabase.auth.signOut();
       toast({ title: "Thành công!", description: "Mật khẩu đã được đặt lại thành công. Vui lòng đăng nhập lại." });
@@ -57,14 +59,15 @@ const ResetPassword = () => {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="password" className="font-bold">Mật khẩu mới</Label>
-              <Input id="password" type="password" placeholder="Nhập mật khẩu mới" value={password} onChange={(e) => setPassword(e.target.value)} required className="h-12 rounded-xl border-2 border-[var(--duo-gray)] font-medium focus:border-[var(--duo-blue)] transition-colors" />
+              <Input id="password" type="password" placeholder="Tối thiểu 6 ký tự" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} className="h-12 rounded-xl border-2 border-[var(--duo-gray)] font-medium focus:border-[var(--duo-blue)] transition-colors" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirmPassword" className="font-bold">Xác nhận mật khẩu</Label>
-              <Input id="confirmPassword" type="password" placeholder="Nhập lại mật khẩu" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required className="h-12 rounded-xl border-2 border-[var(--duo-gray)] font-medium focus:border-[var(--duo-blue)] transition-colors" />
+              <Input id="confirmPassword" type="password" placeholder="Nhập lại mật khẩu" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={6} className="h-12 rounded-xl border-2 border-[var(--duo-gray)] font-medium focus:border-[var(--duo-blue)] transition-colors" />
             </div>
-            <button type="submit" className="btn-3d btn-3d-primary w-full py-3.5 mt-2" disabled={loading}>
-              {loading ? "Đang lưu..." : "LƯU MẬT KHẨU MỚI"}
+            <button type="submit" className="btn-3d btn-3d-primary w-full py-3.5 mt-2 flex items-center justify-center gap-2" disabled={loading}>
+              {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+              <span>{loading ? "Đang lưu mật khẩu..." : "LƯU MẬT KHẨU MỚI"}</span>
             </button>
           </form>
         </div>

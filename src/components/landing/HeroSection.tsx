@@ -3,12 +3,12 @@ import { useAuth } from "@/hooks/useAuth";
 import heroImg from "@/assets/hero-student.webp";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Shield, Zap, Star, FileCheck2, Headphones, ChevronRight, ArrowRight, Sparkles } from "lucide-react";
+import { CheckCircle2, FileCheck2, Headphones, ChevronRight, ArrowRight, BookOpen, Sparkles } from "lucide-react";
 
 const HeroSection = () => {
   const { user } = useAuth();
 
-  // Lấy số liệu thật từ DB để tăng trust
+  // Lấy số liệu thật từ Supabase
   const { data: liveStats } = useQuery({
     queryKey: ["hero-live-stats"],
     queryFn: async () => {
@@ -21,7 +21,7 @@ const HeroSection = () => {
         courses: coursesRes.count || 0,
       };
     },
-    staleTime: 1000 * 60 * 10, // cache 10 phút
+    staleTime: 1000 * 60 * 10,
   });
 
   const formatCount = (n: number) => {
@@ -31,202 +31,160 @@ const HeroSection = () => {
   };
 
   return (
-    <section className="relative overflow-hidden bg-[linear-gradient(180deg,#fff9fb_0%,#fff7f2_100%)] dark:bg-zinc-950">
-      {/* Decorative blobs */}
-      <div className="absolute top-10 left-10 w-48 h-48 rounded-full bg-[var(--duo-green)]/10 blur-3xl pointer-events-none" />
-      <div className="absolute bottom-5 right-10 w-56 h-56 rounded-full bg-[var(--duo-orange)]/10 blur-3xl pointer-events-none" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full bg-[var(--duo-purple)]/5 blur-3xl pointer-events-none" />
-
-      <div className="container mx-auto px-4 py-10 md:py-16 relative">
-        <div className="grid md:grid-cols-2 gap-8 items-center">
-          {/* Text side */}
-          <div className="space-y-5 animate-fade-in">
-            {/* Badge */}
-            <div className="inline-flex items-center gap-2 bg-[var(--primary-light)] border-2 border-[var(--duo-green)]/15 rounded-full px-4 py-1.5">
-              <span className="flex h-2 w-2 rounded-full bg-[var(--duo-green)] animate-pulse" />
-              <span className="text-xs font-extrabold text-[var(--duo-green-dark)] uppercase tracking-wider">
-                💰 Học tiếng Anh Miễn Phí &amp; hiệu quả
+    <section className="relative overflow-hidden bg-gradient-to-b from-blue-50/30 via-white to-white dark:from-zinc-950 dark:via-zinc-950 dark:to-zinc-950 border-b border-border">
+      <div className="container mx-auto px-4 py-8 md:py-12 relative">
+        <div className="grid md:grid-cols-12 gap-8 items-center">
+          {/* Left: Content (7 cols) */}
+          <div className="md:col-span-7 space-y-4 animate-fade-in">
+            {/* Tag badge */}
+            <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-full px-3 py-0.5">
+              <Sparkles className="w-3 h-3 text-primary" />
+              <span className="text-[11px] font-bold text-primary">
+                Nền tảng tự luyện TOEIC thực chiến
               </span>
             </div>
 
-            {/* Headline */}
-            <h1 className="text-3xl md:text-5xl font-extrabold leading-tight text-foreground">
-              Tiết Kiệm Chi Phí —{" "}
-              <span className="text-[var(--duo-green)]">Tối Đa Hiệu Quả</span>
-              <br />
-              <span className="text-gradient text-2xl md:text-3xl font-bold">
-                Học mọi lúc, mọi nơi, tự học chủ động
-              </span>
+            {/* Main Headline */}
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold leading-tight text-foreground tracking-tight">
+              Luyện nghe chép chính tả &amp; Luyện đề TOEIC{" "}
+              <span className="text-primary">có lời giải chi tiết</span>
             </h1>
 
-            {/* Sub */}
-            <p className="text-muted-foreground leading-relaxed font-medium text-sm md:text-base max-w-md">
-              Dictation nghe chép, Flashcard từ vựng, Đề thi thử Full Test TOEIC —
-              chi phí tối ưu, không cần trung tâm đắt đỏ.
+            {/* Sub-headline */}
+            <p className="text-muted-foreground leading-relaxed font-medium text-xs sm:text-sm max-w-lg">
+              Rèn phản xạ nghe bắt âm qua Dictation, học từ vựng Flashcard theo chủ đề và thi thử Full Test 7 Part với transcript và đáp án chi tiết.
             </p>
 
-            {/* Trust badges */}
-            <div className="flex flex-wrap gap-3">
-              <div className="flex items-center gap-1.5 bg-white dark:bg-zinc-900 border-2 border-[var(--duo-gray)] rounded-full px-3 py-1.5 shadow-sm">
-                <Shield className="w-3.5 h-3.5 text-[var(--duo-correct)]" />
-                <span className="text-xs font-bold text-foreground">7 Part TOEIC đầy đủ</span>
+            {/* Feature Pills */}
+            <div className="flex flex-wrap gap-2 pt-0.5">
+              <div className="flex items-center gap-1.5 bg-card border border-border/80 rounded-md px-2.5 py-1 text-[11px] font-semibold text-foreground shadow-sm">
+                <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                <span>Format đề ETS mới nhất</span>
               </div>
-              <div className="flex items-center gap-1.5 bg-white dark:bg-zinc-900 border-2 border-[var(--duo-gray)] rounded-full px-3 py-1.5 shadow-sm">
-                <Zap className="w-3.5 h-3.5 text-[var(--duo-orange)]" />
-                <span className="text-xs font-bold text-foreground">Chấm điểm tự động</span>
+              <div className="flex items-center gap-1.5 bg-card border border-border/80 rounded-md px-2.5 py-1 text-[11px] font-semibold text-foreground shadow-sm">
+                <Headphones className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+                <span>Dictation Part 1–4</span>
               </div>
-              <div className="flex items-center gap-1.5 bg-white dark:bg-zinc-900 border-2 border-[var(--duo-gray)] rounded-full px-3 py-1.5 shadow-sm">
-                <Star className="w-3.5 h-3.5 text-[var(--duo-yellow)]" />
-                <span className="text-xs font-bold text-foreground">Giải thích từng câu</span>
+              <div className="flex items-center gap-1.5 bg-card border border-border/80 rounded-md px-2.5 py-1 text-[11px] font-semibold text-foreground shadow-sm">
+                <BookOpen className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+                <span>Giải thích từng câu</span>
               </div>
             </div>
 
-            {/* Quick ce Launcher - Nổi bật mục đích Luyện đề / Luyện nghe */}
-            <div className="pt-2 space-y-3 w-full max-w-lg">
-              <div className="flex items-center gap-2">
-                <span className="flex h-2.5 w-2.5 relative">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-                </span>
-                <p className="text-xs font-black uppercase text-[var(--duo-blue)] tracking-wider">
-                  Vào luyện tập ngay
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* Quick Action Buttons */}
+            <div className="pt-1 space-y-2.5 w-full max-w-md">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 {/* Button 1: Luyện đề Full Test */}
                 <Link
                   to="/courses?filter=fulltest"
-                  className="btn-3d btn-3d-green p-3.5 rounded-2xl flex items-center justify-between gap-3 group text-left shadow-md hover:-translate-y-0.5 transition-all"
+                  className="btn-3d btn-3d-primary p-2.5 rounded-xl flex items-center justify-between gap-2.5 group text-left shadow-sm hover:shadow"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
-                      <FileCheck2 className="w-5 h-5 text-white" />
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center shrink-0">
+                      <FileCheck2 className="w-4 h-4 text-white" />
                     </div>
                     <div>
-                      <span className="font-black text-sm sm:text-base text-white block leading-tight">
+                      <span className="font-bold text-xs sm:text-sm text-white block leading-tight">
                         Luyện Đề Full Test
                       </span>
-                      <span className="text-[11px] text-white/80 font-bold block mt-0.5">
-                        Thi thử TOEIC 200 câu
+                      <span className="text-[10px] text-white/80 font-medium block mt-0.5">
+                        Thi thử 200 câu
                       </span>
                     </div>
                   </div>
-                  <ChevronRight className="w-5 h-5 text-white/70 group-hover:translate-x-1 transition-transform shrink-0" />
+                  <ChevronRight className="w-3.5 h-3.5 text-white/80 group-hover:translate-x-1 transition-transform shrink-0" />
                 </Link>
 
                 {/* Button 2: Luyện nghe điền từ */}
                 <Link
                   to="/courses?filter=listening"
-                  className="btn-3d btn-3d-blue p-3.5 rounded-2xl flex items-center justify-between gap-3 group text-left shadow-md hover:-translate-y-0.5 transition-all"
+                  className="btn-3d btn-3d-green p-2.5 rounded-xl flex items-center justify-between gap-2.5 group text-left shadow-sm hover:shadow"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
-                      <Headphones className="w-5 h-5 text-white" />
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center shrink-0">
+                      <Headphones className="w-4 h-4 text-white" />
                     </div>
                     <div>
-                      <span className="font-black text-sm sm:text-base text-white block leading-tight">
-                        Luyện Nghe Điền Từ
+                      <span className="font-bold text-xs sm:text-sm text-white block leading-tight">
+                        Nghe Chép Chính Tả
                       </span>
-                      <span className="text-[11px] text-white/80 font-bold block mt-0.5">
-                        Dictation cảm ứng
+                      <span className="text-[10px] text-white/80 font-medium block mt-0.5">
+                        Tua câu &amp; chấm tự động
                       </span>
                     </div>
                   </div>
-                  <ChevronRight className="w-5 h-5 text-white/70 group-hover:translate-x-1 transition-transform shrink-0" />
+                  <ChevronRight className="w-3.5 h-3.5 text-white/80 group-hover:translate-x-1 transition-transform shrink-0" />
                 </Link>
               </div>
 
               {/* Secondary links */}
-              <div className="flex items-center gap-4 pt-0.5">
+              <div className="flex items-center gap-3 text-xs font-semibold">
                 <Link
                   to={user ? "/dashboard" : "/courses"}
-                  className="text-xs font-black text-foreground hover:text-[var(--duo-green)] flex items-center gap-1.5 transition-colors"
+                  className="text-foreground hover:text-primary flex items-center gap-1 transition-colors"
                 >
                   <span>{user ? "Vào Dashboard học viên" : "Xem tất cả khóa học"}</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
+                  <ArrowRight className="w-3 h-3" />
                 </Link>
                 {!user && (
                   <>
                     <span className="text-muted-foreground/30">•</span>
                     <Link
                       to="/register"
-                      className="text-xs font-bold text-muted-foreground hover:text-[var(--duo-blue)] transition-colors"
+                      className="text-muted-foreground hover:text-primary transition-colors font-medium text-[11px]"
                     >
-                      Đăng ký tài khoản miễn phí
+                      Đăng ký học thử miễn phí
                     </Link>
                   </>
                 )}
               </div>
             </div>
 
-            {/* Live stats */}
-            <div className="flex flex-wrap items-center gap-6 pt-2">
-              <div className="text-center">
-                <p className="text-xl font-extrabold text-foreground">
+            {/* Real Stats counter */}
+            <div className="flex items-center gap-5 pt-2 border-t border-border/70 text-xs">
+              <div>
+                <p className="text-base font-bold text-foreground leading-tight">
                   {formatCount(liveStats?.users ?? 0)}
                 </p>
-                <p className="text-xs text-muted-foreground font-bold">Học viên</p>
+                <p className="text-[11px] text-muted-foreground font-medium">Học viên đang học</p>
               </div>
-              <div className="w-px h-8 bg-[var(--duo-gray)]" />
-              <div className="text-center">
-                <p className="text-xl font-extrabold text-foreground">
+              <div className="w-px h-6 bg-border" />
+              <div>
+                <p className="text-base font-bold text-foreground leading-tight">
                   {formatCount(liveStats?.courses ?? 0)}
                 </p>
-                <p className="text-xs text-muted-foreground font-bold">Khóa học</p>
+                <p className="text-[11px] text-muted-foreground font-medium">Khóa học &amp; đề thi</p>
               </div>
-              <div className="w-px h-8 bg-[var(--duo-gray)]" />
-              <div className="text-center">
-                <p className="text-xl font-extrabold text-foreground">100%</p>
-                <p className="text-xs text-muted-foreground font-bold">Dữ liệu thật</p>
+              <div className="w-px h-6 bg-border" />
+              <div>
+                <p className="text-base font-bold text-foreground leading-tight">24/7</p>
+                <p className="text-[11px] text-muted-foreground font-medium">Tự luyện chủ động</p>
               </div>
-            </div>
-
-            {/* Social links */}
-            <div className="flex flex-wrap items-center gap-3 pt-1">
-              <a href="https://www.tiktok.com/@YOUR_TIKTOK" target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground hover:text-[var(--duo-green)] transition-colors">
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.18 8.18 0 004.77 1.52V6.74a4.85 4.85 0 01-1-.05z"/>
-                </svg>
-                TikTok
-              </a>
-              <span className="text-muted-foreground/40">•</span>
-              <a href="https://www.youtube.com/@YOUR_YOUTUBE" target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground hover:text-[var(--duo-orange)] transition-colors">
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-                </svg>
-                YouTube
-              </a>
-              <span className="text-muted-foreground/40">•</span>
-              <a href="https://www.facebook.com/YOUR_FACEBOOK" target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground hover:text-[var(--duo-blue)] transition-colors">
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                </svg>
-                Facebook
-              </a>
             </div>
           </div>
 
-          {/* Image side */}
-          <div className="flex justify-center items-end animate-fade-in" style={{ animationDelay: "0.2s" }}>
+          {/* Right: Graphic (5 cols) */}
+          <div className="md:col-span-5 flex justify-center items-center relative">
             <div className="relative">
-              {/* Floating achievement badge */}
-              <div className="absolute -top-4 -right-4 md:-right-8 bg-white dark:bg-zinc-900 border-2 border-[var(--duo-gray)] rounded-2xl px-3 py-2 shadow-[0_4px_0_var(--duo-gray)] z-10 animate-bounce">
-                <p className="text-xs font-extrabold text-foreground">🏆 TOEIC 990/990</p>
-                <p className="text-[10px] text-muted-foreground font-bold">Đỗ Hữu Nam đạt được!</p>
+              {/* Floating feature badge */}
+              <div className="absolute -top-2 -right-2 sm:-right-4 bg-card border border-border rounded-lg px-2.5 py-1.5 shadow-md z-10">
+                <p className="text-[11px] font-bold text-foreground flex items-center gap-1">
+                  <Headphones className="w-3 h-3 text-blue-600" />
+                  <span>Dictation Part 1–4</span>
+                </p>
               </div>
-              {/* Floating streak badge */}
-              <div className="absolute -bottom-2 -left-4 md:-left-8 bg-white dark:bg-zinc-900 border-2 border-[var(--duo-gray)] rounded-2xl px-3 py-2 shadow-[0_4px_0_var(--duo-gray)] z-10">
-                <p className="text-xs font-extrabold text-[var(--duo-orange)]">🔥 30 ngày liên tiếp</p>
-                <p className="text-[10px] text-muted-foreground font-bold">Streak học tập</p>
+
+              <div className="absolute -bottom-2 -left-2 sm:-left-4 bg-card border border-border rounded-lg px-2.5 py-1.5 shadow-md z-10">
+                <p className="text-[11px] font-bold text-foreground flex items-center gap-1">
+                  <FileCheck2 className="w-3 h-3 text-emerald-600" />
+                  <span>Thi thử Full Test 7 Part</span>
+                </p>
               </div>
+
               <img
                 src={heroImg}
-                alt="Học viên đang học trực tuyến"
-                className="w-full max-w-[280px] md:max-w-[360px] object-contain drop-shadow-xl relative z-0"
+                alt="Học viên luyện tiếng Anh"
+                className="w-full max-w-[220px] sm:max-w-[280px] object-contain relative z-0 drop-shadow-md"
               />
             </div>
           </div>

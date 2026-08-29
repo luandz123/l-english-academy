@@ -3,12 +3,24 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";
-import { Plus, Search, Edit, Eye, Trash2, EyeOff, Unlock, Lock } from "lucide-react";
+import { Plus, Search, Edit, Eye, Trash2, EyeOff, Unlock, Lock, Loader2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import { getFriendlyErrorMessage } from "@/lib/errorHandler";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const AdminCourses = () => {
   const { toast } = useToast();
@@ -34,10 +46,10 @@ const AdminCourses = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-courses"] });
-      toast({ title: "Đã xóa khóa học" });
+      toast({ title: "Đã xóa khóa học thành công" });
     },
     onError: (error: any) => {
-      toast({ title: "Lỗi", description: error.message, variant: "destructive" });
+      toast({ title: "Không thể xóa khóa học", description: getFriendlyErrorMessage(error), variant: "destructive" });
     },
   });
 
@@ -149,9 +161,30 @@ const AdminCourses = () => {
                           <Button size="icon" variant="ghost" asChild>
                             <Link to={`/courses/${c.id}`}><Eye className="w-4 h-4" /></Link>
                           </Button>
-                          <Button size="icon" variant="ghost" onClick={() => deleteMutation.mutate(c.id)}>
-                            <Trash2 className="w-4 h-4 text-destructive" />
-                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button size="icon" variant="ghost" disabled={deleteMutation.isPending}>
+                                <Trash2 className="w-4 h-4 text-destructive" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Xác nhận xóa khóa học?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Bạn có chắc chắn muốn xóa khóa học <strong>"{c.title}"</strong>? Toàn bộ các module, bài học và kết quả bài tập của học viên thuộc khóa học này sẽ bị gỡ bỏ vĩnh viễn.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Hủy bỏ</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => deleteMutation.mutate(c.id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  {deleteMutation.isPending ? "Đang xóa..." : "Xóa vĩnh viễn"}
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                       </td>
                     </tr>

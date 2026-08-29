@@ -6,9 +6,20 @@ import { Label } from "@/components/ui/label";
 import { Plus, Edit, Trash2, GripVertical, ChevronDown, ChevronRight, Eye, EyeOff, Unlock, Lock } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import LessonManager from "./LessonManager";
+import { getFriendlyErrorMessage } from "@/lib/errorHandler";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import {
   DndContext,
   closestCenter,
@@ -121,7 +132,30 @@ const SortableModuleItem = ({
             {mod.is_published === false ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
           </Button>
           <Button size="icon" variant="ghost" onClick={() => openEdit(mod)}><Edit className="w-4 h-4" /></Button>
-          <Button size="icon" variant="ghost" onClick={() => { if (confirm("Xóa module này?")) deleteMutation.mutate(mod.id); }}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button size="icon" variant="ghost" disabled={deleteMutation.isPending}>
+                <Trash2 className="w-4 h-4 text-destructive" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Xác nhận xóa module?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Bạn có chắc muốn xóa module <strong>"{mod.title}"</strong>? Toàn bộ bài học, video và câu hỏi trắc nghiệm bên trong module này cũng sẽ bị xóa vĩnh viễn.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Hủy bỏ</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => deleteMutation.mutate(mod.id)}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  {deleteMutation.isPending ? "Đang xóa..." : "Xóa vĩnh viễn"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
       {expandedModules.has(mod.id) && (
@@ -198,7 +232,7 @@ const ModuleManager = ({ courseId, modules }: ModuleManagerProps) => {
       toast({ title: editingModule ? "Đã cập nhật module" : "Đã tạo module" });
     },
     onError: (error: any) => {
-      toast({ title: "Lỗi", description: error.message, variant: "destructive" });
+      toast({ title: "Không thể lưu module", description: getFriendlyErrorMessage(error), variant: "destructive" });
     },
   });
 
@@ -209,10 +243,10 @@ const ModuleManager = ({ courseId, modules }: ModuleManagerProps) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-course-modules", courseId] });
-      toast({ title: "Đã xóa module" });
+      toast({ title: "Đã xóa module thành công" });
     },
     onError: (error: any) => {
-      toast({ title: "Lỗi", description: error.message, variant: "destructive" });
+      toast({ title: "Không thể xóa module", description: getFriendlyErrorMessage(error), variant: "destructive" });
     },
   });
 

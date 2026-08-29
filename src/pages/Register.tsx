@@ -7,6 +7,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import Logo from "@/components/Logo";
 import { signInWithGoogle } from "@/lib/googleOAuth";
+import { getFriendlyErrorMessage } from "@/lib/errorHandler";
+import { Loader2 } from "lucide-react";
 
 const Register = () => {
   const [email, setEmail] = useState("");
@@ -42,7 +44,7 @@ const Register = () => {
     
     if (error) {
       setLoading(false);
-      toast({ title: "Đăng ký thất bại", description: error.message, variant: "destructive" });
+      toast({ title: "Đăng ký không thành công", description: getFriendlyErrorMessage(error), variant: "destructive" });
     } else {
       if (data.session) {
         try {
@@ -73,7 +75,7 @@ const Register = () => {
   const handleGoogleLogin = async () => {
     const { error } = await signInWithGoogle();
     if (error) {
-      toast({ title: "Lỗi đăng nhập Google", description: error.message, variant: "destructive" });
+      toast({ title: "Đăng nhập Google thất bại", description: getFriendlyErrorMessage(error), variant: "destructive" });
     }
   };
 
@@ -88,26 +90,27 @@ const Register = () => {
           <Link to="/" className="mb-4">
             <Logo imgClassName="w-14 h-14" />
           </Link>
-          <h1 className="text-2xl font-extrabold text-foreground">Tạo tài khoản mới! 🚀</h1>
-          <p className="text-sm text-muted-foreground mt-1 font-medium">Học Tiếng Anh vui như chơi game</p>
+          <h1 className="text-2xl font-extrabold text-foreground">Tạo tài khoản mới 🚀</h1>
+          <p className="text-sm text-muted-foreground mt-1 font-medium">Bắt đầu lộ trình luyện thi TOEIC ngay hôm nay</p>
         </div>
 
         <div className="card-duo p-6 space-y-6">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="fullName" className="font-bold">Họ và tên</Label>
-              <Input id="fullName" type="text" placeholder="Nguyễn Văn A" value={fullName} onChange={(e) => setFullName(e.target.value)} required autoComplete="name" className="h-12 rounded-xl border-2 border-[var(--duo-gray)] font-medium focus:border-[var(--duo-blue)] transition-colors" />
+              <Input id="fullName" type="text" placeholder="Nguyễn Văn A" value={fullName} onChange={(e) => setFullName(e.target.value)} required autoComplete="name" className="h-12 rounded-xl border-2 border-[var(--duo-gray)] font-medium focus:border-[var(--duo-green)] transition-colors" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="email" className="font-bold">Email</Label>
-              <Input id="email" type="email" placeholder="name@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" className="h-12 rounded-xl border-2 border-[var(--duo-gray)] font-medium focus:border-[var(--duo-blue)] transition-colors" />
+              <Input id="email" type="email" placeholder="name@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" className="h-12 rounded-xl border-2 border-[var(--duo-gray)] font-medium focus:border-[var(--duo-green)] transition-colors" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password" className="font-bold">Mật khẩu</Label>
-              <Input id="password" type="password" placeholder="Nhập mật khẩu (tối thiểu 6 ký tự)" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} autoComplete="new-password" className="h-12 rounded-xl border-2 border-[var(--duo-gray)] font-medium focus:border-[var(--duo-blue)] transition-colors" />
+              <Input id="password" type="password" placeholder="Tối thiểu 6 ký tự" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} autoComplete="new-password" className="h-12 rounded-xl border-2 border-[var(--duo-gray)] font-medium focus:border-[var(--duo-green)] transition-colors" />
             </div>
-            <button type="submit" className="btn-3d btn-3d-primary w-full py-3.5" disabled={loading}>
-              {loading ? "Đang xử lý..." : "ĐĂNG KÝ"}
+            <button type="submit" className="btn-3d btn-3d-green w-full py-3.5 flex items-center justify-center gap-2" disabled={loading}>
+              {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+              <span>{loading ? "Đang tạo tài khoản..." : "ĐĂNG KÝ HỌC NGAY"}</span>
             </button>
           </form>
 

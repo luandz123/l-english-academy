@@ -273,12 +273,12 @@ const CourseShowcase = () => {
         )}
 
         {/* Call to action below showcase */}
-        <div className="mt-16 text-center">
+        <div className="mt-12 text-center">
           <Link
             to="/courses"
-            className="btn-3d btn-3d-white text-base py-4 px-10 inline-flex items-center gap-2 hover:translate-y-[-1px] transition-all"
+            className="btn-3d btn-3d-white text-sm sm:text-base py-3 px-8 inline-flex items-center gap-2 hover:translate-y-[-1px] transition-all font-bold"
           >
-            XEM TOÀN BỘ DANH MỤC 📚 <ArrowRight size={18} />
+            Xem tất cả khóa học <ArrowRight size={16} />
           </Link>
         </div>
       </div>

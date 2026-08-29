@@ -12,9 +12,20 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { Unlock, ShieldAlert, Trash2, Edit, Plus } from "lucide-react";
+import { Unlock, ShieldAlert, Trash2, Edit, Plus, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { getFriendlyErrorMessage } from "@/lib/errorHandler";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const AdminStudentDetail = () => {
   const { userId } = useParams();
@@ -111,7 +122,7 @@ const AdminStudentDetail = () => {
       toast({ title: "Thành công", description: "Đã mở khóa khóa học cho học viên." });
     },
     onError: (err: any) => {
-      toast({ title: "Lỗi", description: err.message, variant: "destructive" });
+      toast({ title: "Mở khóa thất bại", description: getFriendlyErrorMessage(err), variant: "destructive" });
     },
   });
 
@@ -123,6 +134,9 @@ const AdminStudentDetail = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-student-enrollments", userId] });
       toast({ title: "Đã xóa quyền truy cập khóa học" });
+    },
+    onError: (err: any) => {
+      toast({ title: "Xóa quyền truy cập thất bại", description: getFriendlyErrorMessage(err), variant: "destructive" });
     },
   });
 
@@ -241,16 +255,35 @@ const AdminStudentDetail = () => {
                       <td className="p-3 text-center text-muted-foreground">{e.enrolled_at ? new Date(e.enrolled_at).toLocaleDateString("vi-VN") : ""}</td>
                       <td className="p-3 text-center text-muted-foreground">{e.expires_at ? new Date(e.expires_at).toLocaleDateString("vi-VN") : "Vĩnh viễn"}</td>
                       <td className="p-3 text-center">
-                        <Button 
-                          size="icon" 
-                          variant="ghost" 
-                          className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                          onClick={() => {
-                            if (confirm("Xóa quyền truy cập khóa học này?")) removeEnrollmentMutation.mutate(e.id);
-                          }}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button 
+                              size="icon" 
+                              variant="ghost" 
+                              className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                              disabled={removeEnrollmentMutation.isPending}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Xác nhận thu hồi quyền khóa học?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Bạn có chắc muốn thu hồi quyền truy cập khóa học <strong>"{e.courses?.title}"</strong> của học viên này?
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Hủy bỏ</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => removeEnrollmentMutation.mutate(e.id)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                {removeEnrollmentMutation.isPending ? "Đang xử lý..." : "Thu hồi quyền"}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </td>
                     </tr>
                   ))}

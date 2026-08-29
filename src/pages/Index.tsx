@@ -1,7 +1,7 @@
 import Navbar from "@/components/landing/Navbar";
 import HeroSection from "@/components/landing/HeroSection";
-import StatsBar from "@/components/landing/StatsBar";
 import CourseShowcase from "@/components/landing/CourseShowcase";
+import StatsBar from "@/components/landing/StatsBar";
 import PromoBanner from "@/components/landing/PromoBanner";
 import Footer from "@/components/landing/Footer";
 import { useEffect } from "react";
@@ -21,16 +21,16 @@ const Index = () => {
       <Navbar />
 
       <main className="flex-1">
-        {/* 1. Hero Section */}
+        {/* 1. Hero Section gọn gàng */}
         <HeroSection />
 
-        {/* 2. StatsBar - 4 tính năng chính */}
-        <StatsBar />
-
-        {/* 3. CourseShowcase - Kho khóa học */}
+        {/* 2. Kho khóa học & Đề thi ngay trên đầu */}
         <CourseShowcase />
 
-        {/* 4. PromoBanner - Features nổi bật + CTA cuối */}
+        {/* 3. 4 Công cụ cốt lõi */}
+        <StatsBar />
+
+        {/* 4. 3 Phương pháp học & CTA */}
         <PromoBanner />
       </main>
 

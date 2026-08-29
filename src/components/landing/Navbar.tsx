@@ -32,7 +32,6 @@ const Navbar = () => {
         <div className="hidden md:flex items-center gap-8">
           <Link to="/" className="text-sm font-bold text-foreground hover:text-[var(--duo-green)] transition-colors">Trang chủ</Link>
           <Link to="/courses" className="text-sm font-bold text-muted-foreground hover:text-[var(--duo-green)] transition-colors">Khóa học</Link>
-          <a href="#about" className="text-sm font-bold text-muted-foreground hover:text-[var(--duo-green)] transition-colors">Về chúng tôi</a>
           <a href="#contact" className="text-sm font-bold text-muted-foreground hover:text-[var(--duo-green)] transition-colors">Liên hệ</a>
         </div>
 
