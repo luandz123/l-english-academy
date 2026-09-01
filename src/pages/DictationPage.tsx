@@ -320,12 +320,14 @@ const DictationInput = ({
   expected, 
   placeholder, 
   onCorrect,
-  autoFocus
+  autoFocus,
+  onFocus
 }: { 
   expected: string, 
   placeholder: string,
   onCorrect: () => void,
-  autoFocus?: boolean
+  autoFocus?: boolean,
+  onFocus?: () => void
 }) => {
   const { prefix, suffix, middleExpected, fullExpected } = useMemo(() => {
     const words = getWords(expected);
@@ -430,7 +432,7 @@ const DictationInput = ({
     if (autoFocus && textareaRef.current && status !== "correct") {
       textareaRef.current.focus();
     }
-  }, [autoFocus, status]);
+  }, [autoFocus]);
 
   useEffect(() => {
     if ((isFullMatch(value, middleExpected) || isFullMatch(value, fullExpected)) && status !== "correct") {
@@ -475,6 +477,7 @@ const DictationInput = ({
             ref={textareaRef}
             rows={1}
             value={value}
+            onFocus={onFocus}
             onChange={(e) => {
               setValue(e.target.value);
               if (showHint) setShowHint(false);
@@ -530,13 +533,15 @@ const KeywordDictationInput = ({
   onCorrect,
   isDoneInSession,
   autoFocus,
-  forceReveal
+  forceReveal,
+  onFocus
 }: { 
   expected: string, 
   onCorrect: () => void,
   isDoneInSession: boolean,
   autoFocus?: boolean,
-  forceReveal?: boolean
+  forceReveal?: boolean,
+  onFocus?: () => void
 }) => {
   const [value, setValue] = useState("");
   const [status, setStatus] = useState<"typing" | "correct" | "error">(isDoneInSession ? "correct" : "typing");
@@ -558,7 +563,7 @@ const KeywordDictationInput = ({
     if (autoFocus && inputRef.current && status !== "correct") {
       inputRef.current.focus();
     }
-  }, [autoFocus, status]);
+  }, [autoFocus]);
 
   const handleCheck = () => {
     if (isFullMatch(value, expected)) {
@@ -593,6 +598,7 @@ const KeywordDictationInput = ({
         <Input
           ref={inputRef}
           value={value}
+          onFocus={onFocus}
           onChange={(e) => {
             const val = e.target.value;
             setValue(val);
@@ -656,10 +662,31 @@ const DictationPage = () => {
   const { playSound } = useSound();
   const { recordDictationProgress, addXp } = useGamification();
 
+// Helpers for local storage persistence of completed questions
+const getLocalStorageCompleted = (userId?: string, qId?: string | number): Set<number> => {
+  if (!userId || !qId) return new Set();
+  try {
+    const raw = localStorage.getItem(`dictation_done_${userId}_${qId}`);
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) return new Set(arr);
+    }
+  } catch {}
+  return new Set();
+};
+
+const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Set<number>) => {
+  try {
+    localStorage.setItem(`dictation_done_${userId}_${qId}`, JSON.stringify(Array.from(ids)));
+  } catch {}
+};
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [activeQuestionIndices, setActiveQuestionIndices] = useState<number[]>([]);
   const [started, setStarted] = useState(false);
-  const [sessionDone, setSessionDone] = useState<Set<number>>(new Set());
+  const [sessionDone, setSessionDone] = useState<Set<number>>(() => {
+    return getLocalStorageCompleted(user?.id, quizId);
+  });
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [showChestModal, setShowChestModal] = useState(false);
   const [combo, setCombo] = useState(0);
@@ -772,7 +799,7 @@ const DictationPage = () => {
         .select("*")
         .eq("quiz_id", Number(quizId))
         .eq("user_id", user.id)
-        .order("completed_at", { ascending: false })
+        .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
 
@@ -801,7 +828,7 @@ const DictationPage = () => {
 
   // Fetch already completed answers across all attempts/modes for this quiz
   const { data: userAnswers = [], isLoading: answersLoading } = useQuery({
-    queryKey: ["dictation-answers", targetResultId, quizId, user?.id],
+    queryKey: ["dictation-answers", quizId, user?.id],
     queryFn: async () => {
       if (!user || !quizId) return [];
       
@@ -819,7 +846,7 @@ const DictationPage = () => {
 
       const { data, error } = await supabase
         .from("user_answers")
-        .select("*")
+        .select("id, question_id, is_correct, result_id")
         .in("result_id", resultIds)
         .eq("is_correct", true);
       if (error) throw error;
@@ -827,6 +854,21 @@ const DictationPage = () => {
     },
     enabled: !!user && !!quizId
   });
+
+  // Sync DB completed answers with localStorage & sessionDone
+  useEffect(() => {
+    if (user?.id && quizId) {
+      const localIds = getLocalStorageCompleted(user.id, quizId);
+      const dbIds = userAnswers.map((ua: any) => ua.question_id);
+      if (dbIds.length > 0 || localIds.size > 0) {
+        setSessionDone(prev => {
+          const next = new Set([...prev, ...localIds, ...dbIds]);
+          saveLocalStorageCompleted(user.id, quizId, next);
+          return next;
+        });
+      }
+    }
+  }, [userAnswers, user?.id, quizId]);
 
   // Raw questions from quiz
   const rawQuestions = useMemo(() => quizData?.questions ?? [], [quizData?.questions]);
@@ -877,30 +919,71 @@ const DictationPage = () => {
   // Save answer mutation
   const saveAnswerMutation = useMutation({
     onMutate: async (question_id: number) => {
-      if (!targetResultId) return { previousAnswers: [] };
-      await queryClient.cancelQueries({ queryKey: ["dictation-answers", targetResultId] });
-      const previousAnswers = queryClient.getQueryData(["dictation-answers", targetResultId]) as any[] || [];
-      
+      // 1. Mark as done immediately in state and local storage for instant UI response (0ms delay)
+      setSessionDone(prev => {
+        const next = new Set(prev);
+        next.add(question_id);
+        if (user?.id && quizId) {
+          saveLocalStorageCompleted(user.id, quizId, next);
+        }
+        return next;
+      });
+
+      // 2. Optimistically update React Query cache
+      const queryKey = ["dictation-answers", quizId, user?.id];
+      await queryClient.cancelQueries({ queryKey });
+      const previousAnswers = (queryClient.getQueryData(queryKey) as any[]) || [];
       const newAnswer = {
-        result_id: targetResultId,
+        result_id: targetResultId || 0,
         question_id,
         is_correct: true,
         selected_answer_id: null
       };
-      
       const updated = previousAnswers.some(ua => ua.question_id === question_id)
         ? previousAnswers
         : [...previousAnswers, newAnswer];
-        
-      queryClient.setQueryData(["dictation-answers", targetResultId], updated);
+      queryClient.setQueryData(queryKey, updated);
       return { previousAnswers };
     },
     mutationFn: async (question_id: number) => {
-      if (!targetResultId) return;
+      if (!user || !quizId) return;
+
+      // Ensure we have a valid result_id even if targetResultId hasn't resolved in React state yet
+      let activeResultId = targetResultId;
+      if (!activeResultId) {
+        const { data: existing } = await supabase
+          .from("user_quiz_results")
+          .select("id")
+          .eq("quiz_id", Number(quizId))
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (existing) {
+          activeResultId = existing.id;
+        } else {
+          const { data: created } = await supabase
+            .from("user_quiz_results")
+            .insert({
+              quiz_id: Number(quizId),
+              user_id: user.id,
+              score: 0,
+              total_questions: questions.length || 0,
+              correct_answers: 0
+            })
+            .select("id")
+            .single();
+          activeResultId = created?.id;
+        }
+      }
+
+      if (!activeResultId) return;
+
       const { data: existingAnswer } = await supabase
         .from("user_answers")
         .select("id")
-        .eq("result_id", targetResultId)
+        .eq("result_id", activeResultId)
         .eq("question_id", question_id)
         .maybeSingle();
 
@@ -911,73 +994,73 @@ const DictationPage = () => {
           .eq("id", existingAnswer.id);
       } else {
         await supabase.from("user_answers").insert({
-          result_id: targetResultId,
+          result_id: activeResultId,
           question_id,
           is_correct: true
         });
       }
 
-      const currentAnswers = queryClient.getQueryData(["dictation-answers", targetResultId]) as any[] || [];
+      const allDoneCount = questions.filter(q => sessionDone.has(q.id) || q.id === question_id).length;
       await supabase
         .from("user_quiz_results")
         .update({
-          correct_answers: currentAnswers.length,
-          score: currentAnswers.length,
+          correct_answers: allDoneCount,
+          score: allDoneCount,
           total_questions: questions.length
         })
-        .eq("id", targetResultId);
+        .eq("id", activeResultId);
     },
     onError: (err, question_id, context: any) => {
-      if (context?.previousAnswers) {
-        queryClient.setQueryData(["dictation-answers", targetResultId], context.previousAnswers);
-      }
+      console.warn("Error persisting answer:", err);
     },
-    onSuccess: (_, question_id) => {
-      queryClient.invalidateQueries({ queryKey: ["dictation-answers", targetResultId] });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["dictation-answers", quizId, user?.id] });
       queryClient.invalidateQueries({ queryKey: ["quiz-results"] });
-      setSessionDone(prev => {
-        const next = new Set(prev);
-        next.add(question_id);
-        return next;
-      });
     }
   });
 
   const resetAnswerMutation = useMutation({
     onMutate: async (question_id: number) => {
-      if (!targetResultId) return { previousAnswers: [] };
-      await queryClient.cancelQueries({ queryKey: ["dictation-answers", targetResultId] });
-      const previousAnswers = queryClient.getQueryData(["dictation-answers", targetResultId]) as any[] || [];
-      const updated = previousAnswers.filter(ua => ua.question_id !== question_id);
-      queryClient.setQueryData(["dictation-answers", targetResultId], updated);
-      return { previousAnswers };
-    },
-    mutationFn: async (question_id: number) => {
-      if (!targetResultId) return;
-      const { error } = await supabase.from("user_answers").update({ is_correct: false })
-        .eq("result_id", targetResultId)
-        .eq("question_id", question_id);
-      if (error) throw new Error(error.message);
-      
-      const currentAnswers = queryClient.getQueryData(["dictation-answers", targetResultId]) as any[] || [];
-      await supabase.from("user_quiz_results")
-        .update({ correct_answers: currentAnswers.length, score: currentAnswers.length })
-        .eq("id", targetResultId);
-    },
-    onError: (err, question_id, context: any) => {
-      if (context?.previousAnswers) {
-        queryClient.setQueryData(["dictation-answers", targetResultId], context.previousAnswers);
-      }
-      toast({ title: "Lỗi làm lại", description: err.message, variant: "destructive" });
-    },
-    onSuccess: (_, question_id) => {
-      queryClient.invalidateQueries({ queryKey: ["dictation-answers", targetResultId] });
-      queryClient.invalidateQueries({ queryKey: ["quiz-results"] });
       setSessionDone(prev => {
         const next = new Set(prev);
         next.delete(question_id);
+        if (user?.id && quizId) {
+          saveLocalStorageCompleted(user.id, quizId, next);
+        }
         return next;
       });
+
+      const queryKey = ["dictation-answers", quizId, user?.id];
+      await queryClient.cancelQueries({ queryKey });
+      const previousAnswers = (queryClient.getQueryData(queryKey) as any[]) || [];
+      const updated = previousAnswers.filter(ua => ua.question_id !== question_id);
+      queryClient.setQueryData(queryKey, updated);
+      return { previousAnswers };
+    },
+    mutationFn: async (question_id: number) => {
+      if (!user || !quizId) return;
+
+      const { data: results } = await supabase
+        .from("user_quiz_results")
+        .select("id")
+        .eq("quiz_id", Number(quizId))
+        .eq("user_id", user.id);
+
+      const resultIds = results ? results.map((r: any) => r.id) : [];
+      if (resultIds.length > 0) {
+        await supabase
+          .from("user_answers")
+          .update({ is_correct: false })
+          .in("result_id", resultIds)
+          .eq("question_id", question_id);
+      }
+    },
+    onError: (err, question_id, context: any) => {
+      toast({ title: "Lỗi làm lại", description: err.message, variant: "destructive" });
+    },
+    onSuccess: (_, question_id) => {
+      queryClient.invalidateQueries({ queryKey: ["dictation-answers", quizId, user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["quiz-results"] });
       setCorrectKeywordsMap(prev => {
         const next = { ...prev };
         delete next[question_id];
@@ -1010,7 +1093,10 @@ const DictationPage = () => {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["dictation-answers"] });
+      if (user?.id && quizId) {
+        localStorage.removeItem(`dictation_done_${user.id}_${quizId}`);
+      }
+      queryClient.invalidateQueries({ queryKey: ["dictation-answers", quizId, user?.id] });
       queryClient.invalidateQueries({ queryKey: ["quiz-results"] });
       setSessionDone(new Set());
       setCorrectKeywordsMap({});
@@ -2739,10 +2825,18 @@ const QuestionDictationSection = ({
     setFields(prev => {
       const next = [...prev];
       next[idx] = true;
-      if (next.every(Boolean) && !isCompleted) {
+      if (next.every(Boolean)) {
         onComplete();
       } else {
-        setFocusedIndex(idx + 1);
+        const nextIncomplete = next.findIndex((done, i) => i > idx && !done);
+        if (nextIncomplete !== -1) {
+          setFocusedIndex(nextIncomplete);
+        } else {
+          const firstIncomplete = next.findIndex(done => !done);
+          if (firstIncomplete !== -1) {
+            setFocusedIndex(firstIncomplete);
+          }
+        }
       }
       return next;
     });
@@ -2833,6 +2927,7 @@ const QuestionDictationSection = ({
                   onComplete={() => setFieldComplete(idx)}
                   onKeywordCorrect={onKeywordCorrect}
                   autoFocus={focusedIndex === idx}
+                  onFocusItem={() => setFocusedIndex(idx)}
                 />
               ) : isDone ? (
                 <div className="w-full p-3.5 sm:p-4.5 flex items-start justify-between gap-3 bg-[var(--duo-correct)]/10 text-foreground font-bold border-2 border-[var(--duo-correct)]/30 rounded-2xl shadow-sm animate-in fade-in duration-300">
@@ -2857,6 +2952,7 @@ const QuestionDictationSection = ({
                   placeholder={item.placeholder || "Nghe và điền câu trả lời..."} 
                   onCorrect={() => setFieldComplete(idx)}
                   autoFocus={focusedIndex === idx}
+                  onFocus={() => setFocusedIndex(idx)}
                 />
               )}
             </div>
@@ -3082,10 +3178,10 @@ const DragDropQuestionGroup = ({
 
       next[targetBlankKey] = token;
 
-      // Auto check if all filled
+      // Auto check if all filled immediately
       const filledCount = Object.values(next).filter(Boolean).length;
       if (filledCount === allBlanks.length) {
-        setTimeout(() => checkAnswers(next), 150);
+        checkAnswers(next);
       }
 
       return next;
@@ -3177,9 +3273,12 @@ const DragDropQuestionGroup = ({
 
     placeToken(token, targetKey);
 
-    // Auto advance focus to the next empty blank if available
-    const remainingEmpty = allBlanks.find(b => b.blankKey !== targetKey && !placedMap[b.blankKey]);
-    setFocusedBlankKey(remainingEmpty ? remainingEmpty.blankKey : null);
+    // Auto advance focus to the next empty blank if available (search after targetKey first, then wrap)
+    const targetIdx = allBlanks.findIndex(b => b.blankKey === targetKey);
+    const nextAfter = allBlanks.find((b, idx) => idx > targetIdx && !placedMap[b.blankKey]);
+    const firstRemaining = allBlanks.find(b => b.blankKey !== targetKey && !placedMap[b.blankKey]);
+    
+    setFocusedBlankKey(nextAfter ? nextAfter.blankKey : (firstRemaining ? firstRemaining.blankKey : null));
   };
 
   // Click blank -> if filled, returns token to bank and focuses blank; if empty, toggles focus
@@ -3524,7 +3623,7 @@ const DragDropClozeSection = ({
 
       const filledCount = Object.values(next).filter(Boolean).length;
       if (filledCount === expectedAnswers.length) {
-        setTimeout(() => checkAnswers(next), 150);
+        checkAnswers(next);
       }
       return next;
     });
@@ -3610,8 +3709,12 @@ const DragDropClozeSection = ({
 
     placeToken(token, targetIdx);
 
-    const remainingEmpty = expectedAnswers.find((b: any) => b.blankIdx !== targetIdx && !placedMap[b.blankIdx]);
-    setFocusedBlankIdx(remainingEmpty !== undefined ? remainingEmpty.blankIdx : null);
+    // Auto advance focus to the next empty blank if available (preferring blanks after targetIdx)
+    const nextAfter = expectedAnswers.find((b: any) => b.blankIdx > targetIdx && !placedMap[b.blankIdx]);
+    const firstRemaining = expectedAnswers.find((b: any) => b.blankIdx !== targetIdx && !placedMap[b.blankIdx]);
+    const nextTarget = nextAfter !== undefined ? nextAfter.blankIdx : (firstRemaining !== undefined ? firstRemaining.blankIdx : null);
+
+    setFocusedBlankIdx(nextTarget);
   };
 
   // Click blank -> if filled, returns token to bank and focuses blank; if empty, toggles focus
@@ -3820,8 +3923,9 @@ const DragDropClozeSection = ({
 // =========================================================================
 // Keyword Mode Item (Typing Mode)
 // =========================================================================
-const KeywordModeItem = ({ item, question, vocabWords, isDoneInSession, onComplete, onKeywordCorrect, autoFocus }: any) => {
+const KeywordModeItem = ({ item, question, vocabWords, isDoneInSession, onComplete, onKeywordCorrect, autoFocus, onFocusItem }: any) => {
   const [forceRevealAll, setForceRevealAll] = useState(false);
+  const [activeKeywordIdx, setActiveKeywordIdx] = useState<number | null>(null);
 
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
@@ -3858,6 +3962,18 @@ const KeywordModeItem = ({ item, question, vocabWords, isDoneInSession, onComple
       onComplete();
     }
   }, [keywordIndices.length, onComplete]);
+
+  // Sync initial or changed activeKeywordIdx when parent passes autoFocus
+  useEffect(() => {
+    if (autoFocus && activeKeywordIdx === null && keywordIndices.length > 0) {
+      const firstIncomplete = keywordIndices.find(i => !completedKeywords.has(i));
+      if (firstIncomplete !== undefined) {
+        setActiveKeywordIdx(firstIncomplete);
+      }
+    } else if (!autoFocus) {
+      setActiveKeywordIdx(null);
+    }
+  }, [autoFocus, keywordIndices, completedKeywords]);
 
   useEffect(() => {
     if (isDoneInSession || forceRevealAll) {
@@ -3906,6 +4022,10 @@ const KeywordModeItem = ({ item, question, vocabWords, isDoneInSession, onComple
               expected={part.text}
               forceReveal={forceRevealAll}
               isDoneInSession={completedKeywords.has(idx) || isDoneInSession}
+              onFocus={() => {
+                setActiveKeywordIdx(idx);
+                onFocusItem?.();
+              }}
               onCorrect={() => {
                 setCompletedKeywords(prev => {
                   const next = new Set(prev);
@@ -3913,8 +4033,20 @@ const KeywordModeItem = ({ item, question, vocabWords, isDoneInSession, onComple
                   return next;
                 });
                 onKeywordCorrect?.(part.text);
+
+                // Auto-advance to next incomplete keyword blank
+                const remainingAfter = keywordIndices.find(i => i > idx && !completedKeywords.has(i));
+                const nextIncomplete = remainingAfter !== undefined 
+                  ? remainingAfter 
+                  : keywordIndices.find(i => i !== idx && !completedKeywords.has(i));
+
+                if (nextIncomplete !== undefined) {
+                  setActiveKeywordIdx(nextIncomplete);
+                } else {
+                  setActiveKeywordIdx(null);
+                }
               }}
-              autoFocus={autoFocus && !completedKeywords.has(idx) && idx === keywordIndices.find(i => !completedKeywords.has(i))}
+              autoFocus={activeKeywordIdx === idx}
             />
           ) : (
             <span key={idx} className="whitespace-pre-wrap">{part.text}</span>
