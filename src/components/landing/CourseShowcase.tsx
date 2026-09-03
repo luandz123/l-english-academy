@@ -94,8 +94,8 @@ const CourseShowcase = () => {
             // Cycle through green, orange, blue styles based on index
             const styleIdx = index % 3;
             
-            let btnClass = "bg-white text-[var(--duo-gray-dark)] border-2 border-[var(--duo-gray)] shadow-[0_4px_0_var(--duo-gray)] hover:bg-zinc-50";
-            let badgeClass = "bg-slate-100 text-slate-600";
+            let btnClass = "bg-white dark:bg-zinc-900 text-foreground dark:text-zinc-200 border-2 border-[var(--duo-gray)] dark:border-zinc-800 shadow-[0_4px_0_var(--duo-gray)] dark:shadow-none hover:bg-zinc-50 dark:hover:bg-zinc-800";
+            let badgeClass = "bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-300";
             
             if (isActive) {
               if (styleIdx === 0) {
@@ -103,16 +103,16 @@ const CourseShowcase = () => {
                 badgeClass = "bg-white/20 text-white";
               } else if (styleIdx === 1) {
                 btnClass = "bg-[var(--duo-orange)] text-white shadow-[0_4px_0_var(--accent-dark)] hover:brightness-105 border-[var(--duo-orange)]";
-                badgeClass = "bg-orange-100 text-[var(--accent-dark)]";
+                badgeClass = "bg-orange-100 dark:bg-orange-950/50 text-[var(--accent-dark)] dark:text-orange-300";
               } else {
                 btnClass = "bg-[var(--duo-blue)] text-white shadow-[0_4px_0_var(--duo-blue-dark)] hover:brightness-110 border-[var(--duo-blue)]";
-                badgeClass = "bg-slate-100 text-[var(--duo-blue-dark)]";
+                badgeClass = "bg-slate-100 dark:bg-zinc-800 text-[var(--duo-blue-dark)] dark:text-blue-300";
               }
             } else {
               // Idle text colors based on style index
-              if (styleIdx === 0) btnClass = "bg-white text-[var(--duo-green-dark)] border-2 border-[var(--duo-gray)] shadow-[0_4px_0_var(--duo-gray)] hover:bg-zinc-50";
-              else if (styleIdx === 1) btnClass = "bg-white text-[var(--duo-orange)] border-2 border-[var(--duo-gray)] shadow-[0_4px_0_var(--duo-gray)] hover:bg-zinc-50";
-              else btnClass = "bg-white text-[var(--duo-blue-dark)] border-2 border-[var(--duo-gray)] shadow-[0_4px_0_var(--duo-gray)] hover:bg-zinc-50";
+              if (styleIdx === 0) btnClass = "bg-white dark:bg-zinc-900 text-[var(--duo-green-dark)] dark:text-green-400 border-2 border-[var(--duo-gray)] dark:border-zinc-800 shadow-[0_4px_0_var(--duo-gray)] dark:shadow-none hover:bg-zinc-50 dark:hover:bg-zinc-800";
+              else if (styleIdx === 1) btnClass = "bg-white dark:bg-zinc-900 text-[var(--duo-orange)] dark:text-orange-400 border-2 border-[var(--duo-gray)] dark:border-zinc-800 shadow-[0_4px_0_var(--duo-gray)] dark:shadow-none hover:bg-zinc-50 dark:hover:bg-zinc-800";
+              else btnClass = "bg-white dark:bg-zinc-900 text-[var(--duo-blue-dark)] dark:text-blue-400 border-2 border-[var(--duo-gray)] dark:border-zinc-800 shadow-[0_4px_0_var(--duo-gray)] dark:shadow-none hover:bg-zinc-50 dark:hover:bg-zinc-800";
             }
 
             return (

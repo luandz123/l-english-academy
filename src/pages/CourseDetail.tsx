@@ -2,12 +2,14 @@ import StudentLayout from "@/components/StudentLayout";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { PlayCircle, FileText, Lock, Headphones, BookA, Clock, ChevronRight, User, Download, CheckCircle2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { PlayCircle, FileText, Lock, Headphones, BookA, Clock, ChevronRight, User, Download, CheckCircle2, MessageSquare } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 
 const courseTypeMap: Record<string, string> = {
@@ -23,6 +25,7 @@ const CourseDetail = () => {
   const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [zaloDialogOpen, setZaloDialogOpen] = useState(false);
   const cid = Number(courseId);
 
   const { data: course, isLoading } = useQuery({
@@ -104,12 +107,7 @@ const CourseDetail = () => {
 
   const handleEnroll = async () => {
     if (!user) return navigate("/login");
-    toast({ 
-      title: "Kích hoạt khóa học", 
-      description: "Khóa học này thuộc chương trình VIP. Vui lòng liên hệ Admin qua Zalo 0334729066 để kích hoạt quyền truy cập!", 
-      variant: "default",
-      duration: 5000,
-    });
+    setZaloDialogOpen(true);
   };
 
   if (isLoading) return <StudentLayout><Skeleton className="h-64 rounded-2xl" /></StudentLayout>;
@@ -404,6 +402,53 @@ const CourseDetail = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Activation Modal */}
+      <Dialog open={zaloDialogOpen} onOpenChange={setZaloDialogOpen}>
+        <DialogContent className="max-w-md p-6 rounded-2xl border border-border bg-card shadow-lg">
+          <DialogHeader className="text-center space-y-2">
+            <div className="w-12 h-12 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto mb-1">
+              <Lock className="w-6 h-6" />
+            </div>
+            <DialogTitle className="text-xl font-bold text-foreground">
+              Kích hoạt khóa học
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Bạn đang chọn khóa học: <strong className="text-foreground">{course?.title}</strong>
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="my-4 p-4 rounded-xl bg-muted/50 border border-border space-y-2.5 text-xs text-muted-foreground">
+            <p className="font-semibold text-foreground flex items-center gap-1.5">
+              <MessageSquare className="w-4 h-4 text-primary" /> Hướng dẫn kích hoạt tài khoản:
+            </p>
+            <p className="leading-relaxed">
+              Khóa học này thuộc chương trình chuyên sâu có bản quyền. Vui lòng liên hệ Admin qua Zalo để kích hoạt quyền truy cập đầy đủ bài giảng, tài liệu và đề thi.
+            </p>
+            <div className="pt-2 border-t border-border flex items-center justify-between font-semibold text-foreground">
+              <span>Hotline / Zalo:</span>
+              <span className="text-primary font-bold">0334729066</span>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <a
+              href="https://zalo.me/0334729066"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-3d btn-3d-primary w-full py-2.5 text-sm font-semibold flex items-center justify-center gap-2"
+            >
+              <MessageSquare className="w-4 h-4" /> Liên hệ qua Zalo ngay
+            </a>
+            <button
+              onClick={() => setZaloDialogOpen(false)}
+              className="btn-3d btn-3d-white w-full py-2 text-xs"
+            >
+              Đóng lại
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </StudentLayout>
   );
 };

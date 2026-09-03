@@ -699,6 +699,13 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
   const [correctKeywordsMap, setCorrectKeywordsMap] = useState<Record<number, Set<string>>>({});
   const [timeLimitMinutes, setTimeLimitMinutes] = useState<number>(0);
   const [timeLeftSeconds, setTimeLeftSeconds] = useState<number | null>(null);
+  const [autoPlayAudio, setAutoPlayAudio] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("dictation_autoplay") === "true";
+    } catch {
+      return false;
+    }
+  });
 
   const handleKeywordCorrect = useCallback((questionId: number, word: string) => {
     setCorrectKeywordsMap(prev => {
@@ -1112,6 +1119,13 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
   const currentQuestionVocab = useMemo(() => {
     return vocabWords.filter((w: any) => w.question_id === currentQuestion?.id);
   }, [vocabWords, currentQuestion?.id]);
+
+  useEffect(() => {
+    if (started && autoPlayAudio && audioRef.current && currentQuestion?.audio_url) {
+      audioRef.current.currentTime = 0;
+      audioRef.current.play().catch(() => {});
+    }
+  }, [currentIndex, autoPlayAudio, currentQuestion?.audio_url, started]);
 
   const togglePlayPause = () => {
     if (audioRef.current) {
@@ -2506,7 +2520,6 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                     src={currentQuestion.audio_url}
                     controls
                     className="flex-1 h-9 rounded-full min-w-[140px]"
-                    autoPlay
                     onPlay={() => setIsPlaying(true)}
                     onPause={() => setIsPlaying(false)}
                   />
@@ -2514,7 +2527,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
 
                 {/* Speed Controls */}
                 <div className="flex items-center gap-1 bg-white border-2 rounded-xl p-1 shadow-2xs shrink-0">
-                  <span className="text-[10px] font-extrabold text-muted-foreground px-1.5 uppercase">Tốc độ:</span>
+                  <span className="text-xs font-extrabold text-muted-foreground px-1.5 uppercase">Tốc độ:</span>
                   {[0.5, 0.75, 1, 1.25, 1.5].map((speed) => (
                     <button
                       key={speed}
@@ -2536,6 +2549,28 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                     </button>
                   ))}
                 </div>
+
+                {/* AutoPlay Toggle */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAutoPlayAudio(prev => {
+                      const next = !prev;
+                      try { localStorage.setItem("dictation_autoplay", String(next)); } catch {}
+                      return next;
+                    });
+                  }}
+                  className={cn(
+                    "h-10 px-2.5 rounded-xl text-xs font-bold border-2 transition-all flex items-center gap-1.5 shadow-2xs shrink-0 cursor-pointer",
+                    autoPlayAudio
+                      ? "bg-blue-50 text-blue-700 border-blue-300 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-700"
+                      : "bg-white text-muted-foreground border-border hover:bg-muted dark:bg-zinc-900"
+                  )}
+                  title={autoPlayAudio ? "Tự động phát khi chuyển câu: Đang BẬT" : "Tự động phát khi chuyển câu: Đang TẮT (bấm để bật)"}
+                >
+                  <Volume2 className={cn("w-3.5 h-3.5", autoPlayAudio ? "text-blue-600 dark:text-blue-400" : "text-muted-foreground")} />
+                  <span>{autoPlayAudio ? "Tự phát: Bật" : "Tự phát: Tắt"}</span>
+                </button>
               </div>
             )}
 

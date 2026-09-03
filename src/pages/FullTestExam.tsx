@@ -1021,7 +1021,10 @@ const FullTestExam = () => {
                               : "bg-white text-muted-foreground border-[var(--duo-gray)] hover:border-[var(--duo-blue)]"
                           )}
                         >
-                          {q.sessionIdx + 1}
+                          <span className="flex items-center justify-center gap-0.5">
+                            <span>{q.sessionIdx + 1}</span>
+                            {hasAns && <Check className="w-2.5 h-2.5 stroke-[3] text-white shrink-0" />}
+                          </span>
                           {isFlagged && (
                             <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-[var(--duo-orange)] border border-white" />
                           )}
@@ -1049,11 +1052,14 @@ const FullTestExam = () => {
                     <span className="badge-duo badge-blue">{partShortNames[group.part_number - 1]}</span>
 
                     {group.image_url && (
-                      <img
-                        src={group.image_url}
-                        alt="Passage Context"
-                        className="max-w-full h-auto rounded-xl border-2 border-[var(--duo-gray)] mx-auto max-h-[300px]"
-                      />
+                      <div className="w-full flex justify-center bg-muted/20 rounded-xl overflow-hidden min-h-[160px] border-2 border-[var(--duo-gray)] p-1">
+                        <img
+                          src={group.image_url}
+                          alt="Passage Context"
+                          className="max-w-full h-auto rounded-lg mx-auto max-h-[350px] object-contain"
+                          loading="lazy"
+                        />
+                      </div>
                     )}
 
                     {group.audio_url && (
@@ -1129,11 +1135,14 @@ const FullTestExam = () => {
                       </div>
 
                       {q.image_url && q.image_url !== group.image_url && (
-                        <img
-                          src={q.image_url}
-                          alt="Question Image"
-                          className="max-w-full h-auto rounded-xl border-2 border-[var(--duo-gray)] max-h-[250px] mx-auto"
-                        />
+                        <div className="w-full flex justify-center bg-muted/20 rounded-xl overflow-hidden min-h-[140px] border-2 border-[var(--duo-gray)] p-1">
+                          <img
+                            src={q.image_url}
+                            alt="Question Image"
+                            className="max-w-full h-auto rounded-lg max-h-[280px] mx-auto object-contain"
+                            loading="lazy"
+                          />
+                        </div>
                       )}
 
                       {q.audio_url && q.audio_url !== group.audio_url && (
@@ -1327,7 +1336,10 @@ const FullTestExam = () => {
                                 : "bg-white text-muted-foreground border-[var(--duo-gray)] hover:border-[var(--duo-blue)]"
                             )}
                           >
-                            {q.sessionIdx + 1}
+                            <span className="flex items-center justify-center gap-0.5">
+                              <span>{q.sessionIdx + 1}</span>
+                              {hasAns && <Check className="w-2.5 h-2.5 stroke-[3] text-white shrink-0" />}
+                            </span>
                             {isFlagged && (
                               <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-[var(--duo-orange)] border border-white" />
                             )}

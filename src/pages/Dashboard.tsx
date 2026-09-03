@@ -222,10 +222,38 @@ const Dashboard = () => {
               <div className="text-lg sm:text-xl font-black leading-none text-white">
                 {streak} ngày
               </div>
-              <p className="text-white/80 text-[10px] sm:text-[11px] font-medium mt-0.5">Chuỗi học tập</p>
+              <p className="text-white/80 text-xs font-medium mt-0.5">Chuỗi học tập</p>
             </div>
           </div>
         </div>
+
+        {/* Continue Learning Widget (Prioritized for returning students) */}
+        {lastLessonDetails && (
+          <div className="rounded-2xl border border-blue-200 dark:border-blue-900/50 bg-blue-50/50 dark:bg-blue-950/20 p-4 sm:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition-all hover:border-blue-300">
+            <div className="flex items-center gap-3.5 sm:gap-4">
+              <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                <Play className="w-5 h-5 fill-white" />
+              </div>
+              <div className="space-y-0.5 min-w-0">
+                <span className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
+                  Học tiếp bài gần nhất
+                </span>
+                <h3 className="font-bold text-foreground text-sm sm:text-base leading-snug truncate">
+                  {lastLessonDetails.title}
+                </h3>
+                <p className="text-xs text-muted-foreground truncate">
+                  Khóa học: <span className="text-foreground font-medium">{(lastLessonDetails.modules as any)?.courses?.title}</span>
+                </p>
+              </div>
+            </div>
+            <Link
+              to={`/courses/${(lastLessonDetails.modules as any)?.course_id}/learn`}
+              className="btn-3d btn-3d-primary py-2.5 px-5 text-sm font-semibold flex items-center gap-2 self-stretch md:self-auto text-center justify-center shrink-0"
+            >
+              Vào học tiếp <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        )}
 
         {/* ⚡ TRUNG TÂM LUYỆN TẬP SIÊU TỐC - Quick Practice Hub */}
         <div className="space-y-3">
@@ -251,7 +279,7 @@ const Dashboard = () => {
                   <div className="w-11 h-11 rounded-xl bg-emerald-500 text-white flex items-center justify-center shadow-md shadow-emerald-500/20 group-hover:scale-105 transition-transform">
                     <FileText className="w-6 h-6" />
                   </div>
-                  <span className="bg-emerald-500 text-white text-[10px] uppercase font-black px-2.5 py-1 rounded-full shadow-2xs tracking-wider">
+                  <span className="bg-emerald-500 text-white text-xs uppercase font-black px-2.5 py-1 rounded-full shadow-2xs tracking-wider">
                     200 Câu • Bấm Giờ
                   </span>
                 </div>
@@ -269,7 +297,7 @@ const Dashboard = () => {
                 to="/courses?filter=fulltest"
                 className="btn-3d btn-3d-green w-full py-3 sm:py-3.5 text-sm sm:text-base font-black flex items-center justify-center gap-2 shadow-sm text-center"
               >
-                <span>Vào Luyện Đề Ngay 🎯</span>
+                <span>Vào Luyện Đề Ngay</span>
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </Link>
             </div>
@@ -281,7 +309,7 @@ const Dashboard = () => {
                   <div className="w-11 h-11 rounded-xl bg-[var(--duo-blue)] text-white flex items-center justify-center shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform">
                     <Headphones className="w-6 h-6" />
                   </div>
-                  <span className="bg-[var(--duo-blue)] text-white text-[10px] uppercase font-black px-2.5 py-1 rounded-full shadow-2xs tracking-wider">
+                  <span className="bg-[var(--duo-blue)] text-white text-xs uppercase font-black px-2.5 py-1 rounded-full shadow-2xs tracking-wider">
                     Kéo Thả Cảm Ứng
                   </span>
                 </div>
@@ -299,40 +327,12 @@ const Dashboard = () => {
                 to="/courses?filter=listening"
                 className="btn-3d btn-3d-blue w-full py-3 sm:py-3.5 text-sm sm:text-base font-black flex items-center justify-center gap-2 shadow-sm text-center"
               >
-                <span>Vào Luyện Nghe Điền Từ 🎧</span>
+                <span>Vào Luyện Nghe Điền Từ</span>
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </Link>
             </div>
           </div>
         </div>
-
-        {/* Continue Learning Widget */}
-        {lastLessonDetails && (
-          <div className="rounded-2xl border border-blue-200 dark:border-blue-900/50 bg-blue-50/50 dark:bg-blue-950/20 p-4 sm:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition-all hover:border-blue-300">
-            <div className="flex items-center gap-3.5 sm:gap-4">
-              <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-sm">
-                <Play className="w-5 h-5 fill-white" />
-              </div>
-              <div className="space-y-0.5 min-w-0">
-                <span className="text-[11px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
-                  Học tiếp bài gần nhất
-                </span>
-                <h3 className="font-bold text-foreground text-sm sm:text-base leading-snug truncate">
-                  {lastLessonDetails.title}
-                </h3>
-                <p className="text-xs text-muted-foreground truncate">
-                  Khóa học: <span className="text-foreground font-medium">{(lastLessonDetails.modules as any)?.courses?.title}</span>
-                </p>
-              </div>
-            </div>
-            <Link
-              to={`/courses/${(lastLessonDetails.modules as any)?.course_id}/learn`}
-              className="btn-3d btn-3d-primary py-2.5 px-5 text-sm font-semibold flex items-center gap-2 self-stretch md:self-auto text-center justify-center shrink-0"
-            >
-              Vào học tiếp <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-        )}
 
         {/* Daily Quests Widget */}
         <DailyQuestsWidget />
@@ -472,7 +472,7 @@ const Dashboard = () => {
                         <div className="flex items-center justify-between text-xs text-muted-foreground">
                           <span className="badge-duo badge-blue">{courseTypeMap[e.courses?.course_type] || "Khóa học"}</span>
                           {progress && progress.total > 0 && (
-                            <span className="font-medium text-[11px]">{progressPct}% hoàn thành</span>
+                            <span className="font-medium text-xs">{progressPct}% hoàn thành</span>
                           )}
                         </div>
                         <h3 className="font-bold text-foreground text-sm line-clamp-2 leading-snug">{e.courses?.title}</h3>

@@ -24,7 +24,7 @@ const Navbar = () => {
   const initials = displayName.charAt(0).toUpperCase();
 
   return (
-    <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-[var(--duo-gray)] shadow-[0_1px_0_rgba(47,56,75,0.04)]">
+    <nav className="sticky top-0 z-50 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-md border-b border-[var(--duo-gray)] dark:border-zinc-800 shadow-[0_1px_0_rgba(47,56,75,0.04)]">
       <div className="container mx-auto flex items-center justify-between h-16 px-4">
         <Logo />
 
@@ -38,14 +38,14 @@ const Navbar = () => {
         {user ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="flex items-center gap-2 px-3 py-1.5 rounded-full border-2 border-[var(--duo-gray)] hover:border-[var(--duo-green)] transition-colors bg-white shadow-[0_2px_0_var(--duo-gray)] hover:shadow-[0_3px_0_var(--duo-gray)]">
+              <button className="flex items-center gap-2 px-3 py-1.5 rounded-full border-2 border-[var(--duo-gray)] dark:border-zinc-700 hover:border-[var(--duo-green)] transition-colors bg-white dark:bg-zinc-900 shadow-[0_2px_0_var(--duo-gray)] dark:shadow-none hover:shadow-[0_3px_0_var(--duo-gray)]">
                 <div className="w-7 h-7 rounded-full bg-[var(--duo-green)] flex items-center justify-center text-xs font-extrabold text-white shadow-[0_2px_0_var(--duo-green-dark)]">
                   {initials}
                 </div>
                 <span className="text-sm font-bold text-foreground hidden sm:inline">{displayName}</span>
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 rounded-xl border-2 border-[var(--duo-gray)] shadow-[0_4px_0_var(--duo-gray)]">
+            <DropdownMenuContent align="end" className="w-48 rounded-xl border-2 border-[var(--duo-gray)] dark:border-zinc-800 shadow-[0_4px_0_var(--duo-gray)] dark:shadow-none">
               <DropdownMenuItem onClick={() => navigate("/dashboard")} className="font-bold rounded-lg">
                 <User className="w-4 h-4 mr-2 text-[var(--duo-green)]" />
                 Dashboard

@@ -24,10 +24,10 @@ const HeroSection = () => {
     staleTime: 1000 * 60 * 10,
   });
 
-  const formatCount = (n: number) => {
+  const formatCount = (n?: number) => {
+    if (!n || n <= 0) return "0";
     if (n >= 1000) return `${(n / 1000).toFixed(1)}k+`;
-    if (n > 0) return `${n}+`;
-    return "100+";
+    return `${n}`;
   };
 
   return (
@@ -37,9 +37,9 @@ const HeroSection = () => {
           {/* Left: Content (7 cols) */}
           <div className="md:col-span-7 space-y-4 animate-fade-in">
             {/* Tag badge */}
-            <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-full px-3 py-0.5">
-              <Sparkles className="w-3 h-3 text-primary" />
-              <span className="text-[11px] font-bold text-primary">
+            <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-full px-3 py-1">
+              <Sparkles className="w-3.5 h-3.5 text-primary" />
+              <span className="text-xs font-bold text-primary">
                 Nền tảng tự luyện TOEIC thực chiến
               </span>
             </div>
@@ -57,16 +57,16 @@ const HeroSection = () => {
 
             {/* Feature Pills */}
             <div className="flex flex-wrap gap-2 pt-0.5">
-              <div className="flex items-center gap-1.5 bg-card border border-border/80 rounded-md px-2.5 py-1 text-[11px] font-semibold text-foreground shadow-sm">
-                <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+              <div className="flex items-center gap-1.5 bg-card border border-border/80 rounded-lg px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                 <span>Format đề ETS mới nhất</span>
               </div>
-              <div className="flex items-center gap-1.5 bg-card border border-border/80 rounded-md px-2.5 py-1 text-[11px] font-semibold text-foreground shadow-sm">
-                <Headphones className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+              <div className="flex items-center gap-1.5 bg-card border border-border/80 rounded-lg px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm">
+                <Headphones className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                 <span>Dictation Part 1–4</span>
               </div>
-              <div className="flex items-center gap-1.5 bg-card border border-border/80 rounded-md px-2.5 py-1 text-[11px] font-semibold text-foreground shadow-sm">
-                <BookOpen className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+              <div className="flex items-center gap-1.5 bg-card border border-border/80 rounded-lg px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm">
+                <BookOpen className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                 <span>Giải thích từng câu</span>
               </div>
             </div>
@@ -77,7 +77,7 @@ const HeroSection = () => {
                 {/* Button 1: Luyện đề Full Test */}
                 <Link
                   to="/courses?filter=fulltest"
-                  className="btn-3d btn-3d-primary p-2.5 rounded-xl flex items-center justify-between gap-2.5 group text-left shadow-sm hover:shadow"
+                  className="btn-3d btn-3d-primary p-3 rounded-xl flex items-center justify-between gap-2.5 group text-left shadow-sm hover:shadow"
                 >
                   <div className="flex items-center gap-2.5">
                     <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center shrink-0">
@@ -87,7 +87,7 @@ const HeroSection = () => {
                       <span className="font-bold text-xs sm:text-sm text-white block leading-tight">
                         Luyện Đề Full Test
                       </span>
-                      <span className="text-[10px] text-white/80 font-medium block mt-0.5">
+                      <span className="text-xs text-white/80 font-medium block mt-0.5">
                         Thi thử 200 câu
                       </span>
                     </div>
@@ -98,7 +98,7 @@ const HeroSection = () => {
                 {/* Button 2: Luyện nghe điền từ */}
                 <Link
                   to="/courses?filter=listening"
-                  className="btn-3d btn-3d-green p-2.5 rounded-xl flex items-center justify-between gap-2.5 group text-left shadow-sm hover:shadow"
+                  className="btn-3d btn-3d-green p-3 rounded-xl flex items-center justify-between gap-2.5 group text-left shadow-sm hover:shadow"
                 >
                   <div className="flex items-center gap-2.5">
                     <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center shrink-0">
@@ -108,7 +108,7 @@ const HeroSection = () => {
                       <span className="font-bold text-xs sm:text-sm text-white block leading-tight">
                         Nghe Chép Chính Tả
                       </span>
-                      <span className="text-[10px] text-white/80 font-medium block mt-0.5">
+                      <span className="text-xs text-white/80 font-medium block mt-0.5">
                         Tua câu &amp; chấm tự động
                       </span>
                     </div>
@@ -131,7 +131,7 @@ const HeroSection = () => {
                     <span className="text-muted-foreground/30">•</span>
                     <Link
                       to="/register"
-                      className="text-muted-foreground hover:text-primary transition-colors font-medium text-[11px]"
+                      className="text-muted-foreground hover:text-primary transition-colors font-medium text-xs"
                     >
                       Đăng ký học thử miễn phí
                     </Link>
@@ -141,24 +141,24 @@ const HeroSection = () => {
             </div>
 
             {/* Real Stats counter */}
-            <div className="flex items-center gap-5 pt-2 border-t border-border/70 text-xs">
+            <div className="flex items-center gap-5 pt-3 border-t border-border/70 text-xs">
               <div>
                 <p className="text-base font-bold text-foreground leading-tight">
-                  {formatCount(liveStats?.users ?? 0)}
+                  {formatCount(liveStats?.users)}
                 </p>
-                <p className="text-[11px] text-muted-foreground font-medium">Học viên đang học</p>
+                <p className="text-xs text-muted-foreground font-medium">Học viên đang học</p>
               </div>
               <div className="w-px h-6 bg-border" />
               <div>
                 <p className="text-base font-bold text-foreground leading-tight">
-                  {formatCount(liveStats?.courses ?? 0)}
+                  {formatCount(liveStats?.courses)}
                 </p>
-                <p className="text-[11px] text-muted-foreground font-medium">Khóa học &amp; đề thi</p>
+                <p className="text-xs text-muted-foreground font-medium">Khóa học &amp; đề thi</p>
               </div>
               <div className="w-px h-6 bg-border" />
               <div>
                 <p className="text-base font-bold text-foreground leading-tight">24/7</p>
-                <p className="text-[11px] text-muted-foreground font-medium">Tự luyện chủ động</p>
+                <p className="text-xs text-muted-foreground font-medium">Tự luyện chủ động</p>
               </div>
             </div>
           </div>
@@ -168,15 +168,15 @@ const HeroSection = () => {
             <div className="relative">
               {/* Floating feature badge */}
               <div className="absolute -top-2 -right-2 sm:-right-4 bg-card border border-border rounded-lg px-2.5 py-1.5 shadow-md z-10">
-                <p className="text-[11px] font-bold text-foreground flex items-center gap-1">
-                  <Headphones className="w-3 h-3 text-blue-600" />
+                <p className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                  <Headphones className="w-3.5 h-3.5 text-blue-600" />
                   <span>Dictation Part 1–4</span>
                 </p>
               </div>
 
               <div className="absolute -bottom-2 -left-2 sm:-left-4 bg-card border border-border rounded-lg px-2.5 py-1.5 shadow-md z-10">
-                <p className="text-[11px] font-bold text-foreground flex items-center gap-1">
-                  <FileCheck2 className="w-3 h-3 text-emerald-600" />
+                <p className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                  <FileCheck2 className="w-3.5 h-3.5 text-emerald-600" />
                   <span>Thi thử Full Test 7 Part</span>
                 </p>
               </div>

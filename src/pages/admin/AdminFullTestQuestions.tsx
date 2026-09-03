@@ -12,6 +12,17 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
@@ -1004,20 +1015,36 @@ const AdminFullTestQuestions = () => {
                                       <Copy className="h-3.5 w-3.5" />
                                     </Button>
 
-                                    <Button
-                                      size="icon"
-                                      variant="ghost"
-                                      onClick={() => {
-                                        if (confirm(`Bạn có chắc chắn muốn xóa Câu ${q.display_order}?`)) {
-                                          deleteQuestionMutation.mutate(q.id);
-                                        }
-                                      }}
-                                      disabled={deleteQuestionMutation.isPending}
-                                      className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                                      title="Xóa câu hỏi này"
-                                    >
-                                      <Trash2 className="h-3.5 w-3.5" />
-                                    </Button>
+                                     <AlertDialog>
+                                       <AlertDialogTrigger asChild>
+                                         <Button
+                                           size="icon"
+                                           variant="ghost"
+                                           disabled={deleteQuestionMutation.isPending}
+                                           className="h-8 w-8 text-destructive hover:bg-destructive/10 cursor-pointer"
+                                           title="Xóa câu hỏi này"
+                                         >
+                                           <Trash2 className="h-3.5 w-3.5" />
+                                         </Button>
+                                       </AlertDialogTrigger>
+                                       <AlertDialogContent className="rounded-2xl border-2 border-border">
+                                         <AlertDialogHeader>
+                                           <AlertDialogTitle>Xác nhận xóa Câu {q.display_order}?</AlertDialogTitle>
+                                           <AlertDialogDescription>
+                                             Bạn có chắc chắn muốn xóa câu hỏi này? Toàn bộ đáp án đi kèm sẽ bị xóa và không thể khôi phục.
+                                           </AlertDialogDescription>
+                                         </AlertDialogHeader>
+                                         <AlertDialogFooter>
+                                           <AlertDialogCancel>Hủy</AlertDialogCancel>
+                                           <AlertDialogAction
+                                             onClick={() => deleteQuestionMutation.mutate(q.id)}
+                                             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                           >
+                                             Xóa câu hỏi
+                                           </AlertDialogAction>
+                                         </AlertDialogFooter>
+                                       </AlertDialogContent>
+                                     </AlertDialog>
                                   </div>
                                 </div>
 

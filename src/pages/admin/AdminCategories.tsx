@@ -16,6 +16,17 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface Category {
   id: number;
@@ -219,18 +230,34 @@ const AdminCategories = () => {
                         >
                           <Pencil className="w-3 h-3 mr-1" /> Sửa
                         </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          className="font-bold h-8 bg-rose-100 text-rose-600 hover:bg-rose-200 border-none"
-                          onClick={() => {
-                            if (confirm(`Bạn có chắc muốn xóa danh mục "${cat.name}"? Các khóa học thuộc danh mục này sẽ bị mất liên kết.`)) {
-                              deleteMutation.mutate(cat.id);
-                            }
-                          }}
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              className="font-bold h-8 bg-rose-100 text-rose-600 hover:bg-rose-200 border-none cursor-pointer"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent className="border-2 border-border rounded-2xl">
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Xác nhận xóa danh mục?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Bạn có chắc muốn xóa danh mục <strong>"{cat.name}"</strong>? Các khóa học thuộc danh mục này sẽ bị mất liên kết phân loại.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Hủy</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => deleteMutation.mutate(cat.id)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                Xóa danh mục
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     </td>
                   </tr>

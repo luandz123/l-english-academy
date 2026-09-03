@@ -15,6 +15,17 @@ import { Skeleton } from "@/components/ui/skeleton";
 import ModuleManager from "@/components/admin/ModuleManager";
 import { CourseFullTestManager } from "@/components/admin/CourseFullTestManager";
 import { Upload } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const AdminCourseDetail = () => {
   const { courseId } = useParams();
@@ -373,7 +384,28 @@ const AdminCourseDetail = () => {
                       <td className="p-3 text-muted-foreground">{m.file_type}</td>
                       <td className="p-3 text-muted-foreground">{m.created_at ? new Date(m.created_at).toLocaleDateString("vi-VN") : ""}</td>
                       <td className="p-3">
-                        <Button size="sm" variant="ghost" onClick={() => { if (confirm("Xóa?")) deleteMaterialMutation.mutate(m.id); }} className="text-destructive">Xóa</Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive">Xóa</Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Xác nhận xóa tài liệu?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Bạn có chắc chắn muốn xóa tài liệu <strong>"{m.title}"</strong> không? Hành động này không thể hoàn tác.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Hủy</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => deleteMaterialMutation.mutate(m.id)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                Xóa tài liệu
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </td>
                     </tr>
                   ))}
