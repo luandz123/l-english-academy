@@ -82,7 +82,7 @@ const App = () => (
                 <Route path="/auth/callback" element={<AuthCallback />} />
 
                 {/* Student (protected) */}
-                <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                <Route path="/dashboard" element={<Navigate to="/profile" replace />} />
                 <Route path="/courses" element={<ProtectedRoute><Courses /></ProtectedRoute>} />
                 <Route path="/courses/:courseId" element={<ProtectedRoute><CourseDetail /></ProtectedRoute>} />
                 <Route path="/courses/:courseId/learn" element={<ProtectedRoute><LearnPage /></ProtectedRoute>} />

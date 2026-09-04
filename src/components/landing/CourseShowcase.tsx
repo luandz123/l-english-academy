@@ -1,9 +1,34 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Star, Users, CheckCircle, ArrowRight, BookOpen, Layers, GraduationCap, Flame, Sparkles } from "lucide-react";
+import {
+  Users,
+  CheckCircle,
+  ArrowRight,
+  BookOpen,
+  Layers,
+  GraduationCap,
+  Flame,
+  Sparkles,
+  Zap,
+  ShoppingBag,
+  CheckCircle2,
+  QrCode,
+  ShieldCheck,
+  Video,
+  Headphones,
+  FileCheck2,
+  Clock,
+  Award,
+} from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface CourseRow {
   id: number;
@@ -20,269 +45,438 @@ interface CourseRow {
   duration_months?: number | null;
 }
 
-const courseTypeMap: Record<string, string> = {
-  video_quiz: "🎬 Video + Bài Tập",
-  flashcard: "🃏 Flashcard từ vựng",
-  listening: "🎧 Dictation nghe điền từ",
-  speaking: "🗣️ Speaking & Writing",
-  fulltest: "📋 Full Test thi thử",
-};
+export const CourseShowcase = () => {
+  const [modalOpen, setModalOpen] = useState(false);
 
-const CourseShowcase = () => {
-  const [activeTab, setActiveTab] = useState<number | null>(null);
-
-  // Fetch active categories
-  const { data: categories = [], isLoading: isCategoriesLoading } = useQuery({
-    queryKey: ["featured-categories"],
+  // Lấy toàn bộ khóa học ĐANG HOẠT ĐỘNG (is_active = true) từ database
+  const { data: activeCourses = [], isLoading } = useQuery<CourseRow[]>({
+    queryKey: ["homepage-active-courses"],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("course_categories")
-        .select("*")
-        .eq("is_active", true)
-        .order("display_order");
-      return data || [];
-    },
-  });
-
-  // Fetch all active real courses from Supabase
-  const { data: dbCourses = [], isLoading: isCoursesLoading } = useQuery<CourseRow[]>({
-    queryKey: ["featured-courses-real"],
-    queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("courses")
         .select("*")
         .eq("is_active", true)
-        .order("display_order");
+        .order("display_order", { ascending: true })
+        .order("id", { ascending: false });
+      if (error) {
+        console.error("Error fetching courses:", error);
+        return [];
+      }
       return data || [];
     },
   });
+
+  // Phân chia khóa học theo từng chuyên đề theo phong cách Ngoại Ngữ 24h:
+  // 1. Nhóm Đề Thi Thử Full Test 200 Câu
+  const fullTestCourses = useMemo(() => {
+    return activeCourses.filter((c) => c.course_type === "fulltest");
+  }, [activeCourses]);
+
+  // 2. Nhóm Khóa Học Video & Nghe - Đọc
+  const videoCourses = useMemo(() => {
+    return activeCourses.filter((c) => c.course_type === "video_quiz");
+  }, [activeCourses]);
+
+  // 3. Nhóm Luyện Nghe Điền Từ (Dictation)
+  const listeningCourses = useMemo(() => {
+    return activeCourses.filter((c) => c.course_type === "listening");
+  }, [activeCourses]);
 
   const formatPrice = (price: number | null, isFree: boolean | null) => {
     if (isFree || !price || price === 0) return "Miễn phí";
     return new Intl.NumberFormat("vi-VN").format(price) + " đ";
   };
 
-  // Set default active tab
-  if (activeTab === null && categories.length > 0) {
-    setActiveTab(categories[0].id);
-  }
+  // Component render một thẻ card khóa học
+  const renderCourseCard = (c: CourseRow) => {
+    const isFullTest = c.course_type === "fulltest";
+    const isListening = c.course_type === "listening";
 
-  const activeCourses = dbCourses.filter(c => c.category_id === activeTab);
-  const activeCategory = categories.find(c => c.id === activeTab);
+    return (
+      <div
+        key={c.id}
+        className="group bg-card rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-2xs hover:shadow-md hover:border-blue-500/50 dark:hover:border-blue-500/50 transition-all duration-200 flex flex-col h-full overflow-hidden"
+      >
+        {/* Thumbnail Banner */}
+        <div className="aspect-video w-full relative overflow-hidden bg-slate-100 dark:bg-zinc-800">
+          {c.thumbnail_url ? (
+            <img
+              src={c.thumbnail_url}
+              alt={c.title}
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            />
+          ) : (
+            <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-tr from-blue-600/15 via-indigo-600/10 to-emerald-600/15 p-4 text-center">
+              {isFullTest ? (
+                <FileCheck2 className="w-8 h-8 text-emerald-600 mb-1" />
+              ) : isListening ? (
+                <Headphones className="w-8 h-8 text-purple-600 mb-1" />
+              ) : (
+                <Video className="w-8 h-8 text-blue-600 mb-1" />
+              )}
+              <span className="text-xs font-black text-blue-600 dark:text-blue-400 uppercase tracking-wider">
+                L-English Academy
+              </span>
+              <span className="text-[11px] font-bold text-slate-600 dark:text-zinc-300 mt-1 line-clamp-1">
+                {c.title}
+              </span>
+            </div>
+          )}
 
-  const getIcon = (iconName: string | null) => {
-    if (iconName === "BookOpen") return <BookOpen size={16} />;
-    if (iconName === "GraduationCap") return <GraduationCap size={16} />;
-    if (iconName === "Layers") return <Layers size={16} />;
-    return <BookOpen size={16} />;
+          {/* Badge phương pháp học */}
+          <div
+            className={`absolute top-2.5 left-2.5 flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider shadow-sm ${
+              isFullTest
+                ? "bg-emerald-600 text-white"
+                : isListening
+                ? "bg-purple-600 text-white"
+                : "bg-blue-600 text-white"
+            }`}
+          >
+            {isFullTest && <FileCheck2 className="w-3 h-3" />}
+            {isListening && <Headphones className="w-3 h-3" />}
+            {!isFullTest && !isListening && <Video className="w-3 h-3" />}
+            <span>
+              {isFullTest
+                ? "Full Test 200 Câu"
+                : isListening
+                ? "Dictation Điền Từ"
+                : "Video Bài Giảng"}
+            </span>
+          </div>
+
+          {c.is_free && (
+            <div className="absolute top-2.5 right-2.5 bg-rose-500 text-white font-black text-[10px] px-2 py-0.5 rounded-lg shadow-sm">
+              FREE
+            </div>
+          )}
+        </div>
+
+        {/* Body Content */}
+        <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 dark:text-zinc-400">
+              <span className="bg-slate-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded text-[10px] font-bold">
+                {isFullTest ? "Bấm Giờ 120 Phút" : "Học Chủ Động"}
+              </span>
+              <span>•</span>
+              <span>Thời hạn {c.duration_months || 12} tháng</span>
+            </div>
+
+            <h3 className="text-sm font-extrabold text-foreground group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2 leading-snug">
+              {c.title}
+            </h3>
+
+            <p className="text-xs text-slate-500 dark:text-zinc-400 font-medium line-clamp-2 leading-relaxed">
+              {c.subtitle ||
+                (isFullTest
+                  ? "Bộ đề thi thử TOEIC chuẩn format ETS mới nhất, bấm giờ 120 phút, chấm điểm tự động kèm lời giải chi tiết."
+                  : isListening
+                  ? "Luyện nghe chép chính tả Part 1-4, kéo thả từ khóa mượt mà cảm ứng, tăng phản xạ nghe nhanh chóng."
+                  : "Hệ thống video bài giảng chi tiết, bám sát các dạng bài trọng tâm và kỹ thuật làm bài thi đạt điểm cao.")}
+            </p>
+          </div>
+
+          {/* Instructor & Meta */}
+          <div className="pt-2 border-t border-slate-100 dark:border-zinc-800 flex items-center justify-between text-[11px] text-slate-500 dark:text-zinc-400 font-medium">
+            <div className="flex items-center gap-1">
+              <Users className="w-3 h-3 text-blue-600" />
+              <span>Học viên toàn quốc</span>
+            </div>
+            <span className="font-bold text-slate-700 dark:text-zinc-300 truncate max-w-[110px]">
+              {c.instructor || "L-English Mentor"}
+            </span>
+          </div>
+
+          {/* Price & CTA Button */}
+          <div className="pt-2.5 border-t border-slate-100 dark:border-zinc-800 flex items-center justify-between gap-2">
+            <div>
+              <span className="text-sm font-black text-blue-600 dark:text-blue-400 block">
+                {formatPrice(c.price, c.is_free)}
+              </span>
+            </div>
+
+            <Link
+              to={`/courses/${c.id}`}
+              className={`py-1.5 px-3.5 rounded-xl font-black text-xs inline-flex items-center gap-1 shadow-sm transition-all group-hover:translate-x-0.5 text-white ${
+                isFullTest
+                  ? "bg-emerald-600 hover:bg-emerald-700"
+                  : isListening
+                  ? "bg-purple-600 hover:bg-purple-700"
+                  : "bg-blue-600 hover:bg-blue-700"
+              }`}
+            >
+              <span>{isFullTest ? "THI THỬ NGAY" : "VÀO HỌC"}</span>
+              <ArrowRight className="w-3 h-3" />
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
-    <section className="py-14 md:py-20 bg-[#fffaf7] dark:bg-zinc-900 border-t border-[var(--duo-gray)] dark:border-zinc-800" id="courses">
-      <div className="container mx-auto px-4 max-w-6xl">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-5xl font-black text-foreground mb-3 tracking-tight">
-            Kho Khóa Học <span className="bg-clip-text text-transparent bg-gradient-to-r from-[var(--duo-green)] to-[var(--duo-orange)]">Trên Hệ Thống</span>
-          </h2>
-        </div>
-
-        {/* Dynamic Tab Filters */}
-        <div className="flex flex-wrap justify-center gap-3 md:gap-4 mb-12">
-          {categories.map((cat, index) => {
-            const isActive = activeTab === cat.id;
-            const catCourses = dbCourses.filter(c => c.category_id === cat.id);
-            // Cycle through green, orange, blue styles based on index
-            const styleIdx = index % 3;
-            
-            let btnClass = "bg-white dark:bg-zinc-900 text-foreground dark:text-zinc-200 border-2 border-[var(--duo-gray)] dark:border-zinc-800 shadow-[0_4px_0_var(--duo-gray)] dark:shadow-none hover:bg-zinc-50 dark:hover:bg-zinc-800";
-            let badgeClass = "bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-300";
-            
-            if (isActive) {
-              if (styleIdx === 0) {
-                btnClass = "bg-[var(--duo-green)] text-white shadow-[0_4px_0_var(--duo-green-dark)] hover:bg-[var(--duo-green-light)] border-[var(--duo-green)]";
-                badgeClass = "bg-white/20 text-white";
-              } else if (styleIdx === 1) {
-                btnClass = "bg-[var(--duo-orange)] text-white shadow-[0_4px_0_var(--accent-dark)] hover:brightness-105 border-[var(--duo-orange)]";
-                badgeClass = "bg-orange-100 dark:bg-orange-950/50 text-[var(--accent-dark)] dark:text-orange-300";
-              } else {
-                btnClass = "bg-[var(--duo-blue)] text-white shadow-[0_4px_0_var(--duo-blue-dark)] hover:brightness-110 border-[var(--duo-blue)]";
-                badgeClass = "bg-slate-100 dark:bg-zinc-800 text-[var(--duo-blue-dark)] dark:text-blue-300";
-              }
-            } else {
-              // Idle text colors based on style index
-              if (styleIdx === 0) btnClass = "bg-white dark:bg-zinc-900 text-[var(--duo-green-dark)] dark:text-green-400 border-2 border-[var(--duo-gray)] dark:border-zinc-800 shadow-[0_4px_0_var(--duo-gray)] dark:shadow-none hover:bg-zinc-50 dark:hover:bg-zinc-800";
-              else if (styleIdx === 1) btnClass = "bg-white dark:bg-zinc-900 text-[var(--duo-orange)] dark:text-orange-400 border-2 border-[var(--duo-gray)] dark:border-zinc-800 shadow-[0_4px_0_var(--duo-gray)] dark:shadow-none hover:bg-zinc-50 dark:hover:bg-zinc-800";
-              else btnClass = "bg-white dark:bg-zinc-900 text-[var(--duo-blue-dark)] dark:text-blue-400 border-2 border-[var(--duo-gray)] dark:border-zinc-800 shadow-[0_4px_0_var(--duo-gray)] dark:shadow-none hover:bg-zinc-50 dark:hover:bg-zinc-800";
-            }
-
-            return (
-              <button
-                key={cat.id}
-                onClick={() => setActiveTab(cat.id)}
-                className={`btn-3d text-sm font-bold uppercase transition-all duration-150 py-3 px-6 rounded-2xl flex items-center gap-2 ${btnClass}`}
-              >
-                {getIcon(cat.icon)} {cat.name}
-                {catCourses.length > 0 && (
-                  <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-black ${badgeClass}`}>
-                    {catCourses.length}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Content Showcase Grid */}
-        {isCoursesLoading || isCategoriesLoading ? (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-96 rounded-3xl" />
-            ))}
+    <div className="space-y-10" id="combos">
+      {/* ========================================================================= */}
+      {/* SECTION 1: PHÒNG THI THỬ FULL TEST TOEIC CHUẨN ETS (Phong cách Ngoại Ngữ 24h) */}
+      {/* ========================================================================= */}
+      <section
+        id="section-fulltest"
+        className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200 dark:border-zinc-800 p-5 sm:p-7 md:p-8 shadow-sm space-y-6"
+      >
+        {/* Header Kệ Section */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-zinc-800">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-black">
+                <FileCheck2 className="w-5 h-5" />
+              </div>
+              <h2 className="text-lg sm:text-xl md:text-2xl font-black text-foreground tracking-tight">
+                PHÒNG THI THỬ TOEIC FULL TEST{" "}
+                <span className="text-emerald-600 dark:text-emerald-400 font-black">
+                  (FORMAT ETS)
+                </span>
+              </h2>
+              <span className="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 text-[11px] font-black uppercase">
+                {fullTestCourses.length} Bộ Đề
+              </span>
+            </div>
+            <p className="text-slate-500 dark:text-zinc-400 text-xs sm:text-sm font-medium pl-11">
+              Bộ đề bấm giờ thật 120 phút, 200 câu Listening &amp; Reading, chấm điểm tự động kèm phân tích đáp án chi tiết.
+            </p>
           </div>
-        ) : activeCourses.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {activeCourses.map((c) => {
-              return (
-                <div
-                  key={c.id}
-                  className="group bg-white dark:bg-zinc-900 rounded-3xl border-2 border-[var(--duo-gray)] dark:border-zinc-800 shadow-[0_6px_0_var(--duo-gray)] dark:shadow-none hover:shadow-[0_8px_0_var(--duo-gray)] hover:translate-y-[-4px] transition-all duration-200 flex flex-col h-full overflow-hidden"
-                >
-                  {/* Image and badges */}
-                  <div className="aspect-video w-full bg-muted relative overflow-hidden">
-                    {c.thumbnail_url ? (
-                      <img
-                        src={c.thumbnail_url}
-                        alt={c.title}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[var(--duo-green)]/12 to-[var(--duo-orange)]/12">
-                        <span className="font-extrabold text-foreground text-sm tracking-widest uppercase">
-                          L-ENGLISH ACADEMY
-                        </span>
-                      </div>
-                    )}
 
-                    {/* Floating top badges */}
-                    <div className="absolute top-3.5 left-3.5 flex flex-wrap gap-2">
-                      <span className={`badge-duo badge-blue font-black text-[10px]`}>
-                        {courseTypeMap[c.course_type] || c.course_type}
-                      </span>
-                    </div>
-
-                    {c.is_free && (
-                      <div className="absolute top-3.5 right-3.5 bg-rose-500 text-white font-extrabold text-xs px-2.5 py-1 rounded-lg border-2 border-rose-600 shadow-md">
-                        FREE
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Core details */}
-                  <div className="p-6 flex-1 flex flex-col space-y-4">
-                    <div className="flex items-center gap-1.5 text-xs font-extrabold text-muted-foreground">
-                      <span className="bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded border border-zinc-200 dark:border-zinc-700">
-                        HỌC CHỦ ĐỘNG
-                      </span>
-                      <span>•</span>
-                      <span>Thời hạn {c.duration_months || 6} tháng</span>
-                    </div>
-
-                    <div>
-                      <h3 className="text-lg font-black text-foreground group-hover:text-[var(--duo-green)] transition-colors line-clamp-2 leading-snug min-h-[50px]">
-                        {c.title}
-                      </h3>
-                      <p className="text-sm text-muted-foreground font-semibold line-clamp-2 mt-1 min-h-[40px] leading-relaxed">
-                        {c.subtitle || "Khóa học chất lượng cao bám sát chương trình giảng dạy."}
-                      </p>
-                    </div>
-
-                    {/* Stats & Instructor */}
-                    <div className="flex items-center justify-between text-xs text-muted-foreground font-semibold pt-2 border-t border-[var(--duo-gray)] dark:border-zinc-800">
-                      <div className="flex items-center gap-1">
-                        <Users size={14} />
-                        <span>Học viên toàn quốc</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <div className="w-5 h-5 rounded-full bg-[var(--duo-blue)] flex items-center justify-center text-[10px] font-black text-white">
-                          {c.instructor ? c.instructor.charAt(0) : "M"}
-                        </div>
-                        <span className="text-foreground">{c.instructor || "Ms. Mai Phương"}</span>
-                      </div>
-                    </div>
-
-                    {/* Price and Action */}
-                    <div className="flex items-center justify-between pt-4 mt-auto border-t-2 border-[var(--duo-gray)] dark:border-zinc-800">
-                      <div className="flex flex-col">
-                        <span className="text-lg font-black text-[var(--duo-green)]">
-                          {formatPrice(c.price, c.is_free)}
-                        </span>
-                      </div>
-
-                      <Link
-                        to={`/courses/${c.id}`}
-                        className={`btn-3d text-xs font-black py-2 px-4 rounded-xl inline-flex items-center gap-1.5 btn-3d-white`}
-                      >
-                        HỌC NGAY <ArrowRight size={13} />
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          /* Empty / Sắp ra mắt layout for future course expansion (e.g. Cấp 3 / THPT prepare courses) */
-          <div className="max-w-2xl mx-auto text-center card-duo p-12 bg-zinc-50/50 dark:bg-zinc-900/50 border-dashed border-4 border-[var(--duo-gray)] dark:border-zinc-800 space-y-6">
-            <div className="w-16 h-16 rounded-full bg-[var(--duo-orange)]/10 dark:bg-[var(--duo-orange)]/20 flex items-center justify-center mx-auto text-[var(--duo-orange)]">
-              <Sparkles size={32} />
-            </div>
-            
-            <div className="space-y-2">
-              <h3 className="text-2xl font-black text-foreground">
-                Chương Trình {activeCategory?.name || "Đang phát triển"}
-              </h3>
-              <p className="text-muted-foreground font-semibold text-sm max-w-md mx-auto">
-                Hệ thống đang cập nhật và hoàn thiện kho dữ liệu cho chương trình học này.
-              </p>
-            </div>
-
-            <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl border-2 border-[var(--duo-gray)] dark:border-zinc-800 max-w-sm mx-auto text-left space-y-3 shadow-[0_3px_0_var(--duo-gray)] dark:shadow-none">
-              <p className="text-xs font-black text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
-                <Flame size={12} className="text-[var(--duo-orange)] fill-current" /> Lộ trình dự kiến:
-              </p>
-              <ul className="space-y-2 text-xs font-bold text-foreground">
-                <li className="flex items-center gap-2">
-                  <CheckCircle size={14} className="text-[var(--duo-orange)] shrink-0" />
-                  <span>Tổng ôn Ngữ pháp Lớp 9 lên 10</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle size={14} className="text-[var(--duo-orange)] shrink-0" />
-                  <span>100+ Đề thi thử bám sát đề thi thật</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle size={14} className="text-[var(--duo-orange)] shrink-0" />
-                  <span>Giải nghĩa chi tiết 100% từng câu</span>
-                </li>
-              </ul>
-            </div>
-
-            <div className="text-xs font-black text-[var(--accent-dark)] bg-orange-50 border border-orange-200 rounded-full px-4 py-1.5 inline-block">
-              🚀 COMING SOON - SẼ SỚM CẬP NHẬT TỚI HỌC VIÊN!
-            </div>
-          </div>
-        )}
-
-        {/* Call to action below showcase */}
-        <div className="mt-12 text-center">
           <Link
-            to="/courses"
-            className="btn-3d btn-3d-white text-sm sm:text-base py-3 px-8 inline-flex items-center gap-2 hover:translate-y-[-1px] transition-all font-bold"
+            to="/courses?filter=fulltest"
+            className="self-start sm:self-center inline-flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 hover:underline shrink-0"
           >
-            Xem tất cả khóa học <ArrowRight size={16} />
+            <span>Xem tất cả đề thi thử</span>
+            <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
+
+        {/* Lưới khóa học Full Test */}
+        {isLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            {[1, 2].map((i) => (
+              <Skeleton key={i} className="h-80 rounded-2xl" />
+            ))}
+          </div>
+        ) : fullTestCourses.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            {fullTestCourses.map(renderCourseCard)}
+          </div>
+        ) : (
+          <p className="text-xs text-muted-foreground">Đang cập nhật bộ đề thi mới...</p>
+        )}
+      </section>
+
+      {/* ========================================================================= */}
+      {/* SECTION 2: KHÓA HỌC BÀI GIẢNG VIDEO & NGỮ PHÁP TRỌNG ĐIỂM (Ngoại Ngữ 24h) */}
+      {/* ========================================================================= */}
+      <section
+        id="section-video"
+        className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200 dark:border-zinc-800 p-5 sm:p-7 md:p-8 shadow-sm space-y-6"
+      >
+        {/* Header Kệ Section */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-zinc-800">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center font-black">
+                <Video className="w-5 h-5" />
+              </div>
+              <h2 className="text-lg sm:text-xl md:text-2xl font-black text-foreground tracking-tight">
+                KHÓA HỌC VIDEO &amp; LUYỆN THI TOEIC{" "}
+                <span className="text-blue-600 dark:text-blue-400 font-black">
+                  NGHE - ĐỌC
+                </span>
+              </h2>
+              <span className="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 text-[11px] font-black uppercase">
+                {videoCourses.length} Khóa Học
+              </span>
+            </div>
+            <p className="text-slate-500 dark:text-zinc-400 text-xs sm:text-sm font-medium pl-11">
+              Bài giảng video chuẩn mực theo từng Part 1–7, trang bị phương pháp giải đề, mẹo tránh bẫy và bài tập thực hành.
+            </p>
+          </div>
+
+          <Link
+            to="/courses"
+            className="self-start sm:self-center inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 hover:underline shrink-0"
+          >
+            <span>Khám phá khóa học</span>
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+
+        {/* Lưới khóa học Video */}
+        {isLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            {[1].map((i) => (
+              <Skeleton key={i} className="h-80 rounded-2xl" />
+            ))}
+          </div>
+        ) : videoCourses.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            {videoCourses.map(renderCourseCard)}
+          </div>
+        ) : (
+          <p className="text-xs text-muted-foreground">Đang cập nhật khóa học video...</p>
+        )}
+      </section>
+
+      {/* ========================================================================= */}
+      {/* SECTION 3: LUYỆN NGHE CHÉP CHÍNH TẢ (DICTATION CẢM ỨNG ĐỘC QUYỀN)           */}
+      {/* ========================================================================= */}
+      <section
+        id="section-listening"
+        className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200 dark:border-zinc-800 p-5 sm:p-7 md:p-8 shadow-sm space-y-6"
+      >
+        {/* Header Kệ Section */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-zinc-800">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <div className="w-9 h-9 rounded-xl bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center font-black">
+                <Headphones className="w-5 h-5" />
+              </div>
+              <h2 className="text-lg sm:text-xl md:text-2xl font-black text-foreground tracking-tight">
+                LUYỆN NGHE ĐIỀN TỪ{" "}
+                <span className="text-purple-600 dark:text-purple-400 font-black">
+                  (DICTATION CHÉP CHÍNH TẢ)
+                </span>
+              </h2>
+              <span className="px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 text-[11px] font-black uppercase">
+                {listeningCourses.length} Chương Trình
+              </span>
+            </div>
+            <p className="text-slate-500 dark:text-zinc-400 text-xs sm:text-sm font-medium pl-11">
+              Phương pháp nghe chép chính tả Part 1–4, cơ chế kéo thả từ khóa cảm ứng thông minh, nhận diện nuốt âm và nối từ.
+            </p>
+          </div>
+
+          <Link
+            to="/courses?filter=listening"
+            className="self-start sm:self-center inline-flex items-center gap-1.5 text-xs font-bold text-purple-600 dark:text-purple-400 hover:text-purple-700 hover:underline shrink-0"
+          >
+            <span>Vào luyện nghe ngay</span>
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+
+        {/* Lưới khóa học Listening */}
+        {isLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            {[1].map((i) => (
+              <Skeleton key={i} className="h-80 rounded-2xl" />
+            ))}
+          </div>
+        ) : listeningCourses.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            {listeningCourses.map(renderCourseCard)}
+          </div>
+        ) : (
+          <p className="text-xs text-muted-foreground">Đang cập nhật bài luyện nghe...</p>
+        )}
+      </section>
+
+      {/* ========================================================================= */}
+      {/* SECTION 4: GÓI COMBO VIP TOÀN DIỆN (Phong cách Ngoại Ngữ 24h)              */}
+      {/* ========================================================================= */}
+      <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-blue-600 via-indigo-600 to-sky-600 text-white flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
+        <div className="space-y-2 text-center md:text-left">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 text-white text-xs font-black uppercase tracking-wider">
+            <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+            <span>GÓI VIP TOÀN DIỆN TOEIC</span>
+          </div>
+          <h3 className="text-xl sm:text-2xl font-black tracking-tight text-white">
+            Đăng Ký Combo Trọn Gói Khóa Học &amp; Kho Đề Thi ETS
+          </h3>
+          <p className="text-white/85 text-xs sm:text-sm font-normal max-w-2xl">
+            Mở khóa toàn bộ các bộ đề thi thử 200 câu format ETS, video bài giảng Part 1–7 và toàn bộ hệ thống luyện nghe cảm ứng không giới hạn thời gian.
+          </p>
+        </div>
+
+        <button
+          onClick={() => setModalOpen(true)}
+          className="btn-3d btn-3d-yellow py-3.5 px-7 text-xs sm:text-sm font-black whitespace-nowrap flex items-center gap-2 shadow-lg shrink-0"
+        >
+          <ShoppingBag className="w-4 h-4" />
+          <span>MUA GÓI VIP TRỌN GÓI</span>
+        </button>
       </div>
-    </section>
+
+      {/* MODAL THANH TOÁN VIETQR COMBO KHÓA HỌC */}
+      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+        <DialogContent className="max-w-lg p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800">
+          <DialogHeader className="space-y-1.5 text-center">
+            <DialogTitle className="text-xl font-black text-foreground">
+              Đăng Ký Gói Combo Khóa Học VIP
+            </DialogTitle>
+            <p className="text-xs text-slate-500 dark:text-zinc-400">
+              Quét mã VietQR chuyển khoản tự động để kích hoạt tài khoản học viên ngay lập tức.
+            </p>
+          </DialogHeader>
+
+          <div className="space-y-4 pt-2">
+            <div className="p-4 rounded-2xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/50 flex items-center justify-between">
+              <div>
+                <span className="text-[10px] uppercase font-bold text-blue-600 dark:text-blue-400">
+                  GÓI HỌC TOÀN DIỆN
+                </span>
+                <h4 className="font-black text-sm text-foreground">
+                  Combo TOEIC VIP Toàn Bộ Khóa Học &amp; Đề Thi
+                </h4>
+                <span className="text-xs text-slate-500">Thời hạn: Vĩnh viễn (Kèm toàn bộ bản cập nhật)</span>
+              </div>
+              <div className="text-right">
+                <span className="text-base font-black text-blue-600 dark:text-blue-400">
+                  1.750.000 đ
+                </span>
+                <span className="text-[11px] text-slate-400 line-through block">
+                  3.500.000 đ
+                </span>
+              </div>
+            </div>
+
+            <div className="flex flex-col items-center justify-center p-5 rounded-2xl border border-slate-200 dark:border-zinc-800 bg-slate-50/60 dark:bg-zinc-800/40">
+              <div className="bg-white p-3 rounded-2xl shadow-sm border border-slate-200">
+                <img
+                  src="https://api.vietqr.io/image/970422-0334729066-qj9Rj0t.jpg?accountName=HOANG%20CONG%20LUAN&amount=1750000&addInfo=VIP%20LENGLISH"
+                  alt="VietQR Chuyển Khoản"
+                  className="w-48 h-48 object-contain"
+                />
+              </div>
+              <div className="text-center mt-3 space-y-1">
+                <p className="text-xs font-bold text-foreground">
+                  Ngân hàng: <span className="text-blue-600 font-extrabold">MBBank</span>
+                </p>
+                <p className="text-xs font-bold text-foreground">
+                  Số tài khoản: <span className="text-blue-600 font-extrabold">0334729066</span>
+                </p>
+                <p className="text-xs font-bold text-foreground">
+                  Chủ tài khoản: <span className="font-extrabold">HOANG CONG LUAN</span>
+                </p>
+                <p className="text-[11px] text-slate-500">
+                  Nội dung CK: <strong className="text-blue-600">VIP [SĐT Của Bạn]</strong>
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-2 text-center">
+              <a
+                href="https://zalo.me/0334729066"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-3d btn-3d-green w-full py-2.5 text-xs font-black inline-flex items-center justify-center gap-2"
+              >
+                <span>Xác nhận chuyển khoản qua Zalo (0334729066)</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </a>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 };
 

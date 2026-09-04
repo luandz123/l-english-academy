@@ -120,10 +120,10 @@ const HeroSection = () => {
               {/* Secondary links */}
               <div className="flex items-center gap-3 text-xs font-semibold">
                 <Link
-                  to={user ? "/dashboard" : "/courses"}
+                  to={user ? "/profile" : "/courses"}
                   className="text-foreground hover:text-primary flex items-center gap-1 transition-colors"
                 >
-                  <span>{user ? "Vào Dashboard học viên" : "Xem tất cả khóa học"}</span>
+                  <span>{user ? "Vào Hồ sơ học tập" : "Xem tất cả khóa học"}</span>
                   <ArrowRight className="w-3 h-3" />
                 </Link>
                 {!user && (

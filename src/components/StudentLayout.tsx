@@ -1,6 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { 
-  LayoutDashboard, 
   BookOpen, 
   User, 
   LogOut, 
@@ -30,7 +29,6 @@ import {
 import { useGamification } from "@/hooks/useGamification";
 
 const navItems = [
-  { to: "/dashboard", label: "Tổng quan", icon: LayoutDashboard },
   { to: "/courses?filter=fulltest", label: "Luyện đề Full Test", icon: FileCheck2, badge: "Thi thử", badgeColor: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" },
   { to: "/courses?filter=listening", label: "Luyện nghe điền từ", icon: Headphones, badge: "Dictation", badgeColor: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20" },
   { to: "/courses", label: "Kho khóa học", icon: BookOpen },
@@ -38,7 +36,6 @@ const navItems = [
 ];
 
 const mobileNavItems = [
-  { to: "/dashboard", label: "Tổng quan", icon: LayoutDashboard },
   { to: "/courses?filter=fulltest", label: "Luyện đề", icon: FileCheck2, isHighlight: true },
   { to: "/courses?filter=listening", label: "Điền từ", icon: Headphones, isHighlight: true },
   { to: "/courses", label: "Khóa học", icon: BookOpen },
@@ -122,9 +119,7 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
         <nav className="flex-1 px-3 py-2 space-y-1.5 overflow-y-auto">
           {navItems.map((item) => {
             const active = 
-              item.to === "/dashboard"
-                ? location.pathname === "/dashboard"
-                : item.to.includes("fulltest")
+              item.to.includes("fulltest")
                 ? isFullTestActive
                 : item.to.includes("listening")
                 ? isListeningActive
@@ -198,8 +193,8 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
             </Button>
             
             <div className="hidden sm:flex items-center gap-2 text-xs font-medium text-muted-foreground overflow-hidden">
-              <Link to="/dashboard" className="hover:text-foreground transition-colors">
-                <LayoutDashboard className="w-3.5 h-3.5" />
+              <Link to="/profile" className="hover:text-foreground transition-colors" title="Hồ sơ cá nhân">
+                <User className="w-3.5 h-3.5" />
               </Link>
               {breadcrumbs.map((crumb, i) => (
                 <React.Fragment key={crumb.path}>
@@ -288,9 +283,7 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
           <div className="flex items-center justify-around h-16 px-1">
             {mobileNavItems.map((item) => {
               const isActive = 
-                item.to === "/dashboard" 
-                  ? location.pathname === "/dashboard"
-                  : item.to.includes("fulltest")
+                item.to.includes("fulltest")
                   ? isFullTestActive
                   : item.to.includes("listening")
                   ? isListeningActive

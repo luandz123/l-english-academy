@@ -23,7 +23,7 @@ const Register = () => {
   // Redirect if already logged in
   useEffect(() => {
     if (user) {
-      navigate(isAdmin ? "/admin/dashboard" : "/dashboard", { replace: true });
+      navigate(isAdmin ? "/admin/dashboard" : "/profile", { replace: true });
     }
   }, [user, isAdmin, navigate]);
 
@@ -61,7 +61,7 @@ const Register = () => {
         }
         
         toast({ title: "Đăng ký thành công!", description: "Chào mừng bạn đến với L-English!" });
-        navigate("/dashboard", { replace: true });
+        navigate("/profile", { replace: true });
       } else {
         setLoading(false);
         toast({ 

@@ -1,14 +1,15 @@
-import Navbar from "@/components/landing/Navbar";
-import HeroSection from "@/components/landing/HeroSection";
-import CourseShowcase from "@/components/landing/CourseShowcase";
-import StatsBar from "@/components/landing/StatsBar";
-import PromoBanner from "@/components/landing/PromoBanner";
-import Footer from "@/components/landing/Footer";
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import SidebarNav from "@/components/landing/SidebarNav";
+import Navbar from "@/components/landing/Navbar";
+import HeroCarousel from "@/components/landing/HeroCarousel";
+import CourseShowcase from "@/components/landing/CourseShowcase";
+import Footer from "@/components/landing/Footer";
+import ZaloContactWidget from "@/components/landing/ZaloContactWidget";
 
 const Index = () => {
   const navigate = useNavigate();
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   useEffect(() => {
     if (window.location.hash && window.location.hash.includes("access_token=")) {
@@ -17,24 +18,33 @@ const Index = () => {
   }, [navigate]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-white dark:bg-zinc-950">
-      <Navbar />
+    <div className="min-h-screen flex bg-slate-50/60 dark:bg-zinc-950 text-foreground">
+      {/* 1. Sticky Left Sidebar Navigation (Phong cách Ngoại Ngữ 24h) */}
+      <SidebarNav
+        isOpen={isMobileSidebarOpen}
+        onClose={() => setIsMobileSidebarOpen(false)}
+      />
 
-      <main className="flex-1">
-        {/* 1. Hero Section gọn gàng */}
-        <HeroSection />
+      {/* 2. Main Content Canvas */}
+      <div className="flex-1 min-w-0 flex flex-col">
+        {/* Topbar with Search, Badges and Auth */}
+        <Navbar onOpenSidebar={() => setIsMobileSidebarOpen(true)} />
 
-        {/* 2. Kho khóa học & Đề thi ngay trên đầu */}
-        <CourseShowcase />
+        {/* Page Content Body */}
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-8">
+          {/* Banner Hero Carousel Trượt Lớn */}
+          <HeroCarousel />
 
-        {/* 3. 4 Công cụ cốt lõi */}
-        <StatsBar />
+          {/* Kệ Danh Mục Khóa Học & Đăng Ký Trực Tuyến */}
+          <CourseShowcase />
+        </main>
 
-        {/* 4. 3 Phương pháp học & CTA */}
-        <PromoBanner />
-      </main>
+        {/* Footer */}
+        <Footer />
+      </div>
 
-      <Footer />
+      {/* 3. Floating Zalo Support Widget */}
+      <ZaloContactWidget />
     </div>
   );
 };

@@ -131,11 +131,11 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
             Về trang chủ
           </Link>
           <Link
-            to="/dashboard"
+            to="/profile"
             className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-muted-foreground hover:bg-muted hover:text-foreground transition-all w-full border-2 border-transparent hover:border-[var(--duo-gray)]"
           >
             <LayoutDashboard className="w-5 h-5 text-[var(--duo-blue)]" />
-            Trang học của tôi
+            Hồ sơ học tập
           </Link>
           <Button 
             variant="ghost" 

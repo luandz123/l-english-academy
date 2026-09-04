@@ -27,11 +27,11 @@ const AuthCallback = () => {
         if (roleData) {
           navigate("/admin/dashboard", { replace: true });
         } else {
-          navigate("/dashboard", { replace: true });
+          navigate("/profile", { replace: true });
         }
       } catch (err) {
         console.error("Error checking role:", err);
-        navigate("/dashboard", { replace: true });
+        navigate("/profile", { replace: true });
       }
     };
 

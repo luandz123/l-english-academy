@@ -1,6 +1,16 @@
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { LogOut, User } from "lucide-react";
+import {
+  Menu,
+  Search,
+  BookOpen,
+  Flame,
+  Zap,
+  BookA,
+  LogOut,
+  User,
+  ShoppingBag,
+} from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import Logo from "@/components/Logo";
 import {
@@ -11,69 +21,170 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const Navbar = () => {
+interface NavbarProps {
+  onOpenSidebar?: () => void;
+}
+
+const Navbar = ({ onOpenSidebar }: NavbarProps) => {
   const { user, profile, signOut, isAdmin } = useAuth();
   const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState("");
 
   const handleSignOut = async () => {
     await signOut();
     navigate("/");
   };
 
-  const displayName = profile?.full_name || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "";
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/courses?search=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
+
+  const displayName =
+    profile?.full_name ||
+    user?.user_metadata?.full_name ||
+    user?.email?.split("@")[0] ||
+    "";
   const initials = displayName.charAt(0).toUpperCase();
 
   return (
-    <nav className="sticky top-0 z-50 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-md border-b border-[var(--duo-gray)] dark:border-zinc-800 shadow-[0_1px_0_rgba(47,56,75,0.04)]">
-      <div className="container mx-auto flex items-center justify-between h-16 px-4">
-        <Logo />
+    <header className="sticky top-0 z-30 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border-b border-slate-200 dark:border-zinc-800 shadow-sm">
+      <div className="flex items-center justify-between h-16 px-4 md:px-6 gap-3">
+        {/* Left: Mobile Drawer Trigger & Search */}
+        <div className="flex items-center gap-3 flex-1 max-w-xl">
+          {onOpenSidebar && (
+            <button
+              onClick={onOpenSidebar}
+              className="lg:hidden p-2 rounded-xl text-slate-600 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors"
+              aria-label="Mở menu danh mục"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+          )}
 
+          {/* Mobile Logo if sidebar is hidden */}
+          <div className="lg:hidden">
+            <Logo showText={false} imgClassName="w-8 h-8" />
+          </div>
 
-        <div className="hidden md:flex items-center gap-8">
-          <Link to="/" className="text-sm font-bold text-foreground hover:text-[var(--duo-green)] transition-colors">Trang chủ</Link>
-          <Link to="/courses" className="text-sm font-bold text-muted-foreground hover:text-[var(--duo-green)] transition-colors">Khóa học</Link>
-          <a href="#contact" className="text-sm font-bold text-muted-foreground hover:text-[var(--duo-green)] transition-colors">Liên hệ</a>
+          {/* Search bar (giống style Ngoại Ngữ 24h) */}
+          <form
+            onSubmit={handleSearchSubmit}
+            className="relative flex-1 max-w-sm hidden sm:block"
+          >
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-zinc-500" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Tìm kiếm khóa học, đề thi, từ vựng..."
+              className="w-full pl-9 pr-4 py-1.5 rounded-full text-xs bg-slate-100 dark:bg-zinc-800 text-foreground border border-transparent focus:border-blue-500 focus:bg-white dark:focus:bg-zinc-900 outline-none transition-all"
+            />
+          </form>
         </div>
 
-        {user ? (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="flex items-center gap-2 px-3 py-1.5 rounded-full border-2 border-[var(--duo-gray)] dark:border-zinc-700 hover:border-[var(--duo-green)] transition-colors bg-white dark:bg-zinc-900 shadow-[0_2px_0_var(--duo-gray)] dark:shadow-none hover:shadow-[0_3px_0_var(--duo-gray)]">
-                <div className="w-7 h-7 rounded-full bg-[var(--duo-green)] flex items-center justify-center text-xs font-extrabold text-white shadow-[0_2px_0_var(--duo-green-dark)]">
-                  {initials}
-                </div>
-                <span className="text-sm font-bold text-foreground hidden sm:inline">{displayName}</span>
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 rounded-xl border-2 border-[var(--duo-gray)] dark:border-zinc-800 shadow-[0_4px_0_var(--duo-gray)] dark:shadow-none">
-              <DropdownMenuItem onClick={() => navigate("/dashboard")} className="font-bold rounded-lg">
-                <User className="w-4 h-4 mr-2 text-[var(--duo-green)]" />
-                Dashboard
-              </DropdownMenuItem>
-              {isAdmin && (
-                <DropdownMenuItem onClick={() => navigate("/admin/dashboard")} className="font-bold rounded-lg">
-                  Admin Panel
+        {/* Center-Right Quick Links (Phong cách Ngoại Ngữ 24h: Khóa học, Hot combo, Phòng thi thực chiến, Tra từ) */}
+        <div className="hidden xl:flex items-center gap-1.5">
+          <Link
+            to="/courses"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 dark:text-zinc-300 hover:text-blue-600 hover:bg-blue-50/60 dark:hover:bg-zinc-800 transition-colors"
+          >
+            <BookOpen className="w-4 h-4 text-blue-600" />
+            <span>Khóa học</span>
+          </Link>
+
+          <a
+            href="#combos"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 dark:text-zinc-300 hover:text-orange-600 hover:bg-orange-50/60 dark:hover:bg-zinc-800 transition-colors"
+          >
+            <Flame className="w-4 h-4 text-orange-500" />
+            <span>Hot combo</span>
+          </a>
+
+          <Link
+            to="/courses?filter=fulltest"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 dark:text-zinc-300 hover:text-indigo-600 hover:bg-indigo-50/60 dark:hover:bg-zinc-800 transition-colors relative"
+          >
+            <Zap className="w-4 h-4 text-indigo-600" />
+            <span>Phòng thi thực chiến</span>
+            <span className="px-1.5 py-0.2 bg-rose-500 text-white rounded text-[9px] font-black uppercase">
+              New
+            </span>
+          </Link>
+
+          <Link
+            to="/vocab"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 dark:text-zinc-300 hover:text-emerald-600 hover:bg-emerald-50/60 dark:hover:bg-zinc-800 transition-colors"
+          >
+            <BookA className="w-4 h-4 text-emerald-600" />
+            <span>Tra từ Flashcard</span>
+          </Link>
+        </div>
+
+        {/* Right Auth / User Area */}
+        <div className="flex items-center gap-2">
+          {user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-slate-200 dark:border-zinc-700 hover:border-blue-500 transition-colors bg-white dark:bg-zinc-900 shadow-sm">
+                  <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-xs font-black text-white shadow-sm">
+                    {initials}
+                  </div>
+                  <span className="text-xs font-bold text-foreground hidden md:inline">
+                    {displayName}
+                  </span>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                className="w-48 rounded-xl border border-slate-200 dark:border-zinc-800 shadow-lg"
+              >
+                <DropdownMenuItem
+                  onClick={() => navigate("/profile")}
+                  className="font-bold text-xs rounded-lg cursor-pointer"
+                >
+                  <User className="w-4 h-4 mr-2 text-blue-600" />
+                  Hồ sơ cá nhân
                 </DropdownMenuItem>
-              )}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleSignOut} className="text-[var(--duo-red)] font-bold rounded-lg">
-                <LogOut className="w-4 h-4 mr-2" />
-                Đăng xuất
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        ) : (
-          <div className="flex items-center gap-3">
-            <Link to="/login" className="btn-3d btn-3d-white text-sm py-2 px-5">
-              Đăng nhập
-            </Link>
-            <Link to="/register" className="btn-3d btn-3d-green text-sm py-2 px-5">
-              Đăng ký
-            </Link>
-          </div>
-        )}
+                {isAdmin && (
+                  <DropdownMenuItem
+                    onClick={() => navigate("/admin/dashboard")}
+                    className="font-bold text-xs rounded-lg cursor-pointer"
+                  >
+                    Admin Panel
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={handleSignOut}
+                  className="text-rose-600 font-bold text-xs rounded-lg cursor-pointer"
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Đăng xuất
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Link
+                to="/login"
+                className="py-1.5 px-3.5 rounded-xl text-xs font-bold text-slate-700 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors"
+              >
+                Đăng nhập
+              </Link>
+              <Link
+                to="/register"
+                className="btn-3d btn-3d-primary py-1.5 px-4 rounded-xl text-xs font-bold text-white shadow-sm"
+              >
+                Đăng ký
+              </Link>
+            </div>
+          )}
+        </div>
       </div>
-    </nav>
+    </header>
   );
 };
 

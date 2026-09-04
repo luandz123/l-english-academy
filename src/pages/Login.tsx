@@ -22,7 +22,7 @@ const Login = () => {
   // Redirect if already logged in
   useEffect(() => {
     if (user) {
-      navigate(isAdmin ? "/admin/dashboard" : "/dashboard", { replace: true });
+      navigate(isAdmin ? "/admin/dashboard" : "/profile", { replace: true });
     }
   }, [user, isAdmin, navigate]);
 
