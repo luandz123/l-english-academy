@@ -159,7 +159,7 @@ const AdminCourses = () => {
                             <Link to={`/admin/courses/${c.id}`}><Edit className="w-4 h-4" /></Link>
                           </Button>
                           <Button size="icon" variant="ghost" asChild>
-                            <Link to={`/courses/${c.id}`}><Eye className="w-4 h-4" /></Link>
+                            <Link to={c.course_type === 'fulltest' ? `/courses/${c.id}/fulltest` : c.course_type === 'flashcard' ? `/courses/${c.id}/vocab` : `/courses/${c.id}/learn`} target="_blank"><Eye className="w-4 h-4" /></Link>
                           </Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>

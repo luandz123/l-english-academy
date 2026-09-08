@@ -38,12 +38,12 @@ const BottomBanner = () => {
           >
             Bắt đầu học MIỄN PHÍ ngay 🚀
           </Link>
-          <Link
-            to="/courses"
+          <a
+            href="#section-video"
             className="btn-3d bg-white/10 hover:bg-white/20 border-2 border-white/20 text-white font-extrabold px-8 py-4 rounded-2xl text-base inline-block"
           >
             Xem danh sách khóa học
-          </Link>
+          </a>
         </div>
 
         {/* Social Media Links */}

@@ -29,16 +29,16 @@ import {
 import { useGamification } from "@/hooks/useGamification";
 
 const navItems = [
-  { to: "/courses?filter=fulltest", label: "Luyện đề Full Test", icon: FileCheck2, badge: "Thi thử", badgeColor: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" },
-  { to: "/courses?filter=listening", label: "Luyện nghe điền từ", icon: Headphones, badge: "Dictation", badgeColor: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20" },
-  { to: "/courses", label: "Kho khóa học", icon: BookOpen },
+  { to: "/#section-fulltest", label: "Luyện đề Full Test", icon: FileCheck2, badge: "Thi thử", badgeColor: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" },
+  { to: "/#section-listening", label: "Luyện nghe điền từ", icon: Headphones, badge: "Dictation", badgeColor: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20" },
+  { to: "/#section-video", label: "Kho khóa học", icon: BookOpen },
   { to: "/profile", label: "Hồ sơ cá nhân", icon: User },
 ];
 
 const mobileNavItems = [
-  { to: "/courses?filter=fulltest", label: "Luyện đề", icon: FileCheck2, isHighlight: true },
-  { to: "/courses?filter=listening", label: "Điền từ", icon: Headphones, isHighlight: true },
-  { to: "/courses", label: "Khóa học", icon: BookOpen },
+  { to: "/#section-fulltest", label: "Luyện đề", icon: FileCheck2, isHighlight: true },
+  { to: "/#section-listening", label: "Điền từ", icon: Headphones, isHighlight: true },
+  { to: "/#section-video", label: "Khóa học", icon: BookOpen },
   { to: "/profile", label: "Hồ sơ", icon: User },
 ];
 
@@ -58,9 +58,9 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
     navigate("/login");
   };
 
-  const isFullTestActive = (location.pathname === "/courses" && location.search.includes("filter=fulltest")) || location.pathname.includes("/fulltest");
-  const isListeningActive = (location.pathname === "/courses" && location.search.includes("filter=listening")) || location.pathname.includes("/dictation");
-  const isAllCoursesActive = location.pathname === "/courses" && !location.search.includes("filter=fulltest") && !location.search.includes("filter=listening");
+  const isFullTestActive = location.pathname.includes("/fulltest");
+  const isListeningActive = location.pathname.includes("/dictation");
+  const isAllCoursesActive = (location.pathname === "/" || location.pathname === "/courses") && !isFullTestActive && !isListeningActive;
 
   const pathSegments = location.pathname.split("/").filter(Boolean);
   const breadcrumbs = pathSegments.map((segment, index) => {
@@ -123,7 +123,7 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
                 ? isFullTestActive
                 : item.to.includes("listening")
                 ? isListeningActive
-                : item.to === "/courses"
+                : item.to.includes("video") || item.to === "/courses"
                 ? isAllCoursesActive
                 : location.pathname === item.to;
 
@@ -287,7 +287,7 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
                   ? isFullTestActive
                   : item.to.includes("listening")
                   ? isListeningActive
-                  : item.to === "/courses"
+                  : item.to.includes("video") || item.to === "/courses"
                   ? isAllCoursesActive
                   : location.pathname === item.to;
 

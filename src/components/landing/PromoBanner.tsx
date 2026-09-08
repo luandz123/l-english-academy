@@ -18,7 +18,7 @@ const realFeatures = [
     desc: "Luyện nghe TOEIC Part 1–4, gõ lại từng từ với hệ thống chấm điểm và tua câu thông minh.",
     tag: "Dictation",
     tagColor: "bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300",
-    link: "/courses?filter=listening",
+    link: "/#section-listening",
     cta: "Luyện nghe ngay",
   },
   {
@@ -30,7 +30,7 @@ const realFeatures = [
     desc: "Học & ôn từ vựng theo chủ đề TOEIC với cơ chế lật thẻ, phát âm audio chuẩn và ví dụ thực tế.",
     tag: "Flashcard",
     tagColor: "bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300",
-    link: "/courses?filter=flashcard",
+    link: "/vocab",
     cta: "Học từ vựng ngay",
   },
   {
@@ -42,7 +42,7 @@ const realFeatures = [
     desc: "Làm đề 7 Part đầy đủ bấm giờ thật, bảng quy đổi điểm chuẩn ETS và giải thích chi tiết sau khi nộp.",
     tag: "Full Test",
     tagColor: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300",
-    link: "/courses?filter=fulltest",
+    link: "/#section-fulltest",
     cta: "Thi thử ngay",
   },
 ];
@@ -123,9 +123,9 @@ const PromoBanner = () => {
             <Link to="/register" className="btn-3d btn-3d-green text-xs sm:text-sm px-5 py-2.5 flex-1 sm:flex-none text-center">
               Đăng ký học thử 🚀
             </Link>
-            <Link to="/courses" className="btn-3d btn-3d-white text-xs sm:text-sm px-5 py-2.5 flex-1 sm:flex-none text-center">
+            <a href="#section-video" className="btn-3d btn-3d-white text-xs sm:text-sm px-5 py-2.5 flex-1 sm:flex-none text-center">
               Xem khóa học
-            </Link>
+            </a>
           </div>
         </div>
       </div>

@@ -34,7 +34,8 @@ import {
   Award, 
   HelpCircle, 
   Filter,
-  Clock
+  Clock,
+  Settings
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,6 +43,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useSound } from "@/hooks/useSound";
 import { useTouchDrag, TouchDragGhost } from "@/hooks/useTouchDrag";
@@ -652,8 +660,21 @@ const KeywordDictationInput = ({
   );
 };
 
-const DictationPage = () => {
-  const { courseId, lessonId, quizId } = useParams<{ courseId: string; lessonId?: string; quizId: string }>();
+export interface DictationPageProps {
+  courseId?: string;
+  lessonId?: string;
+  quizId?: string;
+  embedded?: boolean;
+  onLessonComplete?: () => void;
+  onNextLesson?: () => void;
+}
+
+const DictationPage: React.FC<DictationPageProps> = (props) => {
+  const params = useParams<{ courseId: string; lessonId?: string; quizId: string }>();
+  const courseId = props?.courseId || params.courseId;
+  const lessonId = props?.lessonId || params.lessonId;
+  const quizId = props?.quizId || params.quizId;
+  const isEmbedded = props?.embedded ?? false;
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
@@ -661,6 +682,17 @@ const DictationPage = () => {
   const queryClient = useQueryClient();
   const { playSound } = useSound();
   const { recordDictationProgress, addXp } = useGamification();
+
+  const LayoutWrapper = ({ children }: { children: React.ReactNode }) => {
+    if (isEmbedded) {
+      return (
+        <div className="w-full max-w-5xl mx-auto py-1">
+          {children}
+        </div>
+      );
+    }
+    return <StudentLayout>{children}</StudentLayout>;
+  };
 
 // Helpers for local storage persistence of completed questions
 const getLocalStorageCompleted = (userId?: string, qId?: string | number): Set<number> => {
@@ -706,6 +738,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
       return false;
     }
   });
+  const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
 
   const handleKeywordCorrect = useCallback((questionId: number, word: string) => {
     setCorrectKeywordsMap(prev => {
@@ -1220,6 +1253,15 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
     }
   };
 
+  // Reset state when quizId changes (e.g. user selects a different lesson in LearnPage sidebar)
+  useEffect(() => {
+    setStarted(false);
+    setIsSubmitted(false);
+    setActiveQuestionIndices([]);
+    setCurrentIndex(0);
+    hasInitializedSelection.current = false;
+  }, [quizId]);
+
   // Handle smart active questions initialization
   useEffect(() => {
     if (questions.length === 0 || started) {
@@ -1359,6 +1401,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
     addXp(earnedXp, "Hoàn thành bài luyện nghe Dictation!");
     setIsSubmitted(true);
     setShowChestModal(true);
+    props?.onLessonComplete?.();
   };
 
   const handleNext = (auto = false) => {
@@ -1426,20 +1469,22 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
 
   if (quizLoading || resultLoading) {
     return (
-      <StudentLayout>
+      <LayoutWrapper>
         <div className="flex justify-center items-center h-64"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
-      </StudentLayout>
+      </LayoutWrapper>
     );
   }
 
   if (!quizData || quizData.questions.length === 0) {
     return (
-      <StudentLayout>
+      <LayoutWrapper>
         <div className="text-center p-8 bg-card rounded-xl border">
           <p className="text-muted-foreground mb-4">Bài luyện nghe này chưa có câu hỏi.</p>
-          <Button onClick={() => navigate(`/courses/${courseId}`)}><ArrowLeft className="w-4 h-4 mr-2" /> Quay lại</Button>
+          {!isEmbedded && (
+            <Button onClick={() => navigate(`/courses/${courseId}/learn`)}><ArrowLeft className="w-4 h-4 mr-2" /> Quay lại</Button>
+          )}
         </div>
-      </StudentLayout>
+      </LayoutWrapper>
     );
   }
 
@@ -1452,127 +1497,56 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
   // Pre-Start Setup Screen
   if (!started) {
     return (
-      <StudentLayout>
+      <LayoutWrapper>
         <div className="max-w-4xl mx-auto card-duo p-5 sm:p-8 lg:p-10 space-y-6 sm:space-y-8 bg-white border-2">
           <div className="flex items-center gap-4 border-b-2 pb-4 sm:pb-6">
-            <Button variant="ghost" size="icon" className="hover:bg-muted rounded-full" onClick={() => navigate(`/courses/${courseId}`)}>
-              <ArrowLeft className="w-6 h-6 text-muted-foreground" />
-            </Button>
-            <div>
+            {!isEmbedded && (
+              <Button variant="ghost" size="icon" className="hover:bg-muted rounded-full" onClick={() => navigate(`/courses/${courseId}/learn`)}>
+                <ArrowLeft className="w-6 h-6 text-muted-foreground" />
+              </Button>
+            )}
+            <div className="flex-1">
               <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground">{quizData.quiz.title} 🎧</h1>
               <p className="text-base font-bold text-muted-foreground mt-1">Chọn số lượng hoặc các câu hỏi bạn muốn luyện tập</p>
             </div>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsSettingsOpen(true)}
+              className="btn-3d flex items-center gap-2 font-black border-2 border-border hover:border-[var(--duo-blue)] hover:bg-blue-50/50 text-foreground px-4 py-2 h-auto"
+            >
+              <Settings className="w-5 h-5 text-[var(--duo-blue)]" />
+              <span>Cài đặt</span>
+            </Button>
           </div>
           
           <div className="bg-muted/20 border-2 rounded-2xl p-5 sm:p-6 space-y-5 max-h-[60vh] overflow-y-auto">
              
-             {/* Mode Selector */}
-             <div className="p-4 sm:p-5 bg-muted/30 rounded-2xl border-2 shadow-sm space-y-3">
-               <div className="flex items-center justify-between">
-                 <div className="flex items-center gap-2">
-                   <Sparkles className="w-5 h-5 text-[var(--duo-blue)]" />
-                   <span className="text-base font-extrabold text-foreground">Chế độ luyện tập</span>
-                 </div>
+             {/* Quick Settings Summary Bar */}
+             <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 sm:p-4 bg-white rounded-2xl border-2 border-border/80 shadow-xs">
+               <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                 <span className="font-extrabold text-muted-foreground text-xs uppercase tracking-wider flex items-center gap-1.5">
+                   <Settings className="w-4 h-4 text-[var(--duo-blue)]" /> Cài đặt:
+                 </span>
+                 <span className="inline-flex items-center gap-1 font-black text-xs sm:text-sm px-3 py-1 rounded-xl bg-[var(--duo-blue)]/10 text-[var(--duo-blue)] border border-[var(--duo-blue)]/30">
+                   {dictationMode === "drag" && "🎯 Kéo thả từ khóa"}
+                   {dictationMode === "keyword" && "✍️ Gõ từ khóa"}
+                   {dictationMode === "full" && "📝 Gõ cả câu"}
+                 </span>
+                 <span className="inline-flex items-center gap-1 font-black text-xs sm:text-sm px-3 py-1 rounded-xl bg-orange-50 text-[var(--duo-orange)] border border-orange-200">
+                   <Clock className="w-3.5 h-3.5" />
+                   {timeLimitMinutes === 0 ? "Không giới hạn thời gian" : `${timeLimitMinutes} phút`}
+                 </span>
                </div>
-
-               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {/* Mode 1: Drag & Drop */}
-                  <button
-                    type="button"
-                    disabled={modeCounts.drag === 0}
-                    onClick={() => handleModeChange("drag")}
-                    className={cn(
-                      "p-3.5 sm:p-4 rounded-xl border-2 text-left transition-all relative flex flex-col justify-between gap-1.5",
-                      modeCounts.drag === 0
-                        ? "opacity-50 cursor-not-allowed bg-muted/20 border-dashed"
-                        : dictationMode === "drag"
-                        ? "bg-[var(--duo-blue)]/10 border-[var(--duo-blue)] shadow-[0_2px_0_var(--duo-blue)] -translate-y-0.5 cursor-pointer"
-                        : "bg-white border-border hover:bg-muted/40 cursor-pointer"
-                    )}
-                  >
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className="font-black text-sm sm:text-base text-foreground flex items-center gap-1.5">
-                          🎯 Kéo thả từ khóa
-                        </span>
-                        {modeCounts.drag === 0 ? (
-                          <span className="bg-muted text-muted-foreground text-[9px] font-bold px-1.5 py-0.5 rounded-full">
-                            Chưa hỗ trợ
-                          </span>
-                        ) : (
-                          <span className="bg-[var(--duo-blue)] text-white text-[9px] uppercase font-black px-1.5 py-0.5 rounded-full">
-                            Mới
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs font-bold text-muted-foreground leading-relaxed">
-                        Kéo hoặc chạm các từ khóa vào chỗ trống. Nhanh & trực quan.
-                      </p>
-                    </div>
-                  </button>
-
-                  {/* Mode 2: Keyword Typing */}
-                  <button
-                    type="button"
-                    disabled={modeCounts.keyword === 0}
-                    onClick={() => handleModeChange("keyword")}
-                    className={cn(
-                      "p-3.5 sm:p-4 rounded-xl border-2 text-left transition-all relative flex flex-col justify-between gap-1.5",
-                      modeCounts.keyword === 0
-                        ? "opacity-50 cursor-not-allowed bg-muted/20 border-dashed"
-                        : dictationMode === "keyword"
-                        ? "bg-[var(--duo-blue)]/10 border-[var(--duo-blue)] shadow-[0_2px_0_var(--duo-blue)] -translate-y-0.5 cursor-pointer"
-                        : "bg-white border-border hover:bg-muted/40 cursor-pointer"
-                    )}
-                  >
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className="font-black text-sm sm:text-base text-foreground flex items-center gap-1.5">
-                          ✍️ Gõ từ khóa
-                        </span>
-                        {modeCounts.keyword === 0 && (
-                          <span className="bg-muted text-muted-foreground text-[9px] font-bold px-1.5 py-0.5 rounded-full">
-                            Chưa hỗ trợ
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs font-bold text-muted-foreground leading-relaxed">
-                        Tự nhập bàn phím các từ khóa còn thiếu vào từng ô trống.
-                      </p>
-                    </div>
-                  </button>
-
-                  {/* Mode 3: Full Dictation */}
-                  <button
-                    type="button"
-                    disabled={modeCounts.full === 0}
-                    onClick={() => handleModeChange("full")}
-                    className={cn(
-                      "p-3.5 sm:p-4 rounded-xl border-2 text-left transition-all relative flex flex-col justify-between gap-1.5",
-                      modeCounts.full === 0
-                        ? "opacity-50 cursor-not-allowed bg-muted/20 border-dashed"
-                        : dictationMode === "full"
-                        ? "bg-[var(--duo-blue)]/10 border-[var(--duo-blue)] shadow-[0_2px_0_var(--duo-blue)] -translate-y-0.5 cursor-pointer"
-                        : "bg-white border-border hover:bg-muted/40 cursor-pointer"
-                    )}
-                  >
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className="font-black text-sm sm:text-base text-foreground flex items-center gap-1.5">
-                          📝 Gõ cả câu
-                        </span>
-                        {modeCounts.full === 0 && (
-                          <span className="bg-muted text-muted-foreground text-[9px] font-bold px-1.5 py-0.5 rounded-full">
-                            Chưa hỗ trợ
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs font-bold text-muted-foreground leading-relaxed">
-                        Luyện nghe nâng cao và tự gõ lại toàn bộ câu đầy đủ.
-                      </p>
-                    </div>
-                  </button>
-                </div>
+               <Button
+                 type="button"
+                 variant="outline"
+                 size="sm"
+                 onClick={() => setIsSettingsOpen(true)}
+                 className="btn-3d font-black text-xs h-8 px-3 ml-auto border-2 border-[var(--duo-blue)] text-[var(--duo-blue)] hover:bg-blue-50"
+               >
+                 <Settings className="w-3.5 h-3.5 mr-1.5" /> Đổi cài đặt
+               </Button>
              </div>
 
              {questions.length === 0 ? (
@@ -1675,44 +1649,6 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                       </Button>
                     </div>
                  </div>
-
-              {/* Time Limit Setting */}
-              <div className="p-4 bg-muted/30 rounded-2xl border-2 shadow-sm space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-5 h-5 text-[var(--duo-orange)]" />
-                    <span className="text-base font-extrabold text-foreground">Thời gian làm bài</span>
-                  </div>
-                  <span className="text-xs font-black text-[var(--duo-orange)] bg-orange-100 px-2.5 py-1 rounded-lg border border-orange-200">
-                    {timeLimitMinutes === 0 ? "Không giới hạn" : `${timeLimitMinutes} phút`}
-                  </span>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  {[
-                    { label: "Không giới hạn", value: 0 },
-                    { label: "5 phút", value: 5 },
-                    { label: "10 phút", value: 10 },
-                    { label: "15 phút", value: 15 },
-                    { label: "20 phút", value: 20 },
-                  ].map(opt => (
-                    <Button
-                      key={opt.value}
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setTimeLimitMinutes(opt.value)}
-                      className={cn(
-                        "btn-3d font-black text-xs sm:text-sm h-9 px-3.5",
-                        timeLimitMinutes === opt.value
-                          ? "bg-[var(--duo-orange)] text-white border-[#E58700] hover:bg-[var(--duo-orange)]/90 shadow-sm"
-                          : "bg-white text-foreground hover:bg-orange-50 border-border"
-                      )}
-                    >
-                      {opt.label}
-                    </Button>
-                  ))}
-                </div>
-              </div>
               
               {/* Filtered Vocab Info */}
               {activeQuestionIndices.length > 0 && (
@@ -1824,7 +1760,176 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
              </Button>
           </div>
         </div>
-      </StudentLayout>
+
+        {/* Modal Cài Đặt Luyện Nghe */}
+        <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+          <DialogContent className="max-w-xl p-6 sm:p-7 rounded-3xl border-2 space-y-6 max-h-[90vh] overflow-y-auto">
+            <DialogHeader className="space-y-2 text-left border-b pb-4">
+              <DialogTitle className="text-xl sm:text-2xl font-black flex items-center gap-2 text-foreground">
+                <Settings className="w-6 h-6 text-[var(--duo-blue)]" /> Cài đặt bài luyện nghe
+              </DialogTitle>
+              <DialogDescription className="text-sm font-bold text-muted-foreground">
+                Tùy chỉnh chế độ điền từ và giới hạn thời gian làm bài theo mong muốn của bạn.
+              </DialogDescription>
+            </DialogHeader>
+
+            {/* Mode Selector */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-[var(--duo-blue)]" />
+                <span className="text-base font-extrabold text-foreground">Chế độ luyện tập</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {/* Mode 1: Drag & Drop */}
+                <button
+                  type="button"
+                  disabled={modeCounts.drag === 0}
+                  onClick={() => handleModeChange("drag")}
+                  className={cn(
+                    "p-3.5 sm:p-4 rounded-xl border-2 text-left transition-all relative flex flex-col justify-between gap-1.5",
+                    modeCounts.drag === 0
+                      ? "opacity-50 cursor-not-allowed bg-muted/20 border-dashed"
+                      : dictationMode === "drag"
+                      ? "bg-[var(--duo-blue)]/10 border-[var(--duo-blue)] shadow-[0_2px_0_var(--duo-blue)] -translate-y-0.5 cursor-pointer"
+                      : "bg-white border-border hover:bg-muted/40 cursor-pointer"
+                  )}
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-black text-sm sm:text-base text-foreground flex items-center gap-1.5">
+                        🎯 Kéo thả
+                      </span>
+                      {modeCounts.drag === 0 ? (
+                        <span className="bg-muted text-muted-foreground text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+                          Chưa có
+                        </span>
+                      ) : (
+                        <span className="bg-[var(--duo-blue)] text-white text-[9px] uppercase font-black px-1.5 py-0.5 rounded-full">
+                          Mới
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs font-bold text-muted-foreground leading-relaxed">
+                      Kéo hoặc chạm các từ khóa vào chỗ trống. Nhanh & trực quan.
+                    </p>
+                  </div>
+                </button>
+
+                {/* Mode 2: Keyword Typing */}
+                <button
+                  type="button"
+                  disabled={modeCounts.keyword === 0}
+                  onClick={() => handleModeChange("keyword")}
+                  className={cn(
+                    "p-3.5 sm:p-4 rounded-xl border-2 text-left transition-all relative flex flex-col justify-between gap-1.5",
+                    modeCounts.keyword === 0
+                      ? "opacity-50 cursor-not-allowed bg-muted/20 border-dashed"
+                      : dictationMode === "keyword"
+                      ? "bg-[var(--duo-blue)]/10 border-[var(--duo-blue)] shadow-[0_2px_0_var(--duo-blue)] -translate-y-0.5 cursor-pointer"
+                      : "bg-white border-border hover:bg-muted/40 cursor-pointer"
+                  )}
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-black text-sm sm:text-base text-foreground flex items-center gap-1.5">
+                        ✍️ Gõ từ khóa
+                      </span>
+                      {modeCounts.keyword === 0 && (
+                        <span className="bg-muted text-muted-foreground text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+                          Chưa có
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs font-bold text-muted-foreground leading-relaxed">
+                      Tự nhập bàn phím các từ khóa còn thiếu vào từng ô trống.
+                    </p>
+                  </div>
+                </button>
+
+                {/* Mode 3: Full Dictation */}
+                <button
+                  type="button"
+                  disabled={modeCounts.full === 0}
+                  onClick={() => handleModeChange("full")}
+                  className={cn(
+                    "p-3.5 sm:p-4 rounded-xl border-2 text-left transition-all relative flex flex-col justify-between gap-1.5",
+                    modeCounts.full === 0
+                      ? "opacity-50 cursor-not-allowed bg-muted/20 border-dashed"
+                      : dictationMode === "full"
+                      ? "bg-[var(--duo-blue)]/10 border-[var(--duo-blue)] shadow-[0_2px_0_var(--duo-blue)] -translate-y-0.5 cursor-pointer"
+                      : "bg-white border-border hover:bg-muted/40 cursor-pointer"
+                  )}
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-black text-sm sm:text-base text-foreground flex items-center gap-1.5">
+                        📝 Gõ cả câu
+                      </span>
+                      {modeCounts.full === 0 && (
+                        <span className="bg-muted text-muted-foreground text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+                          Chưa có
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs font-bold text-muted-foreground leading-relaxed">
+                      Luyện nghe nâng cao và tự gõ lại toàn bộ câu đầy đủ.
+                    </p>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            {/* Time Limit Setting */}
+            <div className="space-y-3 pt-2 border-t">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-5 h-5 text-[var(--duo-orange)]" />
+                  <span className="text-base font-extrabold text-foreground">Thời gian làm bài</span>
+                </div>
+                <span className="text-xs font-black text-[var(--duo-orange)] bg-orange-100 px-2.5 py-1 rounded-lg border border-orange-200">
+                  {timeLimitMinutes === 0 ? "Không giới hạn" : `${timeLimitMinutes} phút`}
+                </span>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {[
+                  { label: "Không giới hạn", value: 0 },
+                  { label: "5 phút", value: 5 },
+                  { label: "10 phút", value: 10 },
+                  { label: "15 phút", value: 15 },
+                  { label: "20 phút", value: 20 },
+                ].map(opt => (
+                  <Button
+                    key={opt.value}
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setTimeLimitMinutes(opt.value)}
+                    className={cn(
+                      "btn-3d font-black text-xs sm:text-sm h-9 px-3.5",
+                      timeLimitMinutes === opt.value
+                        ? "bg-[var(--duo-orange)] text-white border-[#E58700] hover:bg-[var(--duo-orange)]/90 shadow-sm"
+                        : "bg-white text-foreground hover:bg-orange-50 border-border"
+                    )}
+                  >
+                    {opt.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            <div className="pt-3 border-t flex justify-end">
+              <Button
+                type="button"
+                onClick={() => setIsSettingsOpen(false)}
+                className="btn-3d btn-3d-primary font-black px-6 py-2.5 h-auto text-sm"
+              >
+                Xong & Áp dụng
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </LayoutWrapper>
     );
   }
 
@@ -1889,7 +1994,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
     const isGood = accuracy >= 50;
 
     return (
-      <StudentLayout>
+      <LayoutWrapper>
         <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8 animate-in fade-in duration-300 pb-12">
           
           {/* Top Header Card / Score Trophy */}
@@ -2035,12 +2140,23 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                 <RefreshCcw className="w-4 h-4 mr-2" /> Luyện lại từ đầu
               </Button>
 
-              <Button 
-                className="btn-3d bg-white text-foreground hover:bg-gray-50 border-border py-5 px-6 text-base font-extrabold h-auto"
-                onClick={() => navigate(`/courses/${courseId}`)}
-              >
-                Quay về khóa học
-              </Button>
+              {props?.onNextLesson && (
+                <Button 
+                  className="btn-3d btn-3d-green py-5 px-6 text-base font-extrabold h-auto"
+                  onClick={props.onNextLesson}
+                >
+                  Học bài tiếp theo <ChevronRight className="w-4 h-4 ml-2" />
+                </Button>
+              )}
+
+              {!isEmbedded && (
+                <Button 
+                  className="btn-3d bg-white text-foreground hover:bg-gray-50 border-border py-5 px-6 text-base font-extrabold h-auto"
+                  onClick={() => navigate(`/courses/${courseId}/learn`)}
+                >
+                  Quay về bài học
+                </Button>
+              )}
             </div>
           </div>
 
@@ -2266,7 +2382,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
             </div>
           </div>
         </div>
-      </StudentLayout>
+      </LayoutWrapper>
     );
   }
 
@@ -2275,7 +2391,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
   // ==========================================
   if (started && (!currentQuestion || questions.length === 0)) {
     return (
-      <StudentLayout>
+      <LayoutWrapper>
         <div className="max-w-xl mx-auto card-duo p-8 text-center bg-white border-2 space-y-4 my-12">
           <AlertCircle className="w-12 h-12 text-[var(--duo-orange)] mx-auto" />
           <h2 className="text-xl font-black text-foreground">Không tìm thấy câu hỏi</h2>
@@ -2286,14 +2402,14 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
             <ArrowLeft className="w-4 h-4 mr-2" /> Quay lại chọn câu
           </Button>
         </div>
-      </StudentLayout>
+      </LayoutWrapper>
     );
   }
 
   const isCurrentDone = currentQuestion ? isQuestionDone(currentQuestion.id) : false;
 
   return (
-    <StudentLayout>
+    <LayoutWrapper>
       <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
         
         {/* Top Header Bar */}
@@ -2790,7 +2906,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
       </div>
       <MysteryChestModal isOpen={showChestModal} onClose={() => setShowChestModal(false)} />
       <ComboCounter combo={combo} />
-    </StudentLayout>
+    </LayoutWrapper>
   );
 };
 

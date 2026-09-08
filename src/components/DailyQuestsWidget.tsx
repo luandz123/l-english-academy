@@ -23,9 +23,9 @@ export const DailyQuestsWidget: React.FC = () => {
   };
 
   const getLink = (questId: string) => {
-    if (questId === "quest_dictation") return "/courses?filter=listening";
-    if (questId === "quest_vocab") return "/courses?filter=flashcard";
-    return "/courses";
+    if (questId === "quest_dictation") return "/#section-listening";
+    if (questId === "quest_vocab") return "/vocab";
+    return "/#section-video";
   };
 
   return (

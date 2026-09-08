@@ -41,7 +41,7 @@ const getCategoryLink = (cat: { id: number; slug: string }) => {
   if (cat.slug === "listening" || cat.id === 7) return "#section-listening";
   if (cat.slug === "toeic-2kn" || cat.slug === "toeic-4kn" || cat.id === 1 || cat.id === 5) return "#section-video";
   if (cat.slug === "lay-goc" || cat.id === 6) return "#section-video";
-  if (cat.slug === "vocab" || cat.slug === "flashcard") return "/courses?filter=flashcard";
+  if (cat.slug === "vocab" || cat.slug === "flashcard") return "/vocab";
   if (cat.slug === "lotrinh") return "#combos";
   if (cat.slug === "ranking") return "/leaderboard";
   return "#combos";
@@ -162,10 +162,11 @@ export const SidebarNav = ({ isOpen = false, onClose }: SidebarNavProps) => {
               </div>
             );
 
+            const targetHref = isAnchor && location.pathname !== "/" ? `/${href}` : href;
             return isAnchor ? (
               <a
                 key={cat.id}
-                href={href}
+                href={targetHref}
                 onClick={onClose}
                 className="block"
               >

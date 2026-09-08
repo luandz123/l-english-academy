@@ -11,6 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Lock } from "lucide-react";
+import DictationPage from "./DictationPage";
 
 const LearnPage = () => {
   const { courseId } = useParams();
@@ -110,7 +111,7 @@ const LearnPage = () => {
     queryKey: ["lesson-materials", currentLessonId, cId],
     queryFn: async () => {
       const { data } = await supabase.from("materials").select("*")
-        .or(`lesson_id.eq.${currentLessonId},and(course_id.eq.${cId},lesson_id.is.null)`)
+        .eq("lesson_id", currentLessonId)
         .order("display_order");
       return data ?? [];
     },
@@ -467,34 +468,22 @@ const LearnPage = () => {
               );
             })()}
 
-            {isDictationLesson && (() => {
-              const quizId = currentLesson.quiz_id || currentLesson.id;
-              const latestResult = quizResults.find((r: any) => r.quiz_id === quizId);
-
-              return (
-                <div className="p-4 flex items-center justify-center min-h-[40vh] max-w-4xl mx-auto w-full">
-                  <div className="card-duo w-full text-center space-y-6 p-6 sm:p-8 bg-card shadow-sm border-2">
-                    <div className="w-20 h-20 bg-[var(--duo-purple)]/10 rounded-full flex items-center justify-center mx-auto border-4 border-[var(--duo-purple)]/20">
-                      <Headphones className="w-10 h-10 text-[var(--duo-purple)]" />
-                    </div>
-                    <h2 className="text-xl sm:text-2xl font-extrabold text-foreground">{currentLesson.title}</h2>
-                    <p className="text-muted-foreground font-bold text-sm sm:text-base">Bài luyện nghe điền từ 🎧</p>
-
-                    {latestResult && (
-                      <div className="flex flex-col items-center justify-center gap-1.5 mb-4">
-                        <span className="text-base font-extrabold text-[var(--duo-purple)] bg-[var(--duo-purple)]/10 px-5 py-2.5 rounded-xl border-2 border-[var(--duo-purple)]/20">
-                          Đã làm: {latestResult.correct_answers || 0} câu 🌟
-                        </span>
-                      </div>
-                    )}
-
-                    <Button className="btn-3d w-full sm:w-auto text-base px-8 py-4 h-auto" style={{ backgroundColor: '#A855F7', borderColor: '#9333EA', color: 'white' }} onClick={() => navigate(`/courses/${courseId}/dictation/${quizId}`)}>
-                      {latestResult ? "Tiếp tục luyện nghe 🎧" : "Bắt đầu bài tập này 🚀"}
-                    </Button>
-                  </div>
-                </div>
-              );
-            })()}
+            {isDictationLesson && (
+              <div className="w-full max-w-5xl mx-auto">
+                <DictationPage
+                  embedded={true}
+                  courseId={String(courseId)}
+                  lessonId={String(currentLesson.id)}
+                  quizId={String(currentLesson.quiz_id || currentLesson.id)}
+                  onLessonComplete={() => completionMutation.mutate()}
+                  onNextLesson={() => {
+                    if (currentIndex < allLessons.length - 1) {
+                      setCurrentLessonId(allLessons[currentIndex + 1].id);
+                    }
+                  }}
+                />
+              </div>
+            )}
 
             {/* Tabs for Description, Materials, Notes */}
             <div className="max-w-4xl mx-auto w-full">
@@ -850,7 +839,7 @@ const LearnPage = () => {
             <p className="text-sm font-semibold text-muted-foreground">Tiến độ bài học hiện tại của bạn sẽ được lưu giữ tự động.</p>
             <div className="flex gap-3 pt-2">
               <Button className="btn-3d btn-3d-white flex-1 py-3 text-sm font-bold" onClick={() => setShowExitConfirm(false)}>Ở lại học</Button>
-              <Button className="btn-3d btn-3d-primary flex-1 py-3 text-sm font-bold" onClick={() => navigate(`/courses/${courseId}`)}>Rời đi</Button>
+              <Button className="btn-3d btn-3d-primary flex-1 py-3 text-sm font-bold" onClick={() => navigate("/")}>Rời đi</Button>
             </div>
           </div>
         </div>
@@ -895,7 +884,7 @@ const LearnPage = () => {
                   className="btn-3d btn-3d-primary w-full py-4 text-base font-extrabold"
                   onClick={() => {
                     setModuleCompleteModal(null);
-                    navigate("/courses");
+                    navigate("/#section-video");
                   }}
                 >
                   Về danh sách khóa học

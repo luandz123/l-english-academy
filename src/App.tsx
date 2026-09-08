@@ -1,6 +1,8 @@
 import { lazy, Suspense } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
+import { BrowserRouter, Route, Routes, Navigate, useSearchParams, useParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,6 +11,49 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminRoute from "@/components/AdminRoute";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import ThemeToggle from "@/components/ThemeToggle";
+
+const CoursesRedirect = () => {
+  const [searchParams] = useSearchParams();
+  const filter = searchParams.get("filter");
+  const hash =
+    filter === "fulltest"
+      ? "#section-fulltest"
+      : filter === "listening"
+      ? "#section-listening"
+      : filter === "video_quiz" || filter === "video"
+      ? "#section-video"
+      : "";
+  return <Navigate to={`/${hash}`} replace />;
+};
+
+const CourseDetailRedirect = () => {
+  const { courseId } = useParams();
+  const cId = Number(courseId);
+
+  const { data: course, isLoading } = useQuery({
+    queryKey: ["course-detail-redirect", cId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("courses")
+        .select("course_type")
+        .eq("id", cId)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !isNaN(cId) && cId > 0,
+  });
+
+  if (isNaN(cId)) return <Navigate to="/" replace />;
+  if (isLoading) return null;
+
+  if (course?.course_type === "fulltest") {
+    return <Navigate to={`/courses/${cId}/fulltest`} replace />;
+  }
+  if (course?.course_type === "flashcard") {
+    return <Navigate to={`/courses/${cId}/vocab`} replace />;
+  }
+  return <Navigate to={`/courses/${cId}/learn`} replace />;
+};
 
 // Lazy-loaded pages
 const Index = lazy(() => import("./pages/Index"));
@@ -19,8 +64,6 @@ const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
-const Courses = lazy(() => import("./pages/Courses"));
-const CourseDetail = lazy(() => import("./pages/CourseDetail"));
 const LearnPage = lazy(() => import("./pages/LearnPage"));
 const QuizPage = lazy(() => import("./pages/QuizPage"));
 const QuizResult = lazy(() => import("./pages/QuizResult"));
@@ -83,8 +126,8 @@ const App = () => (
 
                 {/* Student (protected) */}
                 <Route path="/dashboard" element={<Navigate to="/profile" replace />} />
-                <Route path="/courses" element={<ProtectedRoute><Courses /></ProtectedRoute>} />
-                <Route path="/courses/:courseId" element={<ProtectedRoute><CourseDetail /></ProtectedRoute>} />
+                <Route path="/courses" element={<CoursesRedirect />} />
+                <Route path="/courses/:courseId" element={<CourseDetailRedirect />} />
                 <Route path="/courses/:courseId/learn" element={<ProtectedRoute><LearnPage /></ProtectedRoute>} />
                 <Route path="/courses/:courseId/quiz/:quizId" element={<ProtectedRoute><QuizPage /></ProtectedRoute>} />
                 <Route path="/courses/:courseId/quiz/:quizId/result" element={<ProtectedRoute><QuizResult /></ProtectedRoute>} />

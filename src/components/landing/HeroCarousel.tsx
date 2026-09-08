@@ -43,9 +43,9 @@ const slides: SlideData[] = [
       "Transcript & giải thích cặn kẽ từng bẫy đề",
     ],
     ctaPrimaryText: "Luyện Đề Full Test Ngay",
-    ctaPrimaryLink: "/courses?filter=fulltest",
+    ctaPrimaryLink: "#section-fulltest",
     ctaSecondaryText: "Nghe Chép Chính Tả",
-    ctaSecondaryLink: "/courses?filter=listening",
+    ctaSecondaryLink: "#section-listening",
     bgGradient: "from-blue-600/10 via-blue-500/5 to-transparent",
     badgeAccent: "border-blue-500/30 text-blue-600 dark:text-blue-400",
   },
@@ -62,9 +62,9 @@ const slides: SlideData[] = [
       "Tích hợp tra từ vựng trực tiếp khi đang nghe",
     ],
     ctaPrimaryText: "Thử Luyện Nghe Dictation",
-    ctaPrimaryLink: "/courses?filter=listening",
+    ctaPrimaryLink: "#section-listening",
     ctaSecondaryText: "Xem Kho Khóa Học",
-    ctaSecondaryLink: "#courses",
+    ctaSecondaryLink: "#section-video",
     bgGradient: "from-emerald-600/10 via-emerald-500/5 to-transparent",
     badgeAccent: "border-emerald-500/30 text-emerald-600 dark:text-emerald-400",
   },
@@ -81,7 +81,7 @@ const slides: SlideData[] = [
       "Lưu lịch sử và theo dõi biểu đồ tiến bộ",
     ],
     ctaPrimaryText: "Vào Phòng Thi Thử Ngay",
-    ctaPrimaryLink: "/courses?filter=fulltest",
+    ctaPrimaryLink: "#section-fulltest",
     ctaSecondaryText: "Học Từ Vựng Flashcard",
     ctaSecondaryLink: "/vocab",
     bgGradient: "from-indigo-600/10 via-indigo-500/5 to-transparent",
@@ -156,21 +156,40 @@ export const HeroCarousel = () => {
 
             {/* Actions */}
             <div className="flex flex-wrap items-center gap-3 pt-3">
-              <Link
-                to={slide.ctaPrimaryLink}
-                className="btn-3d btn-3d-primary py-2.5 px-5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 shadow-md shadow-blue-600/20"
-              >
-                <span>{slide.ctaPrimaryText}</span>
-                <ArrowRight className="w-4 h-4" />
-              </Link>
+              {slide.ctaPrimaryLink.startsWith("#") ? (
+                <a
+                  href={slide.ctaPrimaryLink}
+                  className="btn-3d btn-3d-primary py-2.5 px-5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 shadow-md shadow-blue-600/20"
+                >
+                  <span>{slide.ctaPrimaryText}</span>
+                  <ArrowRight className="w-4 h-4" />
+                </a>
+              ) : (
+                <Link
+                  to={slide.ctaPrimaryLink}
+                  className="btn-3d btn-3d-primary py-2.5 px-5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 shadow-md shadow-blue-600/20"
+                >
+                  <span>{slide.ctaPrimaryText}</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              )}
 
               {slide.ctaSecondaryText && (
-                <Link
-                  to={slide.ctaSecondaryLink || "#"}
-                  className="btn-3d btn-3d-white py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold text-slate-700 dark:text-zinc-300"
-                >
-                  {slide.ctaSecondaryText}
-                </Link>
+                slide.ctaSecondaryLink?.startsWith("#") ? (
+                  <a
+                    href={slide.ctaSecondaryLink}
+                    className="btn-3d btn-3d-white py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold text-slate-700 dark:text-zinc-300"
+                  >
+                    {slide.ctaSecondaryText}
+                  </a>
+                ) : (
+                  <Link
+                    to={slide.ctaSecondaryLink || "#"}
+                    className="btn-3d btn-3d-white py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold text-slate-700 dark:text-zinc-300"
+                  >
+                    {slide.ctaSecondaryText}
+                  </Link>
+                )
               )}
             </div>
           </div>

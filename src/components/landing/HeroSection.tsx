@@ -75,8 +75,8 @@ const HeroSection = () => {
             <div className="pt-1 space-y-2.5 w-full max-w-md">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 {/* Button 1: Luyện đề Full Test */}
-                <Link
-                  to="/courses?filter=fulltest"
+                <a
+                  href="#section-fulltest"
                   className="btn-3d btn-3d-primary p-3 rounded-xl flex items-center justify-between gap-2.5 group text-left shadow-sm hover:shadow"
                 >
                   <div className="flex items-center gap-2.5">
@@ -93,11 +93,11 @@ const HeroSection = () => {
                     </div>
                   </div>
                   <ChevronRight className="w-3.5 h-3.5 text-white/80 group-hover:translate-x-1 transition-transform shrink-0" />
-                </Link>
+                </a>
 
                 {/* Button 2: Luyện nghe điền từ */}
-                <Link
-                  to="/courses?filter=listening"
+                <a
+                  href="#section-listening"
                   className="btn-3d btn-3d-green p-3 rounded-xl flex items-center justify-between gap-2.5 group text-left shadow-sm hover:shadow"
                 >
                   <div className="flex items-center gap-2.5">
@@ -114,18 +114,28 @@ const HeroSection = () => {
                     </div>
                   </div>
                   <ChevronRight className="w-3.5 h-3.5 text-white/80 group-hover:translate-x-1 transition-transform shrink-0" />
-                </Link>
+                </a>
               </div>
 
               {/* Secondary links */}
               <div className="flex items-center gap-3 text-xs font-semibold">
-                <Link
-                  to={user ? "/profile" : "/courses"}
-                  className="text-foreground hover:text-primary flex items-center gap-1 transition-colors"
-                >
-                  <span>{user ? "Vào Hồ sơ học tập" : "Xem tất cả khóa học"}</span>
-                  <ArrowRight className="w-3 h-3" />
-                </Link>
+                {user ? (
+                  <Link
+                    to="/profile"
+                    className="text-foreground hover:text-primary flex items-center gap-1 transition-colors"
+                  >
+                    <span>Vào Hồ sơ học tập</span>
+                    <ArrowRight className="w-3 h-3" />
+                  </Link>
+                ) : (
+                  <a
+                    href="#section-video"
+                    className="text-foreground hover:text-primary flex items-center gap-1 transition-colors"
+                  >
+                    <span>Xem tất cả khóa học</span>
+                    <ArrowRight className="w-3 h-3" />
+                  </a>
+                )}
                 {!user && (
                   <>
                     <span className="text-muted-foreground/30">•</span>

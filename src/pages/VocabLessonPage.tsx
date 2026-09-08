@@ -248,7 +248,7 @@ export default function VocabLessonPage() {
     <StudentLayout>
       <div className="text-center py-24 card-duo max-w-2xl mx-auto bg-white border-2">
         <p className="text-muted-foreground font-bold text-lg mb-6">Bài học này chưa có từ vựng.</p>
-        <Button className="btn-3d bg-white text-muted-foreground hover:bg-gray-50 border-border" onClick={() => navigate(`/courses/${courseId}`)}>Quay lại khóa học</Button>
+        <Button className="btn-3d bg-white text-muted-foreground hover:bg-gray-50 border-border" onClick={() => navigate(`/courses/${courseId}/vocab`)}>Quay lại danh sách từ vựng</Button>
       </div>
     </StudentLayout>
   );
@@ -261,7 +261,7 @@ export default function VocabLessonPage() {
         {/* Header Tabs */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 card-duo bg-white p-5 border-2">
           <div className="flex items-center gap-3 w-full sm:w-auto">
-            <Button size="icon" variant="ghost" className="rounded-full hover:bg-muted" onClick={() => navigate(`/courses/${courseId}`)}>
+            <Button size="icon" variant="ghost" className="rounded-full hover:bg-muted" onClick={() => navigate(`/courses/${courseId}/vocab`)}>
               <XIcon className="w-6 h-6 text-muted-foreground" />
             </Button>
             <h1 className="font-extrabold text-xl text-foreground">Từ vựng</h1>
@@ -503,9 +503,9 @@ export default function VocabLessonPage() {
                 )}
                 <Button 
                   className="btn-3d bg-white text-muted-foreground hover:bg-gray-50 border-gray-200 w-full h-16 rounded-2xl text-xl font-bold"
-                  onClick={() => navigate(`/courses/${courseId}`)}
+                  onClick={() => navigate(`/courses/${courseId}/vocab`)}
                 >
-                  <ChevronLeft className="w-6 h-6 mr-2" /> Quay về khóa học
+                  <ChevronLeft className="w-6 h-6 mr-2" /> Quay về danh sách từ vựng
                 </Button>
                 <Button 
                   className="btn-3d bg-[var(--duo-yellow)] hover:bg-[#E5A800] border-[#E5A800] text-black w-full h-16 rounded-2xl text-xl font-bold mt-2"

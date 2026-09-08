@@ -14,7 +14,28 @@ const Index = () => {
   useEffect(() => {
     if (window.location.hash && window.location.hash.includes("access_token=")) {
       navigate("/auth/callback" + window.location.hash, { replace: true });
+      return;
     }
+
+    const scrollToHash = () => {
+      const hash = window.location.hash;
+      if (hash && !hash.includes("access_token=")) {
+        const id = hash.replace("#", "");
+        const el = document.getElementById(id);
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth" });
+        }
+      }
+    };
+
+    // Run on initial load and after render
+    const timeout = setTimeout(scrollToHash, 150);
+    window.addEventListener("hashchange", scrollToHash);
+
+    return () => {
+      clearTimeout(timeout);
+      window.removeEventListener("hashchange", scrollToHash);
+    };
   }, [navigate]);
 
   return (

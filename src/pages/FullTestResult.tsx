@@ -248,10 +248,10 @@ const FullTestResult = () => {
           </p>
           <div className="pt-4">
             <Link
-              to={`/courses/${courseId}`}
+              to={`/courses/${courseId}/fulltest`}
               className="btn-3d btn-3d-primary font-black px-6 py-3"
             >
-              Quay lại khóa học
+              Quay lại danh sách đề thi
             </Link>
           </div>
         </div>

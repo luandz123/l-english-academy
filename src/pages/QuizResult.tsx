@@ -456,8 +456,8 @@ const QuizResult = () => {
         </div>
 
         <div className="flex flex-wrap gap-3 justify-center">
-          <Link to={`/courses/${courseId}`} className="btn-3d btn-3d-white py-2.5 px-5 text-sm inline-block">
-            ← Quay về khóa học
+          <Link to={`/courses/${courseId}/learn`} className="btn-3d btn-3d-white py-2.5 px-5 text-sm inline-block">
+            ← Quay về bài học
           </Link>
           <Link to={`/courses/${courseId}/quiz/${quizId}`} className="btn-3d btn-3d-blue py-2.5 px-5 text-sm inline-block">
             🔄 Làm lại

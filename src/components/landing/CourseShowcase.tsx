@@ -91,11 +91,17 @@ export const CourseShowcase = () => {
   const renderCourseCard = (c: CourseRow) => {
     const isFullTest = c.course_type === "fulltest";
     const isListening = c.course_type === "listening";
+    const courseUrl = isFullTest
+      ? `/courses/${c.id}/fulltest`
+      : c.course_type === "flashcard"
+      ? `/courses/${c.id}/vocab`
+      : `/courses/${c.id}/learn`;
 
     return (
-      <div
+      <Link
         key={c.id}
-        className="group bg-card rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-2xs hover:shadow-md hover:border-blue-500/50 dark:hover:border-blue-500/50 transition-all duration-200 flex flex-col h-full overflow-hidden"
+        to={courseUrl}
+        className="group bg-card rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-2xs hover:shadow-md hover:border-blue-500/50 dark:hover:border-blue-500/50 transition-all duration-200 flex flex-col h-full overflow-hidden cursor-pointer"
       >
         {/* Thumbnail Banner */}
         <div className="aspect-video w-full relative overflow-hidden bg-slate-100 dark:bg-zinc-800">
@@ -196,8 +202,7 @@ export const CourseShowcase = () => {
               </span>
             </div>
 
-            <Link
-              to={`/courses/${c.id}`}
+            <span
               className={`py-1.5 px-3.5 rounded-xl font-black text-xs inline-flex items-center gap-1 shadow-sm transition-all group-hover:translate-x-0.5 text-white ${
                 isFullTest
                   ? "bg-emerald-600 hover:bg-emerald-700"
@@ -208,10 +213,10 @@ export const CourseShowcase = () => {
             >
               <span>{isFullTest ? "THI THỬ NGAY" : "VÀO HỌC"}</span>
               <ArrowRight className="w-3 h-3" />
-            </Link>
+            </span>
           </div>
         </div>
-      </div>
+      </Link>
     );
   };
 
@@ -246,13 +251,7 @@ export const CourseShowcase = () => {
             </p>
           </div>
 
-          <Link
-            to="/courses?filter=fulltest"
-            className="self-start sm:self-center inline-flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 hover:underline shrink-0"
-          >
-            <span>Xem tất cả đề thi thử</span>
-            <ArrowRight className="w-4 h-4" />
-          </Link>
+
         </div>
 
         {/* Lưới khóa học Full Test */}
@@ -300,13 +299,7 @@ export const CourseShowcase = () => {
             </p>
           </div>
 
-          <Link
-            to="/courses"
-            className="self-start sm:self-center inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 hover:underline shrink-0"
-          >
-            <span>Khám phá khóa học</span>
-            <ArrowRight className="w-4 h-4" />
-          </Link>
+
         </div>
 
         {/* Lưới khóa học Video */}
@@ -354,13 +347,7 @@ export const CourseShowcase = () => {
             </p>
           </div>
 
-          <Link
-            to="/courses?filter=listening"
-            className="self-start sm:self-center inline-flex items-center gap-1.5 text-xs font-bold text-purple-600 dark:text-purple-400 hover:text-purple-700 hover:underline shrink-0"
-          >
-            <span>Vào luyện nghe ngay</span>
-            <ArrowRight className="w-4 h-4" />
-          </Link>
+
         </div>
 
         {/* Lưới khóa học Listening */}

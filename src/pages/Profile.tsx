@@ -420,7 +420,7 @@ const Profile = () => {
         {/* ======================================================== */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Link
-            to="/courses?filter=fulltest"
+            to="/#section-fulltest"
             className="p-3.5 sm:p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5 hover:bg-emerald-500/10 hover:border-emerald-500/50 transition-all flex items-center justify-between group shadow-2xs"
           >
             <div className="flex items-center gap-3">
@@ -440,7 +440,7 @@ const Profile = () => {
           </Link>
 
           <Link
-            to="/courses?filter=listening"
+            to="/#section-listening"
             className="p-3.5 sm:p-4 rounded-xl border border-blue-500/30 bg-blue-500/5 hover:bg-blue-500/10 hover:border-blue-500/50 transition-all flex items-center justify-between group shadow-2xs"
           >
             <div className="flex items-center gap-3">
@@ -564,7 +564,7 @@ const Profile = () => {
                     Hãy tham khảo kho khóa học TOEIC đa dạng hoặc bắt đầu luyện đề miễn phí ngay!
                   </p>
                 </div>
-                <Link to="/courses" className="btn-3d btn-3d-primary py-2 px-5 text-xs font-bold inline-flex items-center gap-2">
+                <Link to="/#section-video" className="btn-3d btn-3d-primary py-2 px-5 text-xs font-bold inline-flex items-center gap-2">
                   Khám phá khóa học <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               </div>

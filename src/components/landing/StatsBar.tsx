@@ -8,7 +8,7 @@ const features = [
     desc: "Làm đề TOEIC 7 Part bấm giờ thật 120 phút",
     color: "bg-[var(--duo-green)]",
     shadow: "shadow-[0_4px_0_var(--duo-green-dark)]",
-    link: "/courses?filter=fulltest",
+    link: "/#section-fulltest",
   },
   {
     icon: Headphones,
@@ -16,7 +16,7 @@ const features = [
     desc: "Dictation Part 1–4 chấm điểm & tua câu",
     color: "bg-[var(--duo-blue)]",
     shadow: "shadow-[0_4px_0_var(--duo-blue-dark)]",
-    link: "/courses?filter=listening",
+    link: "/#section-listening",
   },
   {
     icon: FlipHorizontal,
@@ -24,7 +24,7 @@ const features = [
     desc: "Lật thẻ, nghe phát âm và ghi nhớ sâu",
     color: "bg-[var(--duo-yellow)]",
     shadow: "shadow-[0_4px_0_var(--duo-yellow-dark)]",
-    link: "/courses?filter=flashcard",
+    link: "/vocab",
   },
   {
     icon: BookOpen,
@@ -32,7 +32,7 @@ const features = [
     desc: "Video bài học kèm bài tập trắc nghiệm",
     color: "bg-[var(--duo-purple)]",
     shadow: "shadow-[0_4px_0_var(--duo-purple-dark)]",
-    link: "/courses",
+    link: "/#section-video",
   },
 ];
 

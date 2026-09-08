@@ -294,7 +294,7 @@ const Dashboard = () => {
               </div>
 
               <Link
-                to="/courses?filter=fulltest"
+                to="/#section-fulltest"
                 className="btn-3d btn-3d-green w-full py-3 sm:py-3.5 text-sm sm:text-base font-black flex items-center justify-center gap-2 shadow-sm text-center"
               >
                 <span>Vào Luyện Đề Ngay</span>
@@ -324,7 +324,7 @@ const Dashboard = () => {
               </div>
 
               <Link
-                to="/courses?filter=listening"
+                to="/#section-listening"
                 className="btn-3d btn-3d-blue w-full py-3 sm:py-3.5 text-sm sm:text-base font-black flex items-center justify-center gap-2 shadow-sm text-center"
               >
                 <span>Vào Luyện Nghe Điền Từ</span>
@@ -343,7 +343,7 @@ const Dashboard = () => {
         {/* Quick Navigation Shortcuts */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <Link
-            to="/courses"
+            to="/#section-video"
             className="p-4 rounded-xl border border-border bg-card hover:border-blue-300 hover:shadow-sm transition-all group flex flex-col justify-between"
           >
             <div className="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
@@ -356,7 +356,7 @@ const Dashboard = () => {
           </Link>
 
           <Link
-            to="/courses?filter=fulltest"
+            to="/#section-fulltest"
             className="p-4 rounded-xl border border-border bg-card hover:border-emerald-300 hover:shadow-sm transition-all group flex flex-col justify-between"
           >
             <div className="w-10 h-10 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
@@ -369,7 +369,7 @@ const Dashboard = () => {
           </Link>
 
           <Link
-            to="/courses?filter=flashcard"
+            to="/vocab"
             className="p-4 rounded-xl border border-border bg-card hover:border-purple-300 hover:shadow-sm transition-all group flex flex-col justify-between"
           >
             <div className="w-10 h-10 rounded-lg bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
@@ -382,7 +382,7 @@ const Dashboard = () => {
           </Link>
 
           <Link
-            to="/courses?filter=listening"
+            to="/#section-listening"
             className="p-4 rounded-xl border border-border bg-card hover:border-amber-300 hover:shadow-sm transition-all group flex flex-col justify-between"
           >
             <div className="w-10 h-10 rounded-lg bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
@@ -420,7 +420,7 @@ const Dashboard = () => {
               <p className="text-xs text-muted-foreground">Các khóa học bạn đang theo học</p>
             </div>
             {enrollments && enrollments.length > 0 && (
-              <Link to="/courses" className="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
+              <Link to="/#section-video" className="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
                 Xem tất cả <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             )}
@@ -498,7 +498,7 @@ const Dashboard = () => {
               </div>
               <p className="text-foreground font-semibold text-base">Bạn chưa đăng ký khóa học nào</p>
               <p className="text-muted-foreground text-xs max-w-sm mx-auto">Khám phá các khóa học TOEIC 4 kỹ năng được thiết kế trực quan, bài bản để bắt đầu ngay.</p>
-              <Link to="/courses" className="btn-3d btn-3d-primary py-2 px-4 inline-flex items-center gap-1.5 text-xs mt-2">
+              <Link to="/#section-video" className="btn-3d btn-3d-primary py-2 px-4 inline-flex items-center gap-1.5 text-xs mt-2">
                 Xem danh sách khóa học <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>

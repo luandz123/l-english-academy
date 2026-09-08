@@ -38,7 +38,12 @@ const Navbar = ({ onOpenSidebar }: NavbarProps) => {
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      navigate(`/courses?search=${encodeURIComponent(searchQuery.trim())}`);
+      const el = document.getElementById("section-video") || document.getElementById("combos");
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth" });
+      } else {
+        navigate("/#section-video");
+      }
     }
   };
 
@@ -87,13 +92,13 @@ const Navbar = ({ onOpenSidebar }: NavbarProps) => {
 
         {/* Center-Right Quick Links (Phong cách Ngoại Ngữ 24h: Khóa học, Hot combo, Phòng thi thực chiến, Tra từ) */}
         <div className="hidden xl:flex items-center gap-1.5">
-          <Link
-            to="/courses"
+          <a
+            href="#section-video"
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 dark:text-zinc-300 hover:text-blue-600 hover:bg-blue-50/60 dark:hover:bg-zinc-800 transition-colors"
           >
             <BookOpen className="w-4 h-4 text-blue-600" />
             <span>Khóa học</span>
-          </Link>
+          </a>
 
           <a
             href="#combos"
@@ -103,8 +108,8 @@ const Navbar = ({ onOpenSidebar }: NavbarProps) => {
             <span>Hot combo</span>
           </a>
 
-          <Link
-            to="/courses?filter=fulltest"
+          <a
+            href="#section-fulltest"
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 dark:text-zinc-300 hover:text-indigo-600 hover:bg-indigo-50/60 dark:hover:bg-zinc-800 transition-colors relative"
           >
             <Zap className="w-4 h-4 text-indigo-600" />
@@ -112,7 +117,7 @@ const Navbar = ({ onOpenSidebar }: NavbarProps) => {
             <span className="px-1.5 py-0.2 bg-rose-500 text-white rounded text-[9px] font-black uppercase">
               New
             </span>
-          </Link>
+          </a>
 
           <Link
             to="/vocab"

@@ -82,7 +82,7 @@ const OnboardingModal = ({ onDone }: OnboardingModalProps) => {
     localStorage.setItem(ONBOARDING_KEY, "done");
     onDone();
     if (goToCourses) {
-      navigate("/courses");
+      navigate("/#section-video");
     }
   };
 

@@ -500,10 +500,10 @@ const FullTestExam = () => {
             Bạn cần đăng ký khóa học này trước khi có thể làm bài thi Full Test. Vui lòng liên hệ Admin để được hỗ trợ.
           </p>
           <button
-            onClick={() => navigate(`/courses/${courseId}`)}
+            onClick={() => navigate(`/courses/${courseId}/fulltest`)}
             className="btn-3d btn-3d-primary w-full py-3 text-sm font-bold"
           >
-            ← Quay lại trang khóa học
+            ← Quay lại danh sách đề thi
           </button>
         </div>
       </div>

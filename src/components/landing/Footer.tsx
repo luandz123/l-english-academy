@@ -62,7 +62,7 @@ const Footer = () => {
           <div className="space-y-3">
             <h4 className="font-extrabold text-white">Điều hướng</h4>
             <div className="flex flex-col gap-2 text-sm text-white/60 font-medium">
-              <a href="/courses" className="hover:text-[var(--duo-green)] transition-colors">Khóa học</a>
+              <a href="/#section-video" className="hover:text-[var(--duo-green)] transition-colors">Khóa học</a>
               <a href="/register" className="hover:text-[var(--duo-green)] transition-colors">Đăng ký học</a>
               <a href="/login" className="hover:text-[var(--duo-green)] transition-colors">Đăng nhập</a>
               <a href="#" className="hover:text-[var(--duo-green)] transition-colors">Chính sách bảo mật</a>
