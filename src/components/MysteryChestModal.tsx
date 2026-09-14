@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useGamification, ChestReward } from "@/hooks/useGamification";
 import { Gift, Sparkles, Trophy, Zap, ShieldCheck, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -16,10 +16,19 @@ export const MysteryChestModal: React.FC<MysteryChestModalProps> = ({ isOpen, on
   const [reward, setReward] = useState<ChestReward | null>(null);
   const [isOpening, setIsOpening] = useState(false);
 
+  // Reset local state whenever modal closes or opens
+  useEffect(() => {
+    if (!isOpen) {
+      setSelectedChest(null);
+      setReward(null);
+      setIsOpening(false);
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const handleOpenChest = (index: number) => {
-    if (selectedChest !== null || isOpening) return;
+    if (selectedChest !== null || isOpening || reward !== null) return;
 
     setSelectedChest(index);
     setIsOpening(true);
@@ -31,6 +40,13 @@ export const MysteryChestModal: React.FC<MysteryChestModalProps> = ({ isOpen, on
       setReward(res);
       setIsOpening(false);
     }, 900);
+  };
+
+  const handleClose = () => {
+    setSelectedChest(null);
+    setReward(null);
+    setIsOpening(false);
+    onClose();
   };
 
   return (
@@ -111,7 +127,7 @@ export const MysteryChestModal: React.FC<MysteryChestModalProps> = ({ isOpen, on
             </div>
 
             <Button
-              onClick={onClose}
+              onClick={handleClose}
               className="btn-3d btn-3d-primary w-full py-3 text-base font-black rounded-2xl"
             >
               <CheckCircle2 className="w-5 h-5 mr-2" /> Nhận thưởng và tiếp tục

@@ -8,7 +8,7 @@ const testimonials = [
   },
   {
     name: "Trần Minh Đức",
-    score: "TOEIC 750+ (Tiết kiệm 5tr)",
+    score: "TOEIC 750+ (p 5tr)",
     avatar: "👨‍💼",
     stars: 5,
     quote: "Không cần đến trung tâm đắt đỏ, chỉ cần chăm chỉ luyện đề trên L-English là đủ. App mượt, đề cập nhật liên tục, thực sự quá hời cho một khóa học.",

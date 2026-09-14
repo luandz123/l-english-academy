@@ -660,6 +660,18 @@ const KeywordDictationInput = ({
   );
 };
 
+// Stable LayoutWrapper outside DictationPage to prevent sub-tree unmounting on re-renders
+const LayoutWrapper: React.FC<{ isEmbedded?: boolean; children: React.ReactNode }> = ({ isEmbedded, children }) => {
+  if (isEmbedded) {
+    return (
+      <div className="w-full max-w-5xl mx-auto py-1">
+        {children}
+      </div>
+    );
+  }
+  return <StudentLayout>{children}</StudentLayout>;
+};
+
 export interface DictationPageProps {
   courseId?: string;
   lessonId?: string;
@@ -682,17 +694,6 @@ const DictationPage: React.FC<DictationPageProps> = (props) => {
   const queryClient = useQueryClient();
   const { playSound } = useSound();
   const { recordDictationProgress, addXp } = useGamification();
-
-  const LayoutWrapper = ({ children }: { children: React.ReactNode }) => {
-    if (isEmbedded) {
-      return (
-        <div className="w-full max-w-5xl mx-auto py-1">
-          {children}
-        </div>
-      );
-    }
-    return <StudentLayout>{children}</StudentLayout>;
-  };
 
 // Helpers for local storage persistence of completed questions
 const getLocalStorageCompleted = (userId?: string, qId?: string | number): Set<number> => {
@@ -721,8 +722,8 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
   });
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [showChestModal, setShowChestModal] = useState(false);
+  const hasClaimedChest = useRef(false);
   const [combo, setCombo] = useState(0);
-  const [playbackRate, setPlaybackRate] = useState(1);
   const [dictationMode, setDictationMode] = useState<"drag" | "keyword" | "full">("drag");
   const isKeywordMode = dictationMode === "drag" || dictationMode === "keyword";
   const [isPlaying, setIsPlaying] = useState(false);
@@ -733,9 +734,10 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
   const [timeLeftSeconds, setTimeLeftSeconds] = useState<number | null>(null);
   const [autoPlayAudio, setAutoPlayAudio] = useState<boolean>(() => {
     try {
-      return localStorage.getItem("dictation_autoplay") === "true";
+      const saved = localStorage.getItem("dictation_autoplay");
+      return saved !== null ? saved === "true" : true;
     } catch {
-      return false;
+      return true;
     }
   });
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
@@ -1141,6 +1143,8 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
       setSessionDone(new Set());
       setCorrectKeywordsMap({});
       hasInitializedSelection.current = false;
+      setShowChestModal(false);
+      hasClaimedChest.current = false;
       toast({ title: "Đã reset toàn bộ tiến trình!", description: "Bạn có thể bắt đầu luyện tập lại từ đầu." });
     },
     onError: (err: any) => {
@@ -1154,10 +1158,43 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
   }, [vocabWords, currentQuestion?.id]);
 
   useEffect(() => {
-    if (started && autoPlayAudio && audioRef.current && currentQuestion?.audio_url) {
-      audioRef.current.currentTime = 0;
-      audioRef.current.play().catch(() => {});
-    }
+    if (!started || !autoPlayAudio || !audioRef.current || !currentQuestion?.audio_url) return;
+
+    const audio = audioRef.current;
+    audio.pause();
+    audio.currentTime = 0;
+
+    let isCancelled = false;
+    const tryPlay = () => {
+      if (isCancelled || !audio) return;
+      const promise = audio.play();
+      if (promise !== undefined) {
+        promise.catch((err) => {
+          // Play could be blocked by user interaction policy or quickly switched
+          console.debug("Audio play attempt:", err?.name);
+        });
+      }
+    };
+
+    const handleCanPlay = () => {
+      tryPlay();
+    };
+
+    audio.addEventListener("canplay", handleCanPlay, { once: true });
+    audio.load();
+
+    // Fallback timer if audio was already buffered/cached in browser memory
+    const timer = setTimeout(() => {
+      if (!isCancelled && audio.paused) {
+        tryPlay();
+      }
+    }, 150);
+
+    return () => {
+      isCancelled = true;
+      audio.removeEventListener("canplay", handleCanPlay);
+      clearTimeout(timer);
+    };
   }, [currentIndex, autoPlayAudio, currentQuestion?.audio_url, started]);
 
   const togglePlayPause = () => {
@@ -1257,6 +1294,8 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
   useEffect(() => {
     setStarted(false);
     setIsSubmitted(false);
+    setShowChestModal(false);
+    hasClaimedChest.current = false;
     setActiveQuestionIndices([]);
     setCurrentIndex(0);
     hasInitializedSelection.current = false;
@@ -1400,7 +1439,10 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
     
     addXp(earnedXp, "Hoàn thành bài luyện nghe Dictation!");
     setIsSubmitted(true);
-    setShowChestModal(true);
+    if (!hasClaimedChest.current) {
+      setShowChestModal(true);
+      hasClaimedChest.current = true;
+    }
     props?.onLessonComplete?.();
   };
 
@@ -1442,6 +1484,8 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
     }
     setStarted(true);
     setIsSubmitted(false);
+    setShowChestModal(false);
+    hasClaimedChest.current = false;
   };
 
   // Countdown timer effect
@@ -1469,7 +1513,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
 
   if (quizLoading || resultLoading) {
     return (
-      <LayoutWrapper>
+      <LayoutWrapper isEmbedded={isEmbedded}>
         <div className="flex justify-center items-center h-64"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
       </LayoutWrapper>
     );
@@ -1477,7 +1521,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
 
   if (!quizData || quizData.questions.length === 0) {
     return (
-      <LayoutWrapper>
+      <LayoutWrapper isEmbedded={isEmbedded}>
         <div className="text-center p-8 bg-card rounded-xl border">
           <p className="text-muted-foreground mb-4">Bài luyện nghe này chưa có câu hỏi.</p>
           {!isEmbedded && (
@@ -1497,7 +1541,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
   // Pre-Start Setup Screen
   if (!started) {
     return (
-      <LayoutWrapper>
+      <LayoutWrapper isEmbedded={isEmbedded}>
         <div className="max-w-4xl mx-auto card-duo p-5 sm:p-8 lg:p-10 space-y-6 sm:space-y-8 bg-white border-2">
           <div className="flex items-center gap-4 border-b-2 pb-4 sm:pb-6">
             {!isEmbedded && (
@@ -1918,6 +1962,26 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
               </div>
             </div>
 
+            {/* Audio Autoplay Setting */}
+            <div className="flex items-center justify-between pt-3 border-t">
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2">
+                  <Volume2 className="w-5 h-5 text-[var(--duo-blue)]" />
+                  <span className="text-base font-extrabold text-foreground">Tự động phát âm thanh</span>
+                </div>
+                <p className="text-xs font-bold text-muted-foreground">
+                  Tự động phát audio bài nghe khi chuyển sang câu hỏi mới.
+                </p>
+              </div>
+              <Switch
+                checked={autoPlayAudio}
+                onCheckedChange={(checked) => {
+                  setAutoPlayAudio(checked);
+                  try { localStorage.setItem("dictation_autoplay", String(checked)); } catch {}
+                }}
+              />
+            </div>
+
             <div className="pt-3 border-t flex justify-end">
               <Button
                 type="button"
@@ -1994,7 +2058,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
     const isGood = accuracy >= 50;
 
     return (
-      <LayoutWrapper>
+      <LayoutWrapper isEmbedded={isEmbedded}>
         <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8 animate-in fade-in duration-300 pb-12">
           
           {/* Top Header Card / Score Trophy */}
@@ -2110,6 +2174,8 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                     setActiveQuestionIndices(skippedIndices);
                     setCurrentIndex(skippedIndices[0]);
                     setIsSubmitted(false);
+                    setShowChestModal(false);
+                    hasClaimedChest.current = false;
                     toast({ title: "Luyện lại các câu chưa hoàn thành", description: `Bắt đầu luyện lại ${skippedIndices.length} câu.` });
                   }}
                 >
@@ -2122,7 +2188,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                   className="btn-3d bg-white text-[var(--duo-blue)] border-[var(--duo-blue)]/30 hover:bg-blue-50 py-5 px-6 text-base font-extrabold h-auto"
                   onClick={() => {
                     navigate(`/courses/${courseId}/vocab-lesson/${effectiveLessonId}`, { 
-                      state: { questionIds: activeQuestionIndices.map(idx => questions[idx]?.id).filter(Boolean) } 
+                    state: { questionIds: activeQuestionIndices.map(idx => questions[idx]?.id).filter(Boolean) } 
                     });
                   }}
                 >
@@ -2134,6 +2200,8 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                 className="btn-3d btn-3d-blue py-5 px-6 text-base font-extrabold h-auto"
                 onClick={() => {
                   setIsSubmitted(false);
+                  setShowChestModal(false);
+                  hasClaimedChest.current = false;
                   setCurrentIndex(activeQuestionIndices[0]);
                 }}
               >
@@ -2382,6 +2450,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
             </div>
           </div>
         </div>
+        <MysteryChestModal isOpen={showChestModal} onClose={() => setShowChestModal(false)} />
       </LayoutWrapper>
     );
   }
@@ -2391,7 +2460,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
   // ==========================================
   if (started && (!currentQuestion || questions.length === 0)) {
     return (
-      <LayoutWrapper>
+      <LayoutWrapper isEmbedded={isEmbedded}>
         <div className="max-w-xl mx-auto card-duo p-8 text-center bg-white border-2 space-y-4 my-12">
           <AlertCircle className="w-12 h-12 text-[var(--duo-orange)] mx-auto" />
           <h2 className="text-xl font-black text-foreground">Không tìm thấy câu hỏi</h2>
@@ -2409,7 +2478,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
   const isCurrentDone = currentQuestion ? isQuestionDone(currentQuestion.id) : false;
 
   return (
-    <LayoutWrapper>
+    <LayoutWrapper isEmbedded={isEmbedded}>
       <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
         
         {/* Top Header Bar */}
@@ -2639,31 +2708,6 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                     onPlay={() => setIsPlaying(true)}
                     onPause={() => setIsPlaying(false)}
                   />
-                </div>
-
-                {/* Speed Controls */}
-                <div className="flex items-center gap-1 bg-white border-2 rounded-xl p-1 shadow-2xs shrink-0">
-                  <span className="text-xs font-extrabold text-muted-foreground px-1.5 uppercase">Tốc độ:</span>
-                  {[0.5, 0.75, 1, 1.25, 1.5].map((speed) => (
-                    <button
-                      key={speed}
-                      type="button"
-                      onClick={() => {
-                        if (audioRef.current) {
-                          audioRef.current.playbackRate = speed;
-                          setPlaybackRate(speed);
-                        }
-                      }}
-                      className={cn(
-                        "h-7 px-2 text-xs font-black rounded-lg transition-all",
-                        playbackRate === speed
-                          ? "bg-[var(--duo-blue)] text-white shadow-[0_2px_0_#1899D6]"
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                      )}
-                    >
-                      {speed}x
-                    </button>
-                  ))}
                 </div>
 
                 {/* AutoPlay Toggle */}

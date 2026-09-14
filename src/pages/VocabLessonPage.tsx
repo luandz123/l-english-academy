@@ -511,6 +511,7 @@ export default function VocabLessonPage() {
                   className="btn-3d bg-[var(--duo-yellow)] hover:bg-[#E5A800] border-[#E5A800] text-black w-full h-16 rounded-2xl text-xl font-bold mt-2"
                   onClick={() => {
                     setIsFinished(false);
+                    setShowChestModal(false);
                     setRound(1);
                     setIndices({ 1: 0, 2: 0, 3: 0 });
                   }}

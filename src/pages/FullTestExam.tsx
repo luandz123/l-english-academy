@@ -244,16 +244,39 @@ const FullTestExam = () => {
   const selectReadingOnly = () => setSelectedParts([5, 6, 7]);
   const selectSinglePart = (partNum: number) => setSelectedParts([partNum]);
 
+  const hasListeningParts = useMemo(() => {
+    return examQuestions.some((q: any) => q.part_number <= 4);
+  }, [examQuestions]);
+
+  const needsSoundCheck = !volumeChecked && testMode === "exam" && hasListeningParts;
+
+  const sampleAudioUrl = useMemo(() => {
+    const qWithAudio = examQuestions.find((q: any) => q.audio_url);
+    return qWithAudio?.audio_url || "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3";
+  }, [examQuestions]);
+
   // Handle start test
   const handleStartExam = () => {
     if (selectedParts.length === 0) return;
-    const initialTimeSeconds = effectiveTimeMinutes * 60;
+    const initialTimeSeconds = Math.max(60, effectiveTimeMinutes * 60);
     setTimeLeft(initialTimeSeconds);
+    autoSubmitTriggeredRef.current = false;
+    submittingRef.current = false;
     setAnswers({});
     setFlagged(new Set());
     setCheckedAnswers({});
     setElapsedTime(0);
+    setCurrentPart(selectedParts[0] - 1);
     setStarted(true);
+  };
+
+  const handleConfirmSoundCheck = () => {
+    setVolumeChecked(true);
+    if (testMode === "exam") {
+      const initialTimeSeconds = Math.max(60, effectiveTimeMinutes * 60);
+      setTimeLeft(initialTimeSeconds);
+      autoSubmitTriggeredRef.current = false;
+    }
   };
 
   // Flag toggle
@@ -274,7 +297,7 @@ const FullTestExam = () => {
 
   // Timer Effect
   useEffect(() => {
-    if (!started || isPaused) return;
+    if (!started || isPaused || needsSoundCheck) return;
     const interval = setInterval(() => {
       if (testMode === "exam") {
         setTimeLeft(prev => {
@@ -287,17 +310,9 @@ const FullTestExam = () => {
       } else {
         setElapsedTime(prev => prev + 1);
       }
-    });
+    }, 1000);
     return () => clearInterval(interval);
-  }, [started, testMode, isPaused]);
-
-  // Timer auto-submit handler
-  useEffect(() => {
-    if (autoSubmitTriggeredRef.current && !submittingRef.current) {
-      autoSubmitTriggeredRef.current = false;
-      submit();
-    }
-  }, [timeLeft]);
+  }, [started, testMode, isPaused, needsSoundCheck]);
 
   // Grouping logic for rendering questions in the exam scroller
   const groupedQuestions = useMemo(() => {
@@ -400,10 +415,20 @@ const FullTestExam = () => {
     });
 
     const isFullTest = selectedParts.length === 7;
-    const listeningScore = getToeicListeningScore(listeningCorrect);
-    const readingScore = getToeicReadingScore(readingCorrect);
+    const totalListeningInSession = examQuestions.filter((q: any) => q.part_number <= 4).length;
+    const totalReadingInSession = examQuestions.filter((q: any) => q.part_number >= 5).length;
+
+    const scaledListeningCorrect = totalListeningInSession > 0
+      ? Math.min(100, Math.round((listeningCorrect / totalListeningInSession) * 100))
+      : 0;
+    const scaledReadingCorrect = totalReadingInSession > 0
+      ? Math.min(100, Math.round((readingCorrect / totalReadingInSession) * 100))
+      : 0;
+
+    const listeningScore = getToeicListeningScore(scaledListeningCorrect);
+    const readingScore = getToeicReadingScore(scaledReadingCorrect);
     const totalScore = isFullTest ? listeningScore + readingScore : Math.round((totalCorrect / Math.max(1, examQuestions.length)) * 990);
-    const timeSpent = testMode === "exam" ? effectiveTimeMinutes * 60 - timeLeft : elapsedTime;
+    const timeSpent = Math.max(0, testMode === "exam" ? effectiveTimeMinutes * 60 - timeLeft : elapsedTime);
 
     let resultId = null;
     if (user) {
@@ -468,6 +493,14 @@ const FullTestExam = () => {
       },
     });
   }, [examQuestions, selectedParts, testMode, effectiveTimeMinutes, timeLeft, elapsedTime, user, testId, courseId, pauseCount, allQuestions.length, navigate, playSound]);
+
+  // Timer auto-submit handler
+  useEffect(() => {
+    if (started && !needsSoundCheck && autoSubmitTriggeredRef.current && !submittingRef.current) {
+      autoSubmitTriggeredRef.current = false;
+      submit();
+    }
+  }, [timeLeft, started, needsSoundCheck, submit]);
 
   const answeredCount = Object.keys(answers).length;
   const unansweredCount = examQuestions.length - answeredCount;
@@ -804,7 +837,7 @@ const FullTestExam = () => {
   }
 
   // 2. Sound test page (if Listening parts are included and exam mode / volume test not done)
-  if (!volumeChecked && testMode === "exam" && examQuestions.some((q: any) => q.part_number <= 4)) {
+  if (needsSoundCheck) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="card-duo p-8 max-w-lg text-center space-y-6 bg-card rounded-2xl border-2">
@@ -814,25 +847,43 @@ const FullTestExam = () => {
           <div>
             <h2 className="text-xl font-black text-foreground">Kiểm tra thiết bị âm thanh</h2>
             <p className="text-sm text-muted-foreground font-medium mt-1">
-              Vui lòng nghe thử đoạn âm thanh bên dưới để kiểm tra tai nghe hoặc loa ngoài của bạn trước khi làm bài nghe Listening.
+              Vui lòng kiểm tra tai nghe hoặc loa của bạn trước khi làm bài nghe Listening.
             </p>
           </div>
 
-          <div className="bg-slate-50 p-4 rounded-xl border-2 border-dashed border-[var(--duo-gray)]">
+          <div className="bg-slate-50 p-4 rounded-xl border-2 border-dashed border-[var(--duo-gray)] space-y-3">
             <audio
               ref={volumeAudioRef}
-              src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
+              src={sampleAudioUrl}
               controls
               className="w-full"
             />
+            <button
+              type="button"
+              onClick={() => playSound("correct")}
+              className="text-xs font-bold text-[var(--duo-blue)] hover:underline flex items-center justify-center gap-1 mx-auto cursor-pointer"
+            >
+              <Volume2 className="w-3.5 h-3.5" /> Bấm nghe thử âm thanh kiểm tra
+            </button>
           </div>
 
-          <button
-            onClick={() => setVolumeChecked(true)}
-            className="btn-3d btn-3d-correct w-full py-3.5 text-base font-bold"
-          >
-            Âm thanh tốt, bắt đầu ngay!
-          </button>
+          <div className="space-y-2">
+            <button
+              onClick={handleConfirmSoundCheck}
+              className="btn-3d btn-3d-correct w-full py-3.5 text-base font-bold"
+            >
+              Âm thanh tốt, bắt đầu ngay!
+            </button>
+            <button
+              onClick={() => {
+                setStarted(false);
+                setVolumeChecked(false);
+              }}
+              className="btn-3d btn-3d-white w-full py-2.5 text-xs font-bold text-muted-foreground"
+            >
+              ← Quay lại chọn phần thi
+            </button>
+          </div>
         </div>
       </div>
     );
