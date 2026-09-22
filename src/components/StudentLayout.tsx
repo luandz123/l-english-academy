@@ -11,7 +11,8 @@ import {
   FileCheck2,
   Headphones,
   Flame, 
-  Zap 
+  Zap,
+  Gamepad2
 } from "lucide-react";
 import React, { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -31,6 +32,7 @@ import { useGamification } from "@/hooks/useGamification";
 const navItems = [
   { to: "/#section-fulltest", label: "Luyện đề Full Test", icon: FileCheck2, badge: "Thi thử", badgeColor: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" },
   { to: "/#section-listening", label: "Luyện nghe điền từ", icon: Headphones, badge: "Dictation", badgeColor: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20" },
+  { to: "/games", label: "Khu Trò Chơi", icon: Gamepad2, badge: "Arcade", badgeColor: "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20" },
   { to: "/#section-video", label: "Kho khóa học", icon: BookOpen },
   { to: "/profile", label: "Hồ sơ cá nhân", icon: User },
 ];
@@ -38,6 +40,7 @@ const navItems = [
 const mobileNavItems = [
   { to: "/#section-fulltest", label: "Luyện đề", icon: FileCheck2, isHighlight: true },
   { to: "/#section-listening", label: "Điền từ", icon: Headphones, isHighlight: true },
+  { to: "/games", label: "Trò Chơi", icon: Gamepad2, isHighlight: true },
   { to: "/#section-video", label: "Khóa học", icon: BookOpen },
   { to: "/profile", label: "Hồ sơ", icon: User },
 ];

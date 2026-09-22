@@ -17,6 +17,8 @@ import {
   X,
   ShieldCheck,
   FolderOpen,
+  Rocket,
+  Gamepad2,
 } from "lucide-react";
 
 interface SidebarNavProps {
@@ -116,6 +118,33 @@ export const SidebarNav = ({ isOpen = false, onClose }: SidebarNavProps) => {
               <Home className="w-3.5 h-3.5" />
             </div>
             <span>Trang chủ</span>
+          </Link>
+
+          {/* Khu Trò Chơi */}
+          <Link
+            to="/games"
+            onClick={onClose}
+            className={`flex items-center justify-between px-3 py-2.5 rounded-xl font-bold text-xs transition-all duration-150 ${
+              location.pathname.startsWith("/games")
+                ? "bg-cyan-600 text-white shadow-sm shadow-cyan-500/20"
+                : "text-slate-600 dark:text-zinc-400 hover:text-cyan-600 dark:hover:text-cyan-400 hover:bg-cyan-50/70 dark:hover:bg-zinc-800/60"
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <div
+                className={`w-7 h-7 rounded-lg flex items-center justify-center ${
+                  location.pathname.startsWith("/games")
+                    ? "bg-white/20 text-white"
+                    : "bg-cyan-100 dark:bg-cyan-950/50 text-cyan-600 dark:text-cyan-400"
+                }`}
+              >
+                <Gamepad2 className="w-3.5 h-3.5" />
+              </div>
+              <span className="truncate">Khu Trò Chơi</span>
+            </div>
+            <span className="px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-cyan-100 text-cyan-700 dark:bg-cyan-950/60 dark:text-cyan-300">
+              ARCADE
+            </span>
           </Link>
 
           {/* Các mục danh mục lấy trực tiếp từ Database */}

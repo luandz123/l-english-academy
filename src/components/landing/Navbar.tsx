@@ -10,6 +10,7 @@ import {
   LogOut,
   User,
   ShoppingBag,
+  Gamepad2,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import Logo from "@/components/Logo";
@@ -125,6 +126,17 @@ const Navbar = ({ onOpenSidebar }: NavbarProps) => {
           >
             <BookA className="w-4 h-4 text-emerald-600" />
             <span>Tra từ Flashcard</span>
+          </Link>
+
+          <Link
+            to="/games"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 dark:text-zinc-300 hover:text-cyan-600 hover:bg-cyan-50/60 dark:hover:bg-zinc-800 transition-colors relative"
+          >
+            <Gamepad2 className="w-4 h-4 text-cyan-500" />
+            <span>Khu Trò Chơi</span>
+            <span className="px-1.5 py-0.2 bg-cyan-500 text-white rounded text-[9px] font-black uppercase">
+              Arcade
+            </span>
           </Link>
         </div>
 

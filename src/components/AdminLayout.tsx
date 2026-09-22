@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, BookOpen, Users, ClipboardList, FileText, BarChart3, Settings, LogOut, Menu, X, Sun, Moon, ChevronRight, ShieldAlert, Home, FileJson } from "lucide-react";
+import { LayoutDashboard, BookOpen, Users, ClipboardList, FileText, BarChart3, Settings, LogOut, Menu, X, Sun, Moon, ChevronRight, ShieldAlert, Home, FileJson, Gamepad2 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 
 const navItems = [
   { to: "/admin/dashboard", label: "Tổng quan", icon: LayoutDashboard, color: "text-[var(--duo-green)]" },
+  { to: "/admin/vocab-packs", label: "Bộ từ vựng Game", icon: Gamepad2, color: "text-[var(--duo-purple)]" },
   { to: "/admin/categories", label: "Danh mục", icon: BookOpen, color: "text-[var(--duo-purple)]" },
   { to: "/admin/courses", label: "Khóa học", icon: BookOpen, color: "text-[var(--duo-blue)]" },
   { to: "/admin/fulltests", label: "Full Test TOEIC", icon: ClipboardList, color: "text-[var(--duo-orange)]" },

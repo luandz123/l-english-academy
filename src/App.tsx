@@ -85,9 +85,13 @@ const AdminEnrollments = lazy(() => import("./pages/admin/AdminEnrollments"));
 const AdminMaterials = lazy(() => import("./pages/admin/AdminMaterials"));
 const AdminReports = lazy(() => import("./pages/admin/AdminReports"));
 const AdminSettings = lazy(() => import("./pages/admin/AdminSettings"));
+const AdminVocabPacks = lazy(() => import("./pages/admin/AdminVocabPacks"));
 const AdminFullTestManager = lazy(() => import("./pages/admin/AdminFullTestManager"));
 const AdminFullTestQuestions = lazy(() => import("./pages/admin/AdminFullTestQuestions"));
 const AdminCourseJsonImport = lazy(() => import("./pages/admin/AdminCourseJsonImport"));
+const WordShooterGame = lazy(() => import("./pages/WordShooterGame"));
+const WordDefenseGame = lazy(() => import("./pages/WordDefenseGame"));
+const GamesHub = lazy(() => import("./pages/GamesHub"));
 
 
 const PageLoader = () => (
@@ -138,10 +142,16 @@ const App = () => (
                 <Route path="/courses/:courseId/fulltest/:testId" element={<ProtectedRoute><FullTestExam /></ProtectedRoute>} />
                 <Route path="/courses/:courseId/fulltest/:testId/result" element={<ProtectedRoute><FullTestResult /></ProtectedRoute>} />
                 <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                <Route path="/games" element={<GamesHub />} />
+                <Route path="/games/word-shooter" element={<WordShooterGame />} />
+                <Route path="/games/word-defense" element={<WordDefenseGame />} />
+                <Route path="/word-defense" element={<Navigate to="/games/word-defense" replace />} />
+                <Route path="/game" element={<Navigate to="/games" replace />} />
 
                 {/* Admin (role-protected) */}
                 <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
                 <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+                <Route path="/admin/vocab-packs" element={<AdminRoute><AdminVocabPacks /></AdminRoute>} />
                 <Route path="/admin/categories" element={<AdminRoute><AdminCategories /></AdminRoute>} />
                 <Route path="/admin/courses" element={<AdminRoute><AdminCourses /></AdminRoute>} />
                 <Route path="/admin/courses/new" element={<AdminRoute><AdminCourseNew /></AdminRoute>} />

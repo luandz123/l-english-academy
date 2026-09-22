@@ -81,38 +81,126 @@ const getWords = (text: string) => {
   return words;
 };
 
-const getFirstErrorWordInfo = (input: string, expected: string) => {
+interface ErrorWordInfo {
+  startIndex: number;
+  endIndex: number;
+  correctWord: string;
+  inputWord?: string;
+  isMissing?: boolean;
+  isExtra?: boolean;
+}
+
+const getFirstErrorWordInfo = (input: string, expected: string): ErrorWordInfo | null => {
   const inputWords = getWords(input);
   const expectedWords = getWords(expected);
 
-  for (let i = 0; i < expectedWords.length; i++) {
-    const eWord = expectedWords[i];
-    const iWord = inputWords[i];
+  if (expectedWords.length === 0) return null;
 
-    if (!iWord) {
-      return {
-        endIndex: input.length,
-        correctWord: eWord.text,
-        isMissing: true
-      };
-    }
+  if (inputWords.length === 0) {
+    return {
+      startIndex: 0,
+      endIndex: 0,
+      correctWord: expectedWords[0].text,
+      isMissing: true
+    };
+  }
 
-    if (iWord.text.toLowerCase() !== eWord.text.toLowerCase()) {
-      return {
-        endIndex: iWord.end,
-        correctWord: eWord.text,
-        inputWord: iWord.text,
-        isMissing: false
-      };
+  const N = inputWords.length;
+  const M = expectedWords.length;
+
+  // DP table for Word alignment: Levenshtein on words
+  const dp: number[][] = Array.from({ length: N + 1 }, () => new Array(M + 1).fill(0));
+  for (let i = 0; i <= N; i++) dp[i][0] = i;
+  for (let j = 0; j <= M; j++) dp[0][j] = j;
+
+  for (let i = 1; i <= N; i++) {
+    for (let j = 1; j <= M; j++) {
+      const match = inputWords[i - 1].text.toLowerCase() === expectedWords[j - 1].text.toLowerCase();
+      if (match) {
+        dp[i][j] = dp[i - 1][j - 1];
+      } else {
+        dp[i][j] = 1 + Math.min(
+          dp[i - 1][j - 1], // substitute / typo
+          dp[i - 1][j],     // delete / extra word
+          dp[i][j - 1]      // insert / missing word
+        );
+      }
     }
   }
 
-  if (inputWords.length > expectedWords.length) {
+  // Backtrack to build the sequence of operations
+  type EditOp = 
+    | { type: 'match'; inputIdx: number; expectedIdx: number }
+    | { type: 'substitute'; inputIdx: number; expectedIdx: number }
+    | { type: 'delete'; inputIdx: number }
+    | { type: 'insert'; expectedIdx: number; inputIdx: number };
+
+  const ops: EditOp[] = [];
+  let i = N;
+  let j = M;
+
+  while (i > 0 || j > 0) {
+    if (i > 0 && j > 0 && inputWords[i - 1].text.toLowerCase() === expectedWords[j - 1].text.toLowerCase()) {
+      ops.push({ type: 'match', inputIdx: i - 1, expectedIdx: j - 1 });
+      i--;
+      j--;
+    } else if (i > 0 && j > 0 && dp[i][j] === dp[i - 1][j - 1] + 1) {
+      ops.push({ type: 'substitute', inputIdx: i - 1, expectedIdx: j - 1 });
+      i--;
+      j--;
+    } else if (i > 0 && dp[i][j] === dp[i - 1][j] + 1) {
+      ops.push({ type: 'delete', inputIdx: i - 1 });
+      i--;
+    } else if (j > 0 && dp[i][j] === dp[i][j - 1] + 1) {
+      ops.push({ type: 'insert', expectedIdx: j - 1, inputIdx: i });
+      j--;
+    } else {
+      if (i > 0) i--;
+      else if (j > 0) j--;
+    }
+  }
+
+  ops.reverse();
+
+  const firstError = ops.find(op => op.type !== 'match');
+  if (!firstError) return null;
+
+  if (firstError.type === 'substitute') {
+    const iWord = inputWords[firstError.inputIdx];
+    const eWord = expectedWords[firstError.expectedIdx];
     return {
-      endIndex: inputWords[expectedWords.length].end,
+      startIndex: iWord.start,
+      endIndex: iWord.end,
+      correctWord: eWord.text,
+      inputWord: iWord.text,
+      isMissing: false,
+      isExtra: false
+    };
+  }
+
+  if (firstError.type === 'delete') {
+    const iWord = inputWords[firstError.inputIdx];
+    return {
+      startIndex: iWord.start,
+      endIndex: iWord.end,
       correctWord: "",
-      inputWord: inputWords[expectedWords.length].text,
+      inputWord: iWord.text,
+      isMissing: false,
       isExtra: true
+    };
+  }
+
+  if (firstError.type === 'insert') {
+    const eWord = expectedWords[firstError.expectedIdx];
+    const insertPos = firstError.inputIdx < inputWords.length 
+      ? inputWords[firstError.inputIdx].start 
+      : input.length;
+    return {
+      startIndex: insertPos,
+      endIndex: insertPos,
+      correctWord: eWord.text,
+      isMissing: true,
+      isExtra: false
     };
   }
 
@@ -337,18 +425,7 @@ const DictationInput = ({
   autoFocus?: boolean,
   onFocus?: () => void
 }) => {
-  const { prefix, suffix, middleExpected, fullExpected } = useMemo(() => {
-    const words = getWords(expected);
-    if (words.length <= 2) {
-      return { prefix: "", suffix: "", middleExpected: expected, fullExpected: expected };
-    }
-    
-    const prefixStr = expected.substring(0, words[1].start);
-    const suffixStr = expected.substring(words[words.length - 2].end);
-    const middleStr = expected.substring(words[1].start, words[words.length - 2].end);
-    
-    return { prefix: prefixStr, suffix: suffixStr, middleExpected: middleStr, fullExpected: expected };
-  }, [expected]);
+  const fullExpected = expected;
 
   const [value, setValue] = useState("");
   const [status, setStatus] = useState<"typing" | "correct">("typing");
@@ -383,33 +460,62 @@ const DictationInput = ({
               )}
             </span>
           </div>
-          <div className="text-xs font-extrabold border-t border-border pt-1.5 flex items-center gap-2">
-            <span className="bg-muted-foreground/20 text-foreground px-1.5 py-0.5 rounded text-[10px] uppercase font-bold">Đáp án đầy đủ</span>
-            <span className="text-sm font-bold">{fullExpected}</span>
+          <div className="text-xs font-extrabold border-t border-border pt-1.5 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="bg-muted-foreground/20 text-foreground px-1.5 py-0.5 rounded text-[10px] uppercase font-bold">Đáp án đầy đủ</span>
+              <span className="text-sm font-bold">{fullExpected}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setValue(fullExpected);
+                setStatus("correct");
+                setShowHint(false);
+                playSound("correct");
+                onCorrect();
+              }}
+              className="text-xs font-black text-[var(--duo-blue)] hover:underline shrink-0 cursor-pointer ml-auto"
+            >
+              Điền đáp án đúng
+            </button>
           </div>
         </div>
       );
     }
     return (
-      <div className="flex items-center gap-2">
-        <span className="bg-[var(--duo-correct)] text-white px-1.5 py-0.5 rounded text-[10px] uppercase font-bold">Đáp án</span>
-        <span className="text-sm sm:text-base font-bold">{fullExpected}</span>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className="bg-[var(--duo-correct)] text-white px-1.5 py-0.5 rounded text-[10px] uppercase font-bold">Đáp án</span>
+          <span className="text-sm sm:text-base font-bold">{fullExpected}</span>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            setValue(fullExpected);
+            setStatus("correct");
+            setShowHint(false);
+            playSound("correct");
+            onCorrect();
+          }}
+          className="text-xs font-black text-[var(--duo-blue)] hover:underline shrink-0 cursor-pointer ml-auto"
+        >
+          Điền đáp án đúng
+        </button>
       </div>
     );
   };
 
   const handleCheck = () => {
-    const isTargetMiddle = isFullMatch(value, middleExpected);
     const isTargetFull = isFullMatch(value, fullExpected);
 
-    if (isTargetMiddle || isTargetFull) {
+    if (isTargetFull) {
       playSound("correct");
       setStatus("correct");
       setShowHint(false);
       setValue(fullExpected);
       onCorrect();
     } else {
-      const errorInfo = getFirstErrorWordInfo(value, middleExpected);
+      const errorInfo = getFirstErrorWordInfo(value, fullExpected);
       playSound("incorrect");
       setShake(true);
       setTimeout(() => setShake(false), 300);
@@ -421,6 +527,18 @@ const DictationInput = ({
           isMissing: errorInfo.isMissing,
           isExtra: errorInfo.isExtra
         });
+
+        // Nhảy đến ngay vị trí gõ sai để sửa cho tiện
+        setTimeout(() => {
+          if (textareaRef.current) {
+            textareaRef.current.focus();
+            try {
+              textareaRef.current.setSelectionRange(errorInfo.startIndex, errorInfo.endIndex);
+            } catch (err) {
+              // Ignore if unmounted
+            }
+          }
+        }, 50);
       } else {
         setErrorDetails(null);
       }
@@ -443,15 +561,15 @@ const DictationInput = ({
   }, [autoFocus]);
 
   useEffect(() => {
-    if ((isFullMatch(value, middleExpected) || isFullMatch(value, fullExpected)) && status !== "correct") {
+    if (isFullMatch(value, fullExpected) && status !== "correct") {
        playSound("correct");
        setStatus("correct");
        setValue(fullExpected);
        onCorrect();
-    } else if (!isFullMatch(value, middleExpected) && !isFullMatch(value, fullExpected) && status === "correct") {
+    } else if (!isFullMatch(value, fullExpected) && status === "correct") {
        setStatus("typing");
     }
-  }, [value, middleExpected, fullExpected, status, onCorrect, playSound]);
+  }, [value, fullExpected, status, onCorrect, playSound]);
 
   const containerClass = `w-full relative flex flex-col rounded-2xl border-2 transition-all shadow-sm ${
     status === "correct" 
@@ -462,24 +580,6 @@ const DictationInput = ({
   return (
     <div className="w-full relative flex flex-col gap-2">
       <div className={containerClass}>
-        {/* Top hint bar if prefix/suffix exists */}
-        {(prefix || suffix) && status !== "correct" && (
-          <div className="px-3.5 pt-2 pb-1 flex flex-wrap items-center justify-between gap-1.5 text-xs font-bold text-muted-foreground border-b border-border/50 bg-muted/20 rounded-t-2xl">
-            {prefix && (
-              <span className="flex items-center gap-1">
-                <span>Bắt đầu bằng:</span>
-                <span className="text-[var(--duo-blue)] bg-white px-2 py-0.5 rounded-md border shadow-2xs font-black">{prefix.trim()}</span>
-              </span>
-            )}
-            {suffix && (
-              <span className="flex items-center gap-1">
-                <span>Kết thúc:</span>
-                <span className="text-[var(--duo-blue)] bg-white px-2 py-0.5 rounded-md border shadow-2xs font-black">{suffix.trim()}</span>
-              </span>
-            )}
-          </div>
-        )}
-
         <div className="relative flex items-center p-3 sm:p-3.5">
           <textarea
             ref={textareaRef}
@@ -491,7 +591,7 @@ const DictationInput = ({
               if (showHint) setShowHint(false);
             }}
             onKeyDown={handleKeyDown}
-            placeholder={placeholder || "Nghe và gõ câu trả lời (Enter để kiểm tra)..."}
+            placeholder={placeholder || "Nghe và gõ lại cả câu (Enter để kiểm tra)..."}
             className={`w-full resize-none text-base sm:text-lg border-none bg-transparent shadow-none focus:outline-none focus-visible:ring-0 leading-relaxed font-bold ${
               status === "correct" ? "text-[var(--duo-correct)]" : "text-foreground"
             }`}
@@ -558,12 +658,9 @@ const KeywordDictationInput = ({
   const { playSound } = useSound();
 
   useEffect(() => {
-    if (forceReveal) {
+    if (forceReveal || isDoneInSession) {
       setStatus("correct");
       setValue(expected);
-    } else if (isDoneInSession) {
-      setStatus(prev => prev === "error" ? "error" : "correct");
-      setValue(prev => prev ? prev : expected);
     }
   }, [isDoneInSession, forceReveal, expected]);
 
@@ -571,25 +668,33 @@ const KeywordDictationInput = ({
     if (autoFocus && inputRef.current && status !== "correct") {
       inputRef.current.focus();
     }
-  }, [autoFocus]);
+  }, [autoFocus, status]);
 
-  const handleCheck = () => {
+  const handleFillCorrect = useCallback(() => {
+    playSound("correct");
+    setStatus("correct");
+    setValue(expected);
+    onCorrect();
+  }, [expected, onCorrect, playSound]);
+
+  const handleCheck = useCallback(() => {
     if (isFullMatch(value, expected)) {
-      playSound("correct");
-      setStatus("correct");
-      setValue(expected);
-      onCorrect();
+      handleFillCorrect();
     } else {
       playSound("incorrect");
       setStatus("error");
       setShake(true);
       setTimeout(() => setShake(false), 300);
     }
-  };
+  }, [value, expected, handleFillCorrect, playSound]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
       if (e.nativeEvent?.isComposing) return;
+      if (status === "error" && !shake) {
+        handleFillCorrect();
+        return;
+      }
       handleCheck();
     }
   };
@@ -606,17 +711,17 @@ const KeywordDictationInput = ({
         <Input
           ref={inputRef}
           value={value}
-          onFocus={onFocus}
+          onFocus={() => {
+            if (status === "error") setStatus("typing");
+            onFocus?.();
+          }}
           onChange={(e) => {
             const val = e.target.value;
             setValue(val);
             if (status === "error") setStatus("typing");
             
             if (isFullMatch(val, expected)) {
-              playSound("correct");
-              setStatus("correct");
-              setValue(expected);
-              onCorrect();
+              handleFillCorrect();
             }
           }}
           onKeyDown={handleKeyDown}
@@ -628,7 +733,7 @@ const KeywordDictationInput = ({
               ? "font-bold text-[var(--duo-red)] border-[var(--duo-red)] bg-[var(--duo-red)]/10 pr-6"
               : "font-bold border-border bg-white focus-visible:border-[var(--duo-blue)] focus-visible:ring-[var(--duo-blue)]/20 pr-6"
           }`}
-          readOnly={status === "correct" || status === "error"}
+          readOnly={status === "correct"}
           style={{ width: `${Math.max(70, Math.max(expected.length, value.length) * 10 + 26)}px` }}
         />
         {status === "correct" && (
@@ -639,15 +744,26 @@ const KeywordDictationInput = ({
             <div className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-black text-[var(--duo-red)] select-none">
               !
             </div>
-            <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 z-50 pointer-events-none">
-              <div className="bg-white border-2 border-[var(--duo-correct)] text-[var(--duo-correct)] text-xs font-bold px-2 py-1 rounded-md shadow-sm whitespace-nowrap animate-in fade-in slide-in-from-top-1">
-                {expected}
-              </div>
+            <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 z-50 pointer-events-auto">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  handleFillCorrect();
+                }}
+                className="bg-white hover:bg-emerald-50 border-2 border-[var(--duo-correct)] text-[var(--duo-correct)] text-xs font-extrabold px-2.5 py-1 rounded-lg shadow-md whitespace-nowrap animate-in fade-in slide-in-from-top-1 flex items-center gap-1.5 cursor-pointer transition-all hover:scale-105 active:scale-95"
+                title="Bấm vào đây để điền đáp án đúng (hoặc bấm Enter)"
+              >
+                <span>{expected}</span>
+                <span className="text-[10px] text-muted-foreground font-semibold underline">Bấm để điền</span>
+              </button>
             </div>
           </>
         )}
-        {status === "typing" && (
+        {status !== "correct" && status !== "error" && (
           <button 
+            type="button"
             onClick={handleCheck}
             className="absolute right-1 top-1/2 -translate-y-1/2 w-5 h-5 bg-[var(--duo-blue)]/10 text-[var(--duo-blue)] rounded flex items-center justify-center opacity-100 hover:bg-[var(--duo-blue)] hover:text-white transition-colors"
             title="Kiểm tra (Enter)"
@@ -743,10 +859,16 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
 
   const handleKeywordCorrect = useCallback((questionId: number, word: string) => {
+    const norm = word.toLowerCase().trim();
+    if (!norm) return;
     setCorrectKeywordsMap(prev => {
-      const existing = prev[questionId] ? new Set(prev[questionId]) : new Set<string>();
-      existing.add(word.toLowerCase().trim());
-      return { ...prev, [questionId]: existing };
+      const existing = prev[questionId];
+      if (existing && existing.has(norm)) {
+        return prev;
+      }
+      const nextSet = existing ? new Set(existing) : new Set<string>();
+      nextSet.add(norm);
+      return { ...prev, [questionId]: nextSet };
     });
   }, []);
 
@@ -904,6 +1026,16 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
       const dbIds = userAnswers.map((ua: any) => ua.question_id);
       if (dbIds.length > 0 || localIds.size > 0) {
         setSessionDone(prev => {
+          let hasDiff = false;
+          for (const id of localIds) {
+            if (!prev.has(id)) { hasDiff = true; break; }
+          }
+          if (!hasDiff) {
+            for (const id of dbIds) {
+              if (!prev.has(id)) { hasDiff = true; break; }
+            }
+          }
+          if (!hasDiff) return prev;
           const next = new Set([...prev, ...localIds, ...dbIds]);
           saveLocalStorageCompleted(user.id, quizId, next);
           return next;
@@ -1157,6 +1289,26 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
     return vocabWords.filter((w: any) => w.question_id === currentQuestion?.id);
   }, [vocabWords, currentQuestion?.id]);
 
+  const isCurrentDone = currentQuestion ? isQuestionDone(currentQuestion.id) : false;
+
+  const handleCurrentQuestionComplete = useCallback(() => {
+    if (currentQuestion?.id) {
+      saveAnswerMutation.mutate(currentQuestion.id);
+    }
+  }, [currentQuestion?.id, saveAnswerMutation.mutate]);
+
+  const handleCurrentQuestionRedo = useCallback(() => {
+    if (currentQuestion?.id) {
+      resetAnswerMutation.mutate(currentQuestion.id);
+    }
+  }, [currentQuestion?.id, resetAnswerMutation.mutate]);
+
+  const handleCurrentKeywordCorrect = useCallback((word: string) => {
+    if (currentQuestion?.id) {
+      handleKeywordCorrect(currentQuestion.id, word);
+    }
+  }, [currentQuestion?.id, handleKeywordCorrect]);
+
   useEffect(() => {
     if (!started || !autoPlayAudio || !audioRef.current || !currentQuestion?.audio_url) return;
 
@@ -1240,10 +1392,16 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
       if (e.key === "Enter" && currentQuestion && isQuestionDone(currentQuestion.id)) {
         handleNext(true);
       }
+
+      // Alt + A to reveal & complete current question
+      if (e.altKey && e.key.toLowerCase() === 'a' && currentQuestion && !isQuestionDone(currentQuestion.id)) {
+        e.preventDefault();
+        saveAnswerMutation.mutate(currentQuestion.id);
+      }
     };
     window.addEventListener("keydown", handleGlobalKeyDown);
     return () => window.removeEventListener("keydown", handleGlobalKeyDown);
-  }, [currentQuestion?.id, isQuestionDone]);
+  }, [currentQuestion?.id, isQuestionDone, saveAnswerMutation]);
 
   // Quick preset selectors for questions (5, 10, etc.)
   const selectPresetCount = (count: number) => {
@@ -2475,7 +2633,6 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
     );
   }
 
-  const isCurrentDone = currentQuestion ? isQuestionDone(currentQuestion.id) : false;
 
   return (
     <LayoutWrapper isEmbedded={isEmbedded}>
@@ -2741,9 +2898,9 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                 question={currentQuestion} 
                 isCompleted={completedQuestionIds.has(currentQuestion.id)}
                 isDoneInSession={isCurrentDone}
-                onComplete={() => saveAnswerMutation.mutate(currentQuestion.id)}
-                onRedo={() => resetAnswerMutation.mutate(currentQuestion.id)}
-                onKeywordCorrect={(word) => handleKeywordCorrect(currentQuestion.id, word)}
+                onComplete={handleCurrentQuestionComplete}
+                onRedo={handleCurrentQuestionRedo}
+                onKeywordCorrect={handleCurrentKeywordCorrect}
                 dictationMode={dictationMode}
                 vocabWords={vocabWords}
                 allLessonKeywords={allLessonKeywords}
@@ -2770,14 +2927,25 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                  {isCurrentDone ? (
                    <Button 
                      onClick={() => handleNext(true)} 
-                     className="btn-3d btn-3d-primary text-sm sm:text-base px-5 sm:px-7 py-2.5 h-10 sm:h-11 flex-1 sm:flex-none animate-in zoom-in-95 duration-300 font-extrabold"
+                     className="btn-3d btn-3d-primary text-sm sm:text-base px-5 sm:px-7 py-2.5 h-10 sm:h-11 flex-1 sm:flex-none font-extrabold"
                    >
                      Tiếp tục <ChevronRight className="w-4 h-4 ml-1.5" />
                    </Button>
                  ) : (
-                   <Button className="btn-3d bg-white text-muted-foreground hover:bg-gray-50 border-gray-200 text-xs sm:text-sm px-4 py-2 h-10 flex-1 sm:flex-none font-extrabold" onClick={() => handleNext(false)}>
-                     <SkipForward className="w-4 h-4 mr-1.5" /> Bỏ qua
-                   </Button>
+                    <>
+                      <Button 
+                        type="button"
+                        variant="outline"
+                        className="btn-3d bg-white text-[var(--duo-blue)] hover:bg-blue-50 border-[var(--duo-blue)]/30 text-xs sm:text-sm px-3.5 py-2 h-10 flex-1 sm:flex-none font-extrabold" 
+                        onClick={handleCurrentQuestionComplete}
+                        title="Xem toàn bộ đáp án và hoàn thành câu này (Alt+A)"
+                      >
+                        <Eye className="w-4 h-4 mr-1.5" /> Xem đáp án
+                      </Button>
+                      <Button className="btn-3d bg-white text-muted-foreground hover:bg-gray-50 border-gray-200 text-xs sm:text-sm px-4 py-2 h-10 flex-1 sm:flex-none font-extrabold" onClick={() => handleNext(false)}>
+                        <SkipForward className="w-4 h-4 mr-1.5" /> Bỏ qua
+                      </Button>
+                    </>
                  )}
                  <Button 
                    className="btn-3d btn-3d-blue text-xs sm:text-sm px-4 py-2 h-10 flex-1 sm:flex-none font-extrabold shadow-sm"
@@ -2979,7 +3147,15 @@ const QuestionDictationSection = ({
   const isKeywordMode = dictationMode === "drag" || dictationMode === "keyword";
   const [fields, setFields] = useState<boolean[]>([]);
   const [focusedIndex, setFocusedIndex] = useState(0);
-  
+  const [revealAllInQuestion, setRevealAllInQuestion] = useState(false);
+  const { playSound } = useSound();
+  const hasQuestionCompletedRef = useRef(false);
+
+  useEffect(() => {
+    hasQuestionCompletedRef.current = false;
+    setRevealAllInQuestion(false);
+  }, [question?.id]);
+
   const expectedItems = useMemo(() => {
     const items: { type: string; text: string; placeholder: string }[] = [];
     if (question.question_text?.trim() && question.question_text !== 'Audio dictation') {
@@ -3008,21 +3184,34 @@ const QuestionDictationSection = ({
   useEffect(() => {
     // If keyword/drag mode and question has no keywords, it's auto-completed!
     const autoDone = isKeywordMode && !hasKeywords;
-    setFields(expectedItems.map(() => isDoneInSession || autoDone));
+    setFields(prev => {
+      const next = expectedItems.map(() => isDoneInSession || autoDone);
+      if (prev.length === next.length && prev.every((v, i) => v === next[i])) {
+        return prev;
+      }
+      return next;
+    });
     setFocusedIndex(0);
 
-    if (autoDone && !isDoneInSession) {
-      onComplete();
+    if (autoDone && !isDoneInSession && !hasQuestionCompletedRef.current) {
+      hasQuestionCompletedRef.current = true;
+      setTimeout(() => {
+        onComplete();
+      }, 0);
     }
   }, [expectedItems.length, isDoneInSession, isKeywordMode, hasKeywords, onComplete]);
 
   const setFieldComplete = (idx: number) => {
     setFields(prev => {
+      if (prev[idx] && prev.every(Boolean)) return prev;
       const next = [...prev];
       next[idx] = true;
-      if (next.every(Boolean)) {
-        onComplete();
-      } else {
+      if (next.every(Boolean) && !hasQuestionCompletedRef.current) {
+        hasQuestionCompletedRef.current = true;
+        setTimeout(() => {
+          onComplete();
+        }, 0);
+      } else if (!next.every(Boolean)) {
         const nextIncomplete = next.findIndex((done, i) => i > idx && !done);
         if (nextIncomplete !== -1) {
           setFocusedIndex(nextIncomplete);
@@ -3119,6 +3308,7 @@ const QuestionDictationSection = ({
                   question={question}
                   vocabWords={vocabWords}
                   isDoneInSession={isDone}
+                  forceReveal={revealAllInQuestion}
                   onComplete={() => setFieldComplete(idx)}
                   onKeywordCorrect={onKeywordCorrect}
                   autoFocus={focusedIndex === idx}
@@ -3144,7 +3334,7 @@ const QuestionDictationSection = ({
               ) : (
                 <DictationInput 
                   expected={item.text} 
-                  placeholder={item.placeholder || "Nghe và điền câu trả lời..."} 
+                  placeholder={dictationMode === "full" ? "Nghe và gõ lại cả câu (Enter để kiểm tra)..." : (item.placeholder || "Nghe và gõ câu trả lời...")} 
                   onCorrect={() => setFieldComplete(idx)}
                   autoFocus={focusedIndex === idx}
                   onFocus={() => setFocusedIndex(idx)}
@@ -3287,10 +3477,19 @@ const DragDropQuestionGroup = ({
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
   }, [allBlanks]);
 
+  const hasAutoCompletedRef = useRef(false);
+
+  useEffect(() => {
+    hasAutoCompletedRef.current = false;
+  }, [question?.id]);
+
   // Auto-complete if no keywords in question
   useEffect(() => {
-    if (allBlanks.length === 0 && !isDoneInSession) {
-      onComplete();
+    if (allBlanks.length === 0 && !isDoneInSession && !hasAutoCompletedRef.current) {
+      hasAutoCompletedRef.current = true;
+      setTimeout(() => {
+        onComplete();
+      }, 0);
     }
   }, [allBlanks.length, isDoneInSession, onComplete]);
 
@@ -4118,14 +4317,33 @@ const DragDropClozeSection = ({
 // =========================================================================
 // Keyword Mode Item (Typing Mode)
 // =========================================================================
-const KeywordModeItem = ({ item, question, vocabWords, isDoneInSession, onComplete, onKeywordCorrect, autoFocus, onFocusItem }: any) => {
-  const [forceRevealAll, setForceRevealAll] = useState(false);
+const KeywordModeItem = ({ 
+  item, 
+  question, 
+  vocabWords, 
+  isDoneInSession, 
+  forceReveal: externalForceReveal,
+  onComplete, 
+  onKeywordCorrect, 
+  autoFocus, 
+  onFocusItem 
+}: any) => {
+  const [internalForceReveal, setInternalForceReveal] = useState(false);
+  const forceRevealAll = Boolean(externalForceReveal || internalForceReveal);
   const [activeKeywordIdx, setActiveKeywordIdx] = useState<number | null>(null);
+  const hasCompletedItemRef = useRef(false);
+  const hasForceRevealedRef = useRef(false);
+
+  useEffect(() => {
+    hasCompletedItemRef.current = false;
+    hasForceRevealedRef.current = false;
+    setInternalForceReveal(false);
+  }, [question?.id, item?.text]);
 
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
       if (e.altKey && e.key.toLowerCase() === 'a') {
-        setForceRevealAll(true);
+        setInternalForceReveal(true);
       }
     };
     window.addEventListener('keydown', handleGlobalKeyDown);
@@ -4153,7 +4371,8 @@ const KeywordModeItem = ({ item, question, vocabWords, isDoneInSession, onComple
 
   // Auto-complete if no keywords exist
   useEffect(() => {
-    if (keywordIndices.length === 0) {
+    if (keywordIndices.length === 0 && !hasCompletedItemRef.current) {
+      hasCompletedItemRef.current = true;
       onComplete();
     }
   }, [keywordIndices.length, onComplete]);
@@ -4172,12 +4391,27 @@ const KeywordModeItem = ({ item, question, vocabWords, isDoneInSession, onComple
 
   useEffect(() => {
     if (isDoneInSession || forceRevealAll) {
-      setCompletedKeywords(new Set(keywordIndices));
+      setCompletedKeywords(prev => {
+        if (prev.size === keywordIndices.length && keywordIndices.every(i => prev.has(i))) {
+          return prev;
+        }
+        return new Set(keywordIndices);
+      });
+
+      if (forceRevealAll && !hasForceRevealedRef.current) {
+        hasForceRevealedRef.current = true;
+        parts.forEach((p: any) => {
+          if (p.isKeyword) {
+            onKeywordCorrect?.(p.text);
+          }
+        });
+      }
     }
-  }, [isDoneInSession, forceRevealAll, keywordIndices]);
+  }, [isDoneInSession, forceRevealAll, keywordIndices, parts, onKeywordCorrect]);
 
   useEffect(() => {
-    if (keywordIndices.length > 0 && completedKeywords.size === keywordIndices.length && !isDoneInSession) {
+    if (keywordIndices.length > 0 && completedKeywords.size === keywordIndices.length && !isDoneInSession && !hasCompletedItemRef.current) {
+      hasCompletedItemRef.current = true;
       onComplete();
     }
   }, [completedKeywords.size, keywordIndices.length, isDoneInSession, onComplete]);
@@ -4202,7 +4436,7 @@ const KeywordModeItem = ({ item, question, vocabWords, isDoneInSession, onComple
     <div className="bg-white p-4 sm:p-5 rounded-2xl border-2 leading-loose sm:leading-[2.6] text-base sm:text-lg font-medium shadow-sm flex flex-col items-start gap-2 relative group">
       {!isDoneInSession && keywordIndices.length > 0 && !forceRevealAll && (
         <button 
-          onClick={() => setForceRevealAll(true)}
+          onClick={() => setInternalForceReveal(true)}
           className="absolute right-3 top-3 z-10 text-[10px] font-black bg-muted/60 hover:bg-muted text-muted-foreground px-2.5 py-1 rounded-lg border transition-colors shadow-2xs"
           title="Phím tắt: Alt + A"
         >
