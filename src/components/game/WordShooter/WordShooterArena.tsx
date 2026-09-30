@@ -1537,7 +1537,7 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
 
           {/* Score Counter */}
           <div className="flex flex-col items-center">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Điểm Số</span>
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Điểm Số</span>
             <span className="text-xl md:text-2xl font-black text-amber-300 tracking-wider font-mono">
               {score.toLocaleString()}
             </span>
@@ -1621,7 +1621,7 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
               <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-1.5 rounded-full bg-slate-950/90 border border-rose-500/50 shadow-[0_0_20px_rgba(244,63,94,0.35)] backdrop-blur-md mb-0.5">
                 <div className="flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
-                  <span className="text-[11px] sm:text-xs font-black text-rose-400 uppercase tracking-wider">
+                  <span className="text-xs sm:text-xs font-black text-rose-400 uppercase tracking-wider">
                     {opponent.name}
                   </span>
                 </div>
@@ -1646,10 +1646,10 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
                 <div className="h-3 w-px bg-slate-800" />
 
                 {/* Opponent Score & Combo */}
-                <div className="flex items-center gap-1.5 text-[11px] sm:text-xs font-mono font-bold">
+                <div className="flex items-center gap-1.5 text-xs sm:text-xs font-mono font-bold">
                   <span className="text-white">{opponent.score} pts</span>
                   {opponent.combo >= 2 && (
-                    <span className="text-amber-400 flex items-center gap-0.5 text-[10px] animate-pulse">
+                    <span className="text-amber-400 flex items-center gap-0.5 text-xs animate-pulse">
                       <Flame className="w-3 h-3 text-amber-400" />
                       {opponent.combo}x
                     </span>
@@ -1660,7 +1660,7 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
                 {opponent.currentWordText && (
                   <>
                     <div className="h-3 w-px bg-slate-800 hidden sm:block" />
-                    <div className="hidden sm:flex items-center gap-1 text-[10px] font-mono text-rose-300 bg-rose-950/50 px-2 py-0.5 rounded border border-rose-500/30">
+                    <div className="hidden sm:flex items-center gap-1 text-xs font-mono text-rose-300 bg-rose-950/50 px-2 py-0.5 rounded border border-rose-500/30">
                       <span className="text-slate-400">Lock:</span>
                       <span className="font-bold">{opponent.currentWordText}</span>
                     </div>
@@ -1829,8 +1829,8 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
 
                   {/* Vietnamese Meaning & Phonetic Hint */}
                   {showMeaningHint && item.definition_vi && (
-                    <div className="text-[10px] text-cyan-200/85 font-medium tracking-tight bg-slate-950/70 px-2 py-0.5 rounded-md border border-cyan-500/20 whitespace-nowrap mt-0.5 max-w-[150px] md:max-w-[170px] truncate text-center">
-                      {item.phonetic && <span className="text-slate-400 mr-1 text-[9px] font-mono">{item.phonetic}</span>}
+                    <div className="text-xs text-cyan-200/85 font-medium tracking-tight bg-slate-950/70 px-2 py-0.5 rounded-md border border-cyan-500/20 whitespace-nowrap mt-0.5 max-w-[150px] md:max-w-[170px] truncate text-center">
+                      {item.phonetic && <span className="text-slate-400 mr-1 text-xs font-mono">{item.phonetic}</span>}
                       <span>{item.definition_vi}</span>
                     </div>
                   )}
@@ -1852,7 +1852,7 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
               <div className="px-3 py-1.5 rounded-xl bg-slate-900/95 border border-cyan-400 text-white shadow-[0_0_20px_rgba(6,182,212,0.6)] backdrop-blur-md flex items-center gap-2 text-xs font-bold whitespace-nowrap">
                 <span className="text-cyan-300 font-mono font-black">{pop.word}</span>
                 {pop.phonetic && (
-                  <span className="text-slate-400 font-mono text-[11px]">{pop.phonetic}</span>
+                  <span className="text-slate-400 font-mono text-xs">{pop.phonetic}</span>
                 )}
                 <span className="w-1 h-1 rounded-full bg-cyan-400" />
                 <span className="text-emerald-300">{pop.definition}</span>
@@ -1862,7 +1862,7 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
 
           {/* Bottom Danger Laser Line */}
           <div className="absolute bottom-6 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-rose-500/80 to-transparent shadow-[0_0_12px_rgba(244,63,94,0.8)] flex items-center justify-center">
-            <span className="px-3 py-0.5 bg-rose-950/80 border border-rose-500/40 text-[9px] font-black uppercase tracking-widest text-rose-300 rounded-full">
+            <span className="px-3 py-0.5 bg-rose-950/80 border border-rose-500/40 text-xs font-black uppercase tracking-widest text-rose-300 rounded-full">
               DANGER LINE • PHÒNG THỦ BUỒNG LÁI
             </span>
           </div>
@@ -1871,8 +1871,8 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
         {/* Bottom Cockpit: High-tech Animated Fighter Jet with Dual Plasma Cannons */}
         <div className="relative z-30 h-24 w-full flex items-center justify-center">
           {/* Switch Target Tip Banner */}
-          <div className="absolute top-0 text-[11px] text-slate-500 font-semibold tracking-wider flex items-center gap-2 pointer-events-none">
-            <span className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-mono text-[10px]">Space</span> hoặc <span className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-mono text-[10px]">Backspace</span> để đổi mục tiêu
+          <div className="absolute top-0 text-xs text-slate-500 font-semibold tracking-wider flex items-center gap-2 pointer-events-none">
+            <span className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-mono text-xs">Space</span> hoặc <span className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-mono text-xs">Backspace</span> để đổi mục tiêu
             <span className="hidden sm:inline text-slate-600">• Gõ tiếng Việt Telex/VNI được hỗ trợ tự động</span>
           </div>
 

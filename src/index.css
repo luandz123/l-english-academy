@@ -43,15 +43,34 @@
     --sidebar-border: 214.3 31.8% 91.4%;
     --sidebar-ring: 221.2 83.2% 53.3%;
 
-    /* Modern Harmonious Theme Colors */
-    --duo-green: #2563eb;
-    --duo-green-dark: #1d4ed8;
-    --duo-green-light: #3b82f6;
+    /* Semantic Brand & Action Tokens */
+    --brand-primary: #2563eb;
+    --brand-primary-dark: #1d4ed8;
+    --brand-primary-light: #3b82f6;
+    --brand-cta: #2563eb;
+    --brand-cta-dark: #1d4ed8;
+    --brand-cta-light: #3b82f6;
+
+    --cta-success: #10b981;
+    --cta-success-dark: #059669;
+    --cta-success-light: #34d399;
+
+    --danger: #ef4444;
+    --danger-dark: #dc2626;
+    --logout: #ef4444;
+
+    /* Theme Color Palette */
+    --duo-blue: #2563eb;
+    --duo-blue-dark: #1d4ed8;
+    --duo-blue-light: #3b82f6;
+    --duo-green: var(--duo-blue); /* Aliased for backwards compatibility */
+    --duo-green-dark: var(--duo-blue-dark);
+    --duo-green-light: var(--duo-blue-light);
     --duo-correct: #10b981;
     --duo-correct-dark: #059669;
     --duo-correct-light: #34d399;
-    --duo-blue: #0284c7;
-    --duo-blue-dark: #0369a1;
+    --duo-sky: #0284c7;
+    --duo-sky-dark: #0369a1;
     --duo-yellow: #f59e0b;
     --duo-yellow-dark: #d97706;
     --duo-orange: #ea580c;
@@ -131,6 +150,12 @@
   }
   .btn-3d-green {
     @apply bg-emerald-600 text-white shadow-sm hover:bg-emerald-700 hover:shadow active:scale-[0.98];
+  }
+  .btn-3d-correct {
+    @apply bg-emerald-600 text-white shadow-sm hover:bg-emerald-700 hover:shadow active:scale-[0.98];
+  }
+  .btn-3d-yellow {
+    @apply bg-amber-500 text-white shadow-sm hover:bg-amber-600 hover:shadow active:scale-[0.98];
   }
   .btn-3d-blue {
     @apply bg-sky-600 text-white shadow-sm hover:bg-sky-700 hover:shadow active:scale-[0.98];

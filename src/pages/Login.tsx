@@ -1,6 +1,6 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,14 +17,50 @@ const Login = () => {
   const [googleLoading, setGoogleLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, isAdmin } = useAuth();
+
+  const fromState = (location.state as any)?.from;
+  let rawFrom: string | null = null;
+  if (typeof fromState === "string") {
+    rawFrom = fromState;
+  } else if (fromState && typeof fromState === "object") {
+    rawFrom = `${fromState.pathname || ""}${fromState.search || ""}${fromState.hash || ""}` || null;
+  }
+
+  // Sanitize internal redirect to prevent open redirect vulnerabilities
+  const getSafeRedirect = (url: unknown): string | null => {
+    if (!url || typeof url !== "string") return null;
+    if (!url.startsWith("/") || url.startsWith("//") || url.startsWith("/\\") || url.includes("://")) {
+      return null;
+    }
+    const pathname = url.split("?")[0].split("#")[0];
+    const blockedPrefixes = ["/login", "/register", "/forgot-password", "/reset-password", "/auth"];
+    if (blockedPrefixes.some((prefix) => pathname === prefix || pathname.startsWith(prefix + "/"))) {
+      return null;
+    }
+    return url;
+  };
+
+  const safeFrom = getSafeRedirect(rawFrom);
+
+  const getDestination = (targetUrl: string | null, userIsAdmin: boolean) => {
+    if (targetUrl) {
+      if (targetUrl.startsWith("/admin")) {
+        return userIsAdmin ? targetUrl : "/profile";
+      }
+      return targetUrl;
+    }
+    return userIsAdmin ? "/admin/dashboard" : "/profile";
+  };
 
   // Redirect if already logged in
   useEffect(() => {
     if (user) {
-      navigate(isAdmin ? "/admin/dashboard" : "/profile", { replace: true });
+      const destination = getDestination(safeFrom, isAdmin);
+      navigate(destination, { replace: true });
     }
-  }, [user, isAdmin, navigate]);
+  }, [user, isAdmin, navigate, safeFrom]);
 
   if (user) return null;
 
@@ -37,12 +73,18 @@ const Login = () => {
       toast({ title: "Đăng nhập không thành công", description: getFriendlyErrorMessage(error), variant: "destructive" });
     } else {
       toast({ title: "Đăng nhập thành công!", description: "Chào mừng bạn quay lại L-English." });
-      // Auth state change will handle redirect via useAuth
+      const destination = getDestination(safeFrom, isAdmin);
+      navigate(destination, { replace: true });
     }
   };
 
   const handleGoogleLogin = async () => {
     try {
+      if (safeFrom) {
+        sessionStorage.setItem("lenglish_post_login_redirect", safeFrom);
+      } else {
+        sessionStorage.removeItem("lenglish_post_login_redirect");
+      }
       setGoogleLoading(true);
       const { error } = await signInWithGoogle();
       if (error) {

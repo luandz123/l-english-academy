@@ -3,6 +3,13 @@ import { useAuth } from "./useAuth";
 import { useSound } from "./useSound";
 import { toast } from "./use-toast";
 
+export const XP_REWARDS = {
+  PART2_CLUSTER_COMPLETE: 200,
+  FULLTEST_SUBMIT: 50,
+  QUIZ_MIN: 10,
+  QUIZ_PER_CORRECT: 5,
+} as const;
+
 export interface Quest {
   id: string;
   title: string;
@@ -154,24 +161,49 @@ export const useGamification = () => {
     }
 
     return {
-      xp: 220,
-      streak: 4,
+      xp: 0,
+      streak: 0,
       lastActiveDate: today,
       claimedQuestsDate: today,
       questProgress: {
-        dictation: 3,
-        vocab: 4,
-        streakDone: true,
+        dictation: 0,
+        vocab: 0,
+        streakDone: false,
       },
       totalStats: {
-        dictationCount: 15,
-        vocabCount: 18,
+        dictationCount: 0,
+        vocabCount: 0,
       },
       claimedQuestIds: [],
       claimedBadgeIds: [],
-      streakShields: 1,
+      streakShields: 0,
     };
   });
+
+  // Guest to User migration
+  useEffect(() => {
+    if (!user?.id) return;
+    try {
+      const USER_KEY = `lenglish_gamification_v3_${user.id}`;
+      const GUEST_KEY = "lenglish_gamification_v3_guest";
+      const guestRaw = localStorage.getItem(GUEST_KEY);
+      if (guestRaw) {
+        const userExistingRaw = localStorage.getItem(USER_KEY);
+        if (!userExistingRaw) {
+          // Key user chưa tồn tại -> sao chép dữ liệu guest sang key user
+          localStorage.setItem(USER_KEY, guestRaw);
+          try {
+            const guestParsed: GamificationState = JSON.parse(guestRaw);
+            setState(guestParsed);
+          } catch {}
+        }
+        // Xóa key guest
+        localStorage.removeItem(GUEST_KEY);
+      }
+    } catch (e) {
+      console.error("Failed to migrate guest gamification data", e);
+    }
+  }, [user?.id]);
 
   // Save state
   useEffect(() => {

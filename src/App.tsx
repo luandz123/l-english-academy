@@ -3,7 +3,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate, useSearchParams, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/useAuth";
@@ -63,12 +62,15 @@ const Register = lazy(() => import("./pages/Register"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
-const Dashboard = lazy(() => import("./pages/Dashboard"));
 const LearnPage = lazy(() => import("./pages/LearnPage"));
 const QuizPage = lazy(() => import("./pages/QuizPage"));
 const QuizResult = lazy(() => import("./pages/QuizResult"));
 const VocabPage = lazy(() => import("./pages/VocabPage"));
 const DictationPage = lazy(() => import("./pages/DictationPage"));
+const Part2CoachPage = lazy(() => import("./pages/Part2CoachPage"));
+const FullTestsPage = lazy(() => import("./pages/FullTestsPage"));
+const ListeningPage = lazy(() => import("./pages/ListeningPage"));
+const LibraryPage = lazy(() => import("./pages/LibraryPage"));
 const FullTestList = lazy(() => import("./pages/FullTestList"));
 const FullTestExam = lazy(() => import("./pages/FullTestExam"));
 const FullTestResult = lazy(() => import("./pages/FullTestResult"));
@@ -113,7 +115,6 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
-      <Sonner />
       <ThemeToggle />
       <BrowserRouter>
         <AuthProvider>
@@ -138,10 +139,17 @@ const App = () => (
                 <Route path="/courses/:courseId/vocab" element={<ProtectedRoute><VocabPage /></ProtectedRoute>} />
                 <Route path="/courses/:courseId/vocab-lesson/:lessonId" element={<ProtectedRoute><VocabLessonPage /></ProtectedRoute>} />
                 <Route path="/courses/:courseId/dictation/:quizId" element={<ProtectedRoute><DictationPage /></ProtectedRoute>} />
+                <Route path="/courses/:courseId/part2-coach/:clusterId" element={<Navigate to="/part2-coach" replace />} />
+                <Route path="/courses/:courseId/part2-coach" element={<Navigate to="/part2-coach" replace />} />
+                <Route path="/part2-coach" element={<ProtectedRoute><Part2CoachPage /></ProtectedRoute>} />
+                <Route path="/part2-coach/:clusterId" element={<ProtectedRoute><Part2CoachPage /></ProtectedRoute>} />
                 <Route path="/courses/:courseId/fulltest" element={<ProtectedRoute><FullTestList /></ProtectedRoute>} />
                 <Route path="/courses/:courseId/fulltest/:testId" element={<ProtectedRoute><FullTestExam /></ProtectedRoute>} />
                 <Route path="/courses/:courseId/fulltest/:testId/result" element={<ProtectedRoute><FullTestResult /></ProtectedRoute>} />
                 <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                <Route path="/fulltests" element={<ProtectedRoute><FullTestsPage /></ProtectedRoute>} />
+                <Route path="/listening" element={<ProtectedRoute><ListeningPage /></ProtectedRoute>} />
+                <Route path="/library" element={<ProtectedRoute><LibraryPage /></ProtectedRoute>} />
                 <Route path="/games" element={<GamesHub />} />
                 <Route path="/games/word-shooter" element={<WordShooterGame />} />
                 <Route path="/games/word-defense" element={<WordDefenseGame />} />

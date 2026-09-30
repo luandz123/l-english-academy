@@ -783,7 +783,7 @@ const AdminFullTestQuestions = () => {
                 </CardHeader>
                 <CardContent className="p-4 pt-0">
                   <div className="text-2xl font-black text-foreground">{totalCount} / 200</div>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">Số lượng câu trong đề thi.</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Số lượng câu trong đề thi.</p>
                 </CardContent>
               </Card>
 
@@ -798,7 +798,7 @@ const AdminFullTestQuestions = () => {
                   <div className={cn("text-2xl font-black", missingAudio > 0 ? "text-amber-500" : "text-emerald-500")}>
                     {missingAudio} câu
                   </div>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">Phần Listening (Part 1 - 4).</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Phần Listening (Part 1 - 4).</p>
                 </CardContent>
               </Card>
 
@@ -813,7 +813,7 @@ const AdminFullTestQuestions = () => {
                   <div className={cn("text-2xl font-black", missingCorrect > 0 ? "text-rose-500" : "text-emerald-500")}>
                     {missingCorrect} câu
                   </div>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">Cần chọn đáp án đúng để chấm điểm.</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Cần chọn đáp án đúng để chấm điểm.</p>
                 </CardContent>
               </Card>
 
@@ -828,7 +828,7 @@ const AdminFullTestQuestions = () => {
                   <div className={cn("text-2xl font-black", missingExplanation > 0 ? "text-amber-500" : "text-emerald-500")}>
                     {missingExplanation} câu
                   </div>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">Giúp học viên hiểu bài tốt hơn.</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Giúp học viên hiểu bài tốt hơn.</p>
                 </CardContent>
               </Card>
             </div>
@@ -919,7 +919,7 @@ const AdminFullTestQuestions = () => {
                                   Part {firstQ.part_number} Group ({questions.length} câu: Câu {questions[0].display_order} - {questions[questions.length - 1].display_order})
                                 </Badge>
                                 {firstQ.group_id && (
-                                  <span className="text-[11px] font-mono text-muted-foreground bg-background/80 px-2 py-0.5 rounded border">
+                                  <span className="text-xs font-mono text-muted-foreground bg-background/80 px-2 py-0.5 rounded border">
                                     ID: {firstQ.group_id}
                                   </span>
                                 )}
@@ -982,7 +982,7 @@ const AdminFullTestQuestions = () => {
                                         <Badge 
                                           key={issue} 
                                           variant="destructive" 
-                                          className="text-[10px] py-0.5 px-2 font-semibold bg-rose-500/10 text-rose-600 border border-rose-500/20 hover:bg-rose-500/20"
+                                          className="text-xs py-0.5 px-2 font-semibold bg-rose-500/10 text-rose-600 border border-rose-500/20 hover:bg-rose-500/20"
                                         >
                                           {issue}
                                         </Badge>
@@ -1082,7 +1082,7 @@ const AdminFullTestQuestions = () => {
                                       )}
                                     >
                                       <span className={cn(
-                                        "h-5 w-5 rounded-full flex items-center justify-center shrink-0 text-[11px] font-bold border",
+                                        "h-5 w-5 rounded-full flex items-center justify-center shrink-0 text-xs font-bold border",
                                         ans.is_correct
                                           ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
                                           : "bg-background border-border text-foreground"
@@ -1094,7 +1094,7 @@ const AdminFullTestQuestions = () => {
                                           {ans.answer_text || <span className="italic text-muted-foreground">(Trống)</span>}
                                         </div>
                                         {ans.explanation && ans.is_correct && (
-                                          <div className="text-[11px] text-muted-foreground font-normal leading-relaxed border-t border-emerald-500/20 pt-1 mt-1 bg-background/50 p-1.5 rounded">
+                                          <div className="text-xs text-muted-foreground font-normal leading-relaxed border-t border-emerald-500/20 pt-1 mt-1 bg-background/50 p-1.5 rounded">
                                             <strong className="text-emerald-700 dark:text-emerald-400">Giải thích:</strong> {ans.explanation}
                                           </div>
                                         )}
@@ -1463,7 +1463,7 @@ const AdminFullTestQuestions = () => {
 
                     {ans.is_correct && (
                       <div className="space-y-1 pl-8">
-                        <Label className="text-[11px] text-muted-foreground font-semibold">Lời giải chi tiết cho đáp án đúng</Label>
+                        <Label className="text-xs text-muted-foreground font-semibold">Lời giải chi tiết cho đáp án đúng</Label>
                         <Textarea
                           rows={2}
                           value={ans.explanation || ""}
@@ -1713,7 +1713,7 @@ const AdminFullTestQuestions = () => {
 
                     {ans.is_correct && (
                       <div className="space-y-1 pl-8">
-                        <Label className="text-[11px] text-muted-foreground font-semibold">Lời giải chi tiết cho đáp án đúng</Label>
+                        <Label className="text-xs text-muted-foreground font-semibold">Lời giải chi tiết cho đáp án đúng</Label>
                         <Textarea
                           rows={2}
                           value={ans.explanation || ""}

@@ -577,7 +577,7 @@ export const WordShooterLobby: React.FC<WordShooterLobbyProps> = ({ onStartGame,
             </div>
             <div>
               <p className="text-xs font-bold text-white">Từ Trái Tim</p>
-              <p className="text-[10px] text-slate-400">+1 Mạng khi nổ</p>
+              <p className="text-xs text-slate-400">+1 Mạng khi nổ</p>
             </div>
           </div>
 
@@ -587,7 +587,7 @@ export const WordShooterLobby: React.FC<WordShooterLobbyProps> = ({ onStartGame,
             </div>
             <div>
               <p className="text-xs font-bold text-white">Khiên Năng Lượng</p>
-              <p className="text-[10px] text-slate-400">Đỡ 1 đòn chí tử</p>
+              <p className="text-xs text-slate-400">Đỡ 1 đòn chí tử</p>
             </div>
           </div>
 
@@ -597,7 +597,7 @@ export const WordShooterLobby: React.FC<WordShooterLobbyProps> = ({ onStartGame,
             </div>
             <div>
               <p className="text-xs font-bold text-white">Làm Chậm (Slow-Mo)</p>
-              <p className="text-[10px] text-slate-400">Giảm 60% tốc độ</p>
+              <p className="text-xs text-slate-400">Giảm 60% tốc độ</p>
             </div>
           </div>
 
@@ -607,7 +607,7 @@ export const WordShooterLobby: React.FC<WordShooterLobbyProps> = ({ onStartGame,
             </div>
             <div>
               <p className="text-xs font-bold text-white">Từ Đóng Băng</p>
-              <p className="text-[10px] text-slate-400">Ngừng rơi 3.2 giây</p>
+              <p className="text-xs text-slate-400">Ngừng rơi 3.2 giây</p>
             </div>
           </div>
 
@@ -617,7 +617,7 @@ export const WordShooterLobby: React.FC<WordShooterLobbyProps> = ({ onStartGame,
             </div>
             <div>
               <p className="text-xs font-bold text-white">Bom Nổ Lan</p>
-              <p className="text-[10px] text-slate-400">Quét sạch từ trên sân</p>
+              <p className="text-xs text-slate-400">Quét sạch từ trên sân</p>
             </div>
           </div>
 
@@ -627,7 +627,7 @@ export const WordShooterLobby: React.FC<WordShooterLobbyProps> = ({ onStartGame,
             </div>
             <div>
               <p className="text-xs font-bold text-white">Boss Word & Wave</p>
-              <p className="text-[10px] text-slate-400">Thưởng điểm x2.5</p>
+              <p className="text-xs text-slate-400">Thưởng điểm x2.5</p>
             </div>
           </div>
         </div>
@@ -697,7 +697,7 @@ export const WordShooterLobby: React.FC<WordShooterLobbyProps> = ({ onStartGame,
                           <h3 className={cn("text-sm font-black transition-colors", isSelected ? "text-cyan-300" : "text-white group-hover:text-cyan-200")}>
                             {topic.name}
                           </h3>
-                          <span className="text-[11px] font-bold text-slate-400">
+                          <span className="text-xs font-bold text-slate-400">
                             {topic.words.length} từ vựng
                           </span>
                         </div>
@@ -709,7 +709,7 @@ export const WordShooterLobby: React.FC<WordShooterLobbyProps> = ({ onStartGame,
                       )}
                     </div>
                     {highScores[topic.id] && (
-                      <div className="mt-2.5 flex items-center gap-1.5 text-[11px] font-bold text-amber-300 bg-amber-950/60 px-2.5 py-1 rounded-lg border border-amber-500/30 w-fit">
+                      <div className="mt-2.5 flex items-center gap-1.5 text-xs font-bold text-amber-300 bg-amber-950/60 px-2.5 py-1 rounded-lg border border-amber-500/30 w-fit">
                         <span>🏆 Kỷ lục:</span>
                         <span>{highScores[topic.id].score.toLocaleString()} điểm</span>
                         <span>•</span>
@@ -897,7 +897,7 @@ export const WordShooterLobby: React.FC<WordShooterLobbyProps> = ({ onStartGame,
 
             {/* Active Topic Summary Box */}
             <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 text-xs space-y-2">
-              <p className="text-slate-400 font-bold uppercase tracking-wider text-[10px]">Cấu hình hiện tại:</p>
+              <p className="text-slate-400 font-bold uppercase tracking-wider text-xs">Cấu hình hiện tại:</p>
               <div className="flex items-center justify-between text-white font-semibold">
                 <span>Chủ đề:</span>
                 <span className="text-cyan-300 font-bold">{currentTopic.name} ({currentTopic.words.length} từ)</span>
@@ -938,7 +938,7 @@ export const WordShooterLobby: React.FC<WordShooterLobbyProps> = ({ onStartGame,
             <div className="space-y-1.5">
               <div className="flex justify-between items-center">
                 <label className="text-xs font-bold text-slate-300">Danh sách từ vựng (mỗi từ 1 dòng):</label>
-                <span className="text-[11px] text-cyan-400 font-medium">Định dạng: từ - nghĩa</span>
+                <span className="text-xs text-cyan-400 font-medium">Định dạng: từ - nghĩa</span>
               </div>
               <Textarea
                 rows={8}
@@ -1078,7 +1078,7 @@ export const WordShooterLobby: React.FC<WordShooterLobbyProps> = ({ onStartGame,
                 )}
               </div>
 
-              <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 text-[11px] text-slate-400 flex items-center justify-between">
+              <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 text-xs text-slate-400 flex items-center justify-between">
                 <span>Bộ từ: <strong className="text-white">{currentTopic.name}</strong></span>
                 <span>Cấp độ: <strong className="text-amber-300">{DIFFICULTY_CONFIG[difficulty].label}</strong></span>
               </div>

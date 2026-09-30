@@ -8,13 +8,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Clock, ChevronLeft, ChevronRight, LayoutGrid, CheckCircle, Bookmark, BookmarkCheck, AlertCircle, AlertTriangle } from "lucide-react";
+import { Clock, ChevronLeft, ChevronRight, LayoutGrid, CheckCircle, Bookmark, BookmarkCheck, AlertCircle, AlertTriangle, RotateCcw } from "lucide-react";
 import { useSound } from "@/hooks/useSound";
+import { useGamification, XP_REWARDS } from "@/hooks/useGamification";
+import ErrorState from "@/components/ErrorState";
 
 const QuizPage = () => {
   const { courseId, quizId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { addXp } = useGamification();
   const qid = Number(quizId);
 
   const [started, setStarted] = useState(false);
@@ -22,12 +25,149 @@ const QuizPage = () => {
   const [flagged, setFlagged] = useState<Set<number>>(new Set());
   const [paletteFilter, setPaletteFilter] = useState<"all" | "done" | "flagged" | "todo">("all");
   const [showConfirm, setShowConfirm] = useState(false);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [currentGroupIdx, setCurrentGroupIdx] = useState(0);
   const { playSound } = useSound();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  const [showDraftDialog, setShowDraftDialog] = useState(false);
+  const [savedDraftInfo, setSavedDraftInfo] = useState<{
+    answeredCount: number;
+    timeLeft: number | null;
+    savedAt: number;
+  } | null>(null);
+
+  const DRAFT_KEY = `lenglish_quiz_draft_v1_${user?.id || 'guest'}_${qid}`;
+
+  const answersRef = useRef(answers);
+  const flaggedRef = useRef(flagged);
+  const timeLeftRef = useRef(timeLeft);
+  useEffect(() => { answersRef.current = answers; }, [answers]);
+  useEffect(() => { flaggedRef.current = flagged; }, [flagged]);
+  useEffect(() => { timeLeftRef.current = timeLeft; }, [timeLeft]);
+
+  // Restore draft on mount with 24h expiry
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
+        if (!parsed.savedAt || Date.now() - parsed.savedAt > TWENTY_FOUR_HOURS) {
+          localStorage.removeItem(DRAFT_KEY);
+          setSavedDraftInfo(null);
+          setShowDraftDialog(false);
+          return;
+        }
+        if (parsed && parsed.answers && Object.keys(parsed.answers).length > 0) {
+          setSavedDraftInfo({
+            answeredCount: Object.keys(parsed.answers).length,
+            timeLeft: parsed.timeLeft ?? null,
+            savedAt: parsed.savedAt || Date.now(),
+          });
+          setShowDraftDialog(true);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to parse quiz draft", e);
+    }
+  }, [DRAFT_KEY]);
+
+  const restoreDraft = () => {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (parsed.answers) setAnswers(parsed.answers);
+      if (parsed.flagged) setFlagged(new Set(parsed.flagged));
+      if (parsed.timeLeft !== undefined && parsed.timeLeft !== null) setTimeLeft(parsed.timeLeft);
+      setStarted(true);
+      setShowDraftDialog(false);
+      toast({
+        title: "Đã khôi phục bài làm dở",
+        description: `Đã khôi phục ${Object.keys(parsed.answers || {}).length} câu trả lời của bạn.`,
+      });
+    } catch (e) {
+      console.error("Failed to restore quiz draft", e);
+    }
+  };
+
+  const discardDraft = () => {
+    localStorage.removeItem(DRAFT_KEY);
+    setSavedDraftInfo(null);
+    setShowDraftDialog(false);
+    toast({
+      title: "Đã xóa bài làm dở",
+      description: "Bạn có thể bắt đầu bài làm mới.",
+    });
+  };
+
+  // Autosave draft on answers/flagged change (debounced ~1s)
+  useEffect(() => {
+    if (!started || submitting || Object.keys(answers).length === 0) return;
+    const timer = setTimeout(() => {
+      try {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify({
+          quizId: qid,
+          answers,
+          flagged: Array.from(flagged),
+          timeLeft,
+          started: true,
+          savedAt: Date.now(),
+        }));
+      } catch (e) {
+        console.error("Failed to autosave quiz draft", e);
+      }
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [answers, flagged, timeLeft, started, submitting, DRAFT_KEY, qid]);
+
+  // Periodic autosave every 15s for clock
+  useEffect(() => {
+    if (!started || submitting || timeLeftRef.current === null || Object.keys(answersRef.current).length === 0) return;
+    const interval = setInterval(() => {
+      try {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify({
+          quizId: qid,
+          answers: answersRef.current,
+          flagged: Array.from(flaggedRef.current),
+          timeLeft: timeLeftRef.current,
+          started: true,
+          savedAt: Date.now(),
+        }));
+      } catch (e) {
+        console.error("Failed to periodic save quiz draft", e);
+      }
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [started, submitting, DRAFT_KEY, qid]);
+
+  // BeforeUnload guard
+  useEffect(() => {
+    if (!started || submitting) return;
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "Bạn có bài làm dở. Dữ liệu sẽ được lưu tự động nhưng hãy cẩn thận!";
+      return e.returnValue;
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [started, submitting]);
+
+  // Popstate guard
+  useEffect(() => {
+    if (!started || submitting) return;
+    window.history.pushState({ inQuiz: true }, "");
+    const handlePopState = () => {
+      window.history.pushState({ inQuiz: true }, "");
+      setShowExitConfirm(true);
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [started, submitting]);
 
   const toggleFlag = (qIdx: number) => {
     setFlagged(prev => {
@@ -41,22 +181,24 @@ const QuizPage = () => {
     });
   };
 
-  const { data: quiz } = useQuery({
+  const { data: quiz, isError: isQuizError, refetch: refetchQuiz } = useQuery({
     queryKey: ["quiz", qid],
     queryFn: async () => {
-      const { data } = await supabase.from("quizzes").select("*").eq("id", qid).single();
+      const { data, error } = await supabase.from("quizzes").select("*").eq("id", qid).single();
+      if (error) throw error;
       return data;
     },
   });
 
-  const { data: questions, isLoading } = useQuery({
+  const { data: questions, isLoading, isError: isQuestionsError, refetch: refetchQuestions } = useQuery({
     queryKey: ["quiz-questions", qid],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("questions")
         .select("*, answers(*)")
         .eq("quiz_id", qid)
         .order("display_order");
+      if (error) throw error;
       return (data || []).map((q: any) => ({
         ...q,
         answers: (q.answers || []).sort((a: any, b: any) => a.display_order - b.display_order),
@@ -117,8 +259,39 @@ const QuizPage = () => {
       await supabase.from("user_answers").insert(userAnswers);
     }
 
+    // Award XP only on first completion for this quiz
+    const QUIZ_COMPLETED_KEY = `lenglish_quiz_completed_v1_${user.id}_${qid}`;
+    let isFirstTime = !localStorage.getItem(QUIZ_COMPLETED_KEY);
+    if (isFirstTime) {
+      try {
+        const { count } = await supabase
+          .from("user_quiz_results")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .eq("quiz_id", qid);
+        // Note: we just inserted 1 result above, so if count <= 1 it's first submission
+        if ((count || 0) > 1) {
+          isFirstTime = false;
+          localStorage.setItem(QUIZ_COMPLETED_KEY, "true");
+        }
+      } catch {}
+    }
+
+    if (isFirstTime) {
+      const earnedXp = Math.max(XP_REWARDS.QUIZ_MIN, correctCount * XP_REWARDS.QUIZ_PER_CORRECT);
+      addXp(earnedXp, `Hoàn thành bài tập (${correctCount}/${questions.length} câu đúng)`);
+      localStorage.setItem(QUIZ_COMPLETED_KEY, "true");
+    }
+
+    try {
+      localStorage.removeItem(DRAFT_KEY);
+    } catch {
+      /* ignore */
+    }
+
     setSubmitting(false);
     navigate(`/courses/${courseId}/quiz/${quizId}/result`, {
+      replace: true,
       state: { score: correctCount, total: questions.length, answers, questions, resultId: result?.id },
     });
   };
@@ -210,6 +383,43 @@ const QuizPage = () => {
 
   if (isLoading) return <StudentLayout><Skeleton className="h-64 rounded-2xl" /></StudentLayout>;
 
+  if (isQuizError || isQuestionsError) {
+    return (
+      <StudentLayout>
+        <div className="max-w-md mx-auto my-16">
+          <ErrorState
+            onRetry={() => {
+              refetchQuiz();
+              refetchQuestions();
+            }}
+          />
+        </div>
+      </StudentLayout>
+    );
+  }
+
+  if (!isLoading && (!quiz || !questions || questions.length === 0)) {
+    return (
+      <StudentLayout>
+        <div className="max-w-md mx-auto my-16 p-8 text-center bg-card rounded-3xl border border-border shadow-sm space-y-4">
+          <h3 className="text-xl font-black text-foreground">Chưa có câu hỏi</h3>
+          <p className="text-sm font-medium text-muted-foreground">
+            Bài kiểm tra này hiện chưa có nội dung câu hỏi.
+          </p>
+          <div className="pt-2">
+            <Button
+              variant="outline"
+              onClick={() => navigate(courseId ? `/courses/${courseId}` : -1 as any)}
+              className="rounded-xl font-bold"
+            >
+              Quay lại
+            </Button>
+          </div>
+        </div>
+      </StudentLayout>
+    );
+  }
+
   const answeredCount = Object.keys(answers).length;
   const flaggedCount = flagged.size;
   const totalQ = questions?.length || 0;
@@ -235,12 +445,12 @@ const QuizPage = () => {
       {/* Sticky Header */}
       <header className="h-16 border-b-2 border-[var(--duo-gray)] shrink-0 bg-card z-20 flex items-center justify-between px-4 lg:px-8 shadow-sm">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => setShowConfirm(true)} className="rounded-xl hover:bg-muted">
+          <Button variant="ghost" size="icon" onClick={() => setShowExitConfirm(true)} className="rounded-xl hover:bg-muted" title="Thoát hoặc Tạm dừng">
             <ChevronLeft className="w-5 h-5"/>
           </Button>
           <div>
             <h1 className="font-extrabold text-sm lg:text-base hidden sm:block truncate max-w-xs text-foreground">{quiz?.title}</h1>
-            <p className="text-[11px] text-muted-foreground font-semibold hidden sm:block">Đã làm {answeredCount}/{totalQ} câu</p>
+            <p className="text-xs text-muted-foreground font-semibold hidden sm:block">Đã làm {answeredCount}/{totalQ} câu</p>
           </div>
         </div>
         
@@ -306,7 +516,7 @@ const QuizPage = () => {
                         <div className="flex items-center justify-between border-b-2 border-[var(--duo-gray)] pb-3">
                           <div className="flex items-center gap-2">
                             <span className="badge-duo badge-blue">Câu {q.originalIdx + 1} / {totalQ}</span>
-                            {q.question_type && <span className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider bg-muted px-2.5 py-1 rounded-full">{q.question_type}</span>}
+                            {q.question_type && <span className="text-xs font-extrabold text-muted-foreground uppercase tracking-wider bg-muted px-2.5 py-1 rounded-full">{q.question_type}</span>}
                           </div>
                           
                           {/* Flag for review button */}
@@ -418,7 +628,7 @@ const QuizPage = () => {
               ) : (
                 <button 
                   onClick={() => setShowConfirm(true)}
-                  className="btn-3d btn-3d-correct py-2.5 sm:py-3 px-6 sm:px-8 text-sm sm:text-base font-extrabold"
+                  className="btn-3d btn-3d-primary py-2.5 sm:py-3 px-6 sm:px-8 text-sm sm:text-base font-extrabold"
                 >
                   Hoàn thành bài thi 🎉
                 </button>
@@ -446,7 +656,7 @@ const QuizPage = () => {
                     key={f.key}
                     onClick={() => setPaletteFilter(f.key as any)}
                     className={cn(
-                      "text-[10px] font-bold px-2 py-1 rounded-lg border transition-all",
+                      "text-xs font-bold px-2.5 py-1.5 rounded-lg border transition-all",
                       paletteFilter === f.key
                         ? "bg-[var(--duo-blue)] text-white border-[var(--duo-blue-dark)]"
                         : "bg-muted text-muted-foreground border-transparent hover:border-[var(--duo-gray)]"
@@ -607,6 +817,79 @@ const QuizPage = () => {
               <button className="btn-3d btn-3d-primary flex-1 py-3 text-xs sm:text-sm" onClick={submit} disabled={submitting}>
                 {submitting ? "Đang nộp..." : "Nộp bài ngay"}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Exit Modal */}
+      {showExitConfirm && (
+        <div className="fixed inset-0 z-50 bg-foreground/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="card-duo p-6 max-w-sm w-full space-y-4 animate-in zoom-in-95 duration-200 bg-white text-center">
+            <span className="text-4xl block">⏸</span>
+            <h3 className="font-extrabold text-xl text-foreground">Tạm dừng hoặc Rời bài tập?</h3>
+            <p className="text-xs text-muted-foreground font-medium">
+              Bạn đã làm được <b>{answeredCount}/{totalQ} câu</b>. Bài làm của bạn đã được tự động lưu tạm trên trình duyệt.
+            </p>
+            <div className="flex flex-col gap-2 pt-2">
+              <button
+                type="button"
+                className="btn-3d btn-3d-primary w-full py-2.5 text-xs font-black"
+                onClick={() => {
+                  setShowExitConfirm(false);
+                  navigate(`/courses/${courseId}/quiz`, { replace: true });
+                }}
+              >
+                💾 Tạm dừng &amp; Thoát (Lưu bài)
+              </button>
+              <button
+                type="button"
+                className="py-2 text-xs text-rose-600 font-bold hover:underline"
+                onClick={() => {
+                  try { localStorage.removeItem(DRAFT_KEY); } catch {}
+                  setShowExitConfirm(false);
+                  navigate(`/courses/${courseId}/quiz`, { replace: true });
+                }}
+              >
+                Hủy bài tập này (Xóa nháp)
+              </button>
+              <button
+                type="button"
+                className="btn-3d btn-3d-white w-full py-2.5 text-xs font-bold"
+                onClick={() => setShowExitConfirm(false)}
+              >
+                Ở lại làm tiếp
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Draft Resume Dialog */}
+      {showDraftDialog && savedDraftInfo && (
+        <div className="fixed inset-0 z-50 bg-foreground/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="card-duo p-6 max-w-sm w-full space-y-4 animate-in zoom-in-95 duration-200 bg-white dark:bg-zinc-900 text-center">
+            <span className="text-4xl block">⚡</span>
+            <h3 className="font-extrabold text-xl text-foreground">Bạn có bài đang làm dở</h3>
+            <p className="text-xs text-muted-foreground font-medium">
+              Bạn có bài đang làm dở ({savedDraftInfo.answeredCount} câu đã trả lời). Tiếp tục hay làm mới?
+            </p>
+            <div className="flex gap-2 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1 py-2 rounded-xl text-xs font-bold border-2"
+                onClick={discardDraft}
+              >
+                Làm mới
+              </Button>
+              <Button
+                type="button"
+                className="btn-3d btn-3d-primary flex-1 py-2 rounded-xl text-xs font-black"
+                onClick={restoreDraft}
+              >
+                Tiếp tục
+              </Button>
             </div>
           </div>
         </div>

@@ -12,6 +12,8 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Lock } from "lucide-react";
 import DictationPage from "./DictationPage";
+import GamificationChips from "@/components/GamificationChips";
+import ErrorState from "@/components/ErrorState";
 
 const LearnPage = () => {
   const { courseId } = useParams();
@@ -32,7 +34,7 @@ const LearnPage = () => {
     enabled: !!user,
   });
 
-  const { data: course } = useQuery({
+  const { data: course, isError: isCourseError, refetch: refetchCourse } = useQuery({
     queryKey: ["learn-course", cId],
     queryFn: async () => {
       const { data } = await supabase.from("courses").select("*").eq("id", cId).maybeSingle();
@@ -40,7 +42,7 @@ const LearnPage = () => {
     },
   });
 
-  const { data: modules = [], isLoading } = useQuery({
+  const { data: modules = [], isLoading, isError: isModulesError, refetch: refetchModules } = useQuery({
     queryKey: ["learn-modules", cId],
     queryFn: async () => {
       const { data } = await (supabase.from("modules") as any)
@@ -252,6 +254,33 @@ const LearnPage = () => {
   });
 
   const [noteText, setNoteText] = useState("");
+
+  // Restore draft note for current lesson
+  useEffect(() => {
+    if (!currentLessonId) return;
+    try {
+      const draft = localStorage.getItem(`lenglish_draft_note_${currentLessonId}_${user?.id || 'guest'}`);
+      setNoteText(draft || "");
+    } catch {
+      setNoteText("");
+    }
+  }, [currentLessonId, user?.id]);
+
+  // Handle note typing with draft autosave
+  const handleNoteChange = (text: string) => {
+    setNoteText(text);
+    if (!currentLessonId) return;
+    try {
+      if (text.trim()) {
+        localStorage.setItem(`lenglish_draft_note_${currentLessonId}_${user?.id || 'guest'}`, text);
+      } else {
+        localStorage.removeItem(`lenglish_draft_note_${currentLessonId}_${user?.id || 'guest'}`);
+      }
+    } catch {
+      /* ignore storage error */
+    }
+  };
+
   const noteMutation = useMutation({
     mutationFn: async () => {
       if (!user || !currentLessonId || !noteText.trim()) return;
@@ -259,6 +288,11 @@ const LearnPage = () => {
     },
     onSuccess: () => {
       setNoteText("");
+      try {
+        localStorage.removeItem(`lenglish_draft_note_${currentLessonId}_${user?.id || 'guest'}`);
+      } catch {
+        /* ignore */
+      }
       queryClient.invalidateQueries({ queryKey: ["lesson-notes"] });
       toast({ title: "Đã lưu ghi chú" });
     },
@@ -290,6 +324,19 @@ const LearnPage = () => {
 
   if (isLoading) {
     return <div className="min-h-screen bg-background flex items-center justify-center"><Loader2 className="w-12 h-12 animate-spin text-[var(--duo-blue)]" /></div>;
+  }
+
+  if (isModulesError || isCourseError) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <ErrorState
+          onRetry={() => {
+            refetchModules();
+            refetchCourse();
+          }}
+        />
+      </div>
+    );
   }
 
   if (!currentLesson) {
@@ -330,15 +377,17 @@ const LearnPage = () => {
             <div className="flex items-center gap-3 min-w-0">
               <Button
                 variant="ghost"
-                className="p-2 hover:bg-muted rounded-xl shrink-0"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 hover:bg-muted rounded-xl shrink-0 text-muted-foreground hover:text-foreground font-bold"
                 onClick={() => setShowExitConfirm(true)}
                 title="Thoát bài học"
+                aria-label="Thoát bài học"
               >
-                <X className="w-6 h-6 text-muted-foreground hover:text-foreground" />
+                <ChevronLeft className="w-5 h-5" />
+                <span className="hidden sm:inline text-xs font-bold">Thoát</span>
               </Button>
               <div className="w-px h-6 bg-border shrink-0" />
               <div className="flex flex-col min-w-0">
-                <span className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-wider truncate">
+                <span className="text-xs sm:text-xs font-bold text-muted-foreground uppercase tracking-wider truncate">
                   Bài {currentIndex + 1} / {allLessons.length}
                 </span>
                 <h1 className="text-sm sm:text-base font-extrabold text-foreground truncate max-w-[150px] sm:max-w-[300px] md:max-w-[450px] lg:max-w-[600px]" title={currentLesson.title}>
@@ -346,7 +395,8 @@ const LearnPage = () => {
                 </h1>
               </div>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+              <GamificationChips />
               {/* Sidebar toggle button */}
               <Button size="sm" variant="outline" className="btn-3d btn-3d-white flex items-center gap-2 text-xs sm:text-sm font-extrabold h-9 px-3" onClick={toggleSidebar}>
                 {sidebarCollapsed ? <PanelRight className="w-4 h-4" /> : <PanelRightClose className="w-4 h-4" />}
@@ -525,10 +575,10 @@ const LearnPage = () => {
                             </span>
                             <div className="min-w-0">
                               <p className="font-extrabold text-foreground text-xs sm:text-sm truncate">{m.title || "Tài liệu đính kèm"}</p>
-                              {m.description && <p className="text-[10px] sm:text-xs text-muted-foreground font-semibold mt-0.5 truncate">{m.description}</p>}
+                              {m.description && <p className="text-xs sm:text-xs text-muted-foreground font-semibold mt-0.5 truncate">{m.description}</p>}
                             </div>
                           </div>
-                          <Button size="sm" variant="outline" className="btn-3d btn-3d-white text-[10px] px-2.5 py-1 h-7 shrink-0">Tải xuống</Button>
+                          <Button size="sm" variant="outline" className="btn-3d btn-3d-white text-xs px-2.5 py-1 h-7 shrink-0">Tải xuống</Button>
                         </a>
                       ))}
                     </div>
@@ -539,7 +589,7 @@ const LearnPage = () => {
                   <div className="space-y-3">
                     <textarea
                       value={noteText}
-                      onChange={(e) => setNoteText(e.target.value)}
+                      onChange={(e) => handleNoteChange(e.target.value)}
                       placeholder="Viết ghi chú của bạn cho bài học này tại đây..."
                       className="w-full min-h-[90px] p-3 rounded-xl border-2 border-border focus:border-[var(--duo-blue)] focus:outline-none font-bold text-xs sm:text-sm bg-background resize-y"
                     />
@@ -561,7 +611,7 @@ const LearnPage = () => {
                         {savedNotes.map((note: any) => (
                           <div key={note.id} className="p-3 rounded-xl border bg-muted/10 relative group">
                             <p className="text-xs sm:text-sm font-semibold text-foreground whitespace-pre-wrap">{note.content}</p>
-                            <span className="text-[9px] text-muted-foreground font-bold mt-1.5 block">
+                            <span className="text-xs text-muted-foreground font-bold mt-1.5 block">
                               {new Date(note.created_at).toLocaleDateString("vi-VN", {
                                 hour: "2-digit",
                                 minute: "2-digit",
@@ -703,7 +753,7 @@ const LearnPage = () => {
                               <span className={`block text-[15px] font-extrabold leading-snug truncate ${isCurrent ? 'text-white' : 'text-foreground'}`}>
                                 {lesson.title}
                               </span>
-                              <span className={`text-[10px] uppercase font-extrabold flex items-center gap-1.5 mt-0.5 ${isCurrent ? 'text-white/60' : 'text-muted-foreground'}`}>
+                              <span className={`text-xs uppercase font-extrabold flex items-center gap-1.5 mt-0.5 ${isCurrent ? 'text-white/60' : 'text-muted-foreground'}`}>
                                 {isVideo ? <PlayCircle className="w-3.5 h-3.5" /> : isDictation ? <Headphones className="w-3.5 h-3.5" /> : <FileQuestion className="w-3.5 h-3.5" />}
                                 <span>Bài tổng thể {(globalIdx + 1).toString().padStart(2, '0')}</span>
                               </span>
@@ -712,7 +762,7 @@ const LearnPage = () => {
                             {!canStudy ? (
                               <Lock className="w-4 h-4 text-amber-500 shrink-0" />
                             ) : (
-                              canStudy && !enrollment && <span className="badge-duo text-[9px] py-0.5 px-1.5 shrink-0" style={{ backgroundColor: 'var(--duo-correct)', color: 'white', borderColor: 'var(--duo-correct-dark)' }}>FREE</span>
+                              canStudy && !enrollment && <span className="badge-duo text-xs py-0.5 px-1.5 shrink-0" style={{ backgroundColor: 'var(--duo-correct)', color: 'white', borderColor: 'var(--duo-correct-dark)' }}>FREE</span>
                             )}
                           </button>
                         );
@@ -839,7 +889,7 @@ const LearnPage = () => {
             <p className="text-sm font-semibold text-muted-foreground">Tiến độ bài học hiện tại của bạn sẽ được lưu giữ tự động.</p>
             <div className="flex gap-3 pt-2">
               <Button className="btn-3d btn-3d-white flex-1 py-3 text-sm font-bold" onClick={() => setShowExitConfirm(false)}>Ở lại học</Button>
-              <Button className="btn-3d btn-3d-primary flex-1 py-3 text-sm font-bold" onClick={() => navigate("/")}>Rời đi</Button>
+              <Button className="btn-3d btn-3d-primary flex-1 py-3 text-sm font-bold" onClick={() => navigate("/profile")}>Rời đi</Button>
             </div>
           </div>
         </div>

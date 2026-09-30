@@ -10,7 +10,44 @@ export default defineConfig(({ mode }) => ({
       overlay: false,
     },
   },
-  plugins: [react()].filter(Boolean),
+  plugins: [
+    react(),
+    {
+      name: "tts-proxy-middleware",
+      configureServer(server) {
+        server.middlewares.use("/api/tts", async (req, res) => {
+          try {
+            const url = new URL(req.url || "", "http://localhost");
+            const q = url.searchParams.get("q") || "";
+            if (!q) {
+              res.statusCode = 400;
+              res.end("Missing text query");
+              return;
+            }
+            const cleanText = q.slice(0, 200);
+            const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en&q=${encodeURIComponent(cleanText)}`;
+            const response = await fetch(ttsUrl, {
+              headers: {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+              },
+            });
+            if (!response.ok) {
+              res.statusCode = response.status;
+              res.end("TTS upstream error");
+              return;
+            }
+            res.setHeader("Content-Type", "audio/mpeg");
+            res.setHeader("Cache-Control", "public, max-age=86400");
+            const buffer = await response.arrayBuffer();
+            res.end(Buffer.from(buffer));
+          } catch (err) {
+            res.statusCode = 500;
+            res.end("Server error");
+          }
+        });
+      },
+    },
+  ].filter(Boolean),
 
   resolve: {
     alias: {

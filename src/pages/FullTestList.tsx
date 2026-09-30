@@ -1,26 +1,28 @@
 import StudentLayout from "@/components/StudentLayout";
 import { useParams, Link } from "react-router-dom";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Lock, CheckCircle2, Clock, FileText, ArrowRight, RotateCcw } from "lucide-react";
+import { Lock, CheckCircle2, Clock, FileText, ArrowRight, RotateCcw, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { Skeleton } from "@/components/ui/skeleton";
+import ErrorState from "@/components/ErrorState";
 
 const FullTestList = () => {
   const { courseId } = useParams();
   const { user } = useAuth();
   const cid = Number(courseId);
 
-  const { data: tests, isLoading } = useQuery({
+  const { data: tests, isLoading, isError, refetch } = useQuery({
     queryKey: ["full-tests", cid],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("full_tests")
         .select("*")
         .eq("course_id", cid)
         .order("category")
         .order("display_order");
+      if (error) throw error;
       return data || [];
     },
   });
@@ -61,6 +63,16 @@ const FullTestList = () => {
   }, {});
 
   if (isLoading) return <StudentLayout><Skeleton className="h-64 rounded-2xl" /></StudentLayout>;
+
+  if (isError) {
+    return (
+      <StudentLayout>
+        <div className="max-w-md mx-auto my-16">
+          <ErrorState onRetry={() => refetch()} />
+        </div>
+      </StudentLayout>
+    );
+  }
 
   return (
     <StudentLayout>

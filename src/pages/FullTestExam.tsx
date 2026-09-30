@@ -22,6 +22,7 @@ import {
   CheckCircle2
 } from "lucide-react";
 import { useSound } from "@/hooks/useSound";
+import { useGamification, XP_REWARDS } from "@/hooks/useGamification";
 
 const partMeta: Record<number, { name: string; shortName: string; section: "listening" | "reading"; desc: string; defaultCount: number; defaultTime: number }> = {
   1: { name: "Part 1: Photo Description", shortName: "Part 1", section: "listening", desc: "Mô tả hình ảnh", defaultCount: 6, defaultTime: 3 },
@@ -76,6 +77,7 @@ const FullTestExam = () => {
   const navigate = useNavigate();
   const { user, isAdmin } = useAuth();
   const { playSound } = useSound();
+  const { addXp } = useGamification();
 
   // Selection & Configuration States
   const [started, setStarted] = useState(false);
@@ -95,14 +97,165 @@ const FullTestExam = () => {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [pauseCount, setPauseCount] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [showDraftDialog, setShowDraftDialog] = useState(false);
+
+  const DRAFT_KEY = `lenglish_fulltest_draft_v1_${user?.id || 'guest'}_${testId}`;
+  const [savedDraftInfo, setSavedDraftInfo] = useState<{
+    answeredCount: number;
+    timeLeft: number;
+    savedAt: number;
+  } | null>(null);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const volumeAudioRef = useRef<HTMLAudioElement>(null);
   const submittingRef = useRef(false);
   const answersRef = useRef<Record<number, number>>({});
+  const flaggedRef = useRef<Set<number>>(new Set());
+  const timeLeftRef = useRef(timeLeft);
+  const elapsedTimeRef = useRef(elapsedTime);
   useEffect(() => { answersRef.current = answers; }, [answers]);
+  useEffect(() => { flaggedRef.current = flagged; }, [flagged]);
+  useEffect(() => { timeLeftRef.current = timeLeft; }, [timeLeft]);
+  useEffect(() => { elapsedTimeRef.current = elapsedTime; }, [elapsedTime]);
+
+  // Check saved draft on mount with 24-hour expiration
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
+        if (!parsed.savedAt || Date.now() - parsed.savedAt > TWENTY_FOUR_HOURS) {
+          localStorage.removeItem(DRAFT_KEY);
+          setSavedDraftInfo(null);
+          setShowDraftDialog(false);
+          return;
+        }
+        if (parsed && parsed.answers && Object.keys(parsed.answers).length > 0) {
+          setSavedDraftInfo({
+            answeredCount: Object.keys(parsed.answers).length,
+            timeLeft: parsed.timeLeft ?? 120 * 60,
+            savedAt: parsed.savedAt || Date.now(),
+          });
+          setShowDraftDialog(true);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to parse draft", e);
+    }
+  }, [DRAFT_KEY]);
+
+  const restoreDraft = () => {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (parsed.answers) setAnswers(parsed.answers);
+      if (parsed.flagged) setFlagged(new Set(parsed.flagged));
+      if (parsed.timeLeft !== undefined) setTimeLeft(parsed.timeLeft);
+      if (parsed.elapsedTime !== undefined) setElapsedTime(parsed.elapsedTime);
+      if (parsed.testMode) setTestMode(parsed.testMode);
+      if (parsed.selectedParts) setSelectedParts(parsed.selectedParts);
+      if (parsed.customTimeMinutes !== undefined) setCustomTimeMinutes(parsed.customTimeMinutes);
+      setVolumeChecked(true);
+      setStarted(true);
+      setIsPaused(true); // Khôi phục ở trạng thái tạm dừng để người dùng chủ động bấm tiếp tục
+      setShowDraftDialog(false);
+      toast({
+        title: "Đã khôi phục bài làm dở",
+        description: `Đã khôi phục ${Object.keys(parsed.answers || {}).length} câu trả lời của bạn (đang tạm dừng).`,
+      });
+    } catch (e) {
+      console.error("Failed to restore draft", e);
+    }
+  };
+
+  const discardDraft = () => {
+    localStorage.removeItem(DRAFT_KEY);
+    setSavedDraftInfo(null);
+    setShowDraftDialog(false);
+    toast({
+      title: "Đã xóa bài làm dở",
+      description: "Bạn có thể bắt đầu bài thi mới.",
+    });
+  };
+
+  // Autosave draft on answers/flagged change (debounced ~1s)
+  useEffect(() => {
+    if (!started || submitting || Object.keys(answers).length === 0) return;
+    const timer = setTimeout(() => {
+      try {
+        const draft = {
+          testId: Number(testId),
+          answers,
+          flagged: Array.from(flagged),
+          timeLeft,
+          elapsedTime,
+          testMode,
+          selectedParts,
+          customTimeMinutes,
+          started: true,
+          savedAt: Date.now(),
+        };
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+      } catch (e) {
+        console.error("Failed to autosave test draft", e);
+      }
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [answers, flagged, timeLeft, elapsedTime, started, submitting, testId, testMode, selectedParts, customTimeMinutes, DRAFT_KEY]);
+
+  // Periodic autosave every 15s for clock
+  useEffect(() => {
+    if (!started || submitting || isPaused || Object.keys(answersRef.current).length === 0) return;
+    const interval = setInterval(() => {
+      try {
+        const draft = {
+          testId: Number(testId),
+          answers: answersRef.current,
+          flagged: Array.from(flaggedRef.current),
+          timeLeft: timeLeftRef.current,
+          elapsedTime: elapsedTimeRef.current,
+          testMode,
+          selectedParts,
+          customTimeMinutes,
+          started: true,
+          savedAt: Date.now(),
+        };
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+      } catch (e) {
+        console.error("Failed to periodic save test draft", e);
+      }
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [started, submitting, isPaused, DRAFT_KEY, testId, testMode, selectedParts, customTimeMinutes]);
+
+  // BeforeUnload guard
+  useEffect(() => {
+    if (!started || submitting) return;
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "Bạn có bài làm dở chưa nộp. Dữ liệu đã được lưu tự động nhưng hãy cẩn thận!";
+      return e.returnValue;
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [started, submitting]);
+
+  // Popstate / Back button protection
+  useEffect(() => {
+    if (!started || submitting) return;
+    window.history.pushState({ inExam: true }, "");
+    const handlePopState = () => {
+      window.history.pushState({ inExam: true }, "");
+      setShowExitConfirm(true);
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [started, submitting]);
 
   // Fetch Test Info
   const { data: testInfo, isLoading: loadingTest } = useQuery({
@@ -476,9 +629,20 @@ const FullTestExam = () => {
       }
     }
 
+    if (Object.keys(currentAnswers).length > 0) {
+      addXp(XP_REWARDS.FULLTEST_SUBMIT, "Hoàn thành bài thi Full Test!");
+    }
+
+    try {
+      localStorage.removeItem(DRAFT_KEY);
+    } catch {
+      /* ignore */
+    }
+
     submittingRef.current = false;
     setSubmitting(false);
     navigate(`/courses/${courseId}/fulltest/${testId}/result`, {
+      replace: true,
       state: {
         resultId,
         score: totalCorrect,
@@ -492,7 +656,7 @@ const FullTestExam = () => {
         selectedParts,
       },
     });
-  }, [examQuestions, selectedParts, testMode, effectiveTimeMinutes, timeLeft, elapsedTime, user, testId, courseId, pauseCount, allQuestions.length, navigate, playSound]);
+  }, [examQuestions, selectedParts, testMode, effectiveTimeMinutes, timeLeft, elapsedTime, user, testId, courseId, pauseCount, allQuestions.length, navigate, playSound, addXp]);
 
   // Timer auto-submit handler
   useEffect(() => {
@@ -569,6 +733,39 @@ const FullTestExam = () => {
               {testInfo?.description || "Tùy chọn luyện thi toàn bộ đề 200 câu hoặc chọn riêng các phần (Parts) bạn muốn ôn luyện."}
             </p>
           </div>
+
+          {/* Saved Draft Alert */}
+          {savedDraftInfo && (
+            <div className="bg-amber-500/10 border-2 border-amber-500/30 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 font-black text-amber-600 dark:text-amber-400 text-sm">
+                  <span>⚡ Phát hiện bài thi chưa hoàn tất!</span>
+                </div>
+                <p className="text-xs text-muted-foreground font-medium">
+                  Bạn có bài làm dở gồm <b>{savedDraftInfo.answeredCount} câu đã trả lời</b>, lưu lúc {new Date(savedDraftInfo.savedAt).toLocaleTimeString("vi-VN")}.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Button
+                  type="button"
+                  onClick={discardDraft}
+                  variant="outline"
+                  size="sm"
+                  className="rounded-xl border-amber-300 text-amber-700 hover:bg-amber-100 text-xs font-bold"
+                >
+                  Xóa bài dở
+                </Button>
+                <Button
+                  type="button"
+                  onClick={restoreDraft}
+                  size="sm"
+                  className="rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-black text-xs shadow-md shadow-amber-500/20"
+                >
+                  Tiếp tục làm bài 🚀
+                </Button>
+              </div>
+            </div>
+          )}
 
           {/* Mode Selection */}
           <div className="space-y-2">
@@ -672,7 +869,7 @@ const FullTestExam = () => {
                   <span className="text-xs font-black text-[var(--duo-blue-dark)] uppercase tracking-wider flex items-center gap-1.5">
                     <Headphones className="w-3.5 h-3.5" /> Listening (Part 1 - 4)
                   </span>
-                  <span className="text-[11px] font-bold text-muted-foreground">
+                  <span className="text-xs font-bold text-muted-foreground">
                     {[1, 2, 3, 4].reduce((sum, p) => sum + (questionsPerPart[p] || 0), 0)} câu
                   </span>
                 </div>
@@ -704,7 +901,7 @@ const FullTestExam = () => {
                             </p>
                           </div>
                         </div>
-                        <span className="badge-duo badge-blue text-[10px] font-bold shrink-0 ml-2">
+                        <span className="badge-duo badge-blue text-xs font-bold shrink-0 ml-2">
                           {count} câu
                         </span>
                       </div>
@@ -719,7 +916,7 @@ const FullTestExam = () => {
                   <span className="text-xs font-black text-[var(--duo-correct-dark)] uppercase tracking-wider flex items-center gap-1.5">
                     <BookOpen className="w-3.5 h-3.5" /> Reading (Part 5 - 7)
                   </span>
-                  <span className="text-[11px] font-bold text-muted-foreground">
+                  <span className="text-xs font-bold text-muted-foreground">
                     {[5, 6, 7].reduce((sum, p) => sum + (questionsPerPart[p] || 0), 0)} câu
                   </span>
                 </div>
@@ -751,7 +948,7 @@ const FullTestExam = () => {
                             </p>
                           </div>
                         </div>
-                        <span className="badge-duo badge-green text-[10px] font-bold shrink-0 ml-2">
+                        <span className="badge-duo badge-green text-xs font-bold shrink-0 ml-2">
                           {count} câu
                         </span>
                       </div>
@@ -870,7 +1067,7 @@ const FullTestExam = () => {
           <div className="space-y-2">
             <button
               onClick={handleConfirmSoundCheck}
-              className="btn-3d btn-3d-correct w-full py-3.5 text-base font-bold"
+              className="btn-3d btn-3d-primary w-full py-3.5 text-base font-bold"
             >
               Âm thanh tốt, bắt đầu ngay!
             </button>
@@ -896,18 +1093,21 @@ const FullTestExam = () => {
       <header className="h-16 border-b-2 border-[var(--duo-gray)] shrink-0 bg-card z-20 flex items-center justify-between px-4 lg:px-8">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => setShowConfirm(true)}
-            className="p-2 rounded-xl bg-slate-50 border-2 border-[var(--duo-gray)] hover:bg-slate-100 transition-colors"
+            onClick={() => setShowExitConfirm(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-zinc-800 border-2 border-[var(--duo-gray)] hover:bg-slate-100 dark:hover:bg-zinc-700 transition-colors"
+            title="Thoát bài thi"
+            aria-label="Thoát bài thi"
           >
             <ChevronLeft className="w-5 h-5 text-foreground" />
+            <span className="hidden sm:inline text-xs font-bold text-foreground">Thoát</span>
           </button>
           <div>
             <h1 className="font-extrabold text-sm lg:text-base hidden sm:block truncate max-w-xs">{testInfo?.title}</h1>
             <div className="flex items-center gap-2">
-              <span className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">
+              <span className="text-xs uppercase font-black tracking-widest text-muted-foreground">
                 Chế độ: {testMode === "exam" ? "Thi thử ⏱" : "Luyện tập 📚"}
               </span>
-              <span className="badge-duo badge-blue text-[9px] py-0 px-1.5 font-bold">
+              <span className="badge-duo badge-blue text-xs py-0.5 px-2 font-bold">
                 {selectedParts.length === 7 ? "Full 7 Parts" : `Part ${selectedParts.join(", ")}`}
               </span>
             </div>
@@ -967,7 +1167,7 @@ const FullTestExam = () => {
 
           <button
             onClick={() => setShowConfirm(true)}
-            className="btn-3d btn-3d-correct py-2 px-4 text-xs sm:text-sm font-black"
+            className="btn-3d btn-3d-primary py-2 px-4 text-xs sm:text-sm font-black"
           >
             Nộp bài
           </button>
@@ -1014,7 +1214,7 @@ const FullTestExam = () => {
                   key={f.key}
                   onClick={() => setPaletteFilter(f.key as any)}
                   className={cn(
-                    "text-[10px] font-bold px-2 py-1 rounded-lg border transition-all",
+                    "text-xs font-bold px-2.5 py-1.5 rounded-lg border transition-all",
                     paletteFilter === f.key
                       ? "bg-[var(--duo-blue)] text-white border-[var(--duo-blue-dark)]"
                       : "bg-muted text-muted-foreground border-transparent hover:border-[var(--duo-gray)]"
@@ -1045,7 +1245,7 @@ const FullTestExam = () => {
                 <div key={part} className="space-y-2">
                   <p className="text-xs font-black text-muted-foreground uppercase tracking-widest flex items-center justify-between">
                     <span>{partShortNames[part - 1]}</span>
-                    <span className="text-[10px] lowercase font-bold">({partQList.length} câu)</span>
+                    <span className="text-xs lowercase font-bold">({partQList.length} câu)</span>
                   </p>
                   <div className="grid grid-cols-5 gap-1.5">
                     {examQuestions.map((q: any) => {
@@ -1161,11 +1361,11 @@ const FullTestExam = () => {
                             Câu {q.sessionIdx + 1}
                           </span>
                           {selectedParts.length < 7 && q.originalGlobalIdx && (
-                            <span className="text-[10px] text-muted-foreground font-bold">
+                            <span className="text-xs text-muted-foreground font-bold">
                               (Đề gốc: #{q.originalGlobalIdx})
                             </span>
                           )}
-                          <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest bg-muted px-2 py-0.5 rounded-full">
+                          <span className="text-xs text-muted-foreground font-bold uppercase tracking-widest bg-muted px-2 py-0.5 rounded-full">
                             {partShortNames[q.part_number - 1]}
                           </span>
                         </div>
@@ -1446,10 +1646,91 @@ const FullTestExam = () => {
               <button
                 onClick={submit}
                 disabled={submitting}
-                className="btn-3d btn-3d-correct flex-1 py-2.5 text-sm font-black"
+                className="btn-3d btn-3d-primary flex-1 py-2.5 text-sm font-black"
               >
                 {submitting ? "Đang nộp..." : "Nộp bài"}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Exit Dialog */}
+      {showExitConfirm && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="card-duo p-6 sm:p-8 max-w-md w-full bg-card border-2 text-center space-y-5 shadow-2xl">
+            <span className="text-4xl block">⏸</span>
+            <h2 className="text-xl font-black text-foreground">Tạm dừng hoặc Rời bài thi?</h2>
+            
+            <p className="text-xs sm:text-sm text-muted-foreground font-medium">
+              Bạn đã hoàn thành <b>{answeredCount}/{examQuestions.length} câu</b>. Bài làm của bạn đã được tự động lưu tạm thời trên trình duyệt.
+            </p>
+
+            <div className="flex flex-col gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowExitConfirm(false);
+                  navigate(`/courses/${courseId}/fulltest`, { replace: true });
+                }}
+                className="btn-3d btn-3d-primary w-full py-3 text-sm font-black"
+              >
+                💾 Tạm dừng &amp; Thoát (Lưu bài làm)
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  try { localStorage.removeItem(DRAFT_KEY); } catch {}
+                  setShowExitConfirm(false);
+                  navigate(`/courses/${courseId}/fulltest`, { replace: true });
+                }}
+                className="py-2.5 text-xs text-rose-600 hover:text-rose-700 font-bold hover:underline"
+              >
+                Hủy bài thi này (Không lưu)
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowExitConfirm(false)}
+                className="btn-3d btn-3d-white w-full py-2.5 text-sm font-bold"
+              >
+                Ở lại làm tiếp
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Draft Resume Dialog */}
+      {showDraftDialog && savedDraftInfo && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in">
+          <div className="card-duo p-6 sm:p-8 max-w-md w-full bg-card border-2 text-center space-y-5 shadow-2xl">
+            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto text-2xl font-black">
+              ⚡
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-xl font-black text-foreground">Bạn có bài đang làm dở</h3>
+              <p className="text-sm text-muted-foreground font-medium">
+                Bạn có bài đang làm dở ({savedDraftInfo.answeredCount} câu đã trả lời). Tiếp tục hay làm mới?
+              </p>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <Button
+                type="button"
+                onClick={discardDraft}
+                variant="outline"
+                className="flex-1 py-2.5 rounded-xl font-bold border-2"
+              >
+                Làm mới
+              </Button>
+              <Button
+                type="button"
+                onClick={restoreDraft}
+                className="btn-3d btn-3d-primary flex-1 py-2.5 rounded-xl font-black"
+              >
+                Tiếp tục
+              </Button>
             </div>
           </div>
         </div>

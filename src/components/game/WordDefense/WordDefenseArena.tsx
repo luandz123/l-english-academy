@@ -901,7 +901,7 @@ export const WordDefenseArena: React.FC<WordDefenseArenaProps> = ({
 
         {/* Wave Progress Bar */}
         <div className="flex-1 max-w-xs hidden md:flex flex-col items-center gap-1">
-          <div className="flex justify-between w-full text-[11px] font-black tracking-wider text-emerald-400">
+          <div className="flex justify-between w-full text-xs font-black tracking-wider text-emerald-400">
             <span>ĐỢT {wave}/{totalWaves}</span>
             <span>{waveProgress}%</span>
           </div>
@@ -920,7 +920,7 @@ export const WordDefenseArena: React.FC<WordDefenseArenaProps> = ({
             <button
               onClick={() => setGameSpeed(0.75)}
               className={cn(
-                "px-2 py-1 text-[11px] font-bold rounded-lg transition-all",
+                "px-2 py-1 text-xs font-bold rounded-lg transition-all",
                 gameSpeed === 0.75
                   ? "bg-emerald-600 text-white shadow font-black"
                   : "text-slate-400 hover:text-slate-200"
@@ -932,7 +932,7 @@ export const WordDefenseArena: React.FC<WordDefenseArenaProps> = ({
             <button
               onClick={() => setGameSpeed(1.0)}
               className={cn(
-                "px-2 py-1 text-[11px] font-bold rounded-lg transition-all",
+                "px-2 py-1 text-xs font-bold rounded-lg transition-all",
                 gameSpeed === 1.0
                   ? "bg-emerald-600 text-white shadow font-black"
                   : "text-slate-400 hover:text-slate-200"
@@ -944,7 +944,7 @@ export const WordDefenseArena: React.FC<WordDefenseArenaProps> = ({
             <button
               onClick={() => setGameSpeed(1.25)}
               className={cn(
-                "px-2 py-1 text-[11px] font-bold rounded-lg transition-all",
+                "px-2 py-1 text-xs font-bold rounded-lg transition-all",
                 gameSpeed === 1.25
                   ? "bg-emerald-600 text-white shadow font-black"
                   : "text-slate-400 hover:text-slate-200"
@@ -956,7 +956,7 @@ export const WordDefenseArena: React.FC<WordDefenseArenaProps> = ({
           </div>
 
           <div className="text-right hidden sm:block">
-            <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Điểm số</span>
+            <span className="text-xs text-slate-400 font-bold block uppercase tracking-wider">Điểm số</span>
             <span className="text-base font-black text-amber-300 font-mono">{score}</span>
           </div>
 
@@ -1016,7 +1016,7 @@ export const WordDefenseArena: React.FC<WordDefenseArenaProps> = ({
               key={rIdx}
               className="flex-1 flex items-center justify-center border-b border-amber-950/60 relative"
             >
-              <span className="text-[11px] font-black text-amber-500/60 font-mono">
+              <span className="text-xs font-black text-amber-500/60 font-mono">
                 {rIdx + 1}
               </span>
             </div>
@@ -1138,7 +1138,7 @@ export const WordDefenseArena: React.FC<WordDefenseArenaProps> = ({
               {/* Special Shield Word with Vietnamese meaning on Head */}
               {zombie.shieldWord && zombie.x <= 93 && (
                 <div className="px-2.5 py-0.5 rounded-xl bg-slate-950/95 border-2 border-cyan-400 text-center mb-1 shadow-lg backdrop-blur-md">
-                  <span className="text-[10px] text-cyan-300 font-bold block">
+                  <span className="text-xs text-cyan-300 font-bold block">
                     [{zombie.shieldWord.definition_vi}]
                   </span>
                   <div className="font-mono text-xs font-black tracking-wider flex items-center justify-center">
@@ -1220,7 +1220,7 @@ export const WordDefenseArena: React.FC<WordDefenseArenaProps> = ({
               style={{ borderColor: pop.color }}
             >
               <p style={{ color: pop.color }}>{pop.text}</p>
-              {pop.subText && <p className="text-[10px] text-slate-300">{pop.subText}</p>}
+              {pop.subText && <p className="text-xs text-slate-300">{pop.subText}</p>}
             </div>
           </div>
         ))}
@@ -1274,7 +1274,7 @@ export const WordDefenseArena: React.FC<WordDefenseArenaProps> = ({
                     <PlantSpriteRenderer type={card.type} size={36} />
                     <div>
                       <h4 className="text-xs font-black text-white leading-tight">{card.name}</h4>
-                      <span className="text-[11px] text-amber-300 font-bold flex items-center gap-1">
+                      <span className="text-xs text-amber-300 font-bold flex items-center gap-1">
                         ☀️ {card.isReady ? `${Math.floor(card.sunCost * 0.5)} (Giảm 50%)` : card.sunCost}
                       </span>
                     </div>
@@ -1300,22 +1300,22 @@ export const WordDefenseArena: React.FC<WordDefenseArenaProps> = ({
                       );
                     })}
                   </div>
-                  <span className="text-[10px] text-slate-400 font-semibold block truncate mt-0.5">
+                  <span className="text-xs text-slate-400 font-semibold block truncate mt-0.5">
                     {card.definition_vi}
                   </span>
 
                   {/* Ready / Click Status */}
                   {card.isReady ? (
-                    <span className="inline-flex items-center gap-1 text-[9px] font-black text-amber-300 uppercase tracking-wider mt-1 bg-amber-950/80 px-2 py-0.5 rounded-full border border-amber-500/50">
+                    <span className="inline-flex items-center gap-1 text-xs font-black text-amber-300 uppercase tracking-wider mt-1 bg-amber-950/80 px-2 py-0.5 rounded-full border border-amber-500/50">
                       <CheckCircle2 className="w-2.5 h-2.5 text-amber-400" />
                       Đã Nạp Từ!
                     </span>
                   ) : hasSun ? (
-                    <span className="inline-flex items-center gap-1 text-[9px] font-bold text-emerald-400 mt-1">
+                    <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-400 mt-1">
                       👉 Click để chọn
                     </span>
                   ) : (
-                    <span className="text-[9px] text-slate-500 mt-1 block">
+                    <span className="text-xs text-slate-500 mt-1 block">
                       Gõ từ để nạp
                     </span>
                   )}

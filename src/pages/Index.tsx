@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import SidebarNav from "@/components/landing/SidebarNav";
 import Navbar from "@/components/landing/Navbar";
 import HeroCarousel from "@/components/landing/HeroCarousel";
@@ -9,34 +9,41 @@ import ZaloContactWidget from "@/components/landing/ZaloContactWidget";
 
 const Index = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   useEffect(() => {
-    if (window.location.hash && window.location.hash.includes("access_token=")) {
-      navigate("/auth/callback" + window.location.hash, { replace: true });
+    if (location.hash && location.hash.includes("access_token=")) {
+      navigate("/auth/callback" + location.hash, { replace: true });
       return;
     }
 
-    const scrollToHash = () => {
-      const hash = window.location.hash;
-      if (hash && !hash.includes("access_token=")) {
-        const id = hash.replace("#", "");
-        const el = document.getElementById(id);
-        if (el) {
-          el.scrollIntoView({ behavior: "smooth" });
-        }
+    const hash = location.hash || window.location.hash;
+    if (!hash || hash.includes("access_token=")) return;
+
+    const id = hash.replace("#", "");
+    let attempts = 0;
+    const maxAttempts = 30; // 30 * 80ms = 2.4s polling while courses load
+
+    const tryScroll = () => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+        return true;
       }
+      return false;
     };
 
-    // Run on initial load and after render
-    const timeout = setTimeout(scrollToHash, 150);
-    window.addEventListener("hashchange", scrollToHash);
-
-    return () => {
-      clearTimeout(timeout);
-      window.removeEventListener("hashchange", scrollToHash);
-    };
-  }, [navigate]);
+    if (!tryScroll()) {
+      const interval = setInterval(() => {
+        attempts++;
+        if (tryScroll() || attempts >= maxAttempts) {
+          clearInterval(interval);
+        }
+      }, 80);
+      return () => clearInterval(interval);
+    }
+  }, [location.hash, location.pathname, navigate]);
 
   return (
     <div className="min-h-screen flex bg-slate-50/60 dark:bg-zinc-950 text-foreground">

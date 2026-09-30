@@ -462,7 +462,7 @@ const DictationInput = ({
           </div>
           <div className="text-xs font-extrabold border-t border-border pt-1.5 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <span className="bg-muted-foreground/20 text-foreground px-1.5 py-0.5 rounded text-[10px] uppercase font-bold">Đáp án đầy đủ</span>
+              <span className="bg-muted-foreground/20 text-foreground px-1.5 py-0.5 rounded text-xs uppercase font-bold">Đáp án đầy đủ</span>
               <span className="text-sm font-bold">{fullExpected}</span>
             </div>
             <button
@@ -485,7 +485,7 @@ const DictationInput = ({
     return (
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <span className="bg-[var(--duo-correct)] text-white px-1.5 py-0.5 rounded text-[10px] uppercase font-bold">Đáp án</span>
+          <span className="bg-[var(--duo-correct)] text-white px-1.5 py-0.5 rounded text-xs uppercase font-bold">Đáp án</span>
           <span className="text-sm sm:text-base font-bold">{fullExpected}</span>
         </div>
         <button
@@ -756,7 +756,7 @@ const KeywordDictationInput = ({
                 title="Bấm vào đây để điền đáp án đúng (hoặc bấm Enter)"
               >
                 <span>{expected}</span>
-                <span className="text-[10px] text-muted-foreground font-semibold underline">Bấm để điền</span>
+                <span className="text-xs text-muted-foreground font-semibold underline">Bấm để điền</span>
               </button>
             </div>
           </>
@@ -1722,6 +1722,34 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
             </Button>
           </div>
           
+          {/* Part 2 Reflex Coach Banner */}
+          {(quizData?.quiz?.title?.toLowerCase().includes("part 2") ||
+            quizData?.quiz?.title?.toLowerCase().includes("phần 2") ||
+            quizData?.quiz?.title?.toLowerCase().includes("hỏi đáp")) && (
+            <div className="bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 rounded-3xl p-5 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm border border-purple-400/30">
+              <div className="space-y-1">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 text-white text-xs font-black uppercase tracking-wider">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                  <span>Chế độ Luyện Phản Xạ Độc Quyền</span>
+                </div>
+                <h3 className="text-lg font-black tracking-tight text-white">
+                  Phương Pháp Luyện Nghe Phản Xạ 8 Bước Part 2
+                </h3>
+                <p className="text-xs sm:text-sm text-white/80 font-medium">
+                  Bẻ nhỏ Chunks • Phản xạ 1s • Shadowing nối âm • Bóc mẽ bẫy ETS • Nghe thực chiến • Nghe thụ động.
+                </p>
+              </div>
+              <Button
+                type="button"
+                onClick={() => navigate('/part2-coach')}
+                className="btn-3d bg-white hover:bg-slate-50 text-purple-700 font-black px-6 py-3 h-auto shrink-0 shadow-md rounded-2xl cursor-pointer"
+              >
+                <Zap className="w-4 h-4 mr-1.5 text-amber-500 fill-amber-500" />
+                <span>Vào Luyện 8 Bước ➔</span>
+              </Button>
+            </div>
+          )}
+
           <div className="bg-muted/20 border-2 rounded-2xl p-5 sm:p-6 space-y-5 max-h-[60vh] overflow-y-auto">
              
              {/* Quick Settings Summary Bar */}
@@ -1933,11 +1961,11 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                              Câu số {idx + 1}
                            </span>
                            {isDone ? (
-                             <span className="px-2 py-0.5 rounded-full text-[11px] font-black bg-[var(--duo-correct)]/15 text-[var(--duo-correct-dark)] border border-[var(--duo-correct)]/30 inline-flex items-center gap-1">
+                             <span className="px-2 py-0.5 rounded-full text-xs font-black bg-[var(--duo-correct)]/15 text-[var(--duo-correct-dark)] border border-[var(--duo-correct)]/30 inline-flex items-center gap-1">
                                <CheckCircle className="w-3 h-3 text-[var(--duo-correct)]" /> Đã làm
                              </span>
                            ) : (
-                             <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                             <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
                                Chưa làm
                              </span>
                            )}
@@ -2003,11 +2031,11 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                         🎯 Kéo thả
                       </span>
                       {modeCounts.drag === 0 ? (
-                        <span className="bg-muted text-muted-foreground text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+                        <span className="bg-muted text-muted-foreground text-xs font-bold px-1.5 py-0.5 rounded-full">
                           Chưa có
                         </span>
                       ) : (
-                        <span className="bg-[var(--duo-blue)] text-white text-[9px] uppercase font-black px-1.5 py-0.5 rounded-full">
+                        <span className="bg-[var(--duo-blue)] text-white text-xs uppercase font-black px-1.5 py-0.5 rounded-full">
                           Mới
                         </span>
                       )}
@@ -2038,7 +2066,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                         ✍️ Gõ từ khóa
                       </span>
                       {modeCounts.keyword === 0 && (
-                        <span className="bg-muted text-muted-foreground text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+                        <span className="bg-muted text-muted-foreground text-xs font-bold px-1.5 py-0.5 rounded-full">
                           Chưa có
                         </span>
                       )}
@@ -2069,7 +2097,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                         📝 Gõ cả câu
                       </span>
                       {modeCounts.full === 0 && (
-                        <span className="bg-muted text-muted-foreground text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+                        <span className="bg-muted text-muted-foreground text-xs font-bold px-1.5 py-0.5 rounded-full">
                           Chưa có
                         </span>
                       )}
@@ -2290,7 +2318,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                     / {isKeywordMode ? `${totalKeywordsCount} từ` : `${totalPracticed} câu`}
                   </span>
                 </span>
-                <span className="text-[11px] font-bold text-muted-foreground">
+                <span className="text-xs font-bold text-muted-foreground">
                   {correctIndices.length}/{totalPracticed} câu đã hoàn tất
                 </span>
               </div>
@@ -2304,7 +2332,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                   {isKeywordMode ? `${skippedKeywordsCount}` : `${skippedIndices.length}`}
                   {isKeywordMode && <span className="text-xs font-bold text-muted-foreground"> từ</span>}
                 </span>
-                <span className="text-[11px] font-bold text-muted-foreground">
+                <span className="text-xs font-bold text-muted-foreground">
                   {skippedIndices.length > 0 ? `${skippedIndices.length} câu chưa xong` : "Đã hoàn tất"}
                 </span>
               </div>
@@ -2317,7 +2345,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                 <span className="text-2xl sm:text-3xl font-black text-amber-600">
                   +{xpEarned} <span className="text-xs font-bold">XP</span>
                 </span>
-                <span className="text-[11px] font-bold text-amber-600">
+                <span className="text-xs font-bold text-amber-600">
                   Thưởng luyện tập
                 </span>
               </div>
@@ -2561,7 +2589,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                                 >
                                   {isKwCorrect ? <CheckCircle2 className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
                                   <span>{kw}</span>
-                                  <span className="text-[10px] font-bold opacity-80">
+                                  <span className="text-xs font-bold opacity-80">
                                     {isKwCorrect ? "(Đúng)" : "(Chưa điền)"}
                                   </span>
                                 </span>
@@ -2574,7 +2602,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                       {/* Vietnamese Translation */}
                       {q.translation && (
                         <div className="p-3.5 bg-[var(--duo-blue)]/5 rounded-xl border border-[var(--duo-blue)]/20 text-sm font-bold text-foreground space-y-1">
-                          <span className="text-[11px] font-black uppercase text-[var(--duo-blue)] tracking-wider">
+                          <span className="text-xs font-black uppercase text-[var(--duo-blue)] tracking-wider">
                             🇻🇳 Bản dịch tiếng Việt:
                           </span>
                           <p className="leading-relaxed whitespace-pre-wrap">{q.translation}</p>
@@ -2591,7 +2619,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                             {qVocab.map((w: any) => (
                               <div key={w.id} className="inline-flex items-center gap-1.5 bg-[var(--duo-orange)]/10 border border-[var(--duo-orange)]/20 px-2.5 py-1 rounded-lg text-xs font-bold">
                                 <span className="font-black text-[var(--duo-orange)]">{w.word}</span>
-                                {w.phonetic && <span className="text-muted-foreground font-mono text-[10px]">{w.phonetic}</span>}
+                                {w.phonetic && <span className="text-muted-foreground font-mono text-xs">{w.phonetic}</span>}
                                 <span className="text-foreground">({w.definition_vi})</span>
                                 <button type="button" onClick={() => speakText(w.word)} className="p-0.5 hover:bg-white rounded text-[var(--duo-orange)]">
                                   <Volume2 className="w-3 h-3" />
@@ -2648,15 +2676,15 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
               <div className="flex items-center gap-2">
                 <h1 className="text-base sm:text-lg font-extrabold text-foreground truncate">{quizData.quiz.title}</h1>
                 {dictationMode === "drag" ? (
-                  <span className="bg-[var(--duo-blue)]/10 text-[var(--duo-blue)] text-[10px] font-black uppercase px-2 py-0.5 rounded-md border border-[var(--duo-blue)]/20 shrink-0">
+                  <span className="bg-[var(--duo-blue)]/10 text-[var(--duo-blue)] text-xs font-black uppercase px-2 py-0.5 rounded-md border border-[var(--duo-blue)]/20 shrink-0">
                     🎯 Kéo thả từ khóa
                   </span>
                 ) : dictationMode === "keyword" ? (
-                  <span className="bg-[var(--duo-blue)]/10 text-[var(--duo-blue)] text-[10px] font-black uppercase px-2 py-0.5 rounded-md border border-[var(--duo-blue)]/20 shrink-0">
+                  <span className="bg-[var(--duo-blue)]/10 text-[var(--duo-blue)] text-xs font-black uppercase px-2 py-0.5 rounded-md border border-[var(--duo-blue)]/20 shrink-0">
                     ✍️ Gõ từ khóa
                   </span>
                 ) : (
-                  <span className="bg-[var(--duo-blue)]/10 text-[var(--duo-blue)] text-[10px] font-black uppercase px-2 py-0.5 rounded-md border border-[var(--duo-blue)]/20 shrink-0">
+                  <span className="bg-[var(--duo-blue)]/10 text-[var(--duo-blue)] text-xs font-black uppercase px-2 py-0.5 rounded-md border border-[var(--duo-blue)]/20 shrink-0">
                     📝 Gõ cả câu
                   </span>
                 )}
@@ -2754,7 +2782,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                           <Link
                             to={`/courses/${courseId}/vocab-lesson/${effectiveLessonId}`}
                             state={{ questionIds: [currentQuestion?.id].filter(Boolean) }}
-                            className="text-[11px] font-extrabold text-[var(--duo-blue)] hover:underline flex items-center gap-0.5"
+                            className="text-xs font-extrabold text-[var(--duo-blue)] hover:underline flex items-center gap-0.5"
                           >
                             Học Flashcard →
                           </Link>
@@ -2774,11 +2802,11 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                                   <Volume2 className="w-3 h-3" />
                                 </button>
                               </div>
-                              {w.phonetic && <span className="text-[10px] text-muted-foreground font-mono bg-white px-1.5 py-0.5 rounded border">{w.phonetic}</span>}
+                              {w.phonetic && <span className="text-xs text-muted-foreground font-mono bg-white px-1.5 py-0.5 rounded border">{w.phonetic}</span>}
                             </div>
                             <p className="text-foreground text-xs font-bold leading-tight">{w.definition_vi}</p>
                             {w.example_sentence && (
-                              <p className="text-[10px] text-muted-foreground italic bg-white/80 p-1.5 rounded border truncate">"{w.example_sentence}"</p>
+                              <p className="text-xs text-muted-foreground italic bg-white/80 p-1.5 rounded border truncate">"{w.example_sentence}"</p>
                             )}
                           </div>
                         ))}
@@ -2810,12 +2838,12 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
               </div>
               <div className="hidden sm:flex items-center gap-2 text-xs font-bold text-muted-foreground bg-muted/40 px-3 py-1.5 rounded-xl border">
                 <span className="flex items-center gap-1">
-                  <kbd className="px-1.5 py-0.5 bg-white rounded border shadow-2xs text-[11px] font-mono">Ctrl</kbd>
+                  <kbd className="px-1.5 py-0.5 bg-white rounded border shadow-2xs text-xs font-mono">Ctrl</kbd>
                   <span>Phát/Dừng</span>
                 </span>
                 <span>•</span>
                 <span className="flex items-center gap-1">
-                  <kbd className="px-1.5 py-0.5 bg-white rounded border shadow-2xs text-[11px] font-mono">Alt + ← / →</kbd>
+                  <kbd className="px-1.5 py-0.5 bg-white rounded border shadow-2xs text-xs font-mono">Alt + ← / →</kbd>
                   <span>Tua 5s</span>
                 </span>
               </div>
@@ -3031,7 +3059,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                     >
                       {idx + 1}
                       {isDone && !isCurrent && (
-                        <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-white text-[var(--duo-correct)] rounded-full flex items-center justify-center shadow-2xs text-[9px] font-black border border-[var(--duo-correct)]">
+                        <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-white text-[var(--duo-correct)] rounded-full flex items-center justify-center shadow-2xs text-xs font-black border border-[var(--duo-correct)]">
                           ✓
                         </span>
                       )}
@@ -3048,7 +3076,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                   <Library className="w-4 h-4 text-[var(--duo-orange)]" />
                   <h3 className="font-black text-sm sm:text-base text-foreground">Từ vựng trong câu</h3>
                 </div>
-                <span className="text-[11px] font-black text-[var(--duo-orange)] bg-[var(--duo-orange)]/10 px-2 py-0.5 rounded-full border border-[var(--duo-orange)]/20">
+                <span className="text-xs font-black text-[var(--duo-orange)] bg-[var(--duo-orange)]/10 px-2 py-0.5 rounded-full border border-[var(--duo-orange)]/20">
                   {currentQuestionVocab.length} từ
                 </span>
               </div>
@@ -3070,14 +3098,14 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                           </button>
                         </div>
                         {w.phonetic && (
-                          <span className="text-[10px] text-muted-foreground font-mono font-bold bg-white px-1.5 py-0.5 rounded-md border shadow-2xs shrink-0">
+                          <span className="text-xs text-muted-foreground font-mono font-bold bg-white px-1.5 py-0.5 rounded-md border shadow-2xs shrink-0">
                             {w.phonetic}
                           </span>
                         )}
                       </div>
                       <p className="text-foreground text-xs font-bold leading-tight">{w.definition_vi}</p>
                       {w.example_sentence && (
-                        <p className="text-[10px] font-medium text-muted-foreground italic bg-white/90 px-1.5 py-0.5 rounded border truncate leading-relaxed">
+                        <p className="text-xs font-medium text-muted-foreground italic bg-white/90 px-1.5 py-0.5 rounded border truncate leading-relaxed">
                           "{w.example_sentence}"
                         </p>
                       )}
@@ -3091,7 +3119,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                     <Link
                       to={`/courses/${courseId}/vocab-lesson/${effectiveLessonId}`}
                       state={{ questionIds: [currentQuestion?.id].filter(Boolean) }}
-                      className="text-[11px] font-extrabold text-[var(--duo-blue)] hover:underline inline-flex items-center gap-0.5"
+                      className="text-xs font-extrabold text-[var(--duo-blue)] hover:underline inline-flex items-center gap-0.5"
                     >
                       Học trọn bộ →
                     </Link>
@@ -3104,7 +3132,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                   <Link
                     to={`/courses/${courseId}/vocab-lesson/${effectiveLessonId}`}
                     state={{ questionIds: [currentQuestion?.id].filter(Boolean) }}
-                    className="text-[11px] font-extrabold text-[var(--duo-blue)] hover:underline flex items-center gap-0.5"
+                    className="text-xs font-extrabold text-[var(--duo-blue)] hover:underline flex items-center gap-0.5"
                   >
                     Luyện Flashcard bài này <ChevronRight className="w-3 h-3" />
                   </Link>
@@ -3760,7 +3788,7 @@ const DragDropQuestionGroup = ({
                           <span>{placedToken.word}</span>
                           {isWrong && <span className="text-xs font-black text-[var(--duo-red)] ml-0.5">✕</span>}
                           {!isLineCorrect && !isWrong && (
-                            <span className="text-[10px] text-muted-foreground group-hover/blank:text-red-500 opacity-60 ml-0.5">✕</span>
+                            <span className="text-xs text-muted-foreground group-hover/blank:text-red-500 opacity-60 ml-0.5">✕</span>
                           )}
                         </span>
                       ) : isFocused ? (
@@ -3799,7 +3827,7 @@ const DragDropQuestionGroup = ({
             <span className="text-xs font-extrabold text-muted-foreground uppercase flex items-center gap-1">
               <span>Ngân hàng từ khóa ({availableBankTokens.length}/{bankTokens.length}):</span>
             </span>
-            <span className="text-[11px] font-bold text-[var(--duo-blue)]">
+            <span className="text-xs font-bold text-[var(--duo-blue)]">
               {focusedBlankKey 
                 ? "👉 Đang chọn ô trống: Chạm 1 từ dưới đây để điền" 
                 : "Kéo từ hoặc chạm ô trống để điền"}
@@ -3878,7 +3906,7 @@ const DragDropQuestionGroup = ({
             <CheckCircle className="w-4 h-4 text-[var(--duo-correct)]" />
             Chính xác tuyệt đối! Đã hoàn thành các từ khóa của câu này.
           </span>
-          <span className="text-[11px] bg-white px-2 py-0.5 rounded-md border border-[var(--duo-correct)]/30 shadow-2xs font-black text-[var(--duo-correct-dark)]">
+          <span className="text-xs bg-white px-2 py-0.5 rounded-md border border-[var(--duo-correct)]/30 shadow-2xs font-black text-[var(--duo-correct-dark)]">
             +{allBlanks.length * 5 || 10} XP
           </span>
         </div>
@@ -4144,7 +4172,7 @@ const DragDropClozeSection = ({
             <button
               type="button"
               onClick={handleReset}
-              className="text-[11px] font-extrabold text-muted-foreground hover:text-[var(--duo-red)] bg-muted/50 hover:bg-red-50 px-2.5 py-1 rounded-lg border transition-colors flex items-center gap-1"
+              className="text-xs font-extrabold text-muted-foreground hover:text-[var(--duo-red)] bg-muted/50 hover:bg-red-50 px-2.5 py-1 rounded-lg border transition-colors flex items-center gap-1"
             >
               <RotateCcw className="w-3 h-3" /> Đặt lại
             </button>
@@ -4154,7 +4182,7 @@ const DragDropClozeSection = ({
             <button 
               type="button"
               onClick={handleRevealAll}
-              className="text-[11px] font-black bg-muted/60 hover:bg-muted text-muted-foreground px-2.5 py-1 rounded-lg border transition-colors shadow-2xs flex items-center gap-1"
+              className="text-xs font-black bg-muted/60 hover:bg-muted text-muted-foreground px-2.5 py-1 rounded-lg border transition-colors shadow-2xs flex items-center gap-1"
             >
               <Eye className="w-3.5 h-3.5" /> Xem đáp án (Alt+A)
             </button>
@@ -4203,7 +4231,7 @@ const DragDropClozeSection = ({
                       {isCorrect && <CheckCircle2 className="w-3.5 h-3.5 inline ml-0.5 text-[var(--duo-correct)]" />}
                       {isWrong && <span className="text-xs font-black text-[var(--duo-red)] ml-0.5">✕</span>}
                       {!isCorrect && !isWrong && (
-                        <span className="text-[10px] text-muted-foreground group-hover/blank:text-red-500 opacity-60 ml-0.5">✕</span>
+                        <span className="text-xs text-muted-foreground group-hover/blank:text-red-500 opacity-60 ml-0.5">✕</span>
                       )}
                     </span>
                   ) : isFocused ? (
@@ -4229,7 +4257,7 @@ const DragDropClozeSection = ({
             <span className="text-xs font-extrabold text-muted-foreground uppercase">
               Ngân hàng từ ({availableBankTokens.length}/{bankTokens.length}):
             </span>
-            <span className="text-[11px] font-bold text-[var(--duo-blue)]">
+            <span className="text-xs font-bold text-[var(--duo-blue)]">
               {focusedBlankIdx !== null 
                 ? `👉 Đang chọn ô ${focusedBlankIdx + 1}: Chạm 1 từ để điền` 
                 : "Kéo từ hoặc chạm ô trống để điền"}
@@ -4305,7 +4333,7 @@ const DragDropClozeSection = ({
             <CheckCircle className="w-4 h-4 text-[var(--duo-correct)]" />
             Chính xác! Bạn đã hoàn thành câu này.
           </span>
-          <span className="text-[11px] bg-white px-2 py-0.5 rounded-md border border-[var(--duo-correct)]/30 shadow-2xs">
+          <span className="text-xs bg-white px-2 py-0.5 rounded-md border border-[var(--duo-correct)]/30 shadow-2xs">
             +{expectedAnswers.length * 5} XP
           </span>
         </div>
@@ -4437,7 +4465,7 @@ const KeywordModeItem = ({
       {!isDoneInSession && keywordIndices.length > 0 && !forceRevealAll && (
         <button 
           onClick={() => setInternalForceReveal(true)}
-          className="absolute right-3 top-3 z-10 text-[10px] font-black bg-muted/60 hover:bg-muted text-muted-foreground px-2.5 py-1 rounded-lg border transition-colors shadow-2xs"
+          className="absolute right-3 top-3 z-10 text-xs font-black bg-muted/60 hover:bg-muted text-muted-foreground px-2.5 py-1 rounded-lg border transition-colors shadow-2xs"
           title="Phím tắt: Alt + A"
         >
           <Eye className="w-3.5 h-3.5 inline mr-1" /> Xem đáp án (Alt+A)

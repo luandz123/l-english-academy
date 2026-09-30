@@ -10,11 +10,34 @@ const AuthCallback = () => {
   useEffect(() => {
     let subscription: { unsubscribe: () => void } | null = null;
 
+    const getSafeRedirect = (url: unknown): string | null => {
+      if (!url || typeof url !== "string") return null;
+      if (!url.startsWith("/") || url.startsWith("//") || url.startsWith("/\\") || url.includes("://")) {
+        return null;
+      }
+      const pathname = url.split("?")[0].split("#")[0];
+      const blockedPrefixes = ["/login", "/register", "/forgot-password", "/reset-password", "/auth"];
+      if (blockedPrefixes.some((prefix) => pathname === prefix || pathname.startsWith(prefix + "/"))) {
+        return null;
+      }
+      return url;
+    };
+
     const handleRedirect = async (userId: string) => {
       toast({
         title: "Đăng nhập thành công!",
         description: "Chào mừng bạn quay lại.",
       });
+
+      let customRedirect: string | null = null;
+      try {
+        const raw = sessionStorage.getItem("lenglish_post_login_redirect") || localStorage.getItem("lenglish_auth_redirect");
+        sessionStorage.removeItem("lenglish_post_login_redirect");
+        localStorage.removeItem("lenglish_auth_redirect");
+        if (raw) {
+          customRedirect = getSafeRedirect(raw);
+        }
+      } catch {}
       
       try {
         const { data: roleData } = await supabase
@@ -24,14 +47,21 @@ const AuthCallback = () => {
           .eq("role", "admin")
           .maybeSingle();
 
-        if (roleData) {
-          navigate("/admin/dashboard", { replace: true });
-        } else {
-          navigate("/profile", { replace: true });
-        }
+        const isAdmin = !!roleData;
+        const getDestination = (targetUrl: string | null, userIsAdmin: boolean) => {
+          if (targetUrl) {
+            if (targetUrl.startsWith("/admin")) {
+              return userIsAdmin ? targetUrl : "/profile";
+            }
+            return targetUrl;
+          }
+          return userIsAdmin ? "/admin/dashboard" : "/profile";
+        };
+
+        navigate(getDestination(customRedirect, isAdmin), { replace: true });
       } catch (err) {
         console.error("Error checking role:", err);
-        navigate("/profile", { replace: true });
+        navigate(customRedirect && !customRedirect.startsWith("/admin") ? customRedirect : "/profile", { replace: true });
       }
     };
 

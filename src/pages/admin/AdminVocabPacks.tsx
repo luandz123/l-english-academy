@@ -620,11 +620,11 @@ export default function AdminVocabPacks() {
               <div className="flex items-center gap-2">
                 <h1 className="text-2xl font-black text-foreground tracking-tight">Cài Đặt Bộ Từ Vựng Game</h1>
                 {hasUnsavedChanges ? (
-                  <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/30 text-[11px] font-bold animate-pulse">
+                  <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/30 text-xs font-bold animate-pulse">
                     Chưa lưu thay đổi
                   </Badge>
                 ) : (
-                  <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/30 text-[11px] font-bold">
+                  <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/30 text-xs font-bold">
                     <Check className="w-3 h-3 mr-1" /> Đã đồng bộ Cloud
                   </Badge>
                 )}
@@ -783,14 +783,14 @@ export default function AdminVocabPacks() {
                           <h3 className="font-extrabold text-base text-foreground group-hover:text-[var(--duo-blue)] transition-colors line-clamp-1">
                             {pack.name}
                           </h3>
-                          <Badge variant="secondary" className="mt-1 font-bold text-[11px] bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                          <Badge variant="secondary" className="mt-1 font-bold text-xs bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
                             {pack.words?.length || 0} từ vựng
                           </Badge>
                         </div>
                       </div>
 
                       {pack.isCustom && (
-                        <Badge className="bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/30 text-[10px] font-bold">
+                        <Badge className="bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/30 text-xs font-bold">
                           Tùy biến
                         </Badge>
                       )}
@@ -806,13 +806,13 @@ export default function AdminVocabPacks() {
                       {pack.words.slice(0, 4).map((w, idx) => (
                         <span
                           key={idx}
-                          className="px-2 py-0.5 rounded-md bg-muted text-[11px] font-mono font-bold text-foreground/80"
+                          className="px-2 py-0.5 rounded-md bg-muted text-xs font-mono font-bold text-foreground/80"
                         >
                           {w.word}
                         </span>
                       ))}
                       {pack.words.length > 4 && (
-                        <span className="px-2 py-0.5 rounded-md bg-muted text-[10px] font-bold text-muted-foreground">
+                        <span className="px-2 py-0.5 rounded-md bg-muted text-xs font-bold text-muted-foreground">
                           +{pack.words.length - 4} từ nữa
                         </span>
                       )}
@@ -1177,7 +1177,7 @@ export default function AdminVocabPacks() {
             </DialogHeader>
 
             <div className="space-y-3 py-1 flex-1 overflow-y-auto">
-              <div className="bg-muted/60 p-3 rounded-xl border text-[11px] space-y-1 text-muted-foreground">
+              <div className="bg-muted/60 p-3 rounded-xl border text-xs space-y-1 text-muted-foreground">
                 <p className="font-bold text-foreground">Hỗ trợ các định dạng dòng:</p>
                 <p>• <code>contract - hợp đồng - /ˈkɒn.trækt/</code></p>
                 <p>• <code>schedule | lịch trình | /ˈʃedʒ.uːl/</code></p>
@@ -1193,7 +1193,7 @@ export default function AdminVocabPacks() {
                     variant="outline"
                     size="sm"
                     asChild
-                    className="h-7 text-[11px] font-bold"
+                    className="h-7 text-xs font-bold"
                   >
                     <span>
                       <Upload className="w-3.5 h-3.5 mr-1" /> Nạp file CSV / TXT
@@ -1220,7 +1220,7 @@ export default function AdminVocabPacks() {
               {bulkInputText.trim() && (
                 <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 p-2.5 rounded-lg text-xs font-bold flex items-center justify-between">
                   <span>Nhận diện được: {parseBulkWordsText(bulkInputText).length} từ vựng hợp lệ</span>
-                  <Badge variant="outline" className="bg-emerald-500/20 border-emerald-500/40 text-[10px]">
+                  <Badge variant="outline" className="bg-emerald-500/20 border-emerald-500/40 text-xs">
                     Sẵn sàng nạp
                   </Badge>
                 </div>
@@ -1295,8 +1295,8 @@ export default function AdminVocabPacks() {
                           />
                           <div>
                             <span className="font-mono font-black text-foreground">{w.word}</span>
-                            {w.phonetic && <span className="ml-2 text-[10px] text-cyan-600 font-mono">{w.phonetic}</span>}
-                            <p className="text-[11px] text-muted-foreground">{w.definition_vi}</p>
+                            {w.phonetic && <span className="ml-2 text-xs text-cyan-600 font-mono">{w.phonetic}</span>}
+                            <p className="text-xs text-muted-foreground">{w.definition_vi}</p>
                           </div>
                         </div>
 
@@ -1405,12 +1405,12 @@ export default function AdminVocabPacks() {
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <span className="text-2xl">🎯</span>
-                    <Badge className="bg-amber-500 text-white font-black text-[10px]">ĐỀ XUẤT</Badge>
+                    <Badge className="bg-amber-500 text-white font-black text-xs">ĐỀ XUẤT</Badge>
                   </div>
                   <h4 className="text-sm font-black text-foreground group-hover:text-amber-500 transition-colors">
                     Nạp Gói Toàn Tập
                   </h4>
-                  <p className="text-[11px] text-muted-foreground mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                     Nạp 1 bộ duy nhất chứa đủ <strong>600 từ vựng</strong> để học viên luyện tập liên tục.
                   </p>
                 </div>
@@ -1426,12 +1426,12 @@ export default function AdminVocabPacks() {
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <span className="text-2xl">📚</span>
-                    <Badge className="bg-[var(--duo-blue)] text-white font-black text-[10px]">9 CHUYÊN ĐỀ</Badge>
+                    <Badge className="bg-[var(--duo-blue)] text-white font-black text-xs">9 CHUYÊN ĐỀ</Badge>
                   </div>
                   <h4 className="text-sm font-black text-foreground group-hover:text-[var(--duo-blue)] transition-colors">
                     Nạp 9 Chuyên Đề
                   </h4>
-                  <p className="text-[11px] text-muted-foreground mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                     Chia thành 9 gói theo lĩnh vực (Kinh doanh, Nhân sự, Tài chính...) từ 60-120 từ/bộ.
                   </p>
                 </div>
@@ -1447,12 +1447,12 @@ export default function AdminVocabPacks() {
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <span className="text-2xl">💾</span>
-                    <Badge variant="outline" className="text-[10px]">JSON BACKUP</Badge>
+                    <Badge variant="outline" className="text-xs">JSON BACKUP</Badge>
                   </div>
                   <h4 className="text-sm font-black text-foreground group-hover:text-[var(--duo-purple)] transition-colors">
                     Tải File Sao Lưu
                   </h4>
-                  <p className="text-[11px] text-muted-foreground mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                     Tải file <code>.json</code> chứa toàn bộ 600 từ về máy tính để lưu trữ hoặc chia sẻ.
                   </p>
                 </div>
@@ -1490,9 +1490,9 @@ export default function AdminVocabPacks() {
                   .map((w, index) => (
                     <div key={w.id} className="p-2.5 px-4 flex items-center justify-between hover:bg-muted/40 text-xs">
                       <div className="flex items-center gap-2.5">
-                        <span className="font-mono text-muted-foreground w-6 text-[10px]">{index + 1}.</span>
+                        <span className="font-mono text-muted-foreground w-6 text-xs">{index + 1}.</span>
                         <span className="font-bold text-foreground">{w.word}</span>
-                        {w.phonetic && <span className="font-mono text-muted-foreground text-[11px]">{w.phonetic}</span>}
+                        {w.phonetic && <span className="font-mono text-muted-foreground text-xs">{w.phonetic}</span>}
                       </div>
                       <div className="flex items-center gap-3">
                         <span className="text-muted-foreground line-clamp-1 max-w-xs">{w.definition_vi}</span>
@@ -1512,7 +1512,7 @@ export default function AdminVocabPacks() {
             </div>
 
             <DialogFooter className="mt-3 flex items-center justify-between sm:justify-between">
-              <span className="text-[11px] text-muted-foreground">
+              <span className="text-xs text-muted-foreground">
                 Tổng cộng: <strong>600 từ vựng</strong> • 50 bài học Barron TOEIC
               </span>
               <Button variant="outline" onClick={() => setIsToeicModalOpen(false)}>

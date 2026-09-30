@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { CheckCircle, LayoutGrid, Clock, Award, Eye, ChevronLeft, Loader2, Headphones, BookOpen } from "lucide-react";
+import ErrorState from "@/components/ErrorState";
 
 const defaultPartTotals: Record<number, number> = {
   1: 6, 2: 25, 3: 39, 4: 30, 5: 30, 6: 16, 7: 54
@@ -36,7 +37,7 @@ const FullTestResult = () => {
   // 1. Get resultId from state or query latest result from DB
   const stateResultId = state?.resultId;
 
-  const { data: latestResult, isLoading: loadingResult } = useQuery({
+  const { data: latestResult, isLoading: loadingResult, isError: isResultError, refetch: refetchResult } = useQuery({
     queryKey: ["latest-fulltest-result", user?.id, testId],
     queryFn: async () => {
       if (stateResultId) {
@@ -63,7 +64,7 @@ const FullTestResult = () => {
   const resultId = latestResult?.id;
 
   // 2. Fetch answer details for this result
-  const { data: answerDetails = [], isLoading: loadingDetails } = useQuery({
+  const { data: answerDetails = [], isLoading: loadingDetails, isError: isDetailsError, refetch: refetchDetails } = useQuery({
     queryKey: ["fulltest-answer-details", resultId],
     queryFn: async () => {
       const { data } = await supabase
@@ -76,7 +77,7 @@ const FullTestResult = () => {
   });
 
   // 3. Fetch all questions & answers of this test
-  const { data: questions = [], isLoading: loadingQuestions } = useQuery({
+  const { data: questions = [], isLoading: loadingQuestions, isError: isQuestionsError, refetch: refetchQuestions } = useQuery({
     queryKey: ["fulltest-result-questions", testId],
     queryFn: async () => {
       const { data: sections } = await supabase
@@ -234,6 +235,22 @@ const FullTestResult = () => {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="w-10 h-10 animate-spin text-primary" />
       </div>
+    );
+  }
+
+  if (isResultError || isDetailsError || isQuestionsError) {
+    return (
+      <StudentLayout>
+        <div className="max-w-4xl mx-auto px-4 py-16">
+          <ErrorState
+            onRetry={() => {
+              refetchResult();
+              refetchDetails();
+              refetchQuestions();
+            }}
+          />
+        </div>
+      </StudentLayout>
     );
   }
 

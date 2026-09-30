@@ -12,7 +12,9 @@ import {
   Headphones,
   Flame, 
   Zap,
-  Gamepad2
+  Gamepad2,
+  PanelLeftClose,
+  PanelLeftOpen
 } from "lucide-react";
 import React, { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -27,30 +29,50 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useGamification } from "@/hooks/useGamification";
+import GamificationChips from "@/components/GamificationChips";
 
 const navItems = [
-  { to: "/#section-fulltest", label: "Luyện đề Full Test", icon: FileCheck2, badge: "Thi thử", badgeColor: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" },
-  { to: "/#section-listening", label: "Luyện nghe điền từ", icon: Headphones, badge: "Dictation", badgeColor: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20" },
+  { to: "/fulltests", label: "Luyện đề Full Test", icon: FileCheck2, badge: "Thi thử", badgeColor: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" },
+  { to: "/listening", label: "Luyện nghe điền từ", icon: Headphones, badge: "Dictation", badgeColor: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20" },
+  { to: "/part2-coach", label: "Phản Xạ Part 2", icon: Zap, badge: "8 Bước", badgeColor: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20" },
   { to: "/games", label: "Khu Trò Chơi", icon: Gamepad2, badge: "Arcade", badgeColor: "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20" },
-  { to: "/#section-video", label: "Kho khóa học", icon: BookOpen },
+  { to: "/library", label: "Kho khóa học", icon: BookOpen },
   { to: "/profile", label: "Hồ sơ cá nhân", icon: User },
 ];
 
 const mobileNavItems = [
-  { to: "/#section-fulltest", label: "Luyện đề", icon: FileCheck2, isHighlight: true },
-  { to: "/#section-listening", label: "Điền từ", icon: Headphones, isHighlight: true },
-  { to: "/games", label: "Trò Chơi", icon: Gamepad2, isHighlight: true },
-  { to: "/#section-video", label: "Khóa học", icon: BookOpen },
+  { to: "/part2-coach", label: "Phản Xạ P2", icon: Zap, isHighlight: true },
+  { to: "/fulltests", label: "Luyện đề", icon: FileCheck2 },
+  { to: "/listening", label: "Điền từ", icon: Headphones },
+  { to: "/games", label: "Trò Chơi", icon: Gamepad2 },
   { to: "/profile", label: "Hồ sơ", icon: User },
 ];
 
 const StudentLayout = ({ children }: { children: React.ReactNode }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem("lenglish_sidebar_collapsed") === "true";
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleCollapse = () => {
+    setIsCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("lenglish_sidebar_collapsed", String(next));
+      } catch (e) {
+        console.error(e);
+      }
+      return next;
+    });
+  };
+
   const location = useLocation();
   const navigate = useNavigate();
   const { user, profile, signOut, isAdmin } = useAuth();
-  const { streak, xp, levelInfo } = useGamification();
 
   const displayName = profile?.full_name || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Học viên";
   const initials = displayName.charAt(0).toUpperCase();
@@ -61,9 +83,10 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
     navigate("/login");
   };
 
-  const isFullTestActive = location.pathname.includes("/fulltest");
-  const isListeningActive = location.pathname.includes("/dictation");
-  const isAllCoursesActive = (location.pathname === "/" || location.pathname === "/courses") && !isFullTestActive && !isListeningActive;
+  const isPart2Active = location.pathname.startsWith("/part2-coach");
+  const isFullTestActive = location.pathname === "/fulltests" || location.pathname.includes("/fulltest");
+  const isListeningActive = location.pathname === "/listening" || location.pathname.includes("/dictation");
+  const isLibraryActive = location.pathname === "/library";
 
   const pathSegments = location.pathname.split("/").filter(Boolean);
   const breadcrumbs = pathSegments.map((segment, index) => {
@@ -76,6 +99,10 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
     if (segment === "quiz") label = "Bài tập";
     if (segment === "dictation") label = "Luyện nghe";
     if (segment === "fulltest") label = "Full Test";
+    if (segment === "part2-coach") label = "Phản Xạ Part 2";
+    if (segment === "fulltests") label = "Luyện đề";
+    if (segment === "listening") label = "Luyện nghe";
+    if (segment === "library") label = "Kho khóa học";
     return { path, label };
   });
 
@@ -91,43 +118,67 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
       {/* Desktop & Drawer Sidebar */}
       <aside
         className={cn(
-          "fixed md:sticky top-0 z-50 h-screen w-[260px] bg-card border-r border-border flex flex-col transition-transform duration-300 ease-in-out shrink-0",
-          sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+          "fixed md:sticky top-0 z-50 h-screen bg-card border-r border-border flex flex-col transition-all duration-300 ease-in-out shrink-0",
+          isCollapsed ? "md:w-[72px]" : "md:w-[260px]",
+          sidebarOpen ? "translate-x-0 w-[260px]" : "-translate-x-full md:translate-x-0"
         )}
       >
         {/* Logo */}
-        <div className="h-16 px-5 border-b border-border flex items-center justify-between">
-          <Logo imgClassName="w-8 h-8" />
+        <div className={cn("h-16 border-b border-border flex items-center justify-between", isCollapsed ? "px-3 justify-center" : "px-5")}>
+          <Logo imgClassName="w-8 h-8" showText={!isCollapsed} />
           <Button variant="ghost" size="icon" className="md:hidden h-8 w-8 text-muted-foreground" onClick={() => setSidebarOpen(false)}>
             <X className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="hidden md:flex h-8 w-8 text-muted-foreground hover:text-foreground shrink-0 rounded-xl"
+            onClick={toggleCollapse}
+            title={isCollapsed ? "Mở rộng thanh menu" : "Thu gọn thanh menu"}
+          >
+            {isCollapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
           </Button>
         </div>
 
         {/* User preview */}
-        <div className="p-4 mx-3 my-3 rounded-xl bg-muted/50 border border-border/50 flex items-center gap-3">
-          {profile?.avatar_url ? (
-            <img src={profile.avatar_url} alt={displayName} className="w-10 h-10 rounded-full object-cover border border-border" />
-          ) : (
-            <div className="w-10 h-10 rounded-full bg-primary/10 text-primary font-bold text-sm flex items-center justify-center border border-primary/20">
-              {initials}
+        {!isCollapsed ? (
+          <div className="p-4 mx-3 my-3 rounded-xl bg-muted/50 border border-border/50 flex items-center gap-3">
+            {profile?.avatar_url ? (
+              <img src={profile.avatar_url} alt={displayName} className="w-10 h-10 rounded-full object-cover border border-border" />
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-primary/10 text-primary font-bold text-sm flex items-center justify-center border border-primary/20">
+                {initials}
+              </div>
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-foreground truncate">{displayName}</p>
+              <p className="text-xs text-muted-foreground truncate">{email}</p>
             </div>
-          )}
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-foreground truncate">{displayName}</p>
-            <p className="text-xs text-muted-foreground truncate">{email}</p>
           </div>
-        </div>
+        ) : (
+          <div className="py-4 flex justify-center">
+            {profile?.avatar_url ? (
+              <img src={profile.avatar_url} alt={displayName} className="w-10 h-10 rounded-full object-cover border border-border" title={`${displayName} (${email})`} />
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-primary/10 text-primary font-bold text-sm flex items-center justify-center border border-primary/20" title={`${displayName} (${email})`}>
+                {initials}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Navigation list */}
         <nav className="flex-1 px-3 py-2 space-y-1.5 overflow-y-auto">
           {navItems.map((item) => {
             const active = 
-              item.to.includes("fulltest")
+              item.to.includes("part2-coach")
+                ? isPart2Active
+                : item.to.includes("fulltest")
                 ? isFullTestActive
                 : item.to.includes("listening")
                 ? isListeningActive
-                : item.to.includes("video") || item.to === "/courses"
-                ? isAllCoursesActive
+                : item.to === "/library"
+                ? isLibraryActive
                 : location.pathname === item.to;
 
             return (
@@ -135,24 +186,29 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
                 key={item.to}
                 to={item.to}
                 onClick={() => setSidebarOpen(false)}
+                title={isCollapsed ? `${item.label}${item.badge ? ` (${item.badge})` : ''}` : undefined}
                 className={cn(
-                  "flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all group",
+                  "flex items-center rounded-xl text-sm font-medium transition-all group relative",
+                  isCollapsed ? "justify-center p-2.5" : "justify-between px-3.5 py-2.5",
                   active
                     ? "bg-primary text-primary-foreground font-semibold shadow-sm"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted"
                 )}
               >
-                <div className="flex items-center gap-3 min-w-0">
+                <div className={cn("flex items-center min-w-0", isCollapsed ? "justify-center" : "gap-3")}>
                   <item.icon className={cn("w-4 h-4 shrink-0", active ? "text-primary-foreground" : "text-muted-foreground group-hover:text-foreground")} />
-                  <span className="truncate">{item.label}</span>
+                  {!isCollapsed && <span className="truncate">{item.label}</span>}
                 </div>
-                {item.badge && (
+                {!isCollapsed && item.badge && (
                   <span className={cn(
-                    "text-[10px] font-black uppercase px-2 py-0.5 rounded-md border tracking-wider shrink-0",
+                    "text-xs font-black uppercase px-2 py-0.5 rounded-md border tracking-wider shrink-0",
                     active ? "bg-white/20 text-primary-foreground border-white/30" : item.badgeColor
                   )}>
                     {item.badge}
                   </span>
+                )}
+                {isCollapsed && item.badge && (
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary" />
                 )}
               </Link>
             );
@@ -161,10 +217,14 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
           {isAdmin && (
             <Link
               to="/admin/dashboard"
-              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition-colors mt-2"
+              title={isCollapsed ? "Quản trị Admin" : undefined}
+              className={cn(
+                "flex items-center rounded-xl text-sm font-medium text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition-colors mt-2",
+                isCollapsed ? "justify-center p-2.5" : "gap-3 px-3.5 py-2.5"
+              )}
             >
               <ShieldCheck className="w-4 h-4 shrink-0" />
-              Quản trị Admin
+              {!isCollapsed && <span>Quản trị Admin</span>}
             </Link>
           )}
         </nav>
@@ -173,10 +233,14 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
         <div className="p-3 border-t border-border">
           <button
             onClick={handleSignOut}
-            className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all w-full text-left"
+            title={isCollapsed ? "Đăng xuất" : undefined}
+            className={cn(
+              "flex items-center rounded-xl text-sm font-medium text-muted-foreground hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all w-full text-left",
+              isCollapsed ? "justify-center p-2.5" : "gap-3 px-3.5 py-2.5"
+            )}
           >
             <LogOut className="w-4 h-4" />
-            Đăng xuất
+            {!isCollapsed && <span>Đăng xuất</span>}
           </button>
         </div>
       </aside>
@@ -193,6 +257,16 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
 
             <Button variant="ghost" size="icon" className="md:hidden h-8 w-8 text-muted-foreground shrink-0" onClick={() => setSidebarOpen(true)} title="Mở menu">
               <Menu className="w-4 h-4" />
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              className="hidden md:flex h-8 w-8 text-muted-foreground hover:text-foreground shrink-0 rounded-lg mr-1"
+              onClick={toggleCollapse}
+              title={isCollapsed ? "Mở rộng thanh bên" : "Thu gọn thanh bên"}
+            >
+              {isCollapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
             </Button>
             
             <div className="hidden sm:flex items-center gap-2 text-xs font-medium text-muted-foreground overflow-hidden">
@@ -217,23 +291,7 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
           </div>
           
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            {/* Streak Badge */}
-            <div 
-              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-xs font-black shadow-2xs cursor-default"
-              title="Ngọn lửa Chuỗi ngày học tập của bạn"
-            >
-              <Flame className="w-4 h-4 fill-amber-500 text-amber-500 animate-pulse" />
-              <span className="text-[11px] sm:text-xs">{streak} <span className="hidden xs:inline">Ngày</span></span>
-            </div>
-
-            {/* XP & Level Badge */}
-            <div 
-              className={cn("flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-full border text-xs font-black shadow-2xs", levelInfo.color)}
-              title={`${levelInfo.title} - Còn ${levelInfo.xpToNextLevel} XP để lên Cấp tiếp theo`}
-            >
-              <Zap className="w-3.5 h-3.5 fill-amber-400 text-amber-500 shrink-0" />
-              <span className="text-[11px] sm:text-xs">Lv.{levelInfo.level} <span className="hidden sm:inline">• {xp} XP</span></span>
-            </div>
+            <GamificationChips />
 
             {/* User Profile Dropdown */}
             <DropdownMenu>
@@ -286,12 +344,14 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
           <div className="flex items-center justify-around h-16 px-1">
             {mobileNavItems.map((item) => {
               const isActive = 
-                item.to.includes("fulltest")
+                item.to.includes("part2-coach")
+                  ? isPart2Active
+                  : item.to.includes("fulltest")
                   ? isFullTestActive
                   : item.to.includes("listening")
                   ? isListeningActive
-                  : item.to.includes("video") || item.to === "/courses"
-                  ? isAllCoursesActive
+                  : item.to === "/library"
+                  ? isLibraryActive
                   : location.pathname === item.to;
 
               return (
@@ -316,7 +376,7 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
                     <item.icon className="w-5 h-5" />
                   </div>
                   
-                  <span className="text-[10px] tracking-tight leading-tight mt-0.5 truncate max-w-[62px]">
+                  <span className="text-xs tracking-tight leading-tight mt-0.5 truncate max-w-[62px]">
                     {item.label}
                   </span>
 

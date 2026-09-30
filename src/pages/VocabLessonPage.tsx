@@ -3,7 +3,7 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useState, useEffect, useRef } from "react";
-import { Volume2, X as XIcon, Mic, CheckCircle2, ArrowRight, ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
+import { Volume2, X as XIcon, Mic, CheckCircle2, ArrowRight, ChevronLeft, ChevronRight, RotateCcw, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -38,7 +38,7 @@ export default function VocabLessonPage() {
 
   const currentIdx = indices[round];
 
-  const { data: words, isLoading } = useQuery({
+  const { data: words, isLoading, isError, refetch } = useQuery({
     queryKey: ["vocab-lesson-student", lessonId, filteredQuestionIds],
     queryFn: async () => {
       if (!lessonId) return [];
@@ -244,6 +244,38 @@ export default function VocabLessonPage() {
   };
 
   if (isLoading) return <StudentLayout><Skeleton className="h-64 rounded-3xl max-w-2xl mx-auto border-2 shadow-sm" /></StudentLayout>;
+
+  if (isError) {
+    return (
+      <StudentLayout>
+        <div className="max-w-md mx-auto my-16 p-8 text-center bg-card rounded-3xl border-2 border-red-200 dark:border-red-900/50 shadow-lg space-y-4">
+          <div className="w-16 h-16 rounded-2xl bg-red-100 dark:bg-red-950/60 text-red-600 flex items-center justify-center mx-auto">
+            <AlertTriangle className="w-8 h-8" />
+          </div>
+          <h3 className="text-xl font-black text-foreground">Không thể tải bài học từ vựng</h3>
+          <p className="text-sm font-medium text-muted-foreground">
+            Đã xảy ra lỗi khi kết nối hoặc tải dữ liệu từ vựng. Vui lòng thử lại.
+          </p>
+          <div className="flex items-center justify-center gap-3 pt-2">
+            <Button
+              onClick={() => refetch()}
+              className="rounded-xl font-bold bg-primary hover:bg-primary/90 text-primary-foreground gap-2"
+            >
+              <RotateCcw className="w-4 h-4" /> Thử lại
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => navigate(courseId ? `/courses/${courseId}/vocab` : "/courses")}
+              className="rounded-xl font-bold"
+            >
+              Quay lại
+            </Button>
+          </div>
+        </div>
+      </StudentLayout>
+    );
+  }
+
   if (!words || words.length === 0) return (
     <StudentLayout>
       <div className="text-center py-24 card-duo max-w-2xl mx-auto bg-white border-2">

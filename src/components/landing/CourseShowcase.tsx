@@ -30,20 +30,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-interface CourseRow {
-  id: number;
-  title: string;
-  subtitle: string | null;
-  course_type: string;
-  price: number | null;
-  thumbnail_url: string | null;
-  instructor: string | null;
-  is_active: boolean | null;
-  is_free: boolean | null;
-  display_order: number | null;
-  category_id: number | null;
-  duration_months?: number | null;
-}
+import { CourseCard, CourseRow } from "@/components/CourseCard";
 
 export const CourseShowcase = () => {
   const [modalOpen, setModalOpen] = useState(false);
@@ -82,144 +69,6 @@ export const CourseShowcase = () => {
     return activeCourses.filter((c) => c.course_type === "listening");
   }, [activeCourses]);
 
-  const formatPrice = (price: number | null, isFree: boolean | null) => {
-    if (isFree || !price || price === 0) return "Miễn phí";
-    return new Intl.NumberFormat("vi-VN").format(price) + " đ";
-  };
-
-  // Component render một thẻ card khóa học
-  const renderCourseCard = (c: CourseRow) => {
-    const isFullTest = c.course_type === "fulltest";
-    const isListening = c.course_type === "listening";
-    const courseUrl = isFullTest
-      ? `/courses/${c.id}/fulltest`
-      : c.course_type === "flashcard"
-      ? `/courses/${c.id}/vocab`
-      : `/courses/${c.id}/learn`;
-
-    return (
-      <Link
-        key={c.id}
-        to={courseUrl}
-        className="group bg-card rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-2xs hover:shadow-md hover:border-blue-500/50 dark:hover:border-blue-500/50 transition-all duration-200 flex flex-col h-full overflow-hidden cursor-pointer"
-      >
-        {/* Thumbnail Banner */}
-        <div className="aspect-video w-full relative overflow-hidden bg-slate-100 dark:bg-zinc-800">
-          {c.thumbnail_url ? (
-            <img
-              src={c.thumbnail_url}
-              alt={c.title}
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-            />
-          ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-tr from-blue-600/15 via-indigo-600/10 to-emerald-600/15 p-4 text-center">
-              {isFullTest ? (
-                <FileCheck2 className="w-8 h-8 text-emerald-600 mb-1" />
-              ) : isListening ? (
-                <Headphones className="w-8 h-8 text-purple-600 mb-1" />
-              ) : (
-                <Video className="w-8 h-8 text-blue-600 mb-1" />
-              )}
-              <span className="text-xs font-black text-blue-600 dark:text-blue-400 uppercase tracking-wider">
-                L-English Academy
-              </span>
-              <span className="text-[11px] font-bold text-slate-600 dark:text-zinc-300 mt-1 line-clamp-1">
-                {c.title}
-              </span>
-            </div>
-          )}
-
-          {/* Badge phương pháp học */}
-          <div
-            className={`absolute top-2.5 left-2.5 flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider shadow-sm ${
-              isFullTest
-                ? "bg-emerald-600 text-white"
-                : isListening
-                ? "bg-purple-600 text-white"
-                : "bg-blue-600 text-white"
-            }`}
-          >
-            {isFullTest && <FileCheck2 className="w-3 h-3" />}
-            {isListening && <Headphones className="w-3 h-3" />}
-            {!isFullTest && !isListening && <Video className="w-3 h-3" />}
-            <span>
-              {isFullTest
-                ? "Full Test 200 Câu"
-                : isListening
-                ? "Dictation Điền Từ"
-                : "Video Bài Giảng"}
-            </span>
-          </div>
-
-          {c.is_free && (
-            <div className="absolute top-2.5 right-2.5 bg-rose-500 text-white font-black text-[10px] px-2 py-0.5 rounded-lg shadow-sm">
-              FREE
-            </div>
-          )}
-        </div>
-
-        {/* Body Content */}
-        <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
-          <div className="space-y-1.5">
-            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 dark:text-zinc-400">
-              <span className="bg-slate-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded text-[10px] font-bold">
-                {isFullTest ? "Bấm Giờ 120 Phút" : "Học Chủ Động"}
-              </span>
-              <span>•</span>
-              <span>Thời hạn {c.duration_months || 12} tháng</span>
-            </div>
-
-            <h3 className="text-sm font-extrabold text-foreground group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2 leading-snug">
-              {c.title}
-            </h3>
-
-            <p className="text-xs text-slate-500 dark:text-zinc-400 font-medium line-clamp-2 leading-relaxed">
-              {c.subtitle ||
-                (isFullTest
-                  ? "Bộ đề thi thử TOEIC chuẩn format ETS mới nhất, bấm giờ 120 phút, chấm điểm tự động kèm lời giải chi tiết."
-                  : isListening
-                  ? "Luyện nghe chép chính tả Part 1-4, kéo thả từ khóa mượt mà cảm ứng, tăng phản xạ nghe nhanh chóng."
-                  : "Hệ thống video bài giảng chi tiết, bám sát các dạng bài trọng tâm và kỹ thuật làm bài thi đạt điểm cao.")}
-            </p>
-          </div>
-
-          {/* Instructor & Meta */}
-          <div className="pt-2 border-t border-slate-100 dark:border-zinc-800 flex items-center justify-between text-[11px] text-slate-500 dark:text-zinc-400 font-medium">
-            <div className="flex items-center gap-1">
-              <Users className="w-3 h-3 text-blue-600" />
-              <span>Học viên toàn quốc</span>
-            </div>
-            <span className="font-bold text-slate-700 dark:text-zinc-300 truncate max-w-[110px]">
-              {c.instructor || "L-English Mentor"}
-            </span>
-          </div>
-
-          {/* Price & CTA Button */}
-          <div className="pt-2.5 border-t border-slate-100 dark:border-zinc-800 flex items-center justify-between gap-2">
-            <div>
-              <span className="text-sm font-black text-blue-600 dark:text-blue-400 block">
-                {formatPrice(c.price, c.is_free)}
-              </span>
-            </div>
-
-            <span
-              className={`py-1.5 px-3.5 rounded-xl font-black text-xs inline-flex items-center gap-1 shadow-sm transition-all group-hover:translate-x-0.5 text-white ${
-                isFullTest
-                  ? "bg-emerald-600 hover:bg-emerald-700"
-                  : isListening
-                  ? "bg-purple-600 hover:bg-purple-700"
-                  : "bg-blue-600 hover:bg-blue-700"
-              }`}
-            >
-              <span>{isFullTest ? "THI THỬ NGAY" : "VÀO HỌC"}</span>
-              <ArrowRight className="w-3 h-3" />
-            </span>
-          </div>
-        </div>
-      </Link>
-    );
-  };
-
   return (
     <div className="space-y-10" id="combos">
       {/* ========================================================================= */}
@@ -227,7 +76,7 @@ export const CourseShowcase = () => {
       {/* ========================================================================= */}
       <section
         id="section-fulltest"
-        className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200 dark:border-zinc-800 p-5 sm:p-7 md:p-8 shadow-sm space-y-6"
+        className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200 dark:border-zinc-800 p-5 sm:p-7 md:p-8 shadow-sm space-y-6 scroll-mt-20 sm:scroll-mt-24"
       >
         {/* Header Kệ Section */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-zinc-800">
@@ -242,7 +91,7 @@ export const CourseShowcase = () => {
                   (FORMAT ETS)
                 </span>
               </h2>
-              <span className="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 text-[11px] font-black uppercase">
+              <span className="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 text-xs font-black uppercase">
                 {fullTestCourses.length} Bộ Đề
               </span>
             </div>
@@ -263,7 +112,9 @@ export const CourseShowcase = () => {
           </div>
         ) : fullTestCourses.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-            {fullTestCourses.map(renderCourseCard)}
+            {fullTestCourses.map((c) => (
+              <CourseCard key={c.id} course={c} />
+            ))}
           </div>
         ) : (
           <p className="text-xs text-muted-foreground">Đang cập nhật bộ đề thi mới...</p>
@@ -275,7 +126,7 @@ export const CourseShowcase = () => {
       {/* ========================================================================= */}
       <section
         id="section-video"
-        className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200 dark:border-zinc-800 p-5 sm:p-7 md:p-8 shadow-sm space-y-6"
+        className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200 dark:border-zinc-800 p-5 sm:p-7 md:p-8 shadow-sm space-y-6 scroll-mt-20 sm:scroll-mt-24"
       >
         {/* Header Kệ Section */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-zinc-800">
@@ -290,7 +141,7 @@ export const CourseShowcase = () => {
                   NGHE - ĐỌC
                 </span>
               </h2>
-              <span className="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 text-[11px] font-black uppercase">
+              <span className="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 text-xs font-black uppercase">
                 {videoCourses.length} Khóa Học
               </span>
             </div>
@@ -311,7 +162,9 @@ export const CourseShowcase = () => {
           </div>
         ) : videoCourses.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-            {videoCourses.map(renderCourseCard)}
+            {videoCourses.map((c) => (
+              <CourseCard key={c.id} course={c} />
+            ))}
           </div>
         ) : (
           <p className="text-xs text-muted-foreground">Đang cập nhật khóa học video...</p>
@@ -323,7 +176,7 @@ export const CourseShowcase = () => {
       {/* ========================================================================= */}
       <section
         id="section-listening"
-        className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200 dark:border-zinc-800 p-5 sm:p-7 md:p-8 shadow-sm space-y-6"
+        className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200 dark:border-zinc-800 p-5 sm:p-7 md:p-8 shadow-sm space-y-6 scroll-mt-20 sm:scroll-mt-24"
       >
         {/* Header Kệ Section */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-zinc-800">
@@ -338,7 +191,7 @@ export const CourseShowcase = () => {
                   (DICTATION CHÉP CHÍNH TẢ)
                 </span>
               </h2>
-              <span className="px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 text-[11px] font-black uppercase">
+              <span className="px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 text-xs font-black uppercase">
                 {listeningCourses.length} Chương Trình
               </span>
             </div>
@@ -350,6 +203,29 @@ export const CourseShowcase = () => {
 
         </div>
 
+        {/* Banner Khám Phá Chế Độ Luyện Nghe Phản Xạ 8 Bước Part 2 */}
+        <div className="bg-gradient-to-r from-purple-700 via-indigo-700 to-blue-700 rounded-3xl p-6 sm:p-7 text-white flex flex-col md:flex-row items-start md:items-center justify-between gap-5 shadow-md">
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 text-white text-xs font-black uppercase tracking-wider">
+              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+              <span>Phương pháp sư phạm mới</span>
+            </div>
+            <h3 className="text-xl sm:text-2xl font-black tracking-tight text-white">
+              Luyện Nghe Phản Xạ TOEIC Part 2 (Quy Trình 8 Bước Độc Quyền)
+            </h3>
+            <p className="text-xs sm:text-sm text-white/80 font-medium max-w-2xl leading-relaxed">
+              Bẻ nhỏ Functional Chunks • Phản xạ 1s bật nghĩa • Đoán hướng trả lời • Shadowing nối âm nuốt âm • Vạch trần bẫy ETS • Nghe thực chiến như thi • Nghe thụ động liên tục.
+            </p>
+          </div>
+          <Link
+            to="/part2-coach"
+            className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-white hover:bg-slate-50 text-purple-700 font-black text-sm shrink-0 shadow-lg transition-transform hover:scale-105 active:scale-95"
+          >
+            <span>Trải Nghiệm 8 Bước Ngay</span>
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+
         {/* Lưới khóa học Listening */}
         {isLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
@@ -359,7 +235,9 @@ export const CourseShowcase = () => {
           </div>
         ) : listeningCourses.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-            {listeningCourses.map(renderCourseCard)}
+            {listeningCourses.map((c) => (
+              <CourseCard key={c.id} course={c} />
+            ))}
           </div>
         ) : (
           <p className="text-xs text-muted-foreground">Đang cập nhật bài luyện nghe...</p>
@@ -407,7 +285,7 @@ export const CourseShowcase = () => {
           <div className="space-y-4 pt-2">
             <div className="p-4 rounded-2xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/50 flex items-center justify-between">
               <div>
-                <span className="text-[10px] uppercase font-bold text-blue-600 dark:text-blue-400">
+                <span className="text-xs uppercase font-bold text-blue-600 dark:text-blue-400">
                   GÓI HỌC TOÀN DIỆN
                 </span>
                 <h4 className="font-black text-sm text-foreground">
@@ -419,7 +297,7 @@ export const CourseShowcase = () => {
                 <span className="text-base font-black text-blue-600 dark:text-blue-400">
                   1.750.000 đ
                 </span>
-                <span className="text-[11px] text-slate-400 line-through block">
+                <span className="text-xs text-slate-400 line-through block">
                   3.500.000 đ
                 </span>
               </div>
@@ -443,7 +321,7 @@ export const CourseShowcase = () => {
                 <p className="text-xs font-bold text-foreground">
                   Chủ tài khoản: <span className="font-extrabold">HOANG CONG LUAN</span>
                 </p>
-                <p className="text-[11px] text-slate-500">
+                <p className="text-xs text-slate-500">
                   Nội dung CK: <strong className="text-blue-600">VIP [SĐT Của Bạn]</strong>
                 </p>
               </div>

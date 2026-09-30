@@ -34,6 +34,7 @@ import {
 import { getFriendlyErrorMessage } from "@/lib/errorHandler";
 import { DailyQuestsWidget } from "@/components/DailyQuestsWidget";
 import { AchievementsWidget } from "@/components/AchievementsWidget";
+import ErrorState from "@/components/ErrorState";
 
 const Profile = () => {
   const { user, profile, isAdmin } = useAuth();
@@ -49,7 +50,7 @@ const Profile = () => {
   const initials = displayName.charAt(0).toUpperCase();
 
   // 1. Quizzes results
-  const { data: quizResults } = useQuery({
+  const { data: quizResults, isError: isQuizError, refetch: refetchQuizzes } = useQuery({
     queryKey: ["profile-quiz-results", user?.id],
     queryFn: async () => {
       const { data } = await supabase
@@ -63,7 +64,7 @@ const Profile = () => {
   });
 
   // 2. Enrollments
-  const { data: enrollments } = useQuery({
+  const { data: enrollments, isError: isEnrollmentsError, refetch: refetchEnrollments } = useQuery({
     queryKey: ["profile-enrollments", user?.id, isAdmin],
     queryFn: async () => {
       if (!user) return [];
@@ -86,7 +87,7 @@ const Profile = () => {
   });
 
   // 3. Lesson Progress
-  const { data: lessonProgress } = useQuery({
+  const { data: lessonProgress, isError: isProgressError, refetch: refetchProgress } = useQuery({
     queryKey: ["profile-lesson-progress", user?.id],
     queryFn: async () => {
       const { data } = await supabase
@@ -282,6 +283,22 @@ const Profile = () => {
     },
   ];
 
+  if (isEnrollmentsError || isProgressError || isQuizError) {
+    return (
+      <StudentLayout>
+        <div className="max-w-5xl mx-auto py-16 px-4">
+          <ErrorState
+            onRetry={() => {
+              refetchQuizzes();
+              refetchEnrollments();
+              refetchProgress();
+            }}
+          />
+        </div>
+      </StudentLayout>
+    );
+  }
+
   return (
     <StudentLayout>
       <div className="max-w-5xl mx-auto space-y-6 pb-20">
@@ -307,7 +324,7 @@ const Profile = () => {
                   {displayName}
                 </h1>
                 {isAdmin && (
-                  <span className="px-2 py-0.5 rounded-full bg-amber-400 text-amber-950 text-[10px] font-black uppercase tracking-wider">
+                  <span className="px-2 py-0.5 rounded-full bg-amber-400 text-amber-950 text-xs font-black uppercase tracking-wider">
                     Admin
                   </span>
                 )}
@@ -338,7 +355,7 @@ const Profile = () => {
                 <div className="text-base sm:text-lg font-black leading-none text-white">
                   {streak} ngày
                 </div>
-                <p className="text-white/80 text-[11px] font-medium mt-0.5">Chuỗi học tập</p>
+                <p className="text-white/80 text-xs font-medium mt-0.5">Chuỗi học tập</p>
               </div>
             </div>
 
@@ -350,7 +367,7 @@ const Profile = () => {
                 <div className="text-base sm:text-lg font-black leading-none text-white">
                   {xp} XP
                 </div>
-                <p className="text-white/80 text-[11px] font-medium mt-0.5">Kinh nghiệm</p>
+                <p className="text-white/80 text-xs font-medium mt-0.5">Kinh nghiệm</p>
               </div>
             </div>
           </div>
@@ -395,7 +412,7 @@ const Profile = () => {
                 <Play className="w-5 h-5 fill-white" />
               </div>
               <div className="space-y-0.5 min-w-0">
-                <span className="text-[11px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
+                <span className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
                   Tiếp tục bài học gần nhất
                 </span>
                 <h3 className="font-bold text-foreground text-sm sm:text-base leading-snug truncate">
@@ -431,7 +448,7 @@ const Profile = () => {
                 <h4 className="font-bold text-sm text-foreground group-hover:text-emerald-600 transition-colors">
                   Luyện Đề Full Test TOEIC
                 </h4>
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   200 câu chuẩn format ETS, bấm giờ 120 phút
                 </p>
               </div>
@@ -451,7 +468,7 @@ const Profile = () => {
                 <h4 className="font-bold text-sm text-foreground group-hover:text-blue-600 transition-colors">
                   Luyện Nghe Điền Từ (Dictation)
                 </h4>
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   Nghe chép chính tả, kéo thả từ khóa cảm ứng
                 </p>
               </div>
@@ -515,7 +532,7 @@ const Profile = () => {
                           <h4 className="font-bold text-sm sm:text-base text-foreground group-hover:text-blue-600 transition-colors line-clamp-1">
                             {e.courses?.title}
                           </h4>
-                          <span className="badge-duo badge-green text-[10px] shrink-0">
+                          <span className="badge-duo badge-green text-xs shrink-0">
                             <CheckCircle2 className="w-3 h-3" /> Đã đăng ký
                           </span>
                         </div>
@@ -525,7 +542,7 @@ const Profile = () => {
                         
                         {/* Progress Bar */}
                         <div className="space-y-1 pt-1">
-                          <div className="flex items-center justify-between text-[11px] font-semibold">
+                          <div className="flex items-center justify-between text-xs font-semibold">
                             <span className="text-muted-foreground">Tiến độ hoàn thành:</span>
                             <span className="text-blue-600 font-bold">{percent}% ({progress.completed}/{progress.total} bài)</span>
                           </div>
@@ -539,7 +556,7 @@ const Profile = () => {
                       </div>
 
                       <div className="pt-2 border-t border-border flex items-center justify-between">
-                        <span className="text-[11px] text-muted-foreground font-medium">
+                        <span className="text-xs text-muted-foreground font-medium">
                           {e.expires_at
                             ? `Hạn dùng: ${new Date(e.expires_at).toLocaleDateString("vi-VN")}`
                             : "Thời hạn: Vĩnh viễn"}
@@ -654,7 +671,7 @@ const Profile = () => {
                   disabled
                   className="h-10 rounded-lg border-border text-sm bg-muted/60 text-muted-foreground"
                 />
-                <p className="text-[11px] text-muted-foreground">Email đăng nhập tài khoản không thể thay đổi.</p>
+                <p className="text-xs text-muted-foreground">Email đăng nhập tài khoản không thể thay đổi.</p>
               </div>
               <button
                 onClick={handleUpdateProfile}

@@ -1,3 +1,4 @@
+import AdminLayout from "@/components/AdminLayout";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -154,7 +155,8 @@ const AdminCategories = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <AdminLayout>
+      <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-black text-foreground">Quản Lý Danh Mục</h1>
@@ -331,7 +333,8 @@ const AdminCategories = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </AdminLayout>
   );
 };
 

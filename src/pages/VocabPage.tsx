@@ -7,6 +7,7 @@ import { Volume2, Undo2, LayoutGrid, Check, X as XIcon, Library, ArrowRight, Rot
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
+import ErrorState from "@/components/ErrorState";
 
 const VocabPage = () => {
   const { courseId } = useParams();
@@ -20,39 +21,42 @@ const VocabPage = () => {
   const [correctCount, setCorrectCount] = useState(0);
   const [shuffledOptions, setShuffledOptions] = useState<string[]>([]);
 
-  const { data: categories, isLoading } = useQuery({
+  const { data: categories, isLoading, isError: isCategoriesError, refetch: refetchCategories } = useQuery({
     queryKey: ["vocab-categories", cid],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("vocab_categories")
         .select("*")
         .eq("course_id", cid)
         .order("display_order");
+      if (error) throw error;
       return data || [];
     },
   });
 
-  const { data: quizzes } = useQuery({
+  const { data: quizzes, isError: isQuizzesError, refetch: refetchQuizzes } = useQuery({
     queryKey: ["vocab-quizzes", selectedCat],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("vocab_quizzes")
         .select("*")
         .eq("category_id", selectedCat!)
         .order("display_order");
+      if (error) throw error;
       return data || [];
     },
     enabled: selectedCat !== null,
   });
 
-  const { data: vocabWords } = useQuery({
+  const { data: vocabWords, isError: isWordsError, refetch: refetchWords } = useQuery({
     queryKey: ["vocab-words", selectedQuiz],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("vocab_questions")
         .select("*")
         .eq("vocab_quiz_id", selectedQuiz!)
         .order("display_order");
+      if (error) throw error;
       return data || [];
     },
     enabled: selectedQuiz !== null,
@@ -109,6 +113,26 @@ const VocabPage = () => {
   const effectiveOptions = showResult ? shuffledOptions : (word ? shuffleOptions(word) : []);
 
   if (isLoading) return <StudentLayout><Skeleton className="h-64 rounded-2xl" /></StudentLayout>;
+
+  if (isCategoriesError) {
+    return (
+      <StudentLayout>
+        <div className="max-w-md mx-auto my-16">
+          <ErrorState onRetry={() => refetchCategories()} />
+        </div>
+      </StudentLayout>
+    );
+  }
+
+  if ((view === "flashcard" || view === "quiz") && isWordsError) {
+    return (
+      <StudentLayout>
+        <div className="max-w-md mx-auto my-16">
+          <ErrorState onRetry={() => refetchWords()} />
+        </div>
+      </StudentLayout>
+    );
+  }
 
   if (view === "result" && vocabWords) {
     const pct = Math.round((correctCount / vocabWords.length) * 100);
@@ -320,7 +344,12 @@ const VocabPage = () => {
         </div>
 
         {/* Days / Quiz list */}
-        {view === "days" && quizzes && (
+        {view === "days" && isQuizzesError && (
+          <div className="flex-1">
+            <ErrorState onRetry={() => refetchQuizzes()} />
+          </div>
+        )}
+        {view === "days" && !isQuizzesError && quizzes && (
           <div className="flex-1 space-y-4">
             <div className="flex items-center justify-between px-1">
               <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
