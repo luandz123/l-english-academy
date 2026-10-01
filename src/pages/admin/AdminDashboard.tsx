@@ -136,8 +136,8 @@ const AdminDashboard = () => {
 
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
           {kpis.map((k) => (
-            <div key={k.label} className={`bg-card rounded-2xl border-2 ${k.border} p-5 space-y-3 hover:-translate-y-0.5 transition-transform`}>
-              <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${k.gradient} ${k.glow} shadow-lg flex items-center justify-center`}>
+            <div key={k.label} className="bg-card rounded-2xl border border-border/70 p-5 space-y-3 shadow-soft-sm hover:-translate-y-0.5 transition-transform">
+              <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${k.gradient} ${k.glow} shadow-md flex items-center justify-center`}>
                 <k.Icon className="w-6 h-6 text-white" />
               </div>
               <p className="text-3xl font-black text-foreground">{k.value}</p>
@@ -147,8 +147,8 @@ const AdminDashboard = () => {
         </div>
 
         {partScores.length > 0 && (
-          <div className="bg-card rounded-xl border p-4">
-            <h3 className="font-semibold text-foreground mb-4">Điểm trung bình theo bài thi</h3>
+          <div className="bg-card rounded-2xl border border-border/70 p-5 shadow-soft-sm">
+            <h3 className="font-bold text-foreground mb-4">Điểm trung bình theo bài thi</h3>
             <ResponsiveContainer width="100%" height={250}>
               <BarChart data={partScores}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
@@ -162,21 +162,21 @@ const AdminDashboard = () => {
         )}
 
         <div className="grid lg:grid-cols-2 gap-6">
-          <div className="bg-card rounded-xl border">
-            <div className="p-4 border-b flex items-center justify-between">
-              <h3 className="font-semibold text-foreground">Đăng ký mới nhất</h3>
-              <Button variant="ghost" size="sm" className="text-xs text-primary" asChild>
+          <div className="bg-card rounded-2xl border border-border/70 shadow-soft-sm overflow-hidden">
+            <div className="p-4 border-b border-border/60 flex items-center justify-between bg-muted/20">
+              <h3 className="font-bold text-foreground">Đăng ký mới nhất</h3>
+              <Button variant="ghost" size="sm" className="text-xs text-primary font-bold hover:bg-primary/10 rounded-xl" asChild>
                 <Link to="/admin/enrollments">Xem tất cả →</Link>
               </Button>
             </div>
             {loadingRecent ? (
-              <div className="p-4 space-y-3">{[1,2,3].map(i => <Skeleton key={i} className="h-8 w-full" />)}</div>
+              <div className="p-4 space-y-3">{[1,2,3].map(i => <Skeleton key={i} className="h-8 w-full rounded-xl" />)}</div>
             ) : (
               <table className="w-full text-sm">
                 <tbody>
                   {recentEnrollments.map((e: any) => (
-                    <tr key={e.id} className="border-b last:border-0 hover:bg-muted/30">
-                      <td className="p-3 font-medium text-foreground">{(e as any).profiles?.full_name ?? "—"}</td>
+                    <tr key={e.id} className="border-b border-border/50 last:border-0 hover:bg-muted/40 transition-colors">
+                      <td className="p-3 font-semibold text-foreground">{(e as any).profiles?.full_name ?? "—"}</td>
                       <td className="p-3 text-xs text-muted-foreground">{(e as any).courses?.title ?? "—"}</td>
                       <td className="p-3 text-xs text-muted-foreground text-right">
                         {e.enrolled_at ? new Date(e.enrolled_at).toLocaleDateString("vi-VN") : ""}
@@ -184,27 +184,27 @@ const AdminDashboard = () => {
                     </tr>
                   ))}
                   {recentEnrollments.length === 0 && (
-                    <tr><td colSpan={3} className="p-4 text-center text-muted-foreground text-sm">Chưa có đăng ký</td></tr>
+                    <tr><td colSpan={3} className="p-6 text-center text-muted-foreground text-sm font-medium">Chưa có đăng ký mới</td></tr>
                   )}
                 </tbody>
               </table>
             )}
           </div>
 
-          <div className="bg-card rounded-xl border">
-            <div className="p-4 border-b flex items-center justify-between">
-              <h3 className="font-semibold text-foreground">Bài thi vừa hoàn thành</h3>
-              <Button variant="ghost" size="sm" className="text-xs text-primary" asChild>
+          <div className="bg-card rounded-2xl border border-border/70 shadow-soft-sm overflow-hidden">
+            <div className="p-4 border-b border-border/60 flex items-center justify-between bg-muted/20">
+              <h3 className="font-bold text-foreground">Bài thi vừa hoàn thành</h3>
+              <Button variant="ghost" size="sm" className="text-xs text-primary font-bold hover:bg-primary/10 rounded-xl" asChild>
                 <Link to="/admin/reports">Xem tất cả →</Link>
               </Button>
             </div>
             <table className="w-full text-sm">
               <tbody>
                 {recentResults.map((r: any) => (
-                  <tr key={r.id} className="border-b last:border-0 hover:bg-muted/30">
-                    <td className="p-3 font-medium text-foreground">{r.profiles?.full_name ?? "—"}</td>
-                    <td className="p-3 text-muted-foreground">{r.quizzes?.title ?? "—"}</td>
-                    <td className="p-3 text-center font-medium text-primary">
+                  <tr key={r.id} className="border-b border-border/50 last:border-0 hover:bg-muted/40 transition-colors">
+                    <td className="p-3 font-semibold text-foreground">{r.profiles?.full_name ?? "—"}</td>
+                    <td className="p-3 text-xs text-muted-foreground">{r.quizzes?.title ?? "—"}</td>
+                    <td className="p-3 text-center font-bold text-primary">
                       {r.correct_answers}/{r.total_questions}
                     </td>
                     <td className="p-3 text-xs text-muted-foreground text-right">
@@ -213,17 +213,23 @@ const AdminDashboard = () => {
                   </tr>
                 ))}
                 {recentResults.length === 0 && (
-                  <tr><td colSpan={4} className="p-4 text-center text-muted-foreground text-sm">Chưa có kết quả</td></tr>
+                  <tr><td colSpan={4} className="p-6 text-center text-muted-foreground text-sm font-medium">Chưa có kết quả</td></tr>
                 )}
               </tbody>
             </table>
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-3">
-          <Button asChild><Link to="/admin/courses/new">+ Tạo khóa học mới</Link></Button>
-          <Button variant="outline" asChild><Link to="/admin/students">Quản lý học viên</Link></Button>
-          <Button variant="outline" asChild><Link to="/admin/reports">Xem báo cáo</Link></Button>
+        <div className="flex flex-wrap gap-3 pt-2">
+          <Button className="rounded-xl shadow-soft-sm transition-all duration-120 active:scale-95" asChild>
+            <Link to="/admin/courses/new">+ Tạo khóa học mới</Link>
+          </Button>
+          <Button variant="outline" className="rounded-xl border-border/70 shadow-soft-xs transition-all duration-120 active:scale-95" asChild>
+            <Link to="/admin/students">Quản lý học viên</Link>
+          </Button>
+          <Button variant="outline" className="rounded-xl border-border/70 shadow-soft-xs transition-all duration-120 active:scale-95" asChild>
+            <Link to="/admin/reports">Xem báo cáo</Link>
+          </Button>
         </div>
       </div>
     </AdminLayout>

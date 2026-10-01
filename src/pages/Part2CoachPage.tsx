@@ -223,7 +223,7 @@ const Part2CoachPage: React.FC = () => {
 
   return (
     <StudentLayout>
-      <div className="min-h-screen bg-slate-50/50 dark:bg-zinc-950 pb-20 pt-3 px-3 sm:px-6 max-w-6xl mx-auto space-y-4 sm:space-y-5">
+      <div className="min-h-screen bg-background pb-20 pt-4 px-3 sm:px-6 max-w-6xl mx-auto space-y-4 sm:space-y-5 font-sans">
         {/* If no cluster selected: show Hub View */}
         {!activeCluster ? (
           <Part2HubView onSelectCluster={handleSelectClusterFromHub} />
@@ -231,21 +231,21 @@ const Part2CoachPage: React.FC = () => {
           /* Active Cluster 8-Step Training Mode */
           <div className="space-y-4 sm:space-y-5">
             {/* Sticky Compact 1-Row Header & Slim Dot Stepper */}
-            <div className="sticky top-16 z-30 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border border-slate-200 dark:border-zinc-800 rounded-2xl p-2.5 sm:px-4 sm:py-2.5 shadow-sm space-y-2">
+            <div className="sticky top-16 z-30 bg-card/95 backdrop-blur-md border border-border/70 rounded-2xl p-3 sm:px-4 sm:py-3 shadow-soft-sm space-y-2.5">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2 min-w-0">
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={handleBackToHub}
-                    className="h-8 px-2 rounded-xl text-slate-600 dark:text-zinc-400 hover:text-foreground shrink-0 flex items-center gap-1 font-bold text-xs cursor-pointer"
+                    className="h-8 px-2 rounded-xl text-muted-foreground hover:text-foreground shrink-0 flex items-center gap-1 font-bold text-xs cursor-pointer"
                     title="Quay lại Hub Part 2"
                   >
                     <ChevronLeft className="w-4 h-4" />
                     <span className="hidden sm:inline">Hub Phản Xạ</span>
                   </Button>
 
-                  <div className="h-4 w-px bg-slate-200 dark:bg-zinc-800 shrink-0" />
+                  <div className="h-4 w-px bg-border shrink-0" />
 
                   <div className="min-w-0 flex items-center gap-2">
                     <span className="text-xs sm:text-sm font-black text-foreground truncate">

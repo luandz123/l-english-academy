@@ -10,6 +10,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminRoute from "@/components/AdminRoute";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import ThemeToggle from "@/components/ThemeToggle";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const CoursesRedirect = () => {
   const [searchParams] = useSearchParams();
@@ -97,8 +98,20 @@ const GamesHub = lazy(() => import("./pages/GamesHub"));
 
 
 const PageLoader = () => (
-  <div className="min-h-screen flex items-center justify-center bg-background">
-    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+  <div className="min-h-screen bg-background p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 animate-fade-in-up">
+    <div className="flex items-center justify-between py-2 border-b border-border/40">
+      <Skeleton className="h-8 w-36 rounded-xl" />
+      <div className="flex items-center gap-3">
+        <Skeleton className="h-8 w-24 rounded-xl" />
+        <Skeleton className="h-9 w-9 rounded-full" />
+      </div>
+    </div>
+    <Skeleton className="h-56 sm:h-72 w-full rounded-2xl" />
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pt-4">
+      <Skeleton className="h-44 rounded-2xl" />
+      <Skeleton className="h-44 rounded-2xl" />
+      <Skeleton className="h-44 rounded-2xl" />
+    </div>
   </div>
 );
 

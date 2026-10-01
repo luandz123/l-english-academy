@@ -452,15 +452,15 @@ const DictationInput = ({
           <div className="flex items-center gap-2">
             <span className="text-sm sm:text-base font-bold">
               {errorDetails.isMissing ? (
-                <>Gợi ý từ tiếp theo: <span className="text-[var(--duo-blue)] bg-white px-2 py-0.5 rounded-lg border-2 border-[var(--duo-blue)]/20 font-extrabold">"{errorDetails.correctWord}"</span></>
+                <>Gợi ý từ tiếp theo: <span className="text-[var(--duo-blue)] bg-card px-2 py-0.5 rounded-lg border border-[var(--duo-blue)]/30 font-extrabold shadow-soft-xs">"{errorDetails.correctWord}"</span></>
               ) : errorDetails.isExtra ? (
-                <>Từ bị thừa: <span className="text-[var(--duo-red)] bg-white px-2 py-0.5 rounded-lg border-2 border-[var(--duo-red)]/20 line-through font-extrabold">"{errorDetails.inputWord}"</span></>
+                <>Từ bị thừa: <span className="text-[var(--duo-red)] bg-card px-2 py-0.5 rounded-lg border border-[var(--duo-red)]/30 line-through font-extrabold shadow-soft-xs">"{errorDetails.inputWord}"</span></>
               ) : (
-                <>Sửa <span className="text-[var(--duo-red)] bg-white px-2 py-0.5 rounded-lg border-2 border-[var(--duo-red)]/20 line-through font-extrabold">"{errorDetails.inputWord}"</span> thành <span className="text-[var(--duo-correct)] bg-white px-2 py-0.5 rounded-lg border-2 border-[var(--duo-correct)]/20 font-extrabold">"{errorDetails.correctWord}"</span></>
+                <>Sửa <span className="text-[var(--duo-red)] bg-card px-2 py-0.5 rounded-lg border border-[var(--duo-red)]/30 line-through font-extrabold shadow-soft-xs">"{errorDetails.inputWord}"</span> thành <span className="text-[var(--duo-correct)] bg-card px-2 py-0.5 rounded-lg border border-[var(--duo-correct)]/30 font-extrabold shadow-soft-xs">"{errorDetails.correctWord}"</span></>
               )}
             </span>
           </div>
-          <div className="text-xs font-extrabold border-t border-border pt-1.5 flex items-center justify-between gap-2">
+          <div className="text-xs font-extrabold border-t border-border/70 pt-1.5 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <span className="bg-muted-foreground/20 text-foreground px-1.5 py-0.5 rounded text-xs uppercase font-bold">Đáp án đầy đủ</span>
               <span className="text-sm font-bold">{fullExpected}</span>
@@ -571,10 +571,10 @@ const DictationInput = ({
     }
   }, [value, fullExpected, status, onCorrect, playSound]);
 
-  const containerClass = `w-full relative flex flex-col rounded-2xl border-2 transition-all shadow-sm ${
+  const containerClass = `w-full relative flex flex-col rounded-2xl border transition-all shadow-soft-sm ${
     status === "correct" 
       ? "border-[var(--duo-correct)] bg-[var(--duo-correct)]/10 text-foreground animate-[dictation-correct_0.5s_ease-in-out]" 
-      : "border-border bg-white focus-within:border-[var(--duo-blue)] focus-within:ring-4 focus-within:ring-[var(--duo-blue)]/15"
+      : "border-border/80 bg-card focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20"
   } ${shake ? "animate-[dictation-shake_0.3s_ease-in-out] border-[var(--duo-red)] bg-[var(--duo-red)]/5" : ""}`;
 
   return (
@@ -603,7 +603,7 @@ const DictationInput = ({
               <button
                 type="button"
                 onClick={() => speakText(fullExpected)}
-                className="p-1.5 rounded-lg text-muted-foreground hover:text-[var(--duo-blue)] hover:bg-white transition-colors"
+                className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-muted transition-colors cursor-pointer"
                 title="Nghe phát âm câu này"
               >
                 <Volume2 className="w-4 h-4" />
@@ -726,12 +726,12 @@ const KeywordDictationInput = ({
           }}
           onKeyDown={handleKeyDown}
           placeholder="..."
-          className={`w-full text-center px-2 py-1 h-auto text-sm sm:text-base border-2 shadow-sm focus-visible:ring-0 ${
+          className={`w-full text-center px-2 py-1 h-auto text-sm sm:text-base border shadow-soft-xs focus-visible:ring-0 ${
             status === "correct" 
               ? "font-bold text-[var(--duo-correct)] border-[var(--duo-correct)] bg-[var(--duo-correct)]/10 pr-6" 
               : status === "error"
               ? "font-bold text-[var(--duo-red)] border-[var(--duo-red)] bg-[var(--duo-red)]/10 pr-6"
-              : "font-bold border-border bg-white focus-visible:border-[var(--duo-blue)] focus-visible:ring-[var(--duo-blue)]/20 pr-6"
+              : "font-bold border-border/80 bg-card focus-visible:border-primary focus-visible:ring-primary/20 pr-6"
           }`}
           readOnly={status === "correct"}
           style={{ width: `${Math.max(70, Math.max(expected.length, value.length) * 10 + 26)}px` }}
@@ -752,7 +752,7 @@ const KeywordDictationInput = ({
                   e.preventDefault();
                   handleFillCorrect();
                 }}
-                className="bg-white hover:bg-emerald-50 border-2 border-[var(--duo-correct)] text-[var(--duo-correct)] text-xs font-extrabold px-2.5 py-1 rounded-lg shadow-md whitespace-nowrap animate-in fade-in slide-in-from-top-1 flex items-center gap-1.5 cursor-pointer transition-all hover:scale-105 active:scale-95"
+                className="bg-card hover:bg-emerald-50 dark:hover:bg-emerald-950/40 border border-emerald-600 text-emerald-700 dark:text-emerald-300 text-xs font-extrabold px-2.5 py-1 rounded-lg shadow-soft-sm whitespace-nowrap animate-in fade-in slide-in-from-top-1 flex items-center gap-1.5 cursor-pointer transition-all duration-120 hover:scale-105 active:scale-95"
                 title="Bấm vào đây để điền đáp án đúng (hoặc bấm Enter)"
               >
                 <span>{expected}</span>
@@ -1700,8 +1700,8 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
   if (!started) {
     return (
       <LayoutWrapper isEmbedded={isEmbedded}>
-        <div className="max-w-4xl mx-auto card-duo p-5 sm:p-8 lg:p-10 space-y-6 sm:space-y-8 bg-white border-2">
-          <div className="flex items-center gap-4 border-b-2 pb-4 sm:pb-6">
+        <div className="max-w-4xl mx-auto p-5 sm:p-8 lg:p-10 space-y-6 sm:space-y-8 bg-card border border-border/70 rounded-2xl shadow-soft-md">
+          <div className="flex items-center gap-4 border-b border-border/60 pb-4 sm:pb-6">
             {!isEmbedded && (
               <Button variant="ghost" size="icon" className="hover:bg-muted rounded-full" onClick={() => navigate(`/courses/${courseId}/learn`)}>
                 <ArrowLeft className="w-6 h-6 text-muted-foreground" />
@@ -1753,7 +1753,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
           <div className="bg-muted/20 border-2 rounded-2xl p-5 sm:p-6 space-y-5 max-h-[60vh] overflow-y-auto">
              
              {/* Quick Settings Summary Bar */}
-             <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 sm:p-4 bg-white rounded-2xl border-2 border-border/80 shadow-xs">
+             <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 sm:p-4 bg-card rounded-2xl border border-border/70 shadow-soft-xs">
                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                  <span className="font-extrabold text-muted-foreground text-xs uppercase tracking-wider flex items-center gap-1.5">
                    <Settings className="w-4 h-4 text-[var(--duo-blue)]" /> Cài đặt:
@@ -1780,7 +1780,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
              </div>
 
              {questions.length === 0 ? (
-               <div className="p-8 text-center bg-white rounded-2xl border-2 space-y-4 shadow-sm">
+               <div className="p-8 text-center bg-card rounded-2xl border border-border/70 space-y-4 shadow-soft-sm">
                  <div className="w-12 h-12 bg-blue-100 text-[var(--duo-blue)] rounded-2xl mx-auto flex items-center justify-center font-black">
                    🎧
                  </div>
@@ -1801,13 +1801,13 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
              ) : (
                <>
                  {/* Header with Quick Presets (5 questions, 10 questions, all, uncompleted) */}
-                 <div className="space-y-3 pb-4 border-b-2">
+                 <div className="space-y-3 pb-4 border-b border-border/60">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <span className="font-black text-lg text-foreground">
                         Chọn nhanh số lượng câu ({activeQuestionIndices.length}/{questions.length} câu đã chọn)
                       </span>
                       {completedTotalCount > 0 && (
-                        <Button size="sm" className="btn-3d bg-white text-[var(--duo-red)] hover:bg-red-50 border-[var(--duo-red)]/30 font-bold self-start sm:self-auto" onClick={() => resetAllMutation.mutate()}>
+                        <Button size="sm" variant="outline" className="bg-card text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-rose-300 dark:border-rose-800 font-bold self-start sm:self-auto rounded-xl shadow-soft-xs transition-all duration-120 active:scale-95" onClick={() => resetAllMutation.mutate()}>
                           <RefreshCcw className="w-4 h-4 mr-2" /> Làm lại từ đầu
                         </Button>
                       )}
@@ -1824,10 +1824,10 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                         variant="outline"
                         onClick={() => selectPresetCount(5)}
                         className={cn(
-                          "btn-3d font-black text-xs sm:text-sm h-9 px-3.5",
+                          "font-black text-xs sm:text-sm h-9 px-3.5 rounded-xl border transition-all duration-120 active:scale-95 shadow-soft-xs",
                           activeQuestionIndices.length === 5 && questions.length >= 5
-                            ? "bg-[var(--duo-blue)] text-white border-[var(--duo-blue)] hover:bg-[var(--duo-blue)]/90"
-                            : "bg-white text-foreground hover:bg-blue-50 border-border"
+                            ? "bg-primary text-primary-foreground border-primary hover:bg-primary/90 shadow-soft-sm font-black"
+                            : "bg-card text-foreground hover:bg-muted border-border/70"
                         )}
                       >
                         ⚡ Luyện 5 câu
@@ -1840,10 +1840,10 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                         variant="outline"
                         onClick={() => selectPresetCount(10)}
                         className={cn(
-                          "btn-3d font-black text-xs sm:text-sm h-9 px-3.5",
+                          "font-black text-xs sm:text-sm h-9 px-3.5 rounded-xl border transition-all duration-120 active:scale-95 shadow-soft-xs",
                           activeQuestionIndices.length === 10 && questions.length >= 10
-                            ? "bg-[var(--duo-blue)] text-white border-[var(--duo-blue)] hover:bg-[var(--duo-blue)]/90"
-                            : "bg-white text-foreground hover:bg-blue-50 border-border"
+                            ? "bg-primary text-primary-foreground border-primary hover:bg-primary/90 shadow-soft-sm font-black"
+                            : "bg-card text-foreground hover:bg-muted border-border/70"
                         )}
                       >
                         🔥 Luyện 10 câu
@@ -1856,7 +1856,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                           size="sm"
                           variant="outline"
                           onClick={selectUncompletedOnly}
-                          className="btn-3d font-black text-xs sm:text-sm h-9 px-3.5 bg-white text-[var(--duo-orange)] hover:bg-orange-50 border-[var(--duo-orange)]/30"
+                          className="font-black text-xs sm:text-sm h-9 px-3.5 rounded-xl bg-card text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 border border-amber-500/30 transition-all duration-120 active:scale-95 shadow-soft-xs"
                         >
                           🎯 Chỉ câu chưa làm ({questions.length - completedTotalCount})
                         </Button>
@@ -1869,10 +1869,10 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                         variant="outline"
                         onClick={() => setActiveQuestionIndices(activeQuestionIndices.length === questions.length ? [] : questions.map((_, i) => i))}
                         className={cn(
-                          "btn-3d font-black text-xs sm:text-sm h-9 px-3.5",
+                          "font-black text-xs sm:text-sm h-9 px-3.5 rounded-xl border transition-all duration-120 active:scale-95 shadow-soft-xs",
                           activeQuestionIndices.length === questions.length
-                            ? "bg-[var(--duo-correct)] text-white border-[var(--duo-correct)] hover:bg-[var(--duo-correct)]/90"
-                            : "bg-white text-foreground hover:bg-gray-50 border-border"
+                            ? "bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700 shadow-soft-sm font-black"
+                            : "bg-card text-foreground hover:bg-muted border-border/70"
                         )}
                       >
                         {activeQuestionIndices.length === questions.length ? "Bỏ chọn tất cả" : `Toàn bộ (${questions.length} câu)`}
@@ -2248,7 +2248,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
         <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8 animate-in fade-in duration-300 pb-12">
           
           {/* Top Header Card / Score Trophy */}
-          <div className="card-duo p-6 sm:p-10 text-center space-y-6 bg-white border-2">
+          <div className="p-6 sm:p-10 text-center space-y-6 bg-card border border-border/70 rounded-2xl shadow-soft-lg">
             <div className={cn(
               "w-20 h-20 sm:w-24 sm:h-24 rounded-full mx-auto flex items-center justify-center border-4 shadow-sm animate-in zoom-in-75 duration-300",
               isPerfect 
@@ -2405,7 +2405,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
 
               {!isEmbedded && (
                 <Button 
-                  className="btn-3d bg-white text-foreground hover:bg-gray-50 border-border py-5 px-6 text-base font-extrabold h-auto"
+                  className="bg-card text-foreground hover:bg-muted border border-border/70 py-5 px-6 text-base font-extrabold h-auto rounded-xl shadow-soft-xs transition-all duration-120 active:scale-95"
                   onClick={() => navigate(`/courses/${courseId}/learn`)}
                 >
                   Quay về bài học
@@ -2419,19 +2419,19 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-2">
               <h2 className="text-2xl font-black text-foreground flex items-center gap-2">
                 <span>Chi tiết đáp án & Chấm điểm</span>
-                <span className="text-sm font-extrabold text-muted-foreground bg-muted px-2.5 py-1 rounded-xl border">
+                <span className="text-sm font-extrabold text-muted-foreground bg-muted px-2.5 py-1 rounded-xl border border-border/60">
                   {filteredReviewIndices.length}/{totalPracticed} câu
                 </span>
               </h2>
 
               {/* Review Filter Tabs */}
-              <div className="flex items-center gap-1.5 p-1 bg-muted/60 rounded-xl border text-xs font-black">
+              <div className="flex items-center gap-1.5 p-1 bg-muted/60 rounded-xl border border-border/60 text-xs font-black">
                 <button
                   type="button"
                   onClick={() => setReviewFilter("all")}
                   className={cn(
-                    "px-3 py-1.5 rounded-lg transition-all",
-                    reviewFilter === "all" ? "bg-white text-foreground shadow-sm font-bold" : "text-muted-foreground hover:text-foreground"
+                    "px-3 py-1.5 rounded-lg transition-all duration-120 active:scale-95 cursor-pointer",
+                    reviewFilter === "all" ? "bg-card text-foreground shadow-soft-xs font-bold" : "text-muted-foreground hover:text-foreground"
                   )}
                 >
                   Tất cả ({totalPracticed})
@@ -2440,8 +2440,8 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                   type="button"
                   onClick={() => setReviewFilter("correct")}
                   className={cn(
-                    "px-3 py-1.5 rounded-lg transition-all",
-                    reviewFilter === "correct" ? "bg-white text-[var(--duo-correct)] shadow-sm border border-[var(--duo-correct)]/20 font-bold" : "text-muted-foreground hover:text-foreground"
+                    "px-3 py-1.5 rounded-lg transition-all duration-120 active:scale-95 cursor-pointer",
+                    reviewFilter === "correct" ? "bg-card text-emerald-600 dark:text-emerald-400 shadow-soft-xs border border-emerald-500/20 font-bold" : "text-muted-foreground hover:text-foreground"
                   )}
                 >
                   Đã hoàn thành ({correctIndices.length})
@@ -2450,8 +2450,8 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                   type="button"
                   onClick={() => setReviewFilter("skipped")}
                   className={cn(
-                    "px-3 py-1.5 rounded-lg transition-all",
-                    reviewFilter === "skipped" ? "bg-white text-[var(--duo-red)] shadow-sm border border-[var(--duo-red)]/20 font-bold" : "text-muted-foreground hover:text-foreground"
+                    "px-3 py-1.5 rounded-lg transition-all duration-120 active:scale-95 cursor-pointer",
+                    reviewFilter === "skipped" ? "bg-card text-rose-600 dark:text-rose-400 shadow-soft-xs border border-rose-500/20 font-bold" : "text-muted-foreground hover:text-foreground"
                   )}
                 >
                   Bỏ qua / Chưa xong ({skippedIndices.length})
@@ -2471,16 +2471,16 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
 
                 return (
                   <div key={q.id} className={cn(
-                    "card-duo p-5 sm:p-6 space-y-4 bg-white border-2 transition-all",
+                    "p-5 sm:p-6 space-y-4 bg-card border rounded-2xl shadow-soft-sm transition-all duration-150",
                     isDone 
-                      ? "border-[var(--duo-correct)]/40 hover:border-[var(--duo-correct)]" 
+                      ? "border-emerald-500/40 hover:border-emerald-500" 
                       : qStats.correctWords > 0 
-                      ? "border-amber-300 bg-amber-50/20 hover:border-amber-400"
-                      : "border-red-300 bg-red-50/20 hover:border-red-400"
+                      ? "border-amber-400/50 bg-amber-500/5 hover:border-amber-400"
+                      : "border-rose-400/50 bg-rose-500/5 hover:border-rose-400"
                   )}>
                     
                     {/* Header Row: Number + Status Badge + Audio Player */}
-                    <div className="flex flex-wrap items-center justify-between gap-3 border-b-2 pb-3.5">
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-3.5">
                       <div className="flex items-center gap-2.5">
                         <span className="text-xl font-black text-foreground">
                           Câu {idx + 1}
@@ -2647,7 +2647,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
   if (started && (!currentQuestion || questions.length === 0)) {
     return (
       <LayoutWrapper isEmbedded={isEmbedded}>
-        <div className="max-w-xl mx-auto card-duo p-8 text-center bg-white border-2 space-y-4 my-12">
+        <div className="max-w-xl mx-auto p-8 text-center bg-card border border-border/70 rounded-2xl shadow-soft-md space-y-4 my-12">
           <AlertCircle className="w-12 h-12 text-[var(--duo-orange)] mx-auto" />
           <h2 className="text-xl font-black text-foreground">Không tìm thấy câu hỏi</h2>
           <p className="text-sm font-bold text-muted-foreground">
@@ -2667,7 +2667,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
       <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
         
         {/* Top Header Bar */}
-        <div className="flex items-center justify-between bg-white card-duo p-4 sm:p-5 border-2">
+        <div className="flex items-center justify-between bg-card p-4 sm:p-5 border border-border/70 rounded-2xl shadow-soft-sm">
           <div className="flex items-center gap-3 min-w-0">
             <Button variant="ghost" size="icon" className="hover:bg-muted rounded-full shrink-0" onClick={() => setStarted(false)}>
               <ArrowLeft className="w-5 h-5 text-muted-foreground" />
@@ -2723,14 +2723,14 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                     <FileQuestion className="w-4 h-4" /> Bảng câu ({completedTotalCount}/{questions.length})
                   </Button>
                 </SheetTrigger>
-              <SheetContent side="bottom" className="h-[80vh] rounded-t-3xl border-t-4 border-[var(--duo-blue)] p-0 overflow-hidden bg-white">
+              <SheetContent side="bottom" className="h-[80vh] rounded-t-3xl border-t border-border/80 p-0 overflow-hidden bg-card text-card-foreground shadow-soft-2xl">
                 <div className="h-full overflow-y-auto p-4 sm:p-6 space-y-5">
-                  <div className="flex items-center justify-between pb-3 border-b">
+                  <div className="flex items-center justify-between pb-3 border-b border-border/60">
                     <h3 className="font-extrabold text-base text-foreground flex items-center gap-2">
-                      <FileQuestion className="w-4 h-4 text-[var(--duo-blue)]" /> Bảng câu & Từ vựng
+                      <FileQuestion className="w-4 h-4 text-primary" /> Bảng câu & Từ vựng
                     </h3>
                     <SheetClose asChild>
-                      <button className="text-xs font-bold text-muted-foreground hover:text-foreground">Đóng ✕</button>
+                      <button className="text-xs font-bold text-muted-foreground hover:text-foreground cursor-pointer">Đóng ✕</button>
                     </SheetClose>
                   </div>
 
@@ -2738,9 +2738,9 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <h4 className="font-extrabold text-sm text-foreground flex items-center gap-1.5">
-                        <FileQuestion className="w-4 h-4 text-[var(--duo-blue)]" /> Danh sách câu hỏi ({questions.length})
+                        <FileQuestion className="w-4 h-4 text-primary" /> Danh sách câu hỏi ({questions.length})
                       </h4>
-                      <span className="text-xs font-extrabold text-[var(--duo-correct)]">
+                      <span className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400">
                         {completedTotalCount}/{questions.length} đã làm
                       </span>
                     </div>
@@ -2755,12 +2755,12 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                             <button
                               onClick={() => setCurrentIndex(idx)}
                               className={cn(
-                                "aspect-square flex items-center justify-center rounded-xl text-sm font-extrabold transition-all border-2",
+                                "aspect-square flex items-center justify-center rounded-xl text-sm font-extrabold transition-all duration-120 active:scale-95 border",
                                 isCurrent
-                                  ? "border-[var(--duo-blue)] bg-[var(--duo-blue)] text-white shadow-[0_2px_0_#1899D6]"
+                                  ? "border-primary bg-primary text-primary-foreground shadow-soft-xs"
                                   : isDone
-                                  ? "bg-[var(--duo-correct)] border-[var(--duo-correct-dark)] text-white shadow-[0_2px_0_var(--duo-correct-dark)]"
-                                  : "bg-white border-border text-muted-foreground hover:bg-muted/50"
+                                  ? "bg-emerald-600 border-emerald-600 text-white shadow-soft-xs"
+                                  : "bg-card border-border/70 text-muted-foreground hover:bg-muted/60"
                               )}
                             >
                               {idx + 1}
@@ -2824,10 +2824,10 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6 items-start">
           
           {/* Main Dictation Workspace (8 Columns on Desktop) */}
-          <div className="lg:col-span-8 card-duo p-5 sm:p-7 space-y-5 bg-white border-2">
+          <div className="lg:col-span-8 p-5 sm:p-7 space-y-5 bg-card border border-border/70 rounded-2xl shadow-soft-md">
             
             {/* Question Title & Sub-header */}
-            <div className="flex justify-between items-center pb-3 border-b-2">
+            <div className="flex justify-between items-center pb-3 border-b border-border/60">
               <div className="flex items-center gap-3">
                 <span className="text-xl sm:text-2xl font-black text-[var(--duo-blue)]">
                   Câu {currentIndex + 1}
@@ -2936,17 +2936,17 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
             </div>
 
             {/* Bottom Navigation & Actions */}
-            <div className="pt-4 border-t-2 flex flex-col sm:flex-row items-center justify-between gap-3 mt-4">
+            <div className="pt-4 border-t border-border/70 flex flex-col sm:flex-row items-center justify-between gap-3 mt-4">
                <div className="flex items-center gap-2 w-full sm:w-auto">
                  <Button 
                    variant="outline"
                    onClick={handlePrev}
                    disabled={activeQuestionIndices.indexOf(currentIndex) === 0}
-                   className="btn-3d bg-white text-muted-foreground hover:bg-gray-50 border-gray-200 text-xs sm:text-sm font-extrabold h-10 px-3 flex-1 sm:flex-none"
+                   className="bg-card text-foreground hover:bg-muted border border-border/70 text-xs sm:text-sm font-extrabold h-10 px-3 flex-1 sm:flex-none rounded-xl shadow-soft-xs transition-all duration-120 active:scale-95"
                  >
                    <ChevronLeft className="w-4 h-4 mr-1" /> Câu trước
                  </Button>
-                 <span className="text-xs sm:text-sm font-extrabold text-[var(--duo-correct)] bg-[var(--duo-correct)]/10 px-3 py-2 rounded-xl border border-[var(--duo-correct)]/20 text-center flex-1 sm:flex-none">
+                 <span className="text-xs sm:text-sm font-extrabold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-3 py-2 rounded-xl border border-emerald-500/20 text-center flex-1 sm:flex-none">
                    Đã làm {completedTotalCount}/{questions.length}
                  </span>
                </div>
@@ -2955,7 +2955,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                  {isCurrentDone ? (
                    <Button 
                      onClick={() => handleNext(true)} 
-                     className="btn-3d btn-3d-primary text-sm sm:text-base px-5 sm:px-7 py-2.5 h-10 sm:h-11 flex-1 sm:flex-none font-extrabold"
+                     className="btn-3d btn-3d-primary text-sm sm:text-base px-5 sm:px-7 py-2.5 h-10 sm:h-11 flex-1 sm:flex-none font-extrabold transition-all duration-120 active:scale-95"
                    >
                      Tiếp tục <ChevronRight className="w-4 h-4 ml-1.5" />
                    </Button>
@@ -2964,19 +2964,23 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                       <Button 
                         type="button"
                         variant="outline"
-                        className="btn-3d bg-white text-[var(--duo-blue)] hover:bg-blue-50 border-[var(--duo-blue)]/30 text-xs sm:text-sm px-3.5 py-2 h-10 flex-1 sm:flex-none font-extrabold" 
+                        className="bg-card text-primary hover:bg-primary/10 border border-primary/30 text-xs sm:text-sm px-3.5 py-2 h-10 flex-1 sm:flex-none font-extrabold rounded-xl shadow-soft-xs transition-all duration-120 active:scale-95" 
                         onClick={handleCurrentQuestionComplete}
                         title="Xem toàn bộ đáp án và hoàn thành câu này (Alt+A)"
                       >
                         <Eye className="w-4 h-4 mr-1.5" /> Xem đáp án
                       </Button>
-                      <Button className="btn-3d bg-white text-muted-foreground hover:bg-gray-50 border-gray-200 text-xs sm:text-sm px-4 py-2 h-10 flex-1 sm:flex-none font-extrabold" onClick={() => handleNext(false)}>
+                      <Button 
+                        variant="outline"
+                        className="bg-card text-muted-foreground hover:text-foreground hover:bg-muted border border-border/70 text-xs sm:text-sm px-4 py-2 h-10 flex-1 sm:flex-none font-extrabold rounded-xl shadow-soft-xs transition-all duration-120 active:scale-95" 
+                        onClick={() => handleNext(false)}
+                      >
                         <SkipForward className="w-4 h-4 mr-1.5" /> Bỏ qua
                       </Button>
                     </>
                  )}
                  <Button 
-                   className="btn-3d btn-3d-blue text-xs sm:text-sm px-4 py-2 h-10 flex-1 sm:flex-none font-extrabold shadow-sm"
+                   className="btn-3d btn-3d-blue text-xs sm:text-sm px-4 py-2 h-10 flex-1 sm:flex-none font-extrabold shadow-soft-sm transition-all duration-120 active:scale-95"
                    onClick={handleSubmitQuiz}
                  >
                    <CheckCircle className="w-4 h-4 mr-1.5" /> Nộp bài & Chấm điểm
@@ -2989,7 +2993,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
           <div className="hidden lg:flex lg:flex-col lg:col-span-4 space-y-4">
             
             {/* Card 1: Question Navigator Matrix (Full Visibility - No Cramped Scroll) */}
-            <div className="bg-white card-duo p-4 sm:p-5 border-2 space-y-3">
+            <div className="bg-card p-4 sm:p-5 border border-border/70 rounded-2xl shadow-soft-sm space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <FileQuestion className="w-5 h-5 text-[var(--duo-blue)]" />
@@ -3009,14 +3013,14 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
               </div>
 
               {/* Filter Tabs: All vs Uncompleted */}
-              <div className="flex items-center gap-1.5 p-1 bg-muted/60 rounded-xl border text-xs font-extrabold">
+              <div className="flex items-center gap-1.5 p-1 bg-muted/60 rounded-xl border border-border/70 text-xs font-extrabold">
                 <button
                   type="button"
                   onClick={() => setQuestionFilter("all")}
                   className={cn(
-                    "flex-1 py-1.5 rounded-lg transition-all text-center",
+                    "flex-1 py-1.5 rounded-lg transition-all duration-120 active:scale-95 text-center cursor-pointer",
                     questionFilter === "all"
-                      ? "bg-white text-[var(--duo-blue)] shadow-sm border border-[var(--duo-blue)]/20 font-black"
+                      ? "bg-card text-primary shadow-soft-xs border border-primary/20 font-black"
                       : "text-muted-foreground hover:text-foreground"
                   )}
                 >
@@ -3026,9 +3030,9 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                   type="button"
                   onClick={() => setQuestionFilter("uncompleted")}
                   className={cn(
-                    "flex-1 py-1.5 rounded-lg transition-all text-center",
+                    "flex-1 py-1.5 rounded-lg transition-all duration-120 active:scale-95 text-center cursor-pointer",
                     questionFilter === "uncompleted"
-                      ? "bg-white text-[var(--duo-orange)] shadow-sm border border-[var(--duo-orange)]/20 font-black"
+                      ? "bg-card text-amber-700 dark:text-amber-400 shadow-soft-xs border border-amber-500/20 font-black"
                       : "text-muted-foreground hover:text-foreground"
                   )}
                 >
@@ -3048,18 +3052,18 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                       key={q.id}
                       onClick={() => setCurrentIndex(idx)}
                       className={cn(
-                        "h-10 rounded-xl text-sm font-black transition-all flex items-center justify-center border-2 relative",
+                        "h-10 rounded-xl text-sm font-black transition-all duration-120 active:scale-95 flex items-center justify-center border relative cursor-pointer",
                         isCurrent
-                          ? "border-[var(--duo-blue)] bg-[var(--duo-blue)] text-white shadow-[0_3px_0_#1899D6] scale-105 ring-2 ring-[var(--duo-blue)]/30 z-10"
+                          ? "border-primary bg-primary text-primary-foreground shadow-soft-sm scale-105 ring-2 ring-primary/30 z-10"
                           : isDone
-                          ? "bg-[var(--duo-correct)] border-[var(--duo-correct-dark)] text-white shadow-[0_2px_0_var(--duo-correct-dark)] hover:brightness-105"
-                          : "bg-white border-border text-foreground hover:border-[var(--duo-blue)]/50 hover:bg-blue-50/50 shadow-sm"
+                          ? "bg-emerald-600 border-emerald-600 text-white shadow-soft-xs hover:brightness-105"
+                          : "bg-card border-border/70 text-foreground hover:border-primary/50 hover:bg-muted/50 shadow-soft-xs"
                       )}
                       title={`Câu ${idx + 1}: ${isDone ? 'Đã hoàn thành' : 'Chưa làm'}`}
                     >
                       {idx + 1}
                       {isDone && !isCurrent && (
-                        <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-white text-[var(--duo-correct)] rounded-full flex items-center justify-center shadow-2xs text-xs font-black border border-[var(--duo-correct)]">
+                        <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-card text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center shadow-soft-xs text-xs font-black border border-emerald-600">
                           ✓
                         </span>
                       )}
@@ -3070,7 +3074,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
             </div>
 
             {/* Card 2: Compact Vocabulary Section for Current Question */}
-            <div className="bg-white card-duo p-4 border-2 space-y-2.5">
+            <div className="bg-card p-4 border border-border/70 rounded-2xl shadow-soft-sm space-y-2.5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
                   <Library className="w-4 h-4 text-[var(--duo-orange)]" />
@@ -3091,21 +3095,21 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                           <button
                             type="button"
                             onClick={() => speakText(w.word)}
-                            className="p-1 rounded-md text-[var(--duo-orange)] hover:bg-white hover:shadow-2xs transition-all shrink-0"
+                            className="p-1 rounded-md text-[var(--duo-orange)] hover:bg-muted/80 transition-all shrink-0 cursor-pointer"
                             title="Nghe phát âm từ"
                           >
                             <Volume2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
                         {w.phonetic && (
-                          <span className="text-xs text-muted-foreground font-mono font-bold bg-white px-1.5 py-0.5 rounded-md border shadow-2xs shrink-0">
+                          <span className="text-xs text-muted-foreground font-mono font-bold bg-muted/80 px-1.5 py-0.5 rounded-md border border-border/60 shadow-soft-xs shrink-0">
                             {w.phonetic}
                           </span>
                         )}
                       </div>
                       <p className="text-foreground text-xs font-bold leading-tight">{w.definition_vi}</p>
                       {w.example_sentence && (
-                        <p className="text-xs font-medium text-muted-foreground italic bg-white/90 px-1.5 py-0.5 rounded border truncate leading-relaxed">
+                        <p className="text-xs font-medium text-muted-foreground italic bg-muted/50 px-1.5 py-0.5 rounded border border-border/60 truncate leading-relaxed">
                           "{w.example_sentence}"
                         </p>
                       )}
@@ -3299,7 +3303,7 @@ const QuestionDictationSection = ({
         
         {isCompleted && (
           <div className="mt-4 flex justify-center">
-            <Button className="btn-3d bg-white text-muted-foreground hover:text-foreground hover:bg-gray-50 border-gray-200 py-2 px-5 text-xs sm:text-sm font-extrabold" size="sm" onClick={onRedo}>
+            <Button className="bg-card text-muted-foreground hover:text-foreground hover:bg-muted border border-border/70 py-2 px-5 text-xs sm:text-sm font-extrabold rounded-xl shadow-soft-xs transition-all duration-120 active:scale-95" size="sm" onClick={onRedo}>
               <RefreshCcw className="w-4 h-4 mr-2" /> Làm lại câu này
             </Button>
           </div>
@@ -3386,7 +3390,7 @@ const QuestionDictationSection = ({
       
       {isCompleted && (
         <div className="mt-4 flex justify-center">
-          <Button className="btn-3d bg-white text-muted-foreground hover:text-foreground hover:bg-gray-50 border-gray-200 py-2 px-5 text-xs sm:text-sm font-extrabold" size="sm" onClick={onRedo}>
+          <Button className="bg-card text-muted-foreground hover:text-foreground hover:bg-muted border border-border/70 py-2 px-5 text-xs sm:text-sm font-extrabold rounded-xl shadow-soft-xs transition-all duration-120 active:scale-95" size="sm" onClick={onRedo}>
             <RefreshCcw className="w-4 h-4 mr-2" /> Làm lại câu này
           </Button>
         </div>

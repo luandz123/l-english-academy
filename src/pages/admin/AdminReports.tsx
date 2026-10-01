@@ -49,15 +49,19 @@ const AdminReports = () => {
         <h1 className="text-2xl font-bold text-foreground">Báo cáo & Thống kê</h1>
 
         <Tabs defaultValue="overview">
-          <TabsList>
-            <TabsTrigger value="overview">Phân bố học viên</TabsTrigger>
-            <TabsTrigger value="quizzes">Câu hỏi khó nhất</TabsTrigger>
+          <TabsList className="bg-muted/60 p-1 rounded-2xl border border-border/60 h-auto">
+            <TabsTrigger value="overview" className="rounded-xl font-bold py-2 px-4 data-[state=active]:bg-card data-[state=active]:shadow-soft-xs">
+              Phân bố học viên
+            </TabsTrigger>
+            <TabsTrigger value="quizzes" className="rounded-xl font-bold py-2 px-4 data-[state=active]:bg-card data-[state=active]:shadow-soft-xs">
+              Câu hỏi khó nhất
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="mt-4">
-            {loadingCourses ? <Skeleton className="h-64 w-full" /> : (
-              <div className="bg-card rounded-xl border p-4">
-                <h3 className="font-semibold text-foreground mb-4">Phân bố học viên theo khóa</h3>
+            {loadingCourses ? <Skeleton className="h-64 w-full rounded-2xl" /> : (
+              <div className="bg-card rounded-2xl border border-border/70 p-6 shadow-soft-sm">
+                <h3 className="font-bold text-foreground mb-4 text-base">Phân bố học viên theo khóa</h3>
                 <ResponsiveContainer width="100%" height={300}>
                   <PieChart>
                     <Pie data={courseStats} cx="50%" cy="50%" outerRadius={100} dataKey="value"
@@ -72,18 +76,20 @@ const AdminReports = () => {
           </TabsContent>
 
           <TabsContent value="quizzes" className="mt-4">
-            <div className="bg-card rounded-xl border p-4">
-              <h3 className="font-semibold text-foreground mb-4">Top 5 câu hỏi sai nhiều nhất</h3>
+            <div className="bg-card rounded-2xl border border-border/70 p-6 shadow-soft-sm">
+              <h3 className="font-bold text-foreground mb-4 text-base">Top 5 câu hỏi sai nhiều nhất</h3>
               {quizStats.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-8">Chưa có đủ dữ liệu</p>
+                <div className="text-center py-12">
+                  <p className="text-sm font-semibold text-muted-foreground">Chưa có đủ dữ liệu thống kê câu hỏi</p>
+                </div>
               ) : (
                 <div className="space-y-2">
                   {quizStats.map((q: any, i: number) => (
-                    <div key={q.id} className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
-                      <span className="text-sm font-bold text-destructive">{i + 1}</span>
-                      <span className="text-sm text-foreground flex-1">{q.text}</span>
-                      <span className="text-sm font-medium text-destructive">{q.correctRate}% đúng</span>
-                      <span className="text-xs text-muted-foreground">{q.attempts} lượt</span>
+                    <div key={q.id} className="flex items-center gap-3 p-3.5 bg-muted/40 rounded-xl border border-border/60 hover:bg-muted/60 transition-colors">
+                      <span className="w-6 h-6 rounded-lg bg-destructive/10 text-destructive text-xs font-black flex items-center justify-center shrink-0">{i + 1}</span>
+                      <span className="text-sm text-foreground flex-1 font-medium">{q.text}</span>
+                      <span className="text-sm font-bold text-destructive bg-destructive/10 px-2.5 py-1 rounded-lg shrink-0">{q.correctRate}% đúng</span>
+                      <span className="text-xs text-muted-foreground shrink-0">{q.attempts} lượt</span>
                     </div>
                   ))}
                 </div>

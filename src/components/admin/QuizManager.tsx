@@ -789,7 +789,7 @@ const QuizManager = ({ quizId, courseId, lessonType, lessonId }: QuizManagerProp
             <Button 
               size="sm" 
               variant="destructive" 
-              className="h-7 text-[10px] px-2"
+              className="h-7 text-xs px-2.5 rounded-lg"
               onClick={() => {
                 if (confirm(`Bạn có chắc chắn muốn xóa ${selectedIds.length} câu hỏi đã chọn?`)) {
                   deleteMultipleQuestionsMutation.mutate(selectedIds);
@@ -1120,7 +1120,7 @@ const QuizManager = ({ quizId, courseId, lessonType, lessonId }: QuizManagerProp
                       >
                         <button type="button" onClick={() => handlePoolImageClick(idx)} className="block w-full">
                           <img src={url} className="aspect-square w-full object-cover" alt="" loading="lazy" />
-                          <div className="absolute inset-x-0 bottom-0 bg-black/65 px-2 py-1 text-[11px] text-white">
+                          <div className="absolute inset-x-0 bottom-0 bg-black/65 px-2 py-1 text-xs text-white">
                             <div className="flex items-center justify-between gap-2">
                               <span>#{idx + 1}</span>
                               <span>{assignedQuestionIndex >= 0 ? `Q${assignedQuestionIndex + 1}` : "Chưa gán"}</span>
@@ -1215,7 +1215,7 @@ const QuizManager = ({ quizId, courseId, lessonType, lessonId }: QuizManagerProp
                             }`}
                           >
                             <img src={m.file_url} className="aspect-square w-full object-cover" alt="" loading="lazy" />
-                            <div className="absolute inset-x-0 bottom-0 bg-black/60 px-2 py-1 text-left text-[11px] text-white">
+                            <div className="absolute inset-x-0 bottom-0 bg-black/60 px-2 py-1 text-left text-xs text-white">
                               {isSelected ? `Đã chọn #${selectedIndex + 1}` : "Bấm để thêm"}
                             </div>
                           </button>
@@ -1259,7 +1259,7 @@ const QuizManager = ({ quizId, courseId, lessonType, lessonId }: QuizManagerProp
                               {imageUrl ? (
                                 <img src={imageUrl} className="h-full w-full object-cover" alt="" loading="lazy" />
                               ) : (
-                                <span className="px-3 text-center text-[11px] text-muted-foreground">
+                                <span className="px-3 text-center text-xs text-muted-foreground">
                                   {pendingImageSwap?.type === "pool" ? "Bấm để gán ảnh này" : "Chưa có ảnh"}
                                 </span>
                               )}

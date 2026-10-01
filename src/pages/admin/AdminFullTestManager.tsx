@@ -753,7 +753,7 @@ const AdminFullTestManager = () => {
                   }
                 }}
                 variant="destructive"
-                className="font-bold flex items-center gap-2"
+                className="font-bold flex items-center gap-2 rounded-xl active:scale-95 duration-120"
               >
                 <Trash2 className="w-4 h-4" />
                 Xóa {selectedTestIds.length} đề đã chọn
@@ -766,9 +766,9 @@ const AdminFullTestManager = () => {
                   setImportDialogOpen(true);
                 }}
                 variant="outline"
-                className="border-2 border-[var(--duo-gray)] font-bold flex items-center gap-2 hover:bg-slate-50"
+                className="border border-border/70 font-bold flex items-center gap-2 hover:bg-muted/50 rounded-xl active:scale-95 duration-120"
               >
-                <UploadCloud className="w-4 h-4 text-[var(--duo-blue)]" />
+                <UploadCloud className="w-4 h-4 text-primary" />
                 Import Bộ Đề (JSON)
               </Button>
             )}
@@ -781,7 +781,7 @@ const AdminFullTestManager = () => {
                   setActiveTab("list");
                 }
               }}
-              className="btn-3d btn-3d-primary"
+              className="btn-3d btn-3d-primary rounded-xl font-bold active:scale-95 duration-120"
             >
               {activeTab === "list" ? (
                 <>
@@ -795,22 +795,22 @@ const AdminFullTestManager = () => {
         </div>
 
         {activeTab === "list" ? (
-          <div className="bg-card rounded-2xl border-2 border-[var(--duo-gray)] overflow-hidden">
+          <div className="bg-card rounded-2xl border border-border/70 shadow-soft-sm overflow-hidden">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b-2 border-[var(--duo-gray)] bg-slate-50">
+                <tr className="border-b border-border/70 bg-muted/40">
                   <th className="p-4 w-12 text-center">
                     <input
                       type="checkbox"
                       checked={fullTests.length > 0 && selectedTestIds.length === fullTests.length}
                       onChange={(e) => handleSelectAll(e.target.checked)}
-                      className="w-4 h-4 rounded border-2 border-[var(--duo-gray)] text-[var(--duo-blue)] focus:ring-[var(--duo-blue)] cursor-pointer"
+                      className="w-4 h-4 rounded border border-border text-primary focus:ring-primary cursor-pointer"
                     />
                   </th>
-                  <th className="text-left p-4 font-black text-foreground">Tên đề thi</th>
-                  <th className="text-left p-4 font-black text-foreground">Khóa học liên kết</th>
-                  <th className="text-center p-4 font-black text-foreground">Số câu đã import</th>
-                  <th className="text-left p-4 font-black text-foreground">Audio tổng</th>
+                  <th className="text-left p-4 font-bold text-foreground">Tên đề thi</th>
+                  <th className="text-left p-4 font-bold text-foreground">Khóa học liên kết</th>
+                  <th className="text-center p-4 font-bold text-foreground">Số câu đã import</th>
+                  <th className="text-left p-4 font-bold text-foreground">Audio tổng</th>
                   <th className="p-4"></th>
                 </tr>
               </thead>
@@ -822,24 +822,24 @@ const AdminFullTestManager = () => {
                   );
 
                   return (
-                    <tr key={test.id} className="border-b-2 border-[var(--duo-gray)] last:border-0 hover:bg-slate-50/50">
+                    <tr key={test.id} className="border-b border-border/60 last:border-0 hover:bg-muted/30 transition-colors">
                       <td className="p-4 text-center">
                         <input
                           type="checkbox"
                           checked={selectedTestIds.includes(test.id)}
                           onChange={(e) => handleSelectOne(test.id, e.target.checked)}
-                          className="w-4 h-4 rounded border-2 border-[var(--duo-gray)] text-[var(--duo-blue)] focus:ring-[var(--duo-blue)] cursor-pointer"
+                          className="w-4 h-4 rounded border border-border text-primary focus:ring-primary cursor-pointer"
                         />
                       </td>
                       <td className="p-4">
-                        <p className="font-extrabold text-foreground">{test.title}</p>
+                        <p className="font-bold text-foreground">{test.title}</p>
                         {test.description && <p className="text-xs text-muted-foreground mt-0.5">{test.description}</p>}
                       </td>
-                      <td className="p-4 font-bold text-muted-foreground">
+                      <td className="p-4 font-semibold text-muted-foreground">
                         {test.courses?.title || "Chưa gắn khóa học"}
                       </td>
                       <td className="p-4 text-center">
-                        <span className={`badge-duo font-black ${totalQuestionsImported === 200 ? "badge-green" : "badge-orange"}`}>
+                        <span className={`badge-duo font-bold ${totalQuestionsImported === 200 ? "badge-green" : "badge-orange"}`}>
                           {totalQuestionsImported} / 200 câu
                         </span>
                       </td>
@@ -852,7 +852,7 @@ const AdminFullTestManager = () => {
                             <Button
                               size="sm"
                               variant="outline"
-                              className="border-2 border-[var(--duo-gray)] hover:bg-slate-50 font-bold"
+                              className="border border-border/70 hover:bg-muted/50 font-bold rounded-xl active:scale-95 duration-120"
                             >
                               <ClipboardList className="w-4 h-4 mr-1.5 text-primary" />
                               Quản lý câu hỏi
@@ -861,20 +861,20 @@ const AdminFullTestManager = () => {
                           <Button
                             size="sm"
                             variant="outline"
-                            className="border-2 border-[var(--duo-gray)] hover:bg-slate-50 font-bold"
+                            className="border border-border/70 hover:bg-muted/50 font-bold rounded-xl active:scale-95 duration-120"
                             onClick={() => {
                               setSelectedTestForImport(test);
                               setImportDialogOpen(true);
                             }}
                           >
-                            <UploadCloud className="w-4 h-4 mr-1.5 text-[var(--duo-blue)]" />
+                            <UploadCloud className="w-4 h-4 mr-1.5 text-primary" />
                             Import JSON
                           </Button>
                           <Button
                             size="sm"
                             variant="ghost"
                             onClick={() => startEdit(test)}
-                            className="hover:bg-slate-100 text-foreground font-bold"
+                            className="hover:bg-muted/60 text-foreground font-bold rounded-xl active:scale-95 duration-120"
                           >
                             <Edit2 className="w-4 h-4" />
                           </Button>
@@ -886,7 +886,7 @@ const AdminFullTestManager = () => {
                                 deleteMutation.mutate(test.id);
                               }
                             }}
-                            className="text-destructive hover:bg-red-50 hover:text-red-600 font-bold"
+                            className="text-destructive hover:bg-destructive/10 font-bold rounded-xl active:scale-95 duration-120"
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
@@ -898,14 +898,14 @@ const AdminFullTestManager = () => {
 
                 {fullTests.length === 0 && !loadingTests && (
                   <tr>
-                    <td colSpan={5} className="p-8 text-center text-muted-foreground font-bold">
+                    <td colSpan={6} className="p-8 text-center text-muted-foreground font-semibold">
                       Chưa có đề thi Full Test nào được tạo.
                     </td>
                   </tr>
                 )}
                 {loadingTests && (
                   <tr>
-                    <td colSpan={5} className="p-8 text-center">
+                    <td colSpan={6} className="p-8 text-center">
                       <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />
                     </td>
                   </tr>
@@ -914,14 +914,15 @@ const AdminFullTestManager = () => {
             </table>
           </div>
         ) : (
-          <div className="bg-card border-2 border-[var(--duo-gray)] rounded-2xl p-6 max-w-xl space-y-4">
-            <h3 className="font-black text-lg text-foreground">
+          <div className="bg-card border border-border/70 rounded-2xl shadow-soft-sm p-6 sm:p-8 max-w-xl space-y-4">
+            <h3 className="font-bold text-lg text-foreground">
               {editingTest ? "Chỉnh sửa thông tin đề thi" : "Khởi tạo đề thi thử mới"}
             </h3>
 
             <div className="space-y-2">
-              <Label className="font-bold">Tên đề thi</Label>
+              <Label className="font-bold text-foreground">Tên đề thi (*)</Label>
               <Input
+                className="rounded-xl border-border/80"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Ví dụ: TOEIC ETS 2026 Test 1"
@@ -929,12 +930,12 @@ const AdminFullTestManager = () => {
             </div>
 
             <div className="space-y-2">
-              <Label className="font-bold">Khóa học liên kết</Label>
+              <Label className="font-bold text-foreground">Khóa học liên kết (*)</Label>
               <Select value={courseId} onValueChange={setCourseId}>
-                <SelectTrigger>
+                <SelectTrigger className="rounded-xl border-border/80">
                   <SelectValue placeholder="Chọn khóa học Full Test..." />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="rounded-xl">
                   {courses.map((c: any) => {
                     const typeLabels: Record<string, string> = {
                       fulltest: "Full Test",
@@ -955,8 +956,9 @@ const AdminFullTestManager = () => {
             </div>
 
             <div className="space-y-2">
-              <Label className="font-bold">Audio nghe tổng Listening (Không bắt buộc)</Label>
+              <Label className="font-bold text-foreground">Audio nghe tổng Listening (Không bắt buộc)</Label>
               <Input
+                className="rounded-xl border-border/80"
                 value={audioUrl}
                 onChange={(e) => setAudioUrl(e.target.value)}
                 placeholder="https://..."
@@ -964,8 +966,9 @@ const AdminFullTestManager = () => {
             </div>
 
             <div className="space-y-2">
-              <Label className="font-bold">Mô tả ngắn</Label>
+              <Label className="font-bold text-foreground">Mô tả ngắn</Label>
               <Textarea
+                className="rounded-xl border-border/80"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Mô tả cho đề thi thử này..."
@@ -976,7 +979,7 @@ const AdminFullTestManager = () => {
             <div className="flex gap-2 pt-2">
               <Button
                 variant="outline"
-                className="border-2 border-[var(--duo-gray)] font-bold"
+                className="border border-border/70 font-semibold rounded-xl active:scale-95 duration-120"
                 onClick={resetForm}
               >
                 Hủy
@@ -984,7 +987,7 @@ const AdminFullTestManager = () => {
               <Button
                 onClick={() => saveMutation.mutate()}
                 disabled={saveMutation.isPending}
-                className="btn-3d btn-3d-primary font-black"
+                className="btn-3d btn-3d-primary font-bold rounded-xl active:scale-95 duration-120"
               >
                 {saveMutation.isPending ? "Đang lưu..." : editingTest ? "Lưu thay đổi" : "Khởi tạo Đề & 7 Section"}
               </Button>
@@ -1002,12 +1005,12 @@ const AdminFullTestManager = () => {
             }
           }
         }}>
-          <DialogContent className="max-w-2xl font-sans">
+          <DialogContent className="rounded-2xl border-border/80 shadow-soft-xl max-w-2xl font-sans">
             <DialogHeader>
-              <DialogTitle className="font-black text-xl">
+              <DialogTitle className="font-bold text-xl text-foreground">
                 {selectedTestForImport ? `Import câu hỏi cho đề: "${selectedTestForImport.title}"` : "Import trọn bộ đề thi (nhiều đề)"}
               </DialogTitle>
-              <DialogDescription className="text-sm font-semibold">
+              <DialogDescription className="text-sm font-medium">
                 {selectedTestForImport
                   ? "Dán mã JSON chứa 200 câu hỏi. Hệ thống sẽ tự tải ảnh/audio về và reupload lên Supabase Storage của bạn."
                   : "Dán mã JSON chứa toàn bộ các đề thi của bộ đề. Hệ thống sẽ tự động tạo Khóa học/Bộ đề mới và import tất cả đề thi cùng toàn bộ câu hỏi tương ứng."}
@@ -1016,17 +1019,17 @@ const AdminFullTestManager = () => {
 
             {isImporting ? (
               <div className="space-y-4 py-4 text-center">
-                <Loader2 className="w-10 h-10 animate-spin text-[var(--duo-blue)] mx-auto" />
+                <Loader2 className="w-10 h-10 animate-spin text-primary mx-auto" />
                 <div className="space-y-2">
                   <p className="text-sm font-bold text-foreground">{importStatusText}</p>
                   <Progress value={importProgress} className="w-full h-3" />
-                  <span className="text-xs text-muted-foreground font-black">{importProgress}%</span>
+                  <span className="text-xs text-muted-foreground font-bold">{importProgress}%</span>
                 </div>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-4 pt-1">
                 <div className="space-y-2">
-                  <Label className="font-bold">Cách 1: Chọn file JSON từ máy tính (Khuyên dùng cho file dung lượng lớn)</Label>
+                  <Label className="font-bold text-foreground">Cách 1: Chọn file JSON từ máy tính (Khuyên dùng cho file dung lượng lớn)</Label>
                   <Input
                     type="file"
                     accept=".json"
@@ -1037,26 +1040,26 @@ const AdminFullTestManager = () => {
                         setImportJson("");
                       }
                     }}
-                    className="border-2 border-[var(--duo-gray)] bg-slate-50 cursor-pointer"
+                    className="border border-border/70 bg-muted/30 cursor-pointer rounded-xl"
                   />
                   {importFile && (
-                    <p className="text-xs font-bold text-[var(--duo-green)] mt-1">
+                    <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-1">
                       ✓ Đã chọn file: {importFile.name} ({(importFile.size / 1024 / 1024).toFixed(2)} MB)
                     </p>
                   )}
                 </div>
 
                 <div className="relative my-2">
-                  <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-[var(--duo-gray)]" /></div>
+                  <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border/70" /></div>
                   <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-white px-2 text-muted-foreground font-black">Hoặc cách 2</span>
+                    <span className="bg-background px-2 text-muted-foreground font-bold text-xs">Hoặc cách 2</span>
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="font-bold flex items-center justify-between">
+                  <Label className="font-bold flex items-center justify-between text-foreground">
                     <span>Dán mã JSON trực tiếp</span>
-                    <span className="text-[10px] text-muted-foreground uppercase font-black">Format NgoaiNgu24h Crawler</span>
+                    <span className="text-xs text-muted-foreground uppercase font-bold">Format NgoaiNgu24h Crawler</span>
                   </Label>
                   <Textarea
                     value={importJson}
@@ -1072,7 +1075,7 @@ const AdminFullTestManager = () => {
                       ? '{"title": "ETS 2026 Test 1", "questions": [...]}' 
                       : '{"course_title": "Bộ đề thi thử 2026", "exams": [{"exam_title": "Đề số 01", "questions": [...]}, ...]}'
                     }
-                    className="font-mono text-[11px] bg-slate-50 border-2 border-[var(--duo-gray)]"
+                    className="font-mono text-xs bg-muted/30 border border-border/70 rounded-xl"
                   />
                   {importFile && (
                     <p className="text-xs text-muted-foreground italic">
@@ -1081,13 +1084,13 @@ const AdminFullTestManager = () => {
                   )}
                 </div>
 
-                <div className="flex justify-end gap-2">
-                  <Button variant="outline" className="font-bold border-2" onClick={() => setImportDialogOpen(false)}>
+                <div className="flex justify-end gap-2 pt-2">
+                  <Button variant="outline" className="font-semibold border border-border/70 rounded-xl active:scale-95 duration-120" onClick={() => setImportDialogOpen(false)}>
                     Hủy
                   </Button>
                   <Button
                     onClick={handleBatchImportJSON}
-                    className="btn-3d btn-3d-primary font-black flex items-center gap-2"
+                    className="btn-3d btn-3d-primary font-bold flex items-center gap-2 rounded-xl active:scale-95 duration-120"
                   >
                     <UploadCloud className="w-4 h-4" /> Bắt đầu Import
                   </Button>

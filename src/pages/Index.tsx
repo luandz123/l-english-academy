@@ -44,7 +44,7 @@ const Index = () => {
   }, [location.hash, location.pathname, navigate]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50/60 dark:bg-zinc-950 text-foreground">
+    <div className="min-h-screen flex flex-col bg-slate-50/60 dark:bg-zinc-950 text-foreground overflow-x-hidden">
       {/* 1. Modern Top Navigation Bar */}
       <Navbar />
 

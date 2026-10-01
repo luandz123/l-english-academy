@@ -227,10 +227,10 @@ export const Part2Step1Diagnostic: React.FC<Part2Step1DiagnosticProps> = ({
                   type="button"
                   onClick={() => handleSelectGuess(choice)}
                   className={cn(
-                    'py-3 rounded-2xl border-2 font-black transition-all flex items-center justify-center gap-2 cursor-pointer text-base sm:text-lg',
+                    'py-3.5 rounded-2xl border font-bold transition-all duration-120 flex items-center justify-center gap-2 cursor-pointer text-base sm:text-lg select-none active:scale-95 shadow-soft-xs',
                     isSelected
-                      ? 'bg-purple-600 text-white border-purple-600 shadow-md shadow-purple-600/20 -translate-y-0.5'
-                      : 'bg-slate-50 dark:bg-zinc-800/40 border-slate-200 dark:border-zinc-700 text-slate-700 dark:text-zinc-200 hover:border-purple-300'
+                      ? 'bg-purple-600 text-white border-purple-600 shadow-soft-md'
+                      : 'bg-card border-border/70 text-foreground hover:border-purple-300 dark:hover:border-purple-700'
                   )}
                 >
                   <span>({choice})</span>
@@ -242,13 +242,13 @@ export const Part2Step1Diagnostic: React.FC<Part2Step1DiagnosticProps> = ({
         </div>
 
         {/* Action 2: Self-assessment of comprehension */}
-        <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-zinc-800">
+        <div className="space-y-2 pt-2 border-t border-border/60">
           <div className="flex items-center justify-between">
             <div className="text-xs font-black text-foreground uppercase tracking-wider">
               2. Mức độ nghe hiểu:
             </div>
             {comprehensionRatings[currentQ.id] && (
-              <span className="text-xs font-bold text-emerald-600">
+              <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
                 Đã chọn: {comprehensionRatings[currentQ.id]}%
               </span>
             )}
@@ -268,10 +268,10 @@ export const Part2Step1Diagnostic: React.FC<Part2Step1DiagnosticProps> = ({
                   type="button"
                   onClick={() => handleSetRating(lvl.percent)}
                   className={cn(
-                    'py-2 px-3 rounded-xl border text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5',
+                    'py-2.5 px-3 rounded-xl border text-xs font-bold transition-all duration-120 cursor-pointer flex items-center justify-center gap-1.5 select-none active:scale-95 shadow-soft-xs',
                     isSelected
-                      ? 'border-purple-600 bg-purple-600 text-white shadow-sm'
-                      : 'border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900 hover:bg-slate-100 text-slate-700 dark:text-zinc-300'
+                      ? 'border-purple-600 bg-purple-600 text-white shadow-soft-sm'
+                      : 'border-border/70 bg-card hover:bg-muted text-muted-foreground hover:text-foreground'
                   )}
                 >
                   <span>{lvl.label}</span>

@@ -352,61 +352,62 @@ export default function AdminLessonVocab({ lessonId, lessonTitle, questionId }: 
   if (isQuizLoading || isWordsLoading) return <div className="text-sm py-4">Đang tải...</div>
 
   return (
-    <div className="bg-muted/10 p-4 rounded-lg border mt-2 space-y-4">
-      <div className="flex items-center justify-between">
-        <h4 className="font-semibold text-sm flex items-center gap-2">
+    <div className="bg-card p-5 sm:p-6 rounded-2xl border border-border/70 shadow-soft-sm mt-3 space-y-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-border/50">
+        <h4 className="font-bold text-base text-foreground flex items-center gap-2">
           📚 Danh sách từ vựng ({words?.length || 0})
         </h4>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {selectedDeleteIds.length > 0 && (
-            <Button size="sm" variant="destructive" onClick={() => { if(confirm(`Xóa ${selectedDeleteIds.length} từ đã chọn?`)) deleteMultipleWordsMutation.mutate(selectedDeleteIds); }}>
-              <Trash2 className="w-4 h-4 mr-1"/> Xóa ({selectedDeleteIds.length})
+            <Button size="sm" variant="destructive" className="rounded-xl font-bold active:scale-95 duration-120" onClick={() => { if(confirm(`Xóa ${selectedDeleteIds.length} từ đã chọn?`)) deleteMultipleWordsMutation.mutate(selectedDeleteIds); }}>
+              <Trash2 className="w-4 h-4 mr-1.5"/> Xóa ({selectedDeleteIds.length})
             </Button>
           )}
-          <Button size="sm" variant="outline" onClick={() => setAddOpen(true)}><Plus className="w-4 h-4 mr-1"/> Thêm</Button>
-          <Button size="sm" variant="outline" onClick={() => setCopyOpen(true)}><Copy className="w-4 h-4 mr-1"/> Gộp từ bài khác</Button>
-          <Button size="sm" variant="outline" onClick={() => setImportOpen(true)}><Upload className="w-4 h-4 mr-1"/> Import</Button>
-          <Button size="sm" variant="outline" onClick={exportWords}><Download className="w-4 h-4 mr-1"/> Export</Button>
+          <Button size="sm" variant="outline" className="rounded-xl font-semibold border-border/80 shadow-soft-xs active:scale-95 duration-120" onClick={() => setAddOpen(true)}><Plus className="w-4 h-4 mr-1.5 text-primary"/> Thêm</Button>
+          <Button size="sm" variant="outline" className="rounded-xl font-semibold border-border/80 shadow-soft-xs active:scale-95 duration-120" onClick={() => setCopyOpen(true)}><Copy className="w-4 h-4 mr-1.5 text-purple-600"/> Gộp từ bài khác</Button>
+          <Button size="sm" variant="outline" className="rounded-xl font-semibold border-border/80 shadow-soft-xs active:scale-95 duration-120" onClick={() => setImportOpen(true)}><Upload className="w-4 h-4 mr-1.5 text-emerald-600"/> Import</Button>
+          <Button size="sm" variant="outline" className="rounded-xl font-semibold border-border/80 shadow-soft-xs active:scale-95 duration-120" onClick={exportWords}><Download className="w-4 h-4 mr-1.5 text-blue-600"/> Export</Button>
         </div>
       </div>
 
-      <div className="grid gap-2">
+      <div className="grid gap-2.5">
         {words && words.length > 0 && (
           <div className="flex items-center gap-2 px-3 py-1">
             <input 
               type="checkbox" 
-              className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4"
+              className="rounded-md border-border text-primary focus:ring-primary h-4 w-4 cursor-pointer"
               checked={selectedDeleteIds.length === words.length && words.length > 0}
               onChange={(e) => {
                 if (e.target.checked) setSelectedDeleteIds(words.map(w => w.id));
                 else setSelectedDeleteIds([]);
               }}
             />
-            <span className="text-[10px] text-muted-foreground uppercase font-bold">Chọn tất cả</span>
+            <span className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Chọn tất cả</span>
           </div>
         )}
         {words?.map((w, idx) => (
-          <div key={w.id} className="flex items-center gap-3 bg-card p-3 rounded-md border text-sm">
+          <div key={w.id} className="flex items-center gap-3 bg-muted/20 hover:bg-muted/30 p-3.5 sm:p-4 rounded-xl border border-border/60 shadow-soft-xs text-sm transition-all hover:border-primary/30">
             <input 
               type="checkbox" 
-              className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4"
+              className="rounded-md border-border text-primary focus:ring-primary h-4 w-4 cursor-pointer"
               checked={selectedDeleteIds.includes(w.id)}
               onChange={(e) => {
                 if (e.target.checked) setSelectedDeleteIds([...selectedDeleteIds, w.id]);
                 else setSelectedDeleteIds(selectedDeleteIds.filter(id => id !== w.id));
               }}
             />
-            <div className="flex-1 flex items-center justify-between">
-              <div className="flex gap-4 mb-1">
-                <span className="font-semibold text-base">{w.word} {w.phonetic && <span className="text-muted-foreground font-normal text-sm">({w.phonetic})</span>}</span>
-                <span className="text-muted-foreground">- {w.definition_vi}</span>
+            <div className="flex-1 flex flex-col sm:flex-row sm:items-center justify-between gap-2 min-w-0">
+              <div className="flex flex-wrap items-center gap-2 min-w-0">
+                <span className="font-bold text-base text-foreground">{w.word}</span>
+                {w.phonetic && <span className="text-muted-foreground font-mono text-xs px-2 py-0.5 rounded bg-muted/60">({w.phonetic})</span>}
+                <span className="text-slate-600 dark:text-slate-300 font-medium">— {w.definition_vi}</span>
                 {!questionId && allQuestions && allQuestions.length > 0 && (
-                  <div className="ml-auto w-32">
+                  <div className="w-32">
                     <Select 
                       value={w.question_id?.toString() || "none"} 
                       onValueChange={(val) => updateWordQuestion.mutate({ id: w.id, question_id: val === "none" ? null : parseInt(val) })}
                     >
-                      <SelectTrigger className="h-7 text-[10px]">
+                      <SelectTrigger className="h-8 text-xs rounded-lg">
                         <SelectValue placeholder="Gắn vào câu..." />
                       </SelectTrigger>
                       <SelectContent>
@@ -420,16 +421,16 @@ export default function AdminLessonVocab({ lessonId, lessonTitle, questionId }: 
                 )}
               </div>
               {w.example_sentence && (
-                <p className="text-xs text-muted-foreground italic bg-muted/30 p-1.5 rounded">
-                  Example: {w.example_sentence}
+                <p className="text-xs text-muted-foreground italic bg-muted/40 p-2 rounded-lg border border-border/40">
+                  {w.example_sentence}
                 </p>
               )}
             </div>
-            <div className="flex gap-1">
+            <div className="flex gap-1 shrink-0">
               <Button 
                 size="icon" 
                 variant="ghost" 
-                className="h-7 w-7 text-primary opacity-70 hover:opacity-100" 
+                className="h-8 w-8 text-primary hover:bg-primary/10 rounded-lg active:scale-95" 
                 onClick={() => {
                   setEditingWord({
                     id: w.id,
@@ -444,36 +445,41 @@ export default function AdminLessonVocab({ lessonId, lessonTitle, questionId }: 
               >
                 <Pencil className="w-4 h-4" />
               </Button>
-              <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive opacity-70 hover:opacity-100" onClick={() => { if(confirm("Xóa từ này?")) deleteWordMutation.mutate(w.id); }}>
+              <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive/10 rounded-lg active:scale-95" onClick={() => { if(confirm("Xóa từ này?")) deleteWordMutation.mutate(w.id); }}>
                 <Trash2 className="w-4 h-4" />
               </Button>
             </div>
           </div>
         ))}
-        {words?.length === 0 && <p className="text-xs text-muted-foreground italic">Chưa có từ vựng nào.</p>}
+        {words?.length === 0 && (
+          <div className="py-8 text-center text-muted-foreground space-y-1.5 border border-dashed border-border/70 rounded-xl bg-muted/10">
+            <p className="text-sm font-semibold text-foreground">Chưa có từ vựng nào trong bài học này</p>
+            <p className="text-xs text-muted-foreground">Bấm "+ Thêm" hoặc "Import" để bắt đầu bổ sung từ vựng cho bài học.</p>
+          </div>
+        )}
       </div>
 
       <Dialog open={importOpen} onOpenChange={setImportOpen}>
-        <DialogContent>
+        <DialogContent className="rounded-2xl border-border/80 shadow-soft-xl max-w-lg">
           <DialogHeader>
-            <DialogTitle>Import Từ Vựng</DialogTitle>
+            <DialogTitle className="text-lg font-bold">Import Từ Vựng</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 pt-2">
             <div>
-              <p className="text-xs text-muted-foreground mb-4">
-                Định dạng CSV: <b>Word, Definition, Phonetic, Audio URL, Example Sentence, Question #</b>
+              <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
+                Định dạng CSV: <strong className="text-foreground">Word, Definition, Phonetic, Audio URL, Example Sentence, Question #</strong>
                 <br />
-                - <i>Question #</i>: Số thứ tự của câu (1, 2, 3...) để gắn từ vựng vào câu đó.
+                <span className="italic">• Question #: Số thứ tự câu (1, 2, 3...) để gắn từ vựng vào câu đó.</span>
               </p>
-              <Input type="file" accept=".csv,.txt,.tsv" onChange={handleFileChange} ref={fileInputRef} className="mb-2" />
+              <Input type="file" accept=".csv,.txt,.tsv" onChange={handleFileChange} ref={fileInputRef} className="mb-3 rounded-xl border-border/80" />
               <textarea 
-                className="w-full h-32 p-2 border rounded text-xs" 
-                placeholder="Hoặc dán data vào đây..."
+                className="w-full h-36 p-3 rounded-xl border border-border/80 bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" 
+                placeholder="Hoặc dán dữ liệu CSV vào đây..."
                 value={importText}
                 onChange={e => setImportText(e.target.value)}
               />
             </div>
-            <Button className="w-full" onClick={() => importMutation.mutate()} disabled={importMutation.isPending || !importText.trim()}>
+            <Button className="w-full btn-3d btn-3d-primary py-2.5 rounded-xl font-bold text-sm active:scale-95 duration-120" onClick={() => importMutation.mutate()} disabled={importMutation.isPending || !importText.trim()}>
               {importMutation.isPending ? "Đang xử lý..." : "Bắt đầu Import"}
             </Button>
           </div>
@@ -481,66 +487,66 @@ export default function AdminLessonVocab({ lessonId, lessonTitle, questionId }: 
       </Dialog>
 
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent>
+        <DialogContent className="rounded-2xl border-border/80 shadow-soft-xl max-w-lg">
           <DialogHeader>
-            <DialogTitle>Thêm từ vựng</DialogTitle>
+            <DialogTitle className="text-lg font-bold">Thêm từ vựng</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 pt-2">
             <div className="space-y-2">
-              <Label>Từ tiếng Anh (*)</Label>
-              <Input value={newWord.word} onChange={(e) => setNewWord({...newWord, word: e.target.value})} placeholder="Hello" />
+              <Label className="text-sm font-bold text-slate-800 dark:text-slate-200">Từ tiếng Anh (*)</Label>
+              <Input className="rounded-xl" value={newWord.word} onChange={(e) => setNewWord({...newWord, word: e.target.value})} placeholder="Ví dụ: innovation" />
             </div>
             <div className="space-y-2">
-              <Label>Nghĩa tiếng Việt (*)</Label>
-              <Input value={newWord.definition_vi} onChange={(e) => setNewWord({...newWord, definition_vi: e.target.value})} placeholder="Xin chào" />
+              <Label className="text-sm font-bold text-slate-800 dark:text-slate-200">Nghĩa tiếng Việt (*)</Label>
+              <Input className="rounded-xl" value={newWord.definition_vi} onChange={(e) => setNewWord({...newWord, definition_vi: e.target.value})} placeholder="Sự đổi mới, sáng kiến" />
             </div>
             <div className="space-y-2">
-              <Label>Phiên âm (tùy chọn)</Label>
-              <Input value={newWord.phonetic} onChange={(e) => setNewWord({...newWord, phonetic: e.target.value})} placeholder="/həˈləʊ/" />
+              <Label className="text-sm font-bold text-slate-800 dark:text-slate-200">Phiên âm (tùy chọn)</Label>
+              <Input className="rounded-xl" value={newWord.phonetic} onChange={(e) => setNewWord({...newWord, phonetic: e.target.value})} placeholder="/ˌɪn.əˈveɪ.ʃən/" />
             </div>
             <div className="space-y-2">
-              <Label>URL File Audio (tùy chọn)</Label>
-              <Input value={newWord.audio_url} onChange={(e) => setNewWord({...newWord, audio_url: e.target.value})} placeholder="https://..." />
+              <Label className="text-sm font-bold text-slate-800 dark:text-slate-200">URL File Audio (tùy chọn)</Label>
+              <Input className="rounded-xl" value={newWord.audio_url} onChange={(e) => setNewWord({...newWord, audio_url: e.target.value})} placeholder="https://..." />
             </div>
             <div className="space-y-2">
-              <Label>Câu ví dụ (tùy chọn)</Label>
-              <Input value={newWord.example_sentence} onChange={(e) => setNewWord({...newWord, example_sentence: e.target.value})} placeholder="Ví dụ: She is a student." />
+              <Label className="text-sm font-bold text-slate-800 dark:text-slate-200">Câu ví dụ (tùy chọn)</Label>
+              <Input className="rounded-xl" value={newWord.example_sentence} onChange={(e) => setNewWord({...newWord, example_sentence: e.target.value})} placeholder="Ví dụ: Technological innovation drives economic growth." />
             </div>
-            <Button className="w-full" onClick={() => addWordMutation.mutate()} disabled={addWordMutation.isPending}>
-              Thêm từ
+            <Button className="w-full btn-3d btn-3d-primary py-2.5 rounded-xl font-bold text-sm active:scale-95 duration-120" onClick={() => addWordMutation.mutate()} disabled={addWordMutation.isPending}>
+              {addWordMutation.isPending ? "Đang lưu..." : "Thêm từ vựng"}
             </Button>
           </div>
         </DialogContent>
       </Dialog>
 
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent>
+        <DialogContent className="rounded-2xl border-border/80 shadow-soft-xl max-w-lg">
           <DialogHeader>
-            <DialogTitle>Chỉnh sửa từ vựng</DialogTitle>
+            <DialogTitle className="text-lg font-bold">Chỉnh sửa từ vựng</DialogTitle>
           </DialogHeader>
           {editingWord && (
-            <div className="space-y-4">
+            <div className="space-y-4 pt-2">
               <div className="space-y-2">
-                <Label>Từ tiếng Anh (*)</Label>
-                <Input value={editingWord.word} onChange={(e) => setEditingWord({...editingWord, word: e.target.value})} placeholder="Hello" />
+                <Label className="text-sm font-bold text-slate-800 dark:text-slate-200">Từ tiếng Anh (*)</Label>
+                <Input className="rounded-xl" value={editingWord.word} onChange={(e) => setEditingWord({...editingWord, word: e.target.value})} placeholder="Hello" />
               </div>
               <div className="space-y-2">
-                <Label>Nghĩa tiếng Việt (*)</Label>
-                <Input value={editingWord.definition_vi} onChange={(e) => setEditingWord({...editingWord, definition_vi: e.target.value})} placeholder="Xin chào" />
+                <Label className="text-sm font-bold text-slate-800 dark:text-slate-200">Nghĩa tiếng Việt (*)</Label>
+                <Input className="rounded-xl" value={editingWord.definition_vi} onChange={(e) => setEditingWord({...editingWord, definition_vi: e.target.value})} placeholder="Xin chào" />
               </div>
               <div className="space-y-2">
-                <Label>Phiên âm (tùy chọn)</Label>
-                <Input value={editingWord.phonetic} onChange={(e) => setEditingWord({...editingWord, phonetic: e.target.value})} placeholder="/həˈləʊ/" />
+                <Label className="text-sm font-bold text-slate-800 dark:text-slate-200">Phiên âm (tùy chọn)</Label>
+                <Input className="rounded-xl" value={editingWord.phonetic} onChange={(e) => setEditingWord({...editingWord, phonetic: e.target.value})} placeholder="/həˈləʊ/" />
               </div>
               <div className="space-y-2">
-                <Label>URL File Audio (tùy chọn)</Label>
-                <Input value={editingWord.audio_url} onChange={(e) => setEditingWord({...editingWord, audio_url: e.target.value})} placeholder="https://..." />
+                <Label className="text-sm font-bold text-slate-800 dark:text-slate-200">URL File Audio (tùy chọn)</Label>
+                <Input className="rounded-xl" value={editingWord.audio_url} onChange={(e) => setEditingWord({...editingWord, audio_url: e.target.value})} placeholder="https://..." />
               </div>
               <div className="space-y-2">
-                <Label>Câu ví dụ (tùy chọn)</Label>
-                <Input value={editingWord.example_sentence} onChange={(e) => setEditingWord({...editingWord, example_sentence: e.target.value})} placeholder="Ví dụ: She is a student." />
+                <Label className="text-sm font-bold text-slate-800 dark:text-slate-200">Câu ví dụ (tùy chọn)</Label>
+                <Input className="rounded-xl" value={editingWord.example_sentence} onChange={(e) => setEditingWord({...editingWord, example_sentence: e.target.value})} placeholder="Ví dụ: She is a student." />
               </div>
-              <Button className="w-full" onClick={() => updateWordMutation.mutate()} disabled={updateWordMutation.isPending}>
+              <Button className="w-full btn-3d btn-3d-primary py-2.5 rounded-xl font-bold text-sm active:scale-95 duration-120" onClick={() => updateWordMutation.mutate()} disabled={updateWordMutation.isPending}>
                 {updateWordMutation.isPending ? "Đang lưu..." : "Lưu thay đổi"}
               </Button>
             </div>
@@ -549,42 +555,42 @@ export default function AdminLessonVocab({ lessonId, lessonTitle, questionId }: 
       </Dialog>
 
       <Dialog open={copyOpen} onOpenChange={setCopyOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
+        <DialogContent className="rounded-2xl border-border/80 shadow-soft-xl max-w-2xl max-h-[85vh] flex flex-col">
           <DialogHeader>
-            <DialogTitle>Gộp từ vựng từ bài học khác</DialogTitle>
+            <DialogTitle className="text-lg font-bold">Gộp từ vựng từ bài học khác</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
+          <div className="space-y-4 flex-1 overflow-hidden flex flex-col pt-1">
             <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input 
                 placeholder="Tìm bài học..." 
-                className="pl-8" 
+                className="pl-9 rounded-xl border-border/80" 
                 value={searchLesson}
                 onChange={e => setSearchLesson(e.target.value)}
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4 flex-1 overflow-hidden">
-              <div className="border rounded-md overflow-y-auto p-2 space-y-1 bg-muted/20">
-                <p className="text-[10px] font-bold uppercase text-muted-foreground mb-2 px-2">Danh sách bài học</p>
+              <div className="border border-border/70 rounded-xl overflow-y-auto p-2 space-y-1 bg-muted/20">
+                <p className="text-xs font-bold uppercase text-muted-foreground mb-2 px-2">Danh sách bài học</p>
                 {allLessons?.filter(l => l.title.toLowerCase().includes(searchLesson.toLowerCase())).map(l => (
                   <button
                     key={l.id}
                     onClick={() => { setSelectedLessonId(l.id); setSelectedWords([]); }}
-                    className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${selectedLessonId === l.id ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
+                    className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-all ${selectedLessonId === l.id ? 'bg-primary text-primary-foreground font-semibold shadow-soft-xs' : 'hover:bg-muted text-foreground'}`}
                   >
                     {l.title}
                   </button>
                 ))}
               </div>
 
-              <div className="border rounded-md overflow-y-auto p-2 space-y-1 bg-card">
-                <p className="text-[10px] font-bold uppercase text-muted-foreground mb-2 px-2">Từ vựng trong bài</p>
+              <div className="border border-border/70 rounded-xl overflow-y-auto p-2 space-y-1 bg-card">
+                <p className="text-xs font-bold uppercase text-muted-foreground mb-2 px-2">Từ vựng trong bài</p>
                 {otherLessonWords?.map(w => (
-                  <label key={w.id} className="flex items-center gap-3 p-2 hover:bg-muted rounded-md cursor-pointer border-b last:border-0 border-muted/50">
+                  <label key={w.id} className="flex items-center gap-3 p-2 hover:bg-muted/50 rounded-lg cursor-pointer border-b last:border-0 border-border/40 transition-colors">
                     <input 
                       type="checkbox" 
-                      className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4"
+                      className="rounded border-border text-primary focus:ring-primary h-4 w-4"
                       checked={selectedWords.includes(w.id)}
                       onChange={(e) => {
                         if (e.target.checked) setSelectedWords([...selectedWords, w.id]);
@@ -592,8 +598,8 @@ export default function AdminLessonVocab({ lessonId, lessonTitle, questionId }: 
                       }}
                     />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{w.word}</p>
-                      <p className="text-[10px] text-muted-foreground truncate">{w.definition_vi}</p>
+                      <p className="text-sm font-bold text-foreground truncate">{w.word}</p>
+                      <p className="text-xs text-muted-foreground truncate">{w.definition_vi}</p>
                     </div>
                   </label>
                 ))}
@@ -606,9 +612,10 @@ export default function AdminLessonVocab({ lessonId, lessonTitle, questionId }: 
               </div>
             </div>
           </div>
-          <DialogFooter className="mt-4">
-            <Button variant="outline" onClick={() => setCopyOpen(false)}>Hủy</Button>
+          <DialogFooter className="mt-4 gap-2">
+            <Button variant="outline" className="rounded-xl font-semibold active:scale-95 duration-120" onClick={() => setCopyOpen(false)}>Hủy</Button>
             <Button 
+              className="btn-3d btn-3d-primary rounded-xl font-bold active:scale-95 duration-120"
               onClick={() => copyWordsMutation.mutate()} 
               disabled={copyWordsMutation.isPending || selectedWords.length === 0}
             >

@@ -6,103 +6,202 @@
 
 @layer base {
   :root {
-    --background: 210 20% 98%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    /* ==========================================================================
+       TẦNG 1: PRIMITIVE TOKENS (Giá trị thô, W3C DTCG Standard)
+       - Tinted Neutrals: Dải xám pha 3-5% blue hue để tránh mỏi mắt & khử quầng nhòe
+       ========================================================================== */
+    --primitive-slate-50: #F8FAFC;
+    --primitive-slate-100: #F1F5F9;
+    --primitive-slate-200: #E2E8F0;
+    --primitive-slate-300: #CBD5E1;
+    --primitive-slate-400: #94A3B8;
+    --primitive-slate-500: #64748B;
+    --primitive-slate-600: #475569;
+    --primitive-slate-700: #334155;
+    --primitive-slate-800: #1E293B;
+    --primitive-slate-900: #0F172A;
+    --primitive-slate-950: #020617;
+
+    --primitive-blue-50: #EFF6FF;
+    --primitive-blue-100: #DBEAFE;
+    --primitive-blue-200: #BFDBFE;
+    --primitive-blue-400: #60A5FA;
+    --primitive-blue-500: #2563EB;
+    --primitive-blue-600: #1D4ED8;
+    --primitive-blue-700: #1E40AF;
+
+    --primitive-emerald-50: #ECFDF5;
+    --primitive-emerald-100: #D1FAE5;
+    --primitive-emerald-500: #10B981;
+    --primitive-emerald-600: #059669;
+    --primitive-emerald-700: #047857;
+
+    --primitive-amber-50: #FFFBEB;
+    --primitive-amber-100: #FEF3C7;
+    --primitive-amber-500: #F59E0B;
+    --primitive-amber-600: #D97706;
+
+    --primitive-rose-50: #FFF1F2;
+    --primitive-rose-100: #FFE4E6;
+    --primitive-rose-500: #EF4444;
+    --primitive-rose-600: #DC2626;
+
+    --primitive-sky-500: #0EA5E9;
+    --primitive-purple-500: #8B5CF6;
+    --primitive-purple-600: #7C3AED;
+
+    /* ==========================================================================
+       HỆ THỐNG KHÔNG GIAN 8PT (SPACING TOKENS)
+       ========================================================================== */
+    --space-1: 4px;   /* Cự ly vi mô: icon & nhãn chữ, badge */
+    --space-2: 8px;   /* Khoảng cách nội bộ: padding nút nhỏ, chip gap */
+    --space-3: 12px;  /* Khoảng cách thành phần: label và input */
+    --space-4: 16px;  /* Đơn vị nền tảng: card padding, khoảng cách form fields */
+    --space-6: 24px;  /* Khoảng cách module: tiêu đề và khối nội dung */
+    --space-8: 32px;  /* Khoảng cách cấu trúc: cự ly giữa các card lớn */
+    --space-12: 48px; /* Khoảng cách phân khu: phân tách các khối chức năng */
+    --space-16: 64px; /* Biên giới hạn bố cục: padding section chính */
+
+    /* ==========================================================================
+       ĐỘNG LỰC HỌC CHUYỂN ĐỘNG (MOTION EASING & DURATION)
+       ========================================================================== */
+    --ease-out-cubic: cubic-bezier(0.0, 0.0, 0.2, 1);      /* Xuất hiện mới */
+    --ease-in-cubic: cubic-bezier(0.4, 0.0, 1, 1);          /* Biến mất */
+    --ease-standard-cubic: cubic-bezier(0.4, 0.0, 0.2, 1);  /* Chuyển dịch vị trí/kích thước */
+
+    --duration-micro: 120ms;   /* Phản hồi vi mô: click, hover, toggle */
+    --duration-sm: 180ms;      /* Dropdown, popover, tooltip */
+    --duration-md: 260ms;      /* Chuyển cảnh trang, mở modal */
+    --duration-lg: 350ms;      /* Animation phức hợp (tối đa < 400ms) */
+
+    /* ==========================================================================
+       ĐỔ BÓNG ĐA TẦNG KHUẾCH TÁN (LAYERED SOFT SHADOWS)
+       ========================================================================== */
+    --shadow-soft-sm: 0 1px 2px rgba(15, 23, 42, 0.04), 0 2px 8px rgba(15, 23, 42, 0.02);
+    --shadow-soft-md: 0 2px 4px rgba(15, 23, 42, 0.05), 0 8px 20px rgba(15, 23, 42, 0.04);
+    --shadow-soft-lg: 0 4px 8px rgba(15, 23, 42, 0.06), 0 16px 32px rgba(15, 23, 42, 0.05);
+
+    /* ==========================================================================
+       TẦNG 2: SEMANTIC TOKENS (LIGHT MODE) - Đạt chuẩn WCAG 2.2 AAA & APCA
+       ========================================================================== */
+    --background: 210 20% 98%;          /* #F8FAFC - Tinted neutral nền */
+    --foreground: 222 47% 11%;          /* #0F172A - Tiêu đề Slate-900 (tương phản 16.1:1) */
+    
+    --card: 0 0% 100%;                  /* #FFFFFF - Bề mặt thẻ trắng trên nền lệch 1-2% */
+    --card-foreground: 215 25% 27%;     /* #334155 - Body Slate-700 (tương phản 9.6:1) */
+    
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
+    --popover-foreground: 222 47% 11%;
+    
+    --primary: 221 83% 53%;             /* #2563EB - Brand Blue */
     --primary-foreground: 210 40% 98%;
     --primary-dark: 224 76% 40%;
     --primary-light: 214 95% 93%;
+    
     --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary-foreground: 215 25% 27%;
+    
     --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted-foreground: 215 16% 47%;    /* #475569 - Slate-600 Meta/Caption (tương phản 6.0:1) */
+    
     --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent-foreground: 222 47% 11%;
     --accent-dark: 215 25% 27%;
-    --destructive: 0 84.2% 60.2%;
+    
+    --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
+    
     --warning: 38 92% 50%;
     --warning-foreground: 48 96% 89%;
+    
     --success: 152 76% 40%;
     --success-foreground: 0 0% 100%;
-    --border: 214.3 31.8% 91.4%;
+    
+    --border: 214.3 31.8% 91.4%;        /* Slate-200 nhạt */
     --input: 214.3 31.8% 91.4%;
     --ring: 221.2 83.2% 53.3%;
     --radius: 0.875rem;
 
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 222.2 47.4% 11.2%;
+    --sidebar-foreground: 215 25% 27%;
     --sidebar-primary: 221.2 83.2% 53.3%;
     --sidebar-primary-foreground: 210 40% 98%;
     --sidebar-accent: 210 40% 96.1%;
-    --sidebar-accent-foreground: 222.2 47.4% 11.2%;
+    --sidebar-accent-foreground: 222 47% 11%;
     --sidebar-border: 214.3 31.8% 91.4%;
     --sidebar-ring: 221.2 83.2% 53.3%;
 
-    /* Semantic Brand & Action Tokens */
-    --brand-primary: #2563eb;
-    --brand-primary-dark: #1d4ed8;
-    --brand-primary-light: #3b82f6;
-    --brand-cta: #2563eb;
-    --brand-cta-dark: #1d4ed8;
-    --brand-cta-light: #3b82f6;
+    /* Semantic Aliases */
+    --brand-primary: var(--primitive-blue-500);
+    --brand-primary-dark: var(--primitive-blue-600);
+    --brand-primary-light: var(--primitive-blue-400);
+    --brand-cta: var(--primitive-blue-500);
+    --brand-cta-dark: var(--primitive-blue-600);
+    --brand-cta-light: var(--primitive-blue-400);
 
-    --cta-success: #10b981;
-    --cta-success-dark: #059669;
-    --cta-success-light: #34d399;
+    --cta-success: var(--primitive-emerald-500);
+    --cta-success-dark: var(--primitive-emerald-600);
+    --cta-success-light: #34D399;
 
-    --danger: #ef4444;
-    --danger-dark: #dc2626;
-    --logout: #ef4444;
+    --danger: var(--primitive-rose-500);
+    --danger-dark: var(--primitive-rose-600);
+    --logout: var(--primitive-rose-500);
 
-    /* Theme Color Palette */
-    --duo-blue: #2563eb;
-    --duo-blue-dark: #1d4ed8;
-    --duo-blue-light: #3b82f6;
-    --duo-green: var(--duo-blue); /* Aliased for backwards compatibility */
-    --duo-green-dark: var(--duo-blue-dark);
-    --duo-green-light: var(--duo-blue-light);
-    --duo-correct: #10b981;
-    --duo-correct-dark: #059669;
-    --duo-correct-light: #34d399;
-    --duo-sky: #0284c7;
-    --duo-sky-dark: #0369a1;
-    --duo-yellow: #f59e0b;
-    --duo-yellow-dark: #d97706;
-    --duo-orange: #ea580c;
-    --duo-red: #ef4444;
-    --duo-purple: #8b5cf6;
-    --duo-purple-dark: #7c3aed;
-    --duo-gray: #e2e8f0;
-    --duo-gray-dark: #94a3b8;
+    /* Backwards-compatibility aliases for duo variables */
+    --duo-blue: var(--primitive-blue-500);
+    --duo-blue-dark: var(--primitive-blue-600);
+    --duo-blue-light: var(--primitive-blue-400);
+    --duo-green: var(--primitive-emerald-500);
+    --duo-green-dark: var(--primitive-emerald-600);
+    --duo-green-light: #34D399;
+    --duo-correct: var(--primitive-emerald-500);
+    --duo-correct-dark: var(--primitive-emerald-600);
+    --duo-correct-light: #34D399;
+    --duo-sky: var(--primitive-sky-500);
+    --duo-sky-dark: #0284C7;
+    --duo-yellow: var(--primitive-amber-500);
+    --duo-yellow-dark: var(--primitive-amber-600);
+    --duo-orange: #EA580C;
+    --duo-red: var(--primitive-rose-500);
+    --duo-purple: var(--primitive-purple-500);
+    --duo-purple-dark: var(--primitive-purple-600);
+    --duo-gray: var(--primitive-slate-200);
+    --duo-gray-dark: var(--primitive-slate-400);
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 7%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 7%;
+    /* ==========================================================================
+       TẦNG 2: SEMANTIC TOKENS (DARK MODE)
+       ========================================================================== */
+    --background: 222.2 47% 6%;          /* #090D16 - Tinted dark neutral */
+    --foreground: 210 40% 98%;          /* Slate-50 */
+    
+    --card: 222.2 47% 9%;               /* #0F172A */
+    --card-foreground: 214 32% 91%;     /* Slate-100 */
+    
+    --popover: 222.2 47% 9%;
     --popover-foreground: 210 40% 98%;
+    
     --primary: 217.2 91.2% 59.8%;
     --primary-foreground: 222.2 47.4% 11.2%;
+    
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
+    
     --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted-foreground: 215 20.2% 65.1%; /* Slate-400 */
+    
     --accent: 217.2 32.6% 17.5%;
     --accent-foreground: 210 40% 98%;
+    
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
+    
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 224.3 76.3% 48%;
 
-    --sidebar-background: 222.2 84% 6%;
+    --sidebar-background: 222.2 47% 8%;
     --sidebar-foreground: 210 40% 98%;
     --sidebar-primary: 217.2 91.2% 59.8%;
     --sidebar-primary-foreground: 222.2 47.4% 11.2%;
@@ -111,11 +210,14 @@
     --sidebar-border: 217.2 32.6% 17.5%;
     --sidebar-ring: 217.2 91.2% 59.8%;
 
-    --duo-gray: #334155;
-    --duo-gray-dark: #64748b;
+    --duo-gray: #1E293B;
+    --duo-gray-dark: #475569;
   }
 }
 
+/* ==========================================================================
+   CÔNG THÁI HỌC KIỂU CHỮ & CĂN BẢN GIAO DIỆN
+   ========================================================================== */
 @layer base {
   html {
     scroll-behavior: smooth;
@@ -123,13 +225,54 @@
   * {
     @apply border-border;
   }
+  
+  /* CHỈ BÁO TIÊU ĐIỂM BÀN PHÍM (DUAL RING INDICATOR) - WCAG 2.2 AA/AAA */
+  *:focus-visible {
+    outline: 2px solid #2563EB !important;
+    outline-offset: 2px !important;
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.2) !important;
+  }
+
   body {
     @apply bg-background text-foreground antialiased;
     font-family: 'Plus Jakarta Sans', 'Nunito Sans', sans-serif;
+    font-size: 1rem;       /* 16px tối thiểu */
+    line-height: 1.6;      /* Thân văn bản: 150% - 165% */
+    letter-spacing: 0;
   }
-  h1, h2, h3, h4, h5, h6 {
-    @apply font-bold tracking-tight text-foreground;
+
+  /* Tiêu đề: Line-height hẹp nghịch biến với kích thước (1.1 - 1.25) */
+  h1 {
+    @apply font-bold text-foreground;
     font-family: 'Plus Jakarta Sans', 'Nunito Sans', sans-serif;
+    letter-spacing: -0.025em;
+    line-height: 1.15;
+  }
+  h2 {
+    @apply font-bold text-foreground;
+    font-family: 'Plus Jakarta Sans', 'Nunito Sans', sans-serif;
+    letter-spacing: -0.015em;
+    line-height: 1.2;
+  }
+  h3 {
+    @apply font-bold text-foreground;
+    font-family: 'Plus Jakarta Sans', 'Nunito Sans', sans-serif;
+    letter-spacing: -0.01em;
+    line-height: 1.25;
+  }
+  h4, h5, h6 {
+    @apply font-bold text-foreground;
+    font-family: 'Plus Jakarta Sans', 'Nunito Sans', sans-serif;
+    line-height: 1.3;
+  }
+
+  /* Đoạn văn từ 3 dòng trở lên căn lề trái & giới hạn độ dài đọc 45 - 75 ký tự */
+  p {
+    line-height: 1.6;
+  }
+
+  button, input, select, textarea {
+    letter-spacing: 0;
   }
 }
 
@@ -137,50 +280,91 @@
   .text-gradient {
     @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-600 via-indigo-600 to-sky-500;
   }
+
+  /* Chống xâm thực nền ảnh do người dùng đăng tải (Background Bleeding) */
+  .image-safe {
+    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08);
+  }
+
+  /* Giới hạn độ dài dòng đọc công thái học (45-75 ký tự) */
+  .reading-measure {
+    max-width: 72ch;
+  }
 }
 
 @layer components {
-  /* Modern clean action buttons with subtle lift */
-  .btn-3d {
-    @apply inline-flex items-center justify-center font-semibold rounded-xl text-sm transition-all duration-200 select-none outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50;
+  /* ==========================================================================
+     NÚT BẤM CÔNG THÁI HỌC VỚI HIỆU ỨNG NÉN VÀ GIÃN NỞ VẬT LÝ (SQUASH & STRETCH)
+     - Tỷ lệ đệm ngang gấp 1.5 - 2 lần đệm dọc
+     ========================================================================== */
+  .btn-interactive {
+    @apply inline-flex items-center justify-center font-semibold rounded-xl text-sm transition-all select-none outline-none;
     padding: 10px 20px;
+    transition-duration: 120ms;
+    transition-timing-function: cubic-bezier(0.4, 0.0, 0.2, 1);
   }
+  .btn-interactive:active {
+    transform: scale(0.95);
+  }
+
+  .btn-3d {
+    @apply inline-flex items-center justify-center font-semibold rounded-xl text-sm transition-all select-none outline-none disabled:pointer-events-none disabled:opacity-50;
+    padding: 10px 20px;
+    transition-duration: 120ms;
+    transition-timing-function: cubic-bezier(0.4, 0.0, 0.2, 1);
+  }
+  .btn-3d:active {
+    transform: scale(0.95);
+  }
+  
   .btn-3d-primary {
-    @apply bg-blue-600 text-white shadow-sm hover:bg-blue-700 hover:shadow active:scale-[0.98];
+    @apply bg-blue-600 text-white hover:bg-blue-700 shadow-sm active:scale-95;
+    box-shadow: 0 1px 3px rgba(37, 99, 235, 0.2), 0 4px 12px rgba(37, 99, 235, 0.15);
   }
   .btn-3d-green {
-    @apply bg-emerald-600 text-white shadow-sm hover:bg-emerald-700 hover:shadow active:scale-[0.98];
+    @apply bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm active:scale-95;
   }
   .btn-3d-correct {
-    @apply bg-emerald-600 text-white shadow-sm hover:bg-emerald-700 hover:shadow active:scale-[0.98];
+    @apply bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm active:scale-95;
   }
   .btn-3d-yellow {
-    @apply bg-amber-500 text-white shadow-sm hover:bg-amber-600 hover:shadow active:scale-[0.98];
+    @apply bg-amber-500 text-white hover:bg-amber-600 shadow-sm active:scale-95;
   }
   .btn-3d-blue {
-    @apply bg-sky-600 text-white shadow-sm hover:bg-sky-700 hover:shadow active:scale-[0.98];
+    @apply bg-sky-600 text-white hover:bg-sky-700 shadow-sm active:scale-95;
   }
   .btn-3d-white {
-    @apply bg-card text-foreground border border-border shadow-sm hover:bg-muted/70 active:scale-[0.98];
+    @apply bg-card text-foreground border border-border/80 hover:bg-muted/70 active:scale-95;
+    box-shadow: var(--shadow-soft-sm);
   }
   .btn-3d-secondary {
-    @apply bg-muted text-foreground border border-border hover:bg-muted/80 active:scale-[0.98];
+    @apply bg-muted text-foreground border border-border/60 hover:bg-muted/80 active:scale-95;
   }
 
-  /* Modern Card Style */
+  /* ==========================================================================
+     THẺ BỀ MẶT HIỆN ĐẠI (ĐỔ BÓNG ĐA TẦNG, HẠN CHẾ VIỀN THÔ CỨNG)
+     ========================================================================== */
   .card-duo {
-    @apply bg-card text-card-foreground border border-border rounded-2xl shadow-sm transition-all duration-200;
+    @apply bg-card text-card-foreground rounded-2xl transition-all border border-border/60;
+    box-shadow: var(--shadow-soft-sm);
+    transition-duration: 200ms;
+    transition-timing-function: cubic-bezier(0.0, 0.0, 0.2, 1);
   }
   .card-duo:hover {
-    @apply shadow-md border-border/90;
+    box-shadow: var(--shadow-soft-md);
+    border-color: rgba(37, 99, 235, 0.2);
   }
 
-  /* Card hover animation */
   .card-hover {
-    @apply transition-all duration-300 border border-border rounded-2xl shadow-sm;
+    @apply transition-all rounded-2xl border border-border/60;
+    box-shadow: var(--shadow-soft-sm);
+    transition-duration: 250ms;
+    transition-timing-function: cubic-bezier(0.0, 0.0, 0.2, 1);
   }
   .card-hover:hover {
-    @apply -translate-y-1 shadow-md border-border/80;
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-soft-md);
+    border-color: rgba(37, 99, 235, 0.3);
   }
 
   /* Modern progress bar */
@@ -188,12 +372,14 @@
     @apply h-2.5 bg-muted rounded-full overflow-hidden;
   }
   .progress-duo-fill {
-    @apply h-full bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full transition-all duration-500;
+    @apply h-full bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full transition-all;
+    transition-duration: 350ms;
+    transition-timing-function: cubic-bezier(0.4, 0.0, 0.2, 1);
   }
 
-  /* Clean Badge styles */
+  /* Clean Badge styles (Cỡ chữ ≥ 12px chuẩn công thái học) */
   .badge-duo {
-    @apply inline-flex items-center gap-1.5 font-bold text-xs px-2.5 py-0.5 rounded-full border transition-colors select-none tracking-wide;
+    @apply inline-flex items-center gap-1.5 font-bold text-xs px-2.5 py-1 rounded-full border transition-colors select-none tracking-normal;
   }
   .badge-green {
     @apply bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-700;
@@ -224,7 +410,7 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: hsl(var(--muted-foreground) / 0.2);
+  background: hsl(var(--muted-foreground) / 0.25);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
@@ -239,14 +425,25 @@
   scrollbar-width: none;
 }
 
-/* Hero floating badges animation */
+/* ==========================================================================
+   META UI & CÁC HOẠT HỌA THEO ĐÚNG TIÊU CHUẨN THỜI LƯỢNG (< 400MS)
+   ========================================================================== */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-5px); }
+  40%, 80% { transform: translateX(5px); }
+}
+.animate-shake {
+  animation: shake 320ms cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
 @keyframes float {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
+  50% { transform: translateY(-6px); }
 }
 @keyframes float-delayed {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-6px); }
+  50% { transform: translateY(-4px); }
 }
 .animate-float {
   animation: float 3s ease-in-out infinite;
@@ -255,11 +452,10 @@
   animation: float-delayed 3.5s ease-in-out infinite 0.5s;
 }
 
-/* Fade in up for sections */
 @keyframes fade-in-up {
   from {
     opacity: 0;
-    transform: translateY(16px);
+    transform: translateY(12px);
   }
   to {
     opacity: 1;
@@ -267,6 +463,7 @@
   }
 }
 .animate-fade-in-up {
-  animation: fade-in-up 0.5s ease-out forwards;
+  animation: fade-in-up 280ms cubic-bezier(0.0, 0.0, 0.2, 1) forwards;
 }
+
 

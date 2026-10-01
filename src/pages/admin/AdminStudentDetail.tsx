@@ -151,33 +151,33 @@ const AdminStudentDetail = () => {
   return (
     <AdminLayout>
       <div className="space-y-6 max-w-5xl">
-        <div className="bg-card rounded-xl border p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4">
-          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-2xl font-bold text-primary">
+        <div className="bg-card rounded-2xl border border-border/70 p-6 shadow-soft-sm flex flex-col sm:flex-row items-start sm:items-center gap-4">
+          <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-2xl font-black text-primary border border-primary/20 shrink-0">
             {(profile.full_name ?? "?")[0]}
           </div>
           <div className="flex-1">
-            <h1 className="text-xl font-bold text-foreground">{profile.full_name ?? "—"}</h1>
+            <h1 className="text-xl font-black text-foreground">{profile.full_name ?? "—"}</h1>
             <p className="text-sm font-semibold text-muted-foreground font-mono mt-0.5">{profile.email ?? "—"}</p>
             <p className="text-xs text-muted-foreground mt-1">📅 Đăng ký: {profile.created_at ? new Date(profile.created_at).toLocaleDateString("vi-VN") : ""}</p>
           </div>
           <Dialog open={unlockDialogOpen} onOpenChange={setUnlockDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-90">
+              <Button className="btn-3d-green font-black rounded-xl active:scale-95 duration-120">
                 <Unlock className="w-4 h-4 mr-2" /> Mở khóa học
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-md">
+            <DialogContent className="max-w-md border border-border/80 shadow-soft-2xl rounded-2xl">
               <DialogHeader>
-                <DialogTitle>Cấp quyền truy cập khóa học</DialogTitle>
+                <DialogTitle className="text-lg font-black">Cấp quyền truy cập khóa học</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 pt-4">
                 <div className="space-y-2">
-                  <Label>Chọn khóa học</Label>
+                  <Label className="font-bold">Chọn khóa học</Label>
                   <Select value={selectedCourseId} onValueChange={setSelectedCourseId}>
-                    <SelectTrigger>
+                    <SelectTrigger className="font-medium rounded-xl">
                       <SelectValue placeholder="-- Chọn khóa học --" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="rounded-xl">
                       {availableCourses.map(c => (
                         <SelectItem key={c.id} value={c.id.toString()}>{c.title}</SelectItem>
                       ))}
@@ -186,12 +186,12 @@ const AdminStudentDetail = () => {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Thời hạn (ngày)</Label>
+                  <Label className="font-bold">Thời hạn (ngày)</Label>
                   <Select value={expiryDays} onValueChange={setExpiryDays}>
-                    <SelectTrigger>
+                    <SelectTrigger className="font-medium rounded-xl">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="rounded-xl">
                       <SelectItem value="7">7 ngày (1 tuần)</SelectItem>
                       <SelectItem value="30">30 ngày</SelectItem>
                       <SelectItem value="90">90 ngày</SelectItem>
@@ -202,7 +202,7 @@ const AdminStudentDetail = () => {
                   </Select>
                 </div>
                 <Button 
-                  className="w-full" 
+                  className="w-full btn-3d-green font-black rounded-xl active:scale-95 duration-120" 
                   onClick={() => unlockCourseMutation.mutate()} 
                   disabled={unlockCourseMutation.isPending || !selectedCourseId}
                 >
@@ -214,71 +214,71 @@ const AdminStudentDetail = () => {
         </div>
 
         <Tabs defaultValue="overview">
-          <TabsList>
-            <TabsTrigger value="overview">Tổng quan</TabsTrigger>
-            <TabsTrigger value="courses">Khóa học ({enrollments.length})</TabsTrigger>
-            <TabsTrigger value="history">Lịch sử thi ({quizResults.length})</TabsTrigger>
-            <TabsTrigger value="notes">Ghi chú ({notes.length})</TabsTrigger>
+          <TabsList className="bg-muted/60 p-1 rounded-2xl border border-border/60 h-auto">
+            <TabsTrigger value="overview" className="rounded-xl font-bold py-2 px-4 data-[state=active]:bg-card data-[state=active]:shadow-soft-xs">Tổng quan</TabsTrigger>
+            <TabsTrigger value="courses" className="rounded-xl font-bold py-2 px-4 data-[state=active]:bg-card data-[state=active]:shadow-soft-xs">Khóa học ({enrollments.length})</TabsTrigger>
+            <TabsTrigger value="history" className="rounded-xl font-bold py-2 px-4 data-[state=active]:bg-card data-[state=active]:shadow-soft-xs">Lịch sử thi ({quizResults.length})</TabsTrigger>
+            <TabsTrigger value="notes" className="rounded-xl font-bold py-2 px-4 data-[state=active]:bg-card data-[state=active]:shadow-soft-xs">Ghi chú ({notes.length})</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="mt-4">
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-              <div className="bg-card rounded-xl border p-4 text-center">
-                <p className="text-2xl font-bold text-primary">{enrollments.length}</p>
-                <p className="text-xs text-muted-foreground">Khóa đã đăng ký</p>
+              <div className="bg-card rounded-2xl border border-border/70 p-5 text-center shadow-soft-xs">
+                <p className="text-3xl font-black text-primary">{enrollments.length}</p>
+                <p className="text-xs font-semibold text-muted-foreground mt-1">Khóa đã đăng ký</p>
               </div>
-              <div className="bg-card rounded-xl border p-4 text-center">
-                <p className="text-2xl font-bold text-accent">{quizResults.length}</p>
-                <p className="text-xs text-muted-foreground">Bài thi đã làm</p>
+              <div className="bg-card rounded-2xl border border-border/70 p-5 text-center shadow-soft-xs">
+                <p className="text-3xl font-black text-primary">{quizResults.length}</p>
+                <p className="text-xs font-semibold text-muted-foreground mt-1">Bài thi đã làm</p>
               </div>
-              <div className="bg-card rounded-xl border p-4 text-center">
-                <p className="text-2xl font-bold text-warning">{avgScore}</p>
-                <p className="text-xs text-muted-foreground">Điểm TB</p>
+              <div className="bg-card rounded-2xl border border-border/70 p-5 text-center shadow-soft-xs">
+                <p className="text-3xl font-black text-amber-500">{avgScore}</p>
+                <p className="text-xs font-semibold text-muted-foreground mt-1">Điểm TB</p>
               </div>
             </div>
           </TabsContent>
 
           <TabsContent value="courses" className="mt-4">
-            <div className="bg-card rounded-xl border overflow-hidden">
+            <div className="bg-card rounded-2xl border border-border/70 overflow-hidden shadow-soft-sm">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b bg-muted/50">
-                    <th className="text-left p-3 font-semibold text-foreground">Khóa học</th>
-                    <th className="text-center p-3 font-semibold text-foreground">Đăng ký</th>
-                    <th className="text-center p-3 font-semibold text-foreground">Hết hạn</th>
-                    <th className="text-center p-3 font-semibold text-foreground">Hành động</th>
+                  <tr className="border-b border-border/70 bg-muted/50 text-xs font-black uppercase text-muted-foreground">
+                    <th className="text-left px-4 py-3">Khóa học</th>
+                    <th className="text-center px-4 py-3">Đăng ký</th>
+                    <th className="text-center px-4 py-3">Hết hạn</th>
+                    <th className="text-center px-4 py-3">Hành động</th>
                   </tr>
                 </thead>
                 <tbody>
                   {enrollments.map((e: any) => (
-                    <tr key={e.id} className="border-b last:border-0 hover:bg-muted/30">
-                      <td className="p-3 font-medium text-foreground">{e.courses?.title ?? "—"}</td>
-                      <td className="p-3 text-center text-muted-foreground">{e.enrolled_at ? new Date(e.enrolled_at).toLocaleDateString("vi-VN") : ""}</td>
-                      <td className="p-3 text-center text-muted-foreground">{e.expires_at ? new Date(e.expires_at).toLocaleDateString("vi-VN") : "Vĩnh viễn"}</td>
-                      <td className="p-3 text-center">
+                    <tr key={e.id} className="border-b border-border/60 last:border-0 hover:bg-muted/30 transition-colors">
+                      <td className="px-4 py-3.5 font-bold text-foreground">{e.courses?.title ?? "—"}</td>
+                      <td className="px-4 py-3.5 text-center text-muted-foreground">{e.enrolled_at ? new Date(e.enrolled_at).toLocaleDateString("vi-VN") : ""}</td>
+                      <td className="px-4 py-3.5 text-center text-muted-foreground">{e.expires_at ? new Date(e.expires_at).toLocaleDateString("vi-VN") : "Vĩnh viễn"}</td>
+                      <td className="px-4 py-3.5 text-center">
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button 
                               size="icon" 
                               variant="ghost" 
-                              className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                              className="h-8 w-8 text-destructive hover:bg-destructive/10 active:scale-95 duration-120 rounded-lg"
                               disabled={removeEnrollmentMutation.isPending}
                             >
                               <Trash2 className="w-4 h-4" />
                             </Button>
                           </AlertDialogTrigger>
-                          <AlertDialogContent>
+                          <AlertDialogContent className="border border-border/80 shadow-soft-xl rounded-2xl">
                             <AlertDialogHeader>
-                              <AlertDialogTitle>Xác nhận thu hồi quyền khóa học?</AlertDialogTitle>
-                              <AlertDialogDescription>
+                              <AlertDialogTitle className="font-black text-lg">Xác nhận thu hồi quyền khóa học?</AlertDialogTitle>
+                              <AlertDialogDescription className="text-muted-foreground">
                                 Bạn có chắc muốn thu hồi quyền truy cập khóa học <strong>"{e.courses?.title}"</strong> của học viên này?
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
-                              <AlertDialogCancel>Hủy bỏ</AlertDialogCancel>
+                              <AlertDialogCancel className="rounded-xl font-bold">Hủy bỏ</AlertDialogCancel>
                               <AlertDialogAction
                                 onClick={() => removeEnrollmentMutation.mutate(e.id)}
-                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-xl font-bold active:scale-95 duration-120"
                               >
                                 {removeEnrollmentMutation.isPending ? "Đang xử lý..." : "Thu hồi quyền"}
                               </AlertDialogAction>
@@ -288,46 +288,67 @@ const AdminStudentDetail = () => {
                       </td>
                     </tr>
                   ))}
-                  {enrollments.length === 0 && <tr><td colSpan={4} className="p-4 text-center text-muted-foreground">Chưa đăng ký khóa nào</td></tr>}
+                  {enrollments.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="px-4 py-12 text-center text-muted-foreground font-semibold">Chưa đăng ký khóa nào</td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
           </TabsContent>
 
           <TabsContent value="history" className="mt-4">
-            <div className="bg-card rounded-xl border overflow-hidden">
+            <div className="bg-card rounded-2xl border border-border/70 overflow-hidden shadow-soft-sm">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b bg-muted/50">
-                    <th className="text-left p-3 font-semibold text-foreground">Bài thi</th>
-                    <th className="text-center p-3 font-semibold text-foreground">Điểm</th>
-                    <th className="text-center p-3 font-semibold text-foreground">Ngày</th>
+                  <tr className="border-b border-border/70 bg-muted/50 text-xs font-black uppercase text-muted-foreground">
+                    <th className="text-left px-4 py-3">Bài thi</th>
+                    <th className="text-center px-4 py-3">Điểm</th>
+                    <th className="text-center px-4 py-3">Ngày</th>
                   </tr>
                 </thead>
                 <tbody>
                   {quizResults.map((r: any) => (
-                    <tr key={r.id} className="border-b last:border-0 hover:bg-muted/30">
-                      <td className="p-3 text-foreground">{r.quizzes?.title ?? `Quiz #${r.quiz_id}`}</td>
-                      <td className="p-3 text-center font-medium text-primary">{r.correct_answers}/{r.total_questions}</td>
-                      <td className="p-3 text-center text-muted-foreground">{r.completed_at ? new Date(r.completed_at).toLocaleDateString("vi-VN") : ""}</td>
+                    <tr key={r.id} className="border-b border-border/60 last:border-0 hover:bg-muted/30 transition-colors">
+                      <td className="px-4 py-3.5 font-bold text-foreground">{r.quizzes?.title ?? `Quiz #${r.quiz_id}`}</td>
+                      <td className="px-4 py-3.5 text-center font-bold text-primary">{r.correct_answers}/{r.total_questions}</td>
+                      <td className="px-4 py-3.5 text-center text-muted-foreground">{r.completed_at ? new Date(r.completed_at).toLocaleDateString("vi-VN") : ""}</td>
                     </tr>
                   ))}
-                  {quizResults.length === 0 && <tr><td colSpan={3} className="p-4 text-center text-muted-foreground">Chưa có kết quả</td></tr>}
+                  {quizResults.length === 0 && (
+                    <tr>
+                      <td colSpan={3} className="px-4 py-12 text-center text-muted-foreground font-semibold">Chưa có kết quả thi nào</td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
           </TabsContent>
 
           <TabsContent value="notes" className="mt-4 space-y-4">
-            <div className="bg-card rounded-xl border p-4 space-y-3">
-              <Textarea placeholder="Ghi chú về học viên..." rows={3} value={noteText} onChange={(e) => setNoteText(e.target.value)} />
-              <Button size="sm" onClick={() => addNoteMutation.mutate()} disabled={!noteText.trim() || addNoteMutation.isPending}>Lưu ghi chú</Button>
+            <div className="bg-card rounded-2xl border border-border/70 p-5 shadow-soft-xs space-y-3">
+              <Textarea 
+                placeholder="Ghi chú về học viên (tiến độ, mục tiêu TOEIC, điểm yếu...)" 
+                rows={3} 
+                value={noteText} 
+                onChange={(e) => setNoteText(e.target.value)} 
+                className="font-medium rounded-xl resize-none"
+              />
+              <Button 
+                size="sm" 
+                onClick={() => addNoteMutation.mutate()} 
+                disabled={!noteText.trim() || addNoteMutation.isPending}
+                className="btn-3d-green font-black rounded-xl active:scale-95 duration-120"
+              >
+                Lưu ghi chú
+              </Button>
             </div>
             <div className="space-y-2">
               {notes.map((n: any) => (
-                <div key={n.id} className="bg-card rounded-xl border p-3">
-                  <p className="text-sm text-foreground">{n.content}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{n.created_at ? new Date(n.created_at).toLocaleDateString("vi-VN") : ""}</p>
+                <div key={n.id} className="bg-card rounded-2xl border border-border/70 p-4 shadow-soft-xs">
+                  <p className="text-sm text-foreground font-medium">{n.content}</p>
+                  <p className="text-xs text-muted-foreground mt-2 font-semibold">📅 {n.created_at ? new Date(n.created_at).toLocaleDateString("vi-VN") : ""}</p>
                 </div>
               ))}
             </div>

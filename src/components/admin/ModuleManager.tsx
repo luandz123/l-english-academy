@@ -75,18 +75,18 @@ const SortableModuleItem = ({
   };
 
   return (
-    <div ref={setNodeRef} style={style} className="bg-card rounded-xl border">
-      <div className="p-3 border-b flex items-center justify-between">
+    <div ref={setNodeRef} style={style} className="bg-card rounded-2xl border border-border/70 shadow-soft-xs hover:border-border/90 transition-all">
+      <div className="p-3.5 sm:p-4 border-b border-border/60 flex items-center justify-between">
         <div className="flex items-center gap-2 flex-1">
-          <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing touch-none p-1 hover:bg-muted rounded">
+          <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing touch-none p-1.5 hover:bg-muted rounded-lg active:scale-95 duration-120">
             <GripVertical className="w-4 h-4 text-muted-foreground" />
           </button>
-          <button onClick={() => toggleExpand(mod.id)} className="flex items-center gap-2 text-left flex-1">
-            {expandedModules.has(mod.id) ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-            <span className={`font-semibold text-sm ${mod.is_published === false ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
+          <button onClick={() => toggleExpand(mod.id)} className="flex items-center gap-2 text-left flex-1 active:scale-[0.99] duration-120">
+            {expandedModules.has(mod.id) ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
+            <span className={`font-bold text-sm ${mod.is_published === false ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
               {mod.title}
             </span>
-            <span className="text-xs text-muted-foreground ml-2">
+            <span className="text-xs text-muted-foreground font-medium ml-2">
               ({(mod.lessons ?? []).length} bài · {(mod.quizzes ?? []).length} quiz)
             </span>
           </button>
@@ -95,7 +95,7 @@ const SortableModuleItem = ({
           <Button 
             size="icon" 
             variant="ghost" 
-            className={`h-8 w-8 ${mod.is_free ? 'text-emerald-600' : 'text-muted-foreground'}`}
+            className={`h-8 w-8 rounded-xl active:scale-95 duration-120 ${mod.is_free ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10' : 'text-muted-foreground hover:bg-muted/60'}`}
             onClick={(e) => {
               e.stopPropagation();
               const newStatus = !mod.is_free;
@@ -108,14 +108,14 @@ const SortableModuleItem = ({
                 toast({ title: newStatus ? "Đã bật học thử cho module" : "Đã tắt học thử cho module" });
               });
             }}
-            title={mod.is_free ? "Module miễn phí" : "Module trả phí"}
+            title={mod.is_free ? "Module miễn phí (Học viên học thử được)" : "Module trả phí"}
           >
             {mod.is_free ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
           </Button>
           <Button 
             size="icon" 
             variant="ghost" 
-            className={`h-8 w-8 ${mod.is_published === false ? 'text-muted-foreground' : 'text-primary'}`}
+            className={`h-8 w-8 rounded-xl active:scale-95 duration-120 ${mod.is_published === false ? 'text-muted-foreground hover:bg-muted/60' : 'text-primary bg-primary/10'}`}
             onClick={(e) => {
               e.stopPropagation();
               const newStatus = mod.is_published === false ? true : false;
@@ -132,25 +132,27 @@ const SortableModuleItem = ({
           >
             {mod.is_published === false ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
           </Button>
-          <Button size="icon" variant="ghost" onClick={() => openEdit(mod)}><Edit className="w-4 h-4" /></Button>
+          <Button size="icon" variant="ghost" className="h-8 w-8 rounded-xl active:scale-95 duration-120 hover:bg-muted/60" onClick={() => openEdit(mod)}>
+            <Edit className="w-4 h-4 text-foreground" />
+          </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button size="icon" variant="ghost" disabled={deleteMutation.isPending}>
-                <Trash2 className="w-4 h-4 text-destructive" />
+              <Button size="icon" variant="ghost" className="h-8 w-8 rounded-xl active:scale-95 duration-120 text-destructive hover:bg-destructive/10" disabled={deleteMutation.isPending}>
+                <Trash2 className="w-4 h-4" />
               </Button>
             </AlertDialogTrigger>
-            <AlertDialogContent>
+            <AlertDialogContent className="rounded-2xl border-border/80 shadow-soft-xl">
               <AlertDialogHeader>
-                <AlertDialogTitle>Xác nhận xóa module?</AlertDialogTitle>
+                <AlertDialogTitle className="text-lg font-bold">Xác nhận xóa module?</AlertDialogTitle>
                 <AlertDialogDescription>
                   Bạn có chắc muốn xóa module <strong>"{mod.title}"</strong>? Toàn bộ bài học, video và câu hỏi trắc nghiệm bên trong module này cũng sẽ bị xóa vĩnh viễn.
                 </AlertDialogDescription>
               </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Hủy bỏ</AlertDialogCancel>
+              <AlertDialogFooter className="gap-2">
+                <AlertDialogCancel className="rounded-xl font-semibold">Hủy bỏ</AlertDialogCancel>
                 <AlertDialogAction
                   onClick={() => deleteMutation.mutate(mod.id)}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-xl font-bold active:scale-95 duration-120"
                 >
                   {deleteMutation.isPending ? "Đang xóa..." : "Xóa vĩnh viễn"}
                 </AlertDialogAction>
@@ -160,7 +162,7 @@ const SortableModuleItem = ({
         </div>
       </div>
       {expandedModules.has(mod.id) && (
-        <div className="p-3">
+        <div className="p-3.5 sm:p-4">
           <LessonManager moduleId={mod.id} courseId={courseId} lessons={mod.lessons ?? []} quizzes={mod.quizzes ?? []} />
         </div>
       )}
@@ -268,8 +270,10 @@ const ModuleManager = ({ courseId, modules }: ModuleManagerProps) => {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-foreground">Modules / Parts</h3>
-        <Button size="sm" onClick={openNew}><Plus className="w-4 h-4 mr-1" /> Thêm Part</Button>
+        <h3 className="text-base font-bold text-foreground">Modules / Parts</h3>
+        <Button size="sm" onClick={openNew} className="btn-3d btn-3d-primary font-bold rounded-xl active:scale-95 duration-120">
+          <Plus className="w-4 h-4 mr-1.5" /> Thêm Part
+        </Button>
       </div>
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
@@ -292,25 +296,35 @@ const ModuleManager = ({ courseId, modules }: ModuleManagerProps) => {
         </SortableContext>
       </DndContext>
 
-      {modules.length === 0 && <p className="text-sm text-muted-foreground">Chưa có module nào. Hãy tạo Part đầu tiên.</p>}
+      {modules.length === 0 && (
+        <div className="p-8 text-center text-muted-foreground border border-dashed border-border/70 rounded-2xl bg-muted/10">
+          <p className="font-semibold text-foreground">Chưa có module nào</p>
+          <p className="text-xs text-muted-foreground mt-1">Hãy tạo Part đầu tiên để thêm bài học và bài tập trắc nghiệm.</p>
+        </div>
+      )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
+        <DialogContent className="rounded-2xl border-border/80 shadow-soft-xl max-w-md">
           <DialogHeader>
-            <DialogTitle>{editingModule ? "Sửa Module" : "Tạo Module mới"}</DialogTitle>
+            <DialogTitle className="text-lg font-bold text-foreground">{editingModule ? "Sửa Module" : "Tạo Module mới"}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 pt-2">
             <div className="space-y-2">
-              <Label>Tên module (Part)</Label>
-              <Input value={moduleTitle} onChange={(e) => setModuleTitle(e.target.value)} placeholder="VD: Part 1 - Photographs" />
+              <Label className="text-sm font-bold text-foreground">Tên module (Part) (*)</Label>
+              <Input className="rounded-xl border-border/80" value={moduleTitle} onChange={(e) => setModuleTitle(e.target.value)} placeholder="VD: Part 1 - Photographs" />
             </div>
             <div className="space-y-2">
-              <Label>Mô tả</Label>
-              <Input value={moduleDesc} onChange={(e) => setModuleDesc(e.target.value)} placeholder="Mô tả ngắn..." />
+              <Label className="text-sm font-bold text-foreground">Mô tả</Label>
+              <Input className="rounded-xl border-border/80" value={moduleDesc} onChange={(e) => setModuleDesc(e.target.value)} placeholder="Mô tả ngắn..." />
             </div>
-            <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || !moduleTitle.trim()}>
-              {saveMutation.isPending ? "Đang lưu..." : "Lưu"}
-            </Button>
+            <div className="flex gap-2 pt-2">
+              <Button variant="outline" className="flex-1 rounded-xl font-semibold active:scale-95 duration-120" onClick={() => setDialogOpen(false)}>
+                Hủy
+              </Button>
+              <Button className="flex-1 btn-3d btn-3d-primary font-bold rounded-xl active:scale-95 duration-120" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || !moduleTitle.trim()}>
+                {saveMutation.isPending ? "Đang lưu..." : "Lưu"}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

@@ -8,7 +8,7 @@ export const LeaderboardWidget: React.FC = () => {
   const { leaderboard, currentUserRank, leagueTitle, streakShields } = useGamification();
 
   return (
-    <div className="card-duo bg-card border-2 p-5 sm:p-6 space-y-6">
+    <div className="card-duo bg-card p-5 sm:p-6 space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b pb-4">
         <div className="flex items-center gap-3">
@@ -86,7 +86,7 @@ export const LeaderboardWidget: React.FC = () => {
                       {user.name}
                     </span>
                     {user.rank <= 3 && (
-                      <span className="inline-flex items-center text-[10px] font-black text-emerald-600 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                      <span className="inline-flex items-center text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
                         <ChevronUp className="w-3 h-3 stroke-[3]" /> Thăng hạng
                       </span>
                     )}

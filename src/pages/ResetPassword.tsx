@@ -41,7 +41,7 @@ const ResetPassword = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#FAFAFA] px-4 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-background px-4 relative overflow-hidden">
       {/* Decorative elements */}
       <div className="absolute top-20 left-20 w-32 h-32 rounded-full bg-[var(--duo-green)]/10 blur-2xl pointer-events-none" />
       <div className="absolute bottom-20 right-20 w-40 h-40 rounded-full bg-[var(--duo-blue)]/10 blur-2xl pointer-events-none" />
@@ -55,17 +55,17 @@ const ResetPassword = () => {
           <p className="text-sm text-muted-foreground mt-1 font-medium">Nhập mật khẩu mới của bạn</p>
         </div>
 
-        <div className="card-duo p-6 space-y-6">
+        <div className="card-duo p-6 space-y-6 shadow-soft-md">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="password" className="font-bold">Mật khẩu mới</Label>
-              <Input id="password" type="password" placeholder="Tối thiểu 6 ký tự" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} className="h-12 rounded-xl border-2 border-[var(--duo-gray)] font-medium focus:border-[var(--duo-blue)] transition-colors" />
+              <Label htmlFor="password" className="font-bold text-xs uppercase tracking-wider text-muted-foreground">Mật khẩu mới</Label>
+              <Input id="password" type="password" placeholder="Tối thiểu 6 ký tự" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} className="h-11 rounded-xl border border-border/80 font-medium focus:border-primary transition-colors text-base" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword" className="font-bold">Xác nhận mật khẩu</Label>
-              <Input id="confirmPassword" type="password" placeholder="Nhập lại mật khẩu" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={6} className="h-12 rounded-xl border-2 border-[var(--duo-gray)] font-medium focus:border-[var(--duo-blue)] transition-colors" />
+              <Label htmlFor="confirmPassword" className="font-bold text-xs uppercase tracking-wider text-muted-foreground">Xác nhận mật khẩu</Label>
+              <Input id="confirmPassword" type="password" placeholder="Nhập lại mật khẩu" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={6} className="h-11 rounded-xl border border-border/80 font-medium focus:border-primary transition-colors text-base" />
             </div>
-            <button type="submit" className="btn-3d btn-3d-primary w-full py-3.5 mt-2 flex items-center justify-center gap-2" disabled={loading}>
+            <button type="submit" className="btn-3d btn-3d-primary w-full py-3.5 mt-2 flex items-center justify-center gap-2 active:scale-95 duration-150 font-bold" disabled={loading}>
               {loading && <Loader2 className="w-4 h-4 animate-spin" />}
               <span>{loading ? "Đang lưu mật khẩu..." : "LƯU MẬT KHẨU MỚI"}</span>
             </button>

@@ -31,7 +31,7 @@ const ForgotPassword = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#FAFAFA] px-4 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-background px-4 relative overflow-hidden">
       {/* Decorative elements */}
       <div className="absolute top-20 left-20 w-32 h-32 rounded-full bg-[var(--duo-green)]/10 blur-2xl pointer-events-none" />
       <div className="absolute bottom-20 right-20 w-40 h-40 rounded-full bg-[var(--duo-blue)]/10 blur-2xl pointer-events-none" />
@@ -46,22 +46,22 @@ const ForgotPassword = () => {
           <p className="text-sm text-muted-foreground mt-1 font-medium">Nhập email để đặt lại mật khẩu của bạn</p>
         </div>
 
-        <div className="card-duo p-6 space-y-6">
+        <div className="card-duo p-6 space-y-6 shadow-soft-md">
           {!sent ? (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email" className="font-bold">Email</Label>
-                <Input id="email" type="email" placeholder="name@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required className="h-12 rounded-xl border-2 border-[var(--duo-gray)] font-medium focus:border-[var(--duo-blue)] transition-colors" />
+                <Label htmlFor="email" className="font-bold text-xs uppercase tracking-wider text-muted-foreground">Email</Label>
+                <Input id="email" type="email" placeholder="name@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required className="h-11 rounded-xl border border-border/80 font-medium focus:border-primary transition-colors text-base" />
               </div>
-              <button type="submit" className="btn-3d btn-3d-primary w-full py-3.5 flex items-center justify-center gap-2" disabled={loading}>
+              <button type="submit" className="btn-3d btn-3d-primary w-full py-3.5 flex items-center justify-center gap-2 active:scale-95 duration-150 font-bold" disabled={loading}>
                 {loading && <Loader2 className="w-4 h-4 animate-spin" />}
                 <span>{loading ? "Đang gửi..." : "GỬI LIÊN KẾT KHÔI PHỤC"}</span>
               </button>
             </form>
           ) : (
             <div className="text-center space-y-4 py-4">
-              <div className="w-16 h-16 bg-[var(--duo-green)]/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-[var(--duo-green)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+              <div className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
               </div>
               <h3 className="font-extrabold text-lg">Kiểm tra email của bạn</h3>
               <p className="text-sm text-muted-foreground font-medium">
@@ -70,10 +70,10 @@ const ForgotPassword = () => {
             </div>
           )}
 
-          <div className="pt-2 text-center border-t-2 border-[var(--duo-gray)] mt-6">
+          <div className="pt-2 text-center border-t border-border/70 mt-6">
             <p className="text-sm text-muted-foreground font-medium mt-4">
               Nhớ mật khẩu rồi?{" "}
-              <Link to="/login" className="text-[var(--duo-blue)] font-bold hover:underline">Quay lại đăng nhập</Link>
+              <Link to="/login" className="text-primary font-bold hover:underline">Quay lại đăng nhập</Link>
             </p>
           </div>
         </div>

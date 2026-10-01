@@ -63,7 +63,7 @@ export const WordShooterPvPView: React.FC<WordShooterPvPViewProps> = ({
             <div className="flex items-center gap-1.5">
               <span className="text-xs font-black text-white tracking-wide">{opponent.name}</span>
               <span className={cn(
-                "text-[9px] font-bold px-1.5 py-0.5 rounded border",
+                "text-xs font-bold px-1.5 py-0.5 rounded border",
                 isBot
                   ? "text-purple-400 bg-purple-950/60 border-purple-800/40"
                   : "text-emerald-400 bg-emerald-950/60 border-emerald-800/40"
@@ -91,35 +91,35 @@ export const WordShooterPvPView: React.FC<WordShooterPvPViewProps> = ({
       </div>
 
       {/* Opponent Mini Stats */}
-      <div className="grid grid-cols-4 gap-1 p-2 bg-slate-900/40 border-b border-slate-800/60 text-[10px] text-center shrink-0">
+      <div className="grid grid-cols-4 gap-1 p-2 bg-slate-900/40 border-b border-slate-800/60 text-xs text-center shrink-0">
         <div className="p-1.5 rounded-lg bg-slate-950/60 border border-slate-800">
-          <span className="text-slate-500 font-bold block">ĐIỂM</span>
+          <span className="text-slate-500 font-bold block text-xs">ĐIỂM</span>
           <p className="text-sm font-black text-amber-300">{opponent.score.toLocaleString()}</p>
         </div>
         <div className="p-1.5 rounded-lg bg-slate-950/60 border border-slate-800">
-          <span className="text-slate-500 font-bold block">COMBO</span>
+          <span className="text-slate-500 font-bold block text-xs">COMBO</span>
           <p className={cn("text-sm font-black", opponent.combo >= 3 ? "text-rose-400" : "text-slate-300")}>{opponent.combo}x</p>
         </div>
         <div className="p-1.5 rounded-lg bg-slate-950/60 border border-slate-800">
-          <span className="text-slate-500 font-bold block">WPM</span>
+          <span className="text-slate-500 font-bold block text-xs">WPM</span>
           <p className="text-sm font-black text-cyan-300">{opponent.wpm || 0}</p>
         </div>
         <div className="p-1.5 rounded-lg bg-slate-950/60 border border-slate-800">
-          <span className="text-slate-500 font-bold block">ĐỘ CX</span>
+          <span className="text-slate-500 font-bold block text-xs">ĐỘ CX</span>
           <p className="text-sm font-black text-emerald-300">{opponent.accuracy || 100}%</p>
         </div>
       </div>
 
       {/* Alert Banners */}
       {attackNotification && (
-        <div className="px-2.5 py-2 bg-emerald-950/80 border-b border-emerald-500/50 flex items-center justify-center gap-1.5 text-[10px] font-black text-emerald-300 animate-pulse shrink-0">
+        <div className="px-2.5 py-2 bg-emerald-950/80 border-b border-emerald-500/50 flex items-center justify-center gap-1.5 text-xs font-bold text-emerald-300 animate-pulse shrink-0">
           <Swords className="w-3.5 h-3.5 text-emerald-400" />
           <span className="truncate">{attackNotification}</span>
         </div>
       )}
 
       {incomingAttackWarning && (
-        <div className="px-2.5 py-2 bg-rose-950/90 border-b border-rose-500/60 flex items-center justify-center gap-1.5 text-[10px] font-black text-rose-300 animate-bounce shrink-0">
+        <div className="px-2.5 py-2 bg-rose-950/90 border-b border-rose-500/60 flex items-center justify-center gap-1.5 text-xs font-bold text-rose-300 animate-bounce shrink-0">
           <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
           <span>🚨 THIÊN THẠCH ĐANG TẤN CÔNG!</span>
         </div>
@@ -161,8 +161,8 @@ export const WordShooterPvPView: React.FC<WordShooterPvPViewProps> = ({
         {opponent.currentWordText && (
           <div className="absolute top-12 left-2 right-2 z-20 flex justify-center pointer-events-none">
             <div className="px-2.5 py-1 rounded-lg bg-slate-900/95 border border-rose-500/40 backdrop-blur-sm text-center">
-              <span className="text-[9px] text-slate-400 block leading-none mb-0.5">Đang gõ:</span>
-              <span className="text-[11px] font-black text-rose-300 tracking-wider font-mono">
+              <span className="text-xs text-slate-400 block leading-none mb-0.5">Đang gõ:</span>
+              <span className="text-xs font-black text-rose-300 tracking-wider font-mono">
                 {opponent.currentWordText}
               </span>
             </div>
@@ -185,12 +185,12 @@ export const WordShooterPvPView: React.FC<WordShooterPvPViewProps> = ({
               }}
             >
               <div className={cn(
-                "px-2 py-0.5 rounded-lg border backdrop-blur-sm text-[10px] font-mono font-bold flex items-center gap-1 whitespace-nowrap",
+                "px-2 py-0.5 rounded-lg border backdrop-blur-sm text-xs font-mono font-bold flex items-center gap-1 whitespace-nowrap",
                 isTargeted
                   ? "bg-rose-950/90 border-rose-400/60 shadow-[0_0_10px_rgba(244,63,94,0.4)]"
                   : "bg-slate-900/80 border-slate-700/60"
               )}>
-                {emoji && <span className="text-[9px]">{emoji}</span>}
+                {emoji && <span className="text-xs">{emoji}</span>}
                 {ow.word.split('').map((char, ci) => (
                   <span
                     key={ci}
@@ -214,7 +214,7 @@ export const WordShooterPvPView: React.FC<WordShooterPvPViewProps> = ({
         <div className="absolute bottom-4 left-0 right-0 h-px bg-gradient-to-r from-transparent via-rose-500/50 to-transparent" />
 
         {/* Bottom Status */}
-        <div className="absolute bottom-1 left-2 right-2 flex items-center justify-between text-[9px] text-slate-600 font-mono">
+        <div className="absolute bottom-1 left-2 right-2 flex items-center justify-between text-xs text-slate-500 font-mono">
           <span className="flex items-center gap-1">
             <Radio className="w-2.5 h-2.5 text-purple-400 animate-pulse" />
             LIVE
@@ -235,7 +235,7 @@ export const WordShooterPvPView: React.FC<WordShooterPvPViewProps> = ({
 
       {/* Attack Charge Meter */}
       <div className="p-2.5 bg-slate-900/90 border-t border-slate-800 space-y-1.5 shrink-0">
-        <div className="flex items-center justify-between text-[10px] font-bold">
+        <div className="flex items-center justify-between text-xs font-bold">
           <span className="text-slate-400 flex items-center gap-1">
             <Zap className="w-3 h-3 text-amber-400" />
             Năng lượng:

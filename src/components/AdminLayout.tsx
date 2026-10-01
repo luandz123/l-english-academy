@@ -68,15 +68,15 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
       {sidebarOpen && <div className="fixed inset-0 z-40 bg-foreground/20 lg:hidden" onClick={() => setSidebarOpen(false)} />}
 
       <aside className={cn(
-        "fixed lg:static z-50 inset-y-0 left-0 w-[260px] bg-card border-r-2 border-[var(--duo-gray)] flex flex-col transition-transform duration-300",
+        "fixed lg:static z-50 inset-y-0 left-0 w-[260px] bg-card border-r border-border/70 shadow-soft-sm flex flex-col transition-transform duration-300",
         sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       )}>
         {/* Logo + close */}
-        <div className="p-4 border-b-2 border-[var(--duo-gray)] flex items-center gap-2">
+        <div className="p-4 border-b border-border/50 flex items-center gap-2">
           <Logo imgClassName="w-8 h-8" />
           <div className="hidden lg:block ml-2">
-             <span className="font-extrabold text-sm text-[var(--duo-blue)] block">L-English</span>
-             <span className="font-bold text-[10px] text-muted-foreground tracking-wider uppercase">Admin</span>
+             <span className="font-extrabold text-sm text-primary block">L-English</span>
+             <span className="font-bold text-xs text-muted-foreground tracking-wider uppercase">Quản trị</span>
           </div>
           <Button variant="ghost" size="icon" className="ml-auto lg:hidden" onClick={() => setSidebarOpen(false)}>
             <X className="w-4 h-4" />
@@ -84,16 +84,16 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
         </div>
 
         {/* User profile card */}
-        <div className="p-4 border-b-2 border-[var(--duo-gray)]">
+        <div className="p-4 border-b border-border/50">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-[var(--duo-blue)] flex items-center justify-center text-white font-extrabold text-lg shadow-[0_3px_0_var(--duo-blue-dark)]">
+            <div className="w-11 h-11 rounded-xl bg-primary flex items-center justify-center text-white font-extrabold text-base shadow-soft-sm">
               {initials}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-extrabold text-foreground truncate">{displayName}</p>
-              <div className="flex items-center gap-1 mt-0.5">
-                <ShieldAlert className="w-3.5 h-3.5 text-[var(--duo-purple)]" />
-                <span className="text-xs font-bold text-[var(--duo-purple)]">Quản trị viên</span>
+              <p className="text-sm font-bold text-foreground truncate">{displayName}</p>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <ShieldAlert className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                <span className="text-xs font-semibold text-purple-600 dark:text-purple-400">Quản trị viên</span>
               </div>
             </div>
           </div>
@@ -109,56 +109,56 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
                 to={item.to}
                 onClick={() => setSidebarOpen(false)}
                 className={cn(
-                  "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all group",
+                  "flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all group active:scale-95 duration-150",
                   active
-                    ? "bg-[var(--duo-blue)] text-white shadow-[0_3px_0_var(--duo-blue-dark)]"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground border-2 border-transparent hover:border-[var(--duo-gray)]"
+                    ? "bg-primary text-primary-foreground font-bold shadow-soft-sm"
+                    : "text-muted-foreground hover:bg-muted/70 hover:text-foreground"
                 )}
               >
-                <item.icon className={cn("w-5 h-5", active ? "text-white" : item.color, "group-hover:scale-110 transition-transform")} />
-                {item.label}
+                <item.icon className={cn("w-4 h-4 transition-transform group-hover:scale-110", active ? "text-primary-foreground" : item.color)} />
+                <span className="truncate">{item.label}</span>
               </Link>
             );
           })}
         </nav>
 
         {/* Bottom actions */}
-        <div className="p-3 border-t-2 border-[var(--duo-gray)] space-y-1">
+        <div className="p-3 border-t border-border/50 space-y-1">
           <Link
             to="/"
-            className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-muted-foreground hover:bg-[var(--duo-green)]/10 hover:text-[var(--duo-green)] transition-all w-full border-2 border-transparent hover:border-[var(--duo-green)]/30"
+            className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-muted-foreground hover:bg-muted/70 hover:text-foreground transition-all active:scale-95 w-full"
           >
-            <Home className="w-5 h-5 text-[var(--duo-green)]" />
-            Về trang chủ
+            <Home className="w-4 h-4 text-primary" />
+            <span>Về trang chủ</span>
           </Link>
           <Link
             to="/profile"
-            className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-muted-foreground hover:bg-muted hover:text-foreground transition-all w-full border-2 border-transparent hover:border-[var(--duo-gray)]"
+            className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-muted-foreground hover:bg-muted/70 hover:text-foreground transition-all active:scale-95 w-full"
           >
-            <LayoutDashboard className="w-5 h-5 text-[var(--duo-blue)]" />
-            Hồ sơ học tập
+            <LayoutDashboard className="w-4 h-4 text-blue-500" />
+            <span>Hồ sơ học tập</span>
           </Link>
           <Button 
             variant="ghost" 
             size="sm" 
             onClick={toggleDarkMode}
-            className="w-full justify-start gap-3 px-4 py-3 h-auto text-muted-foreground hover:text-foreground font-bold rounded-xl"
+            className="w-full justify-start gap-2.5 px-3 py-2 h-auto text-xs text-muted-foreground hover:text-foreground font-semibold rounded-xl"
           >
-            {isDark ? <Sun className="w-5 h-5 text-[var(--duo-yellow)]" /> : <Moon className="w-5 h-5 text-[var(--duo-purple)]" />}
-            {isDark ? "Giao diện sáng" : "Giao diện tối"}
+            {isDark ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4 text-purple-500" />}
+            <span>{isDark ? "Giao diện sáng" : "Giao diện tối"}</span>
           </Button>
           <button
             onClick={handleSignOut}
-            className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-muted-foreground hover:bg-red-50 hover:text-[var(--duo-red)] transition-all w-full border-2 border-transparent hover:border-red-200"
+            className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-muted-foreground hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/30 transition-all active:scale-95 w-full"
           >
-            <LogOut className="w-5 h-5" />
-            Đăng xuất
+            <LogOut className="w-4 h-4 text-rose-500" />
+            <span>Đăng xuất</span>
           </button>
         </div>
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="sticky top-0 z-30 h-16 bg-card/95 backdrop-blur-md border-b-2 border-[var(--duo-gray)] flex items-center px-4 gap-4">
+        <header className="sticky top-0 z-30 h-16 bg-card/95 backdrop-blur-md border-b border-border/70 shadow-soft-xs flex items-center px-4 gap-4">
           <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setSidebarOpen(true)}>
             <Menu className="w-5 h-5" />
           </Button>
@@ -186,14 +186,14 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
           <div className="ml-auto flex items-center gap-3">
             <Link
               to="/"
-              className="btn-3d btn-3d-white text-xs py-2 px-4 inline-flex items-center gap-1.5 font-bold rounded-xl"
+              className="btn-3d btn-3d-white text-xs sm:text-sm py-2 px-4 inline-flex items-center gap-1.5 font-bold rounded-xl shadow-soft-xs active:scale-95"
             >
-              <Home className="w-4 h-4 text-[var(--duo-green)]" />
+              <Home className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
               Trang chủ
             </Link>
-            <div className="hidden md:flex items-center gap-1.5 bg-[var(--duo-blue)]/10 px-3 py-1.5 rounded-full border-2 border-[var(--duo-blue)]/20">
-              <ShieldAlert className="w-4 h-4 text-[var(--duo-blue)]" />
-              <span className="text-xs font-extrabold text-[var(--duo-blue)]">Admin Mode</span>
+            <div className="hidden md:flex items-center gap-1.5 bg-blue-500/10 dark:bg-blue-500/20 px-3 py-1.5 rounded-full border border-blue-500/30">
+              <ShieldAlert className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <span className="text-xs font-bold text-blue-700 dark:text-blue-300">Admin Mode</span>
             </div>
           </div>
         </header>

@@ -42,7 +42,7 @@ const HowItWorks = () => {
 
         <div className="grid md:grid-cols-3 gap-8 relative">
           {/* Dotted connector */}
-          <div className="hidden md:block absolute top-[72px] left-[20%] right-[20%] h-0.5 border-t-2 border-dashed border-[var(--duo-gray)]" />
+          <div className="hidden md:block absolute top-[72px] left-[20%] right-[20%] h-0.5 border-t-2 border-dashed border-border" />
 
           {steps.map((s, i) => (
             <div

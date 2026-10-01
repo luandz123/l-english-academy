@@ -235,55 +235,55 @@ const AdminCourseDetail = () => {
         </div>
 
         <Tabs defaultValue={course.course_type === "fulltest" ? "fulltests" : "content"}>
-          <TabsList className="flex flex-wrap h-auto p-1 gap-1">
-            <TabsTrigger value="fulltests" className="py-2 px-3">
+          <TabsList className="flex flex-wrap h-auto p-1.5 gap-1.5 bg-muted/60 rounded-2xl border border-border/60">
+            <TabsTrigger value="fulltests" className="py-2 px-3.5 rounded-xl font-semibold data-[state=active]:shadow-soft-xs">
               📋 Đề thi Full Test ({fullTests.length})
             </TabsTrigger>
-            <TabsTrigger value="content" className="py-2 px-3">
+            <TabsTrigger value="content" className="py-2 px-3.5 rounded-xl font-semibold data-[state=active]:shadow-soft-xs">
               📚 Nội dung ({modules.length} parts)
             </TabsTrigger>
-            <TabsTrigger value="info" className="py-2 px-3">
+            <TabsTrigger value="info" className="py-2 px-3.5 rounded-xl font-semibold data-[state=active]:shadow-soft-xs">
               ⚙️ Thông tin
             </TabsTrigger>
-            <TabsTrigger value="materials" className="py-2 px-3">
+            <TabsTrigger value="materials" className="py-2 px-3.5 rounded-xl font-semibold data-[state=active]:shadow-soft-xs">
               📎 Tài liệu ({materials.length})
             </TabsTrigger>
-            <TabsTrigger value="students" className="py-2 px-3">
+            <TabsTrigger value="students" className="py-2 px-3.5 rounded-xl font-semibold data-[state=active]:shadow-soft-xs">
               👥 Học viên ({enrolledStudents.length})
             </TabsTrigger>
           </TabsList>
 
           {/* Full Test Tab */}
-          <TabsContent value="fulltests" className="mt-4">
+          <TabsContent value="fulltests" className="mt-5">
             <CourseFullTestManager courseId={id} courseTitle={course.title} />
           </TabsContent>
 
           {/* Content Tab - Main feature */}
-          <TabsContent value="content" className="mt-4">
+          <TabsContent value="content" className="mt-5">
             <ModuleManager courseId={id} modules={modules} />
           </TabsContent>
 
           {/* Info Tab */}
-          <TabsContent value="info" className="mt-4">
-            <div className="bg-card rounded-xl border p-6 space-y-4 max-w-2xl">
+          <TabsContent value="info" className="mt-5">
+            <div className="bg-card rounded-2xl border border-border/70 shadow-soft-sm p-6 sm:p-8 space-y-6 max-w-3xl">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2 col-span-2">
-                  <Label>Tên khóa học</Label>
-                  <Input value={title} onChange={(e) => setTitle(e.target.value)} />
+                  <Label className="text-sm font-bold text-foreground">Tên khóa học</Label>
+                  <Input className="rounded-xl border-border/80" value={title} onChange={(e) => setTitle(e.target.value)} />
                 </div>
                 <div className="space-y-2 col-span-2">
-                  <Label>Phụ đề</Label>
-                  <Input value={subtitle} onChange={(e) => setSubtitle(e.target.value)} />
+                  <Label className="text-sm font-bold text-foreground">Phụ đề</Label>
+                  <Input className="rounded-xl border-border/80" value={subtitle} onChange={(e) => setSubtitle(e.target.value)} />
                 </div>
                 <div className="space-y-2 col-span-2">
-                  <Label>Mô tả</Label>
-                  <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
+                  <Label className="text-sm font-bold text-foreground">Mô tả</Label>
+                  <Textarea className="rounded-xl border-border/80" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
                 </div>
                 <div className="space-y-2 col-span-2">
-                  <Label>Link ảnh khóa học (Thumbnail URL)</Label>
+                  <Label className="text-sm font-bold text-foreground">Link ảnh khóa học (Thumbnail URL)</Label>
                   <div className="flex gap-2">
-                    <Input value={thumbnailUrl} onChange={(e) => setThumbnailUrl(e.target.value)} placeholder="https://..." className="flex-1" />
-                    <Button variant="outline" className="shrink-0" asChild disabled={isUploading}>
+                    <Input value={thumbnailUrl} onChange={(e) => setThumbnailUrl(e.target.value)} placeholder="https://..." className="flex-1 rounded-xl border-border/80" />
+                    <Button variant="outline" className="shrink-0 rounded-xl font-semibold active:scale-95 duration-120" asChild disabled={isUploading}>
                       <label className="cursor-pointer">
                         {isUploading ? "Đang tải..." : <><Upload className="w-4 h-4 mr-2" /> Tải ảnh lên</>}
                         <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} disabled={isUploading} />
@@ -291,20 +291,20 @@ const AdminCourseDetail = () => {
                     </Button>
                   </div>
                   {thumbnailUrl && (
-                    <div className="mt-2 aspect-video w-full max-w-sm rounded-lg overflow-hidden border bg-muted">
+                    <div className="mt-3 aspect-video w-full max-w-sm rounded-xl overflow-hidden border border-border/70 bg-muted shadow-soft-xs">
                       <img src={thumbnailUrl} alt="Preview" className="w-full h-full object-cover" />
                     </div>
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label>Giảng viên</Label>
-                  <Input value={instructor} onChange={(e) => setInstructor(e.target.value)} />
+                  <Label className="text-sm font-bold text-foreground">Giảng viên</Label>
+                  <Input className="rounded-xl border-border/80" value={instructor} onChange={(e) => setInstructor(e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Loại khóa học</Label>
+                  <Label className="text-sm font-bold text-foreground">Loại khóa học</Label>
                   <Select value={courseType} onValueChange={setCourseType}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
+                    <SelectTrigger className="rounded-xl border-border/80"><SelectValue /></SelectTrigger>
+                    <SelectContent className="rounded-xl">
                       <SelectItem value="listening_reading">Nghe - Đọc</SelectItem>
                       <SelectItem value="speaking">Nói</SelectItem>
                       <SelectItem value="writing">Viết</SelectItem>
@@ -315,10 +315,10 @@ const AdminCourseDetail = () => {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Danh mục hiển thị (Trang chủ)</Label>
+                  <Label className="text-sm font-bold text-foreground">Danh mục hiển thị (Trang chủ)</Label>
                   <Select value={categoryId} onValueChange={setCategoryId}>
-                    <SelectTrigger><SelectValue placeholder="Chọn danh mục" /></SelectTrigger>
-                    <SelectContent>
+                    <SelectTrigger className="rounded-xl border-border/80"><SelectValue placeholder="Chọn danh mục" /></SelectTrigger>
+                    <SelectContent className="rounded-xl">
                       {categories.map(c => (
                         <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
                       ))}
@@ -326,80 +326,80 @@ const AdminCourseDetail = () => {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Giá (VNĐ)</Label>
-                  <Input type="number" value={price} onChange={(e) => setPrice(Number(e.target.value))} />
+                  <Label className="text-sm font-bold text-foreground">Giá (VNĐ)</Label>
+                  <Input className="rounded-xl border-border/80" type="number" value={price} onChange={(e) => setPrice(Number(e.target.value))} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Thời hạn (tháng)</Label>
-                  <Input type="number" value={durationMonths} onChange={(e) => setDurationMonths(Number(e.target.value))} />
+                  <Label className="text-sm font-bold text-foreground">Thời hạn (tháng)</Label>
+                  <Input className="rounded-xl border-border/80" type="number" value={durationMonths} onChange={(e) => setDurationMonths(Number(e.target.value))} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Chế độ học</Label>
+                  <Label className="text-sm font-bold text-foreground">Chế độ học</Label>
                   <Select value={isFree ? "free" : "paid"} onValueChange={(v) => setIsFree(v === "free")}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
+                    <SelectTrigger className="rounded-xl border-border/80"><SelectValue /></SelectTrigger>
+                    <SelectContent className="rounded-xl">
                       <SelectItem value="paid">Tính phí / Phải đăng ký</SelectItem>
                       <SelectItem value="free">Hoàn toàn Miễn phí (Public)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Trạng thái hiển thị</Label>
+                  <Label className="text-sm font-bold text-foreground">Trạng thái hiển thị</Label>
                   <Select value={isActive ? "active" : "inactive"} onValueChange={(v) => setIsActive(v === "active")}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
+                    <SelectTrigger className="rounded-xl border-border/80"><SelectValue /></SelectTrigger>
+                    <SelectContent className="rounded-xl">
                       <SelectItem value="active">Hoạt động (Đang bán/dạy)</SelectItem>
                       <SelectItem value="inactive">Tạm dừng (Ẩn khỏi học viên)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
-              <Button onClick={() => updateMutation.mutate()} disabled={updateMutation.isPending}>
+              <Button className="btn-3d btn-3d-primary font-bold rounded-xl active:scale-95 duration-120" onClick={() => updateMutation.mutate()} disabled={updateMutation.isPending}>
                 {updateMutation.isPending ? "Đang lưu..." : "Lưu thay đổi"}
               </Button>
             </div>
           </TabsContent>
 
           {/* Materials Tab */}
-          <TabsContent value="materials" className="mt-4 space-y-4">
+          <TabsContent value="materials" className="mt-5 space-y-4">
             <div className="flex justify-end">
-              <Button size="sm" onClick={() => setMatDialogOpen(true)}>+ Thêm tài liệu</Button>
+              <Button size="sm" className="btn-3d btn-3d-primary font-bold rounded-xl active:scale-95 duration-120" onClick={() => setMatDialogOpen(true)}>+ Thêm tài liệu</Button>
             </div>
-            <div className="bg-card rounded-xl border overflow-hidden">
+            <div className="bg-card rounded-2xl border border-border/70 shadow-soft-sm overflow-hidden">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b bg-muted/50">
-                    <th className="text-left p-3 font-semibold text-foreground">Tên</th>
-                    <th className="text-left p-3 font-semibold text-foreground">Loại</th>
-                    <th className="text-left p-3 font-semibold text-foreground">Ngày tạo</th>
-                    <th className="p-3"></th>
+                  <tr className="border-b border-border/70 bg-muted/40">
+                    <th className="text-left p-4 font-bold text-foreground">Tên</th>
+                    <th className="text-left p-4 font-bold text-foreground">Loại</th>
+                    <th className="text-left p-4 font-bold text-foreground">Ngày tạo</th>
+                    <th className="p-4"></th>
                   </tr>
                 </thead>
                 <tbody>
                   {materials.map((m: any) => (
-                    <tr key={m.id} className="border-b last:border-0 hover:bg-muted/30">
-                      <td className="p-3 text-foreground">
+                    <tr key={m.id} className="border-b border-border/50 last:border-0 hover:bg-muted/30 transition-colors">
+                      <td className="p-4 text-foreground font-medium">
                         <a href={m.file_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{m.title}</a>
                       </td>
-                      <td className="p-3 text-muted-foreground">{m.file_type}</td>
-                      <td className="p-3 text-muted-foreground">{m.created_at ? new Date(m.created_at).toLocaleDateString("vi-VN") : ""}</td>
-                      <td className="p-3">
+                      <td className="p-4 text-muted-foreground uppercase text-xs font-mono">{m.file_type}</td>
+                      <td className="p-4 text-muted-foreground">{m.created_at ? new Date(m.created_at).toLocaleDateString("vi-VN") : ""}</td>
+                      <td className="p-4 text-right">
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive">Xóa</Button>
+                            <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10 rounded-xl active:scale-95 duration-120">Xóa</Button>
                           </AlertDialogTrigger>
-                          <AlertDialogContent>
+                          <AlertDialogContent className="rounded-2xl border-border/80 shadow-soft-xl">
                             <AlertDialogHeader>
-                              <AlertDialogTitle>Xác nhận xóa tài liệu?</AlertDialogTitle>
+                              <AlertDialogTitle className="text-lg font-bold">Xác nhận xóa tài liệu?</AlertDialogTitle>
                               <AlertDialogDescription>
                                 Bạn có chắc chắn muốn xóa tài liệu <strong>"{m.title}"</strong> không? Hành động này không thể hoàn tác.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Hủy</AlertDialogCancel>
+                            <AlertDialogFooter className="gap-2">
+                              <AlertDialogCancel className="rounded-xl font-semibold">Hủy</AlertDialogCancel>
                               <AlertDialogAction
                                 onClick={() => deleteMaterialMutation.mutate(m.id)}
-                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-xl font-bold active:scale-95 duration-120"
                               >
                                 Xóa tài liệu
                               </AlertDialogAction>
@@ -409,28 +409,37 @@ const AdminCourseDetail = () => {
                       </td>
                     </tr>
                   ))}
-                  {materials.length === 0 && <tr><td colSpan={4} className="p-4 text-center text-muted-foreground">Chưa có tài liệu</td></tr>}
+                  {materials.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="p-8 text-center text-muted-foreground">
+                        <p className="font-semibold text-foreground">Chưa có tài liệu nào</p>
+                        <p className="text-xs text-muted-foreground mt-1">Bấm "+ Thêm tài liệu" để bổ sung tài liệu học tập kèm khóa học.</p>
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
 
-            {matDialogOpen && (
-              <div className="fixed inset-0 z-50 bg-foreground/50 flex items-center justify-center p-4" onClick={() => setMatDialogOpen(false)}>
-                <div className="bg-card rounded-xl p-6 max-w-md w-full space-y-4" onClick={(e) => e.stopPropagation()}>
-                  <h3 className="font-bold text-foreground">Thêm tài liệu</h3>
+            <Dialog open={matDialogOpen} onOpenChange={setMatDialogOpen}>
+              <DialogContent className="rounded-2xl border-border/80 shadow-soft-xl max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="text-lg font-bold">Thêm tài liệu</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 pt-2">
                   <div className="space-y-2">
-                    <Label>Tên tài liệu</Label>
-                    <Input value={matTitle} onChange={(e) => setMatTitle(e.target.value)} />
+                    <Label className="text-sm font-bold text-foreground">Tên tài liệu</Label>
+                    <Input className="rounded-xl border-border/80" value={matTitle} onChange={(e) => setMatTitle(e.target.value)} placeholder="Ví dụ: Giáo trình Ngữ pháp TOEIC" />
                   </div>
                   <div className="space-y-2">
-                    <Label>URL file</Label>
-                    <Input value={matUrl} onChange={(e) => setMatUrl(e.target.value)} placeholder="https://..." />
+                    <Label className="text-sm font-bold text-foreground">URL file</Label>
+                    <Input className="rounded-xl border-border/80" value={matUrl} onChange={(e) => setMatUrl(e.target.value)} placeholder="https://..." />
                   </div>
                   <div className="space-y-2">
-                    <Label>Loại file</Label>
+                    <Label className="text-sm font-bold text-foreground">Loại file</Label>
                     <Select value={matType} onValueChange={setMatType}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
+                      <SelectTrigger className="rounded-xl border-border/80"><SelectValue /></SelectTrigger>
+                      <SelectContent className="rounded-xl">
                         <SelectItem value="pdf">PDF</SelectItem>
                         <SelectItem value="audio">Audio</SelectItem>
                         <SelectItem value="image">Image</SelectItem>
@@ -439,35 +448,44 @@ const AdminCourseDetail = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" onClick={() => setMatDialogOpen(false)}>Hủy</Button>
-                    <Button onClick={() => addMaterialMutation.mutate()} disabled={addMaterialMutation.isPending || !matTitle.trim() || !matUrl.trim()}>Thêm</Button>
+                  <div className="flex gap-2 pt-2">
+                    <Button variant="outline" className="flex-1 rounded-xl font-semibold active:scale-95 duration-120" onClick={() => setMatDialogOpen(false)}>Hủy</Button>
+                    <Button className="flex-1 btn-3d btn-3d-primary rounded-xl font-bold active:scale-95 duration-120" onClick={() => addMaterialMutation.mutate()} disabled={addMaterialMutation.isPending || !matTitle.trim() || !matUrl.trim()}>
+                      {addMaterialMutation.isPending ? "Đang lưu..." : "Thêm tài liệu"}
+                    </Button>
                   </div>
                 </div>
-              </div>
-            )}
+              </DialogContent>
+            </Dialog>
           </TabsContent>
 
           {/* Students Tab */}
-          <TabsContent value="students" className="mt-4">
-            <div className="bg-card rounded-xl border overflow-hidden">
+          <TabsContent value="students" className="mt-5">
+            <div className="bg-card rounded-2xl border border-border/70 shadow-soft-sm overflow-hidden">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b bg-muted/50">
-                    <th className="text-left p-3 font-semibold text-foreground">Họ tên</th>
-                    <th className="text-center p-3 font-semibold text-foreground">Đăng ký</th>
-                    <th className="text-center p-3 font-semibold text-foreground">Hết hạn</th>
+                  <tr className="border-b border-border/70 bg-muted/40">
+                    <th className="text-left p-4 font-bold text-foreground">Họ tên</th>
+                    <th className="text-center p-4 font-bold text-foreground">Đăng ký</th>
+                    <th className="text-center p-4 font-bold text-foreground">Hết hạn</th>
                   </tr>
                 </thead>
                 <tbody>
                   {enrolledStudents.map((e: any) => (
-                    <tr key={e.id} className="border-b last:border-0 hover:bg-muted/30">
-                      <td className="p-3 font-medium text-foreground">{e.profiles?.full_name ?? "—"}</td>
-                      <td className="p-3 text-center text-muted-foreground">{e.enrolled_at ? new Date(e.enrolled_at).toLocaleDateString("vi-VN") : ""}</td>
-                      <td className="p-3 text-center text-muted-foreground">{e.expires_at ? new Date(e.expires_at).toLocaleDateString("vi-VN") : "Vĩnh viễn"}</td>
+                    <tr key={e.id} className="border-b border-border/50 last:border-0 hover:bg-muted/30 transition-colors">
+                      <td className="p-4 font-bold text-foreground">{e.profiles?.full_name ?? "—"}</td>
+                      <td className="p-4 text-center text-muted-foreground">{e.enrolled_at ? new Date(e.enrolled_at).toLocaleDateString("vi-VN") : ""}</td>
+                      <td className="p-4 text-center text-muted-foreground">{e.expires_at ? new Date(e.expires_at).toLocaleDateString("vi-VN") : "Vĩnh viễn"}</td>
                     </tr>
                   ))}
-                  {enrolledStudents.length === 0 && <tr><td colSpan={3} className="p-4 text-center text-muted-foreground">Chưa có học viên</td></tr>}
+                  {enrolledStudents.length === 0 && (
+                    <tr>
+                      <td colSpan={3} className="p-8 text-center text-muted-foreground">
+                        <p className="font-semibold text-foreground">Chưa có học viên nào ghi danh</p>
+                        <p className="text-xs text-muted-foreground mt-1">Khi học viên đăng ký, danh sách sẽ hiển thị tại đây.</p>
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>

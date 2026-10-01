@@ -74,93 +74,115 @@ const FullTestList = () => {
     );
   }
 
+  const hasTests = tests && tests.length > 0;
+
   return (
     <StudentLayout>
-      <div className="max-w-4xl mx-auto space-y-6 pb-16">
+      <div className="max-w-4xl mx-auto space-y-6 pb-16 font-sans">
         <div>
           <h1 className="text-2xl font-bold text-foreground tracking-tight flex items-center gap-2">
             <FileText className="w-6 h-6 text-primary" /> Kho Đề Thi Full Test TOEIC
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
             Luyện thi chuẩn format TOEIC. Bạn có thể chọn thi thử toàn bộ 7 Parts (200 câu) hoặc chọn riêng từng Part để luyện tập.
           </p>
         </div>
 
-        <Accordion type="multiple" defaultValue={Object.keys(grouped).map((_, i) => `cat-${i}`)} className="space-y-4">
-          {Object.entries(grouped).map(([cat, catTests], ci) => (
-            <AccordionItem key={cat} value={`cat-${ci}`} className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
-              <AccordionTrigger className="px-5 py-4 hover:no-underline hover:bg-muted/40 transition-colors">
-                <div className="flex items-center gap-3">
-                  <span className="font-bold text-sm text-foreground">{categoryMap[cat] || cat}</span>
-                  <span className="badge-duo badge-blue">{catTests.length} đề thi</span>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="px-4 pb-4 pt-1">
-                <div className="space-y-2">
-                  {catTests.map((test: any) => {
-                    const now = new Date();
-                    const released = !test.release_date || new Date(test.release_date) <= now;
-                    const done = resultMap.has(test.id);
-                    const score = resultMap.get(test.id);
+        {!hasTests ? (
+          <EmptyState
+            title="Chưa có đề thi nào"
+            description="Hiện tại kho đề thi đang được chuẩn bị và cập nhật. Vui lòng quay lại sau nhé!"
+            action={{
+              label: "Quay về trang khóa học",
+              onClick: () => window.history.back(),
+            }}
+          />
+        ) : (
+          <Accordion type="multiple" defaultValue={Object.keys(grouped).map((_, i) => `cat-${i}`)} className="space-y-4">
+            {Object.entries(grouped).map(([cat, catTests], ci) => (
+              <AccordionItem key={cat} value={`cat-${ci}`} className="rounded-2xl border border-border/70 bg-card overflow-hidden shadow-soft-sm">
+                <AccordionTrigger className="px-5 py-4 hover:no-underline hover:bg-muted/40 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <span className="font-bold text-sm text-foreground">{categoryMap[cat] || cat}</span>
+                    <span className="badge-duo badge-blue font-bold text-xs">{catTests.length} đề thi</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-4 pb-4 pt-1">
+                  <div className="space-y-2.5">
+                    {catTests.map((test: any) => {
+                      const now = new Date();
+                      const released = !test.release_date || new Date(test.release_date) <= now;
+                      const done = resultMap.has(test.id);
+                      const score = resultMap.get(test.id);
 
-                    return (
-                      <div key={test.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3.5 rounded-lg border border-border/70 bg-muted/20 hover:bg-card hover:border-primary/40 hover:shadow-sm transition-all group">
-                        <div className="flex items-center gap-3 min-w-0 flex-1">
-                          {!released ? (
-                            <Lock className="w-4 h-4 text-amber-500 shrink-0" />
-                          ) : done ? (
-                            <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                          ) : (
-                            <span className="w-4 h-4 rounded-full border-2 border-muted-foreground/40 shrink-0" />
-                          )}
-                          <div className="min-w-0">
-                            <p className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors truncate">
-                              {test.title}
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-0.5">
-                              {test.total_questions || 200} câu • Hỗ trợ chọn Part & Thi thử
-                            </p>
+                      return (
+                        <div key={test.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl border border-border/60 bg-muted/20 hover:bg-card hover:border-primary/40 hover:shadow-soft-sm transition-all duration-150 group">
+                          <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                            {!released ? (
+                              <Lock className="w-4 h-4 text-amber-500 shrink-0" />
+                            ) : done ? (
+                              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                            ) : (
+                              <span className="w-4 h-4 rounded-full border-2 border-muted-foreground/30 shrink-0" />
+                            )}
+                            <div className="min-w-0">
+                              <p className="text-sm font-bold text-foreground group-hover:text-primary transition-colors truncate">
+                                {test.title}
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-0.5 font-medium">
+                                {test.total_questions || 200} câu • Hỗ trợ chọn Part &amp; Thi thử
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-border/50">
+                            {done && score !== undefined && (
+                              <span className="badge-duo badge-green text-xs font-bold">
+                                Điểm: {score}/990
+                              </span>
+                            )}
+                            
+                            {!released && test.release_date && (
+                              <span className="badge-duo badge-yellow flex items-center gap-1 text-xs font-semibold">
+                                <Clock className="w-3.5 h-3.5" /> Mở ngày {new Date(test.release_date).toLocaleDateString("vi-VN")}
+                              </span>
+                            )}
+
+                            {released && !done && (
+                              <Link
+                                to={`/courses/${courseId}/fulltest/${test.id}`}
+                                className="py-2 px-4 rounded-xl bg-primary text-primary-foreground font-bold text-xs hover:bg-primary/90 transition-all duration-120 active:scale-95 inline-flex items-center justify-center gap-1.5 ml-auto sm:ml-0 shadow-soft-xs cursor-pointer"
+                              >
+                                Vào làm đề <ArrowRight className="w-3.5 h-3.5" />
+                              </Link>
+                            )}
+
+                            {done && (
+                              <div className="flex items-center gap-2 ml-auto sm:ml-0">
+                                <Link
+                                  to={`/courses/${courseId}/fulltest/${test.id}/result`}
+                                  className="py-2 px-3.5 rounded-xl border border-border/70 bg-card hover:bg-muted font-bold text-xs text-foreground transition-all duration-120 active:scale-95 shadow-soft-xs cursor-pointer"
+                                >
+                                  Kết quả
+                                </Link>
+                                <Link
+                                  to={`/courses/${courseId}/fulltest/${test.id}`}
+                                  className="py-2 px-3.5 rounded-xl bg-primary text-primary-foreground font-bold text-xs hover:bg-primary/90 transition-all duration-120 active:scale-95 inline-flex items-center gap-1 shadow-soft-xs cursor-pointer"
+                                >
+                                  <RotateCcw className="w-3 h-3" /> Luyện tiếp
+                                </Link>
+                              </div>
+                            )}
                           </div>
                         </div>
-
-                        <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto shrink-0 pt-1 sm:pt-0 border-t sm:border-t-0 border-border/50">
-                          {done && score !== undefined && (
-                            <span className="badge-duo badge-green text-xs font-bold">
-                              Điểm: {score}/990
-                            </span>
-                          )}
-                          
-                          {!released && test.release_date && (
-                            <span className="badge-duo badge-yellow flex items-center gap-1 text-xs">
-                              <Clock className="w-3 h-3" /> Mở ngày {new Date(test.release_date).toLocaleDateString("vi-VN")}
-                            </span>
-                          )}
-
-                          {released && !done && (
-                            <Link to={`/courses/${courseId}/fulltest/${test.id}`} className="btn-3d btn-3d-primary py-2 sm:py-1.5 px-4 text-xs font-bold inline-flex items-center justify-center gap-1.5 ml-auto sm:ml-0">
-                              Vào làm đề <ArrowRight className="w-3 h-3" />
-                            </Link>
-                          )}
-
-                          {done && (
-                            <div className="flex items-center gap-1.5 ml-auto sm:ml-0">
-                              <Link to={`/courses/${courseId}/fulltest/${test.id}/result`} className="btn-3d btn-3d-white py-2 sm:py-1.5 px-3 text-xs font-bold">
-                                Kết quả
-                              </Link>
-                              <Link to={`/courses/${courseId}/fulltest/${test.id}`} className="btn-3d btn-3d-primary py-2 sm:py-1.5 px-3 text-xs font-bold inline-flex items-center gap-1">
-                                <RotateCcw className="w-3 h-3" /> Luyện tiếp
-                              </Link>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          ))}
-        </Accordion>
+                      );
+                    })}
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        )}
       </div>
     </StudentLayout>
   );

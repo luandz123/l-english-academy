@@ -99,11 +99,11 @@ const OnboardingModal = ({ onDone }: OnboardingModalProps) => {
       {/* Modal */}
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
         <div
-          className="pointer-events-auto w-full max-w-md bg-white dark:bg-zinc-900 rounded-3xl border-2 border-[var(--duo-gray)] dark:border-zinc-800 shadow-[0_8px_0_var(--duo-gray)] dark:shadow-[0_8px_0_rgba(0,0,0,0.4)] overflow-hidden animate-in slide-in-from-bottom-4 duration-300"
+          className="pointer-events-auto w-full max-w-md bg-card rounded-3xl border border-border/80 shadow-soft-2xl overflow-hidden animate-in slide-in-from-bottom-4 duration-300"
           style={{ opacity: animating ? 0.6 : 1, transition: "opacity 0.2s" }}
         >
           {/* Progress bar */}
-          <div className="w-full h-1.5 bg-[var(--duo-gray)] dark:bg-zinc-800">
+          <div className="w-full h-1.5 bg-muted">
             <div
               className="h-full bg-gradient-to-r from-[var(--duo-green)] to-emerald-400 transition-all duration-500 ease-out"
               style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
@@ -122,14 +122,14 @@ const OnboardingModal = ({ onDone }: OnboardingModalProps) => {
                         ? "w-6 bg-[var(--duo-green)]"
                         : i < currentStep
                         ? "w-3 bg-[var(--duo-correct)]"
-                        : "w-3 bg-[var(--duo-gray)]"
+                        : "w-3 bg-muted"
                     }`}
                   />
                 ))}
               </div>
               <button
                 onClick={() => handleDone(false)}
-                className="w-8 h-8 rounded-full bg-[var(--duo-gray)] dark:bg-zinc-800 flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors"
+                className="w-8 h-8 rounded-full bg-muted/60 hover:bg-muted flex items-center justify-center text-muted-foreground transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -161,17 +161,17 @@ const OnboardingModal = ({ onDone }: OnboardingModalProps) => {
                   <button
                     key={g.label}
                     onClick={() => setSelectedGoal(g.label)}
-                    className={`flex flex-col items-center gap-1 p-3 rounded-2xl border-2 transition-all duration-150 ${
+                    className={`flex flex-col items-center gap-1 p-3 rounded-2xl border transition-all duration-150 active:scale-95 ${
                       selectedGoal === g.label
-                        ? `${g.color} border-current scale-[1.02] shadow-md`
-                        : "border-[var(--duo-gray)] dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:border-[var(--duo-green)]/50"
+                        ? `${g.color} border-current scale-[1.02] shadow-soft-sm ring-1 ring-primary/40`
+                        : "border-border/70 bg-card hover:border-primary/50 shadow-soft-xs"
                     }`}
                   >
                     <span className="text-2xl">{g.emoji}</span>
                     <span className="font-extrabold text-sm text-foreground">{g.label}</span>
-                    <span className="text-[10px] font-bold text-muted-foreground">{g.desc}</span>
+                    <span className="text-xs font-medium text-muted-foreground">{g.desc}</span>
                     {selectedGoal === g.label && (
-                      <span className="text-[10px] font-extrabold text-[var(--duo-green)]">✓ Đã chọn</span>
+                      <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">✓ Đã chọn</span>
                     )}
                   </button>
                 ))}

@@ -213,7 +213,7 @@ export const Part2Step6TrapHunter: React.FC<Part2Step6TrapHunterProps> = ({
       {/* 3. Question Box: Câu hỏi to, audio nổi bật (>= 40px) */}
       <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1.5 flex-1 min-w-0">
-          <div className="text-[11px] font-black uppercase tracking-wider text-purple-600 dark:text-purple-400">
+          <div className="text-xs font-black uppercase tracking-wider text-purple-600 dark:text-purple-400">
             Câu hỏi #{currentQ.questionNumber} • {currentQ.questionStem?.label || 'Part 2'}
           </div>
           <div className="text-lg sm:text-xl md:text-2xl font-black text-foreground tracking-tight leading-snug">

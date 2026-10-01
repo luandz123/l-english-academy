@@ -64,12 +64,16 @@ const Login = () => {
 
   if (user) return null;
 
+  const [shakeError, setShakeError] = useState(false);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) {
+      setShakeError(true);
+      setTimeout(() => setShakeError(false), 400);
       toast({ title: "Đăng nhập không thành công", description: getFriendlyErrorMessage(error), variant: "destructive" });
     } else {
       toast({ title: "Đăng nhập thành công!", description: "Chào mừng bạn quay lại L-English." });
@@ -88,6 +92,8 @@ const Login = () => {
       setGoogleLoading(true);
       const { error } = await signInWithGoogle();
       if (error) {
+        setShakeError(true);
+        setTimeout(() => setShakeError(false), 400);
         toast({ title: "Đăng nhập Google thất bại", description: getFriendlyErrorMessage(error), variant: "destructive" });
         setGoogleLoading(false);
       }
@@ -97,11 +103,10 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#FAFAFA] dark:bg-zinc-950 px-4 relative overflow-hidden">
-      {/* Decorative elements */}
-      <div className="absolute top-20 left-20 w-32 h-32 rounded-full bg-[var(--duo-green)]/10 blur-2xl pointer-events-none" />
-      <div className="absolute bottom-20 right-20 w-40 h-40 rounded-full bg-[var(--duo-blue)]/10 blur-2xl pointer-events-none" />
-      <div className="absolute top-1/3 right-1/4 w-20 h-20 rounded-full bg-[var(--duo-yellow)]/15 blur-xl pointer-events-none" />
+    <div className="min-h-screen flex items-center justify-center bg-background px-4 relative overflow-hidden">
+      {/* Decorative subtle ambient lights */}
+      <div className="absolute top-20 left-20 w-48 h-48 rounded-full bg-blue-500/10 blur-3xl pointer-events-none" />
+      <div className="absolute bottom-20 right-20 w-48 h-48 rounded-full bg-indigo-500/10 blur-3xl pointer-events-none" />
       
       <div className="w-full max-w-md relative">
         <div className="text-center mb-8 flex flex-col items-center">
@@ -112,27 +117,27 @@ const Login = () => {
           <p className="text-sm text-muted-foreground mt-1 font-medium">Đăng nhập để tiếp tục học nhé</p>
         </div>
 
-        <div className="card-duo p-6 space-y-6">
+        <div className={`card-duo p-6 space-y-6 shadow-soft-md ${shakeError ? "animate-shake" : ""}`}>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email" className="font-bold">Email</Label>
-              <Input id="email" type="email" placeholder="name@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" className="h-12 rounded-xl border-2 border-[var(--duo-gray)] font-medium focus:border-[var(--duo-blue)] transition-colors" />
+              <Label htmlFor="email" className="font-bold text-xs uppercase tracking-wider text-muted-foreground">Email</Label>
+              <Input id="email" type="email" placeholder="name@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" className="h-11 rounded-xl border border-border/80 font-medium focus:border-primary transition-colors" />
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="password" className="font-bold">Mật khẩu</Label>
-                <Link to="/forgot-password" className="text-xs font-bold text-[var(--duo-green)] hover:underline">Quên mật khẩu?</Link>
+                <Label htmlFor="password" className="font-bold text-xs uppercase tracking-wider text-muted-foreground">Mật khẩu</Label>
+                <Link to="/forgot-password" className="text-xs font-bold text-primary hover:underline">Quên mật khẩu?</Link>
               </div>
-              <Input id="password" type="password" placeholder="Nhập mật khẩu" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" className="h-12 rounded-xl border-2 border-[var(--duo-gray)] font-medium focus:border-[var(--duo-blue)] transition-colors" />
+              <Input id="password" type="password" placeholder="Nhập mật khẩu" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" className="h-11 rounded-xl border border-border/80 font-medium focus:border-primary transition-colors" />
             </div>
-            <button type="submit" className="btn-3d btn-3d-primary w-full py-3.5 flex items-center justify-center gap-2 cursor-pointer" disabled={loading || googleLoading}>
+            <button type="submit" className="btn-3d btn-3d-primary w-full py-3.5 flex items-center justify-center gap-2 cursor-pointer active:scale-95 duration-150" disabled={loading || googleLoading}>
               {loading && <Loader2 className="w-4 h-4 animate-spin" />}
               <span>{loading ? "Đang đăng nhập..." : "ĐĂNG NHẬP"}</span>
             </button>
           </form>
 
           <div className="relative">
-            <div className="absolute inset-0 flex items-center"><span className="w-full border-t-2 border-[var(--duo-gray)]" /></div>
+            <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border/70" /></div>
             <div className="relative flex justify-center text-xs uppercase">
               <span className="bg-card px-3 text-muted-foreground font-bold">hoặc</span>
             </div>
@@ -153,7 +158,7 @@ const Login = () => {
 
           <p className="text-center text-sm text-muted-foreground font-medium">
             Chưa có tài khoản?{" "}
-            <Link to="/register" className="text-[var(--duo-green)] font-bold hover:underline">Đăng ký</Link>
+            <Link to="/register" className="text-primary font-bold hover:underline">Đăng ký</Link>
           </p>
         </div>
       </div>

@@ -196,7 +196,7 @@ export const WordDefenseLobby: React.FC<WordDefenseLobbyProps> = ({ onStartGame,
             </div>
             <div>
               <p className="text-xs font-bold text-white">Triệu hồi Lính</p>
-              <p className="text-[11px] text-slate-400">Gõ từ + Bấm số 1-5</p>
+              <p className="text-xs text-slate-400">Gõ từ + Bấm số 1-5</p>
             </div>
           </div>
 
@@ -206,7 +206,7 @@ export const WordDefenseLobby: React.FC<WordDefenseLobbyProps> = ({ onStartGame,
             </div>
             <div>
               <p className="text-xs font-bold text-white">Sét Diệt Khiên</p>
-              <p className="text-[11px] text-slate-400">Gõ nghĩa trên đầu quái</p>
+              <p className="text-xs text-slate-400">Gõ nghĩa trên đầu quái</p>
             </div>
           </div>
 
@@ -216,7 +216,7 @@ export const WordDefenseLobby: React.FC<WordDefenseLobbyProps> = ({ onStartGame,
             </div>
             <div>
               <p className="text-xs font-bold text-white">Cầu Nắng Sun</p>
-              <p className="text-[11px] text-slate-400">Gõ từ nhận năng lượng</p>
+              <p className="text-xs text-slate-400">Gõ từ nhận năng lượng</p>
             </div>
           </div>
 
@@ -226,7 +226,7 @@ export const WordDefenseLobby: React.FC<WordDefenseLobbyProps> = ({ onStartGame,
             </div>
             <div>
               <p className="text-xs font-bold text-white">Bom Anh Đào</p>
-              <p className="text-[11px] text-slate-400">Quét sạch cả hàng quái</p>
+              <p className="text-xs text-slate-400">Quét sạch cả hàng quái</p>
             </div>
           </div>
         </div>
@@ -258,7 +258,7 @@ export const WordDefenseLobby: React.FC<WordDefenseLobbyProps> = ({ onStartGame,
                       wordDefenseSound.playShootSound();
                     }}
                     className={cn(
-                      "p-4 rounded-2xl border cursor-pointer transition-all duration-200 flex items-start gap-3 select-none",
+                      "p-4 rounded-2xl border cursor-pointer transition-all duration-200 flex items-start gap-3 select-none active:scale-[0.98]",
                       isSelected
                         ? "bg-emerald-950/40 border-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.25)] ring-1 ring-emerald-400/50"
                         : "bg-slate-950/60 border-slate-800 hover:border-slate-700"
@@ -272,7 +272,7 @@ export const WordDefenseLobby: React.FC<WordDefenseLobbyProps> = ({ onStartGame,
                       <p className="text-xs text-slate-400 line-clamp-2 mt-0.5">
                         {topic.description}
                       </p>
-                      <span className="text-[11px] font-bold text-emerald-400/90 mt-1 block">
+                      <span className="text-xs font-bold text-emerald-400/90 mt-1 block">
                         {topic.words.length} từ vựng
                       </span>
                     </div>
@@ -309,7 +309,7 @@ export const WordDefenseLobby: React.FC<WordDefenseLobbyProps> = ({ onStartGame,
                       wordDefenseSound.playShootSound();
                     }}
                     className={cn(
-                      "p-4 rounded-2xl border text-left transition-all duration-200 select-none",
+                      "p-4 rounded-2xl border text-left transition-all duration-120 select-none active:scale-95",
                       isSelected
                         ? "bg-slate-800 border-emerald-400 shadow-md ring-1 ring-emerald-400/60"
                         : "bg-slate-950/60 border-slate-800 hover:border-slate-700"
@@ -344,7 +344,7 @@ export const WordDefenseLobby: React.FC<WordDefenseLobbyProps> = ({ onStartGame,
             {/* Mode 1: Solo Campaign */}
             <button
               onClick={handleStartCampaign}
-              className="w-full group p-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-green-700 hover:from-emerald-500 hover:to-green-600 border border-emerald-400/30 text-white transition-all duration-200 shadow-lg hover:shadow-emerald-500/25 flex items-center justify-between text-left"
+              className="w-full group p-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-green-700 hover:from-emerald-500 hover:to-green-600 border border-emerald-400/30 text-white transition-all duration-120 shadow-lg hover:shadow-emerald-500/25 flex items-center justify-between text-left active:scale-[0.98]"
             >
               <div className="flex items-center gap-3.5">
                 <div className="w-12 h-12 rounded-xl bg-black/20 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
@@ -361,7 +361,7 @@ export const WordDefenseLobby: React.FC<WordDefenseLobbyProps> = ({ onStartGame,
             {/* Mode 2: Vs AI Zombie Master */}
             <button
               onClick={handleStartBotBattle}
-              className="w-full group p-4 rounded-2xl bg-gradient-to-r from-purple-800 to-indigo-900 hover:from-purple-700 hover:to-indigo-800 border border-purple-400/30 text-white transition-all duration-200 shadow-lg hover:shadow-purple-500/25 flex items-center justify-between text-left"
+              className="w-full group p-4 rounded-2xl bg-gradient-to-r from-purple-800 to-indigo-900 hover:from-purple-700 hover:to-indigo-800 border border-purple-400/30 text-white transition-all duration-120 shadow-lg hover:shadow-purple-500/25 flex items-center justify-between text-left active:scale-[0.98]"
             >
               <div className="flex items-center gap-3.5">
                 <div className="w-12 h-12 rounded-xl bg-black/20 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
@@ -390,7 +390,7 @@ export const WordDefenseLobby: React.FC<WordDefenseLobbyProps> = ({ onStartGame,
               <div className="grid grid-cols-2 gap-2 pt-1">
                 <Button
                   onClick={handleCreatePvPRoom}
-                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-2.5 rounded-xl shadow-md"
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-2.5 rounded-xl shadow-md active:scale-95 duration-120"
                 >
                   Tạo phòng
                 </Button>
@@ -398,7 +398,7 @@ export const WordDefenseLobby: React.FC<WordDefenseLobbyProps> = ({ onStartGame,
                 <Button
                   onClick={() => setIsPvPModalOpen(true)}
                   variant="outline"
-                  className="bg-slate-900 border-slate-700 text-slate-200 hover:bg-slate-800 text-xs font-bold py-2.5 rounded-xl"
+                  className="bg-slate-900 border-slate-700 text-slate-200 hover:bg-slate-800 text-xs font-bold py-2.5 rounded-xl active:scale-95 duration-120"
                 >
                   Vào phòng
                 </Button>
@@ -410,7 +410,7 @@ export const WordDefenseLobby: React.FC<WordDefenseLobbyProps> = ({ onStartGame,
 
       {/* PvP Room Modal */}
       <Dialog open={isPvPModalOpen} onOpenChange={setIsPvPModalOpen}>
-        <DialogContent className="max-w-md bg-slate-900 border-slate-800 text-white">
+        <DialogContent className="max-w-md bg-slate-900 border-slate-800 text-white rounded-2xl shadow-soft-xl">
           <DialogHeader>
             <DialogTitle className="text-xl font-black text-white flex items-center gap-2">
               <Users className="w-5 h-5 text-emerald-400" />
@@ -435,7 +435,7 @@ export const WordDefenseLobby: React.FC<WordDefenseLobbyProps> = ({ onStartGame,
               <Button
                 onClick={copyRoomLink}
                 variant="outline"
-                className="w-full bg-slate-800 border-slate-700 text-white text-xs font-bold"
+                className="w-full bg-slate-800 border-slate-700 text-white text-xs font-bold rounded-xl active:scale-95 duration-120"
               >
                 <Copy className="w-3.5 h-3.5 mr-1.5 text-emerald-400" />
                 Sao chép Link mời
@@ -444,7 +444,7 @@ export const WordDefenseLobby: React.FC<WordDefenseLobbyProps> = ({ onStartGame,
               <DialogFooter className="pt-2">
                 <Button
                   onClick={handleHostStartPvP}
-                  className="w-full bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-slate-950 font-black text-sm py-3"
+                  className="w-full bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-slate-950 font-black text-sm py-3 rounded-xl active:scale-95 duration-120 shadow-lg"
                 >
                   Vào Bàn Cờ Ngay!
                 </Button>
@@ -458,7 +458,7 @@ export const WordDefenseLobby: React.FC<WordDefenseLobbyProps> = ({ onStartGame,
                   value={inputRoomCode}
                   onChange={(e) => setInputRoomCode(e.target.value.toUpperCase())}
                   placeholder="Ví dụ: PVZ982"
-                  className="bg-slate-950 border-slate-700 text-white font-mono text-center tracking-widest text-lg font-bold uppercase"
+                  className="bg-slate-950 border-slate-700 text-white font-mono text-center tracking-widest text-lg font-bold uppercase rounded-xl"
                 />
               </div>
 
@@ -466,13 +466,13 @@ export const WordDefenseLobby: React.FC<WordDefenseLobbyProps> = ({ onStartGame,
                 <Button
                   variant="outline"
                   onClick={() => setIsPvPModalOpen(false)}
-                  className="bg-slate-800 border-slate-700 text-slate-300 text-xs"
+                  className="bg-slate-800 border-slate-700 text-slate-300 text-xs rounded-xl active:scale-95 duration-120"
                 >
                   Đóng
                 </Button>
                 <Button
                   onClick={handleJoinPvPRoom}
-                  className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs"
+                  className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs rounded-xl active:scale-95 duration-120 shadow-md"
                 >
                   Tham Gia Trận Đấu
                 </Button>

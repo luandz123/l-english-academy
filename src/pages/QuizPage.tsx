@@ -443,7 +443,7 @@ const QuizPage = () => {
   return (
     <div className="h-screen flex flex-col bg-background overflow-hidden font-sans">
       {/* Sticky Header */}
-      <header className="h-16 border-b-2 border-[var(--duo-gray)] shrink-0 bg-card z-20 flex items-center justify-between px-4 lg:px-8 shadow-sm">
+      <header className="h-16 border-b border-border/70 shrink-0 bg-card z-20 flex items-center justify-between px-4 lg:px-8 shadow-soft-xs">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => setShowExitConfirm(true)} className="rounded-xl hover:bg-muted" title="Thoát hoặc Tạm dừng">
             <ChevronLeft className="w-5 h-5"/>
@@ -487,21 +487,23 @@ const QuizPage = () => {
                 <div className="space-y-6">
                   {/* Group context: Passage or shared Audio */}
                   {hasGroupContent && (
-                    <div className="card-duo p-5 sm:p-8 bg-[#DDF4FF]/30 border-[#A8E0FD] space-y-6">
+                    <div className="p-5 sm:p-8 bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-2xl shadow-soft-sm space-y-6">
                       {currentGroup.image_url && (
-                        <img src={currentGroup.image_url} alt="Passage Context" className="max-w-full max-h-[320px] object-contain rounded-xl border-2 border-[var(--duo-gray)] mx-auto shadow-sm" />
+                        <div className="w-full flex justify-center bg-muted/20 rounded-xl overflow-hidden p-1 border border-border/50">
+                          <img src={currentGroup.image_url} alt="Passage Context" className="max-w-full max-h-[320px] object-contain rounded-lg mx-auto image-safe" />
+                        </div>
                       )}
                       {hasGroupAudio && (
-                        <div className="flex items-center gap-4 bg-white/90 p-4 rounded-2xl border-2 border-[var(--duo-blue)]/20 shadow-sm">
-                          <div className="w-12 h-12 rounded-xl bg-[var(--duo-blue)] flex items-center justify-center text-white text-xl shrink-0">🎧</div>
+                        <div className="flex items-center gap-4 bg-card p-4 rounded-xl border border-border/60 shadow-soft-xs">
+                          <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-xl shrink-0">🎧</div>
                           <div className="flex-1">
-                            <p className="text-sm font-extrabold text-[var(--duo-blue)] mb-1">Nghe đoạn hội thoại / bài nói</p>
+                            <p className="text-sm font-bold text-primary mb-1">Nghe đoạn hội thoại / bài nói</p>
                             <audio key={currentGroup.audio_url} controls src={currentGroup.audio_url} className="w-full h-9" controlsList="nodownload" />
                           </div>
                         </div>
                       )}
                       {currentGroup.passage && (
-                        <div className="prose prose-sm max-w-none text-foreground font-medium leading-relaxed bg-white/70 p-6 rounded-2xl border-2 border-[var(--duo-gray)] shadow-inner whitespace-pre-wrap">
+                        <div className="prose prose-sm max-w-none text-foreground font-medium leading-relaxed bg-card p-6 rounded-xl border border-border/60 shadow-soft-xs whitespace-pre-wrap">
                           {currentGroup.passage}
                         </div>
                       )}
@@ -512,8 +514,8 @@ const QuizPage = () => {
                   {currentGroup.questions.map((q: any) => {
                     const isFlagged = flagged.has(q.originalIdx);
                     return (
-                      <div key={q.id} id={`question-${q.originalIdx}`} className="card-duo p-5 sm:p-7 space-y-5 bg-white">
-                        <div className="flex items-center justify-between border-b-2 border-[var(--duo-gray)] pb-3">
+                      <div key={q.id} id={`question-${q.originalIdx}`} className="p-5 sm:p-7 space-y-5 bg-card border border-border/60 rounded-2xl shadow-soft-sm">
+                        <div className="flex items-center justify-between border-b border-border/50 pb-3">
                           <div className="flex items-center gap-2">
                             <span className="badge-duo badge-blue">Câu {q.originalIdx + 1} / {totalQ}</span>
                             {q.question_type && <span className="text-xs font-extrabold text-muted-foreground uppercase tracking-wider bg-muted px-2.5 py-1 rounded-full">{q.question_type}</span>}
@@ -523,26 +525,26 @@ const QuizPage = () => {
                           <button
                             onClick={() => toggleFlag(q.originalIdx)}
                             className={cn(
-                              "flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full border-2 transition-all cursor-pointer",
+                              "flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full border transition-all cursor-pointer",
                               isFlagged
-                                ? "border-[var(--duo-orange)] bg-[var(--duo-orange)]/10 text-[var(--duo-orange)] shadow-sm"
-                                : "border-[var(--duo-gray)] text-muted-foreground hover:text-foreground hover:border-[var(--duo-orange)]"
+                                ? "border-amber-500 bg-amber-500/10 text-amber-600 dark:text-amber-400 shadow-soft-xs"
+                                : "border-border/70 text-muted-foreground hover:text-foreground hover:border-amber-500"
                             )}
                           >
-                            {isFlagged ? <BookmarkCheck className="w-3.5 h-3.5 fill-[var(--duo-orange)]" /> : <Bookmark className="w-3.5 h-3.5" />}
+                            {isFlagged ? <BookmarkCheck className="w-3.5 h-3.5 fill-amber-500 text-amber-500" /> : <Bookmark className="w-3.5 h-3.5" />}
                             <span>{isFlagged ? "Đã đánh dấu" : "Đánh dấu xem lại"}</span>
                           </button>
                         </div>
 
                         {q.image_url && (q.question_type === "part1" || q.image_url !== currentGroup.image_url) && (
-                          <img src={q.image_url} alt="Question" className="max-w-full max-h-[260px] object-contain rounded-xl border-2 border-[var(--duo-gray)] mb-4 mx-auto" />
+                          <img src={q.image_url} alt="Question" className="image-safe max-w-full max-h-[260px] object-contain rounded-xl border border-border/70 shadow-soft-sm mb-4 mx-auto" />
                         )}
                         {q.audio_url && q.audio_url !== currentGroup.audio_url && (
                           <audio controls src={q.audio_url} className="w-full mb-4 animate-in fade-in" />
                         )}
 
                         {q.cleanText && q.question_type !== "part2" && (
-                          <p className="text-base sm:text-lg font-bold text-foreground leading-relaxed p-4 bg-muted/40 rounded-2xl border-l-4 border-[var(--duo-blue)]">
+                          <p className="text-base sm:text-lg font-bold text-foreground leading-relaxed p-4 bg-muted/40 rounded-2xl border-l-4 border-primary">
                             {q.cleanText}
                           </p>
                         )}
@@ -570,13 +572,13 @@ const QuizPage = () => {
                                 key={opt.id}
                                 onClick={() => selectAnswer(q.originalIdx, opt.id)}
                                 className={cn(
-                                  "flex items-center gap-3 w-full p-4 rounded-xl border-2 transition-all cursor-pointer group active:scale-[0.99]",
+                                  "flex items-center gap-3 w-full p-4 rounded-xl border transition-all duration-120 cursor-pointer group select-none active:scale-95",
                                   checked
-                                    ? "border-[var(--duo-correct)] bg-[var(--duo-correct)]/10 shadow-[0_3px_0_var(--duo-correct-dark)]/30 font-bold"
-                                    : "border-[var(--duo-gray)] bg-white hover:border-[var(--duo-blue)] hover:bg-muted/20 shadow-[0_2px_0_var(--duo-gray)]"
+                                    ? "border-emerald-500 bg-emerald-500/10 shadow-soft-xs font-bold"
+                                    : "border-border/70 bg-card hover:border-primary hover:bg-muted/20 shadow-soft-xs"
                                 )}
                               >
-                                <div className={cn("w-7 h-7 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors font-extrabold text-sm", checked ? "border-[var(--duo-correct)] bg-[var(--duo-correct)] text-white shadow-sm" : "border-[var(--duo-gray-dark)] group-hover:border-[var(--duo-blue)]")}>
+                                <div className={cn("w-7 h-7 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors font-extrabold text-sm", checked ? "border-emerald-500 bg-emerald-500 text-white shadow-sm" : "border-border group-hover:border-primary")}>
                                   {checked ? "✓" : String.fromCharCode(65 + oi)}
                                 </div>
                                 {hideText ? (
@@ -597,7 +599,7 @@ const QuizPage = () => {
           </div>
 
           {/* Sticky Bottom Actions Bar */}
-          <div className="h-20 border-t-2 border-[var(--duo-gray)] bg-card shrink-0 z-20 flex items-center shadow-md">
+          <div className="h-20 border-t border-border/70 bg-card shrink-0 z-20 flex items-center shadow-soft-sm">
             <div className="max-w-4xl w-full mx-auto flex items-center justify-between px-4 sm:px-8">
               <Button 
                 variant="ghost" 
@@ -638,10 +640,10 @@ const QuizPage = () => {
         </div>
 
         {/* Right Sidebar: Grid (Desktop only) */}
-        <div className="hidden lg:flex w-84 flex-col border-l-2 border-[var(--duo-gray)] bg-card h-full relative z-10">
-           <div className="p-4 border-b-2 border-[var(--duo-gray)] space-y-3">
+        <div className="hidden lg:flex w-84 flex-col border-l border-border/70 bg-card h-full relative z-10 shadow-soft-sm">
+           <div className="p-4 border-b border-border/70 space-y-3">
               <h3 className="font-extrabold text-base flex items-center gap-2">
-                <LayoutGrid className="w-5 h-5 text-[var(--duo-correct)]"/> Danh sách câu hỏi
+                <LayoutGrid className="w-5 h-5 text-emerald-500"/> Danh sách câu hỏi
               </h3>
               
               {/* Palette filter chips */}
@@ -658,8 +660,8 @@ const QuizPage = () => {
                     className={cn(
                       "text-xs font-bold px-2.5 py-1.5 rounded-lg border transition-all",
                       paletteFilter === f.key
-                        ? "bg-[var(--duo-blue)] text-white border-[var(--duo-blue-dark)]"
-                        : "bg-muted text-muted-foreground border-transparent hover:border-[var(--duo-gray)]"
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-muted text-muted-foreground border-transparent hover:border-border"
                     )}
                   >
                     {f.label}
@@ -684,21 +686,21 @@ const QuizPage = () => {
                         }, 100);
                       }}
                       className={cn(
-                        "w-10 h-10 rounded-xl text-xs font-extrabold transition-all flex items-center justify-center border-2 hover:-translate-y-0.5 relative cursor-pointer",
-                        isFlagged ? "border-[var(--duo-orange)] ring-2 ring-[var(--duo-orange)]/30" : "",
-                        isAnswered ? "border-[var(--duo-correct)] bg-[var(--duo-correct)] text-white shadow-[0_2px_0_var(--duo-correct-dark)]" : "border-[var(--duo-gray)] bg-white text-muted-foreground hover:border-[var(--duo-blue)]"
+                        "w-10 h-10 rounded-xl text-xs font-extrabold transition-all flex items-center justify-center border hover:-translate-y-0.5 relative cursor-pointer active:scale-95",
+                        isFlagged ? "border-amber-500 ring-2 ring-amber-500/30" : "",
+                        isAnswered ? "border-emerald-500 bg-emerald-500 text-white shadow-soft-xs" : "border-border/70 bg-card text-muted-foreground hover:border-primary shadow-soft-xs"
                       )}
                     >
                       {i + 1}
                       {isFlagged && (
-                        <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-[var(--duo-orange)] border border-white" />
+                        <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-500 border border-white" />
                       )}
                     </button>
                  );
               })}
            </div>
 
-           <div className="p-4 border-t-2 border-[var(--duo-gray)] space-y-2">
+           <div className="p-4 border-t border-border/70 space-y-2">
               <button className="btn-3d btn-3d-primary w-full py-3 text-sm" onClick={() => setShowConfirm(true)}>
                 Nộp bài thi
               </button>
@@ -707,19 +709,19 @@ const QuizPage = () => {
       </main>
 
       {/* Fixed Bottom Palette (Mobile only) */}
-      <footer className="h-16 border-t-2 border-[var(--duo-gray)] shrink-0 bg-card z-30 flex lg:hidden items-center justify-between px-4 sticky bottom-0">
+      <footer className="h-16 border-t border-border/70 shrink-0 bg-card z-30 flex lg:hidden items-center justify-between px-4 sticky bottom-0 shadow-soft-sm">
         <button onClick={() => setPaletteOpen(!paletteOpen)} className="btn-3d btn-3d-white w-full py-2.5 text-xs font-extrabold flex items-center justify-center gap-2">
            <LayoutGrid className="w-4 h-4" />
            Danh sách câu hỏi ({answeredCount}/{totalQ})
-           {flaggedCount > 0 && <span className="text-[var(--duo-orange)] font-black">🚩 {flaggedCount}</span>}
+           {flaggedCount > 0 && <span className="text-amber-500 font-black">🚩 {flaggedCount}</span>}
         </button>
       </footer>
 
       {/* Absolute Expandable Palette List (Mobile only) */}
       {paletteOpen && (
-        <div className="fixed inset-x-0 bottom-16 bg-card border-t-4 border-[var(--duo-blue)] shadow-[0_-10px_40px_rgba(0,0,0,0.15)] z-40 max-h-[60vh] overflow-y-auto p-5 animate-in slide-in-from-bottom-5 lg:hidden rounded-t-3xl">
+        <div className="fixed inset-x-0 bottom-16 bg-card border-t border-border/70 shadow-soft-2xl z-40 max-h-[60vh] overflow-y-auto p-5 animate-in slide-in-from-bottom-5 lg:hidden rounded-t-3xl">
            <div className="max-w-xl mx-auto space-y-4">
-             <div className="flex items-center justify-between pb-2 border-b-2 border-[var(--duo-gray)]">
+             <div className="flex items-center justify-between pb-2 border-b border-border/70">
                 <h3 className="font-extrabold text-sm text-foreground">Điều hướng câu hỏi</h3>
                 <button onClick={() => setPaletteOpen(false)} className="text-xs font-bold text-muted-foreground hover:text-foreground">Đóng ✕</button>
              </div>
@@ -764,10 +766,10 @@ const QuizPage = () => {
                        }, 100);
                      }}
                      className={cn(
-                       "w-11 h-11 rounded-xl text-sm font-extrabold transition-all flex items-center justify-center border-2 relative",
+                       "w-11 h-11 rounded-xl text-sm font-extrabold transition-all flex items-center justify-center border relative active:scale-95",
                        isFlagged ? "border-[var(--duo-orange)] ring-2 ring-[var(--duo-orange)]/30" : "",
                        isAnswered ? "border-[var(--duo-correct)] bg-[var(--duo-correct)] text-white shadow-[0_2px_0_var(--duo-correct-dark)]" : 
-                       "border-[var(--duo-gray)] bg-white text-muted-foreground hover:border-[var(--duo-blue)]"
+                        "border-border/70 bg-card text-muted-foreground hover:border-primary shadow-soft-xs"
                      )}
                    >
                      {i + 1}
@@ -784,26 +786,26 @@ const QuizPage = () => {
 
       {/* Confirm Modal */}
       {showConfirm && (
-        <div className="fixed inset-0 z-50 bg-foreground/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="card-duo p-6 max-w-sm w-full space-y-4 animate-in zoom-in-95 duration-200 bg-white">
-            <div className="w-16 h-16 rounded-2xl bg-[var(--duo-correct)] shadow-[0_4px_0_var(--duo-correct-dark)] flex items-center justify-center mx-auto mb-2">
-               <CheckCircle className="w-8 h-8 text-white" />
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="p-6 max-w-sm w-full space-y-4 animate-in zoom-in-95 duration-200 bg-card rounded-2xl border border-border/70 shadow-soft-2xl">
+            <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto mb-2 shadow-soft-xs">
+               <CheckCircle className="w-8 h-8" />
             </div>
-            <h3 className="font-extrabold text-xl text-center text-foreground">Xác nhận nộp bài</h3>
+            <h3 className="font-bold text-xl text-center text-foreground">Xác nhận nộp bài</h3>
             
-            <div className="bg-muted/70 rounded-2xl p-4 space-y-2 border-2 border-[var(--duo-gray)] text-sm">
-              <div className="flex justify-between items-center font-bold">
+            <div className="bg-muted/40 rounded-xl p-4 space-y-2 border border-border/60 text-sm">
+              <div className="flex justify-between items-center font-semibold">
                 <span className="text-muted-foreground">Đã trả lời:</span>
-                <span className="text-[var(--duo-correct)] font-extrabold text-base">{answeredCount}/{totalQ}</span>
+                <span className="text-emerald-600 dark:text-emerald-400 font-bold text-base">{answeredCount}/{totalQ}</span>
               </div>
               {flaggedCount > 0 && (
-                <div className="flex justify-between items-center font-bold">
+                <div className="flex justify-between items-center font-semibold">
                   <span className="text-muted-foreground">Đang đánh dấu xem lại:</span>
-                  <span className="text-[var(--duo-orange)] font-extrabold">{flaggedCount} câu 🚩</span>
+                  <span className="text-amber-500 font-bold">{flaggedCount} câu 🚩</span>
                 </div>
               )}
               {unanswered > 0 && (
-                <div className="pt-2 border-t border-[var(--duo-gray)] flex items-center gap-2 text-[var(--duo-red)] font-extrabold text-xs">
+                <div className="pt-2 border-t border-border/60 flex items-center gap-2 text-rose-600 dark:text-rose-400 font-bold text-xs">
                   <AlertTriangle className="w-4 h-4 shrink-0" />
                   <span>Còn {unanswered} câu chưa điền đáp án!</span>
                 </div>
@@ -811,10 +813,17 @@ const QuizPage = () => {
             </div>
 
             <div className="flex gap-3 pt-2">
-              <button className="btn-3d btn-3d-white flex-1 py-3 text-xs sm:text-sm" onClick={() => setShowConfirm(false)}>
+              <button
+                className="flex-1 py-2.5 px-4 rounded-xl border border-border/70 bg-card hover:bg-muted font-bold text-xs sm:text-sm text-foreground transition-all duration-120 active:scale-95 shadow-soft-xs cursor-pointer"
+                onClick={() => setShowConfirm(false)}
+              >
                 Làm tiếp
               </button>
-              <button className="btn-3d btn-3d-primary flex-1 py-3 text-xs sm:text-sm" onClick={submit} disabled={submitting}>
+              <button
+                className="flex-1 py-2.5 px-4 rounded-xl bg-primary text-primary-foreground font-bold text-xs sm:text-sm hover:bg-primary/90 transition-all duration-120 active:scale-95 disabled:opacity-50 shadow-soft-sm cursor-pointer"
+                onClick={submit}
+                disabled={submitting}
+              >
                 {submitting ? "Đang nộp..." : "Nộp bài ngay"}
               </button>
             </div>
@@ -824,17 +833,17 @@ const QuizPage = () => {
 
       {/* Exit Modal */}
       {showExitConfirm && (
-        <div className="fixed inset-0 z-50 bg-foreground/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="card-duo p-6 max-w-sm w-full space-y-4 animate-in zoom-in-95 duration-200 bg-white text-center">
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="p-6 max-w-sm w-full space-y-4 animate-in zoom-in-95 duration-200 bg-card rounded-2xl border border-border/70 shadow-soft-2xl text-center">
             <span className="text-4xl block">⏸</span>
-            <h3 className="font-extrabold text-xl text-foreground">Tạm dừng hoặc Rời bài tập?</h3>
-            <p className="text-xs text-muted-foreground font-medium">
-              Bạn đã làm được <b>{answeredCount}/{totalQ} câu</b>. Bài làm của bạn đã được tự động lưu tạm trên trình duyệt.
+            <h3 className="font-bold text-xl text-foreground">Tạm dừng hoặc Rời bài tập?</h3>
+            <p className="text-xs text-muted-foreground font-medium leading-relaxed">
+              Bạn đã làm được <b className="text-foreground">{answeredCount}/{totalQ} câu</b>. Bài làm của bạn đã được tự động lưu tạm trên trình duyệt.
             </p>
             <div className="flex flex-col gap-2 pt-2">
               <button
                 type="button"
-                className="btn-3d btn-3d-primary w-full py-2.5 text-xs font-black"
+                className="w-full py-2.5 px-4 rounded-xl bg-primary text-primary-foreground font-bold text-xs hover:bg-primary/90 transition-all duration-120 active:scale-95 shadow-soft-sm cursor-pointer"
                 onClick={() => {
                   setShowExitConfirm(false);
                   navigate(`/courses/${courseId}/quiz`, { replace: true });
@@ -844,7 +853,7 @@ const QuizPage = () => {
               </button>
               <button
                 type="button"
-                className="py-2 text-xs text-rose-600 font-bold hover:underline"
+                className="py-2 text-xs text-rose-600 dark:text-rose-400 font-bold hover:underline cursor-pointer"
                 onClick={() => {
                   try { localStorage.removeItem(DRAFT_KEY); } catch {}
                   setShowExitConfirm(false);
@@ -855,7 +864,7 @@ const QuizPage = () => {
               </button>
               <button
                 type="button"
-                className="btn-3d btn-3d-white w-full py-2.5 text-xs font-bold"
+                className="w-full py-2.5 px-4 rounded-xl border border-border/70 bg-card hover:bg-muted font-bold text-xs text-foreground transition-all duration-120 active:scale-95 shadow-soft-xs cursor-pointer"
                 onClick={() => setShowExitConfirm(false)}
               >
                 Ở lại làm tiếp
@@ -867,25 +876,25 @@ const QuizPage = () => {
 
       {/* Draft Resume Dialog */}
       {showDraftDialog && savedDraftInfo && (
-        <div className="fixed inset-0 z-50 bg-foreground/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="card-duo p-6 max-w-sm w-full space-y-4 animate-in zoom-in-95 duration-200 bg-white dark:bg-zinc-900 text-center">
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="p-6 max-w-sm w-full space-y-4 animate-in zoom-in-95 duration-200 bg-card rounded-2xl border border-border/70 shadow-soft-2xl text-center">
             <span className="text-4xl block">⚡</span>
-            <h3 className="font-extrabold text-xl text-foreground">Bạn có bài đang làm dở</h3>
-            <p className="text-xs text-muted-foreground font-medium">
+            <h3 className="font-bold text-xl text-foreground">Bạn có bài đang làm dở</h3>
+            <p className="text-xs text-muted-foreground font-medium leading-relaxed">
               Bạn có bài đang làm dở ({savedDraftInfo.answeredCount} câu đã trả lời). Tiếp tục hay làm mới?
             </p>
             <div className="flex gap-2 pt-2">
               <Button
                 type="button"
                 variant="outline"
-                className="flex-1 py-2 rounded-xl text-xs font-bold border-2"
+                className="flex-1 py-2 rounded-xl text-xs font-bold border border-border/70"
                 onClick={discardDraft}
               >
                 Làm mới
               </Button>
               <Button
                 type="button"
-                className="btn-3d btn-3d-primary flex-1 py-2 rounded-xl text-xs font-black"
+                className="flex-1 py-2 rounded-xl text-xs font-bold"
                 onClick={restoreDraft}
               >
                 Tiếp tục

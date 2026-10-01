@@ -749,7 +749,7 @@ export const WordShooterLobby: React.FC<WordShooterLobbyProps> = ({ onStartGame,
                       gameSound.playHitLetterSound();
                     }}
                     className={cn(
-                      "p-4 rounded-2xl border text-left transition-all duration-200 flex flex-col justify-between select-none relative overflow-hidden",
+                      "p-4 rounded-2xl border text-left transition-all duration-120 flex flex-col justify-between select-none relative overflow-hidden active:scale-95",
                       isSelected
                         ? lvl === 'easy'
                           ? "bg-emerald-950/40 border-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.25)]"
@@ -829,7 +829,7 @@ export const WordShooterLobby: React.FC<WordShooterLobbyProps> = ({ onStartGame,
             <div className="space-y-3">
               <button
                 onClick={handleStartSolo}
-                className="w-full group p-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 border border-blue-400/30 text-white transition-all duration-200 shadow-lg hover:shadow-blue-500/25 flex items-center justify-between text-left"
+                className="w-full group p-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 border border-blue-400/30 text-white transition-all duration-120 shadow-lg hover:shadow-blue-500/25 flex items-center justify-between text-left active:scale-[0.98]"
               >
                 <div className="flex items-center gap-3.5">
                   <div className="w-11 h-11 rounded-xl bg-white/10 flex items-center justify-center font-bold text-xl shrink-0 group-hover:scale-105 transition-transform">
@@ -848,7 +848,7 @@ export const WordShooterLobby: React.FC<WordShooterLobbyProps> = ({ onStartGame,
             <div className="space-y-3 pt-2 border-t border-slate-800">
               <button
                 onClick={handleStartBotBattle}
-                className="w-full group p-4 rounded-2xl bg-gradient-to-r from-purple-700 to-indigo-800 hover:from-purple-600 hover:to-indigo-700 border border-purple-400/30 text-white transition-all duration-200 shadow-lg hover:shadow-purple-500/25 flex items-center justify-between text-left"
+                className="w-full group p-4 rounded-2xl bg-gradient-to-r from-purple-700 to-indigo-800 hover:from-purple-600 hover:to-indigo-700 border border-purple-400/30 text-white transition-all duration-120 shadow-lg hover:shadow-purple-500/25 flex items-center justify-between text-left active:scale-[0.98]"
               >
                 <div className="flex items-center gap-3.5">
                   <div className="w-11 h-11 rounded-xl bg-white/10 flex items-center justify-center font-bold text-xl shrink-0 group-hover:scale-105 transition-transform">
@@ -879,7 +879,7 @@ export const WordShooterLobby: React.FC<WordShooterLobbyProps> = ({ onStartGame,
                 <div className="grid grid-cols-2 gap-2 pt-1">
                   <Button
                     onClick={handleCreateRoom}
-                    className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs py-2.5 rounded-xl shadow-md"
+                    className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs py-2.5 rounded-xl shadow-md active:scale-95 duration-120"
                   >
                     Tạo phòng mới
                   </Button>
@@ -887,7 +887,7 @@ export const WordShooterLobby: React.FC<WordShooterLobbyProps> = ({ onStartGame,
                   <Button
                     onClick={() => setIsPvPModalOpen(true)}
                     variant="outline"
-                    className="bg-slate-900 border-slate-700 text-slate-200 hover:bg-slate-800 text-xs font-bold py-2.5 rounded-xl"
+                    className="bg-slate-900 border-slate-700 text-slate-200 hover:bg-slate-800 text-xs font-bold py-2.5 rounded-xl active:scale-95 duration-120"
                   >
                     Vào phòng có sẵn
                   </Button>

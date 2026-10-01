@@ -98,45 +98,47 @@ const AdminCourses = () => {
             <h1 className="text-2xl font-bold text-foreground">Quản lý Khóa Học</h1>
             <p className="text-sm text-muted-foreground">{courses.length} khóa học</p>
           </div>
-          <Button asChild><Link to="/admin/courses/new"><Plus className="w-4 h-4 mr-2" /> Tạo khóa học mới</Link></Button>
+          <Button className="rounded-xl shadow-soft-sm transition-all duration-120 active:scale-95" asChild>
+            <Link to="/admin/courses/new"><Plus className="w-4 h-4 mr-2" /> Tạo khóa học mới</Link>
+          </Button>
         </div>
 
         <div className="relative max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input placeholder="Tìm kiếm khóa học..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <Input placeholder="Tìm kiếm khóa học..." className="pl-9 rounded-xl border-border/70 shadow-soft-xs text-base" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
 
         {isLoading ? (
-          <div className="space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
+          <div className="space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-12 w-full rounded-xl" />)}</div>
         ) : (
-          <div className="bg-card rounded-xl border overflow-hidden">
+          <div className="bg-card rounded-2xl border border-border/70 shadow-soft-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b bg-muted/50">
-                    <th className="text-left p-3 font-semibold text-foreground">#</th>
-                    <th className="text-left p-3 font-semibold text-foreground">Tên khóa học</th>
-                    <th className="text-left p-3 font-semibold text-foreground">Loại</th>
-                    <th className="text-center p-3 font-semibold text-foreground">Giá</th>
-                    <th className="text-center p-3 font-semibold text-foreground">Thời hạn</th>
-                    <th className="text-center p-3 font-semibold text-foreground">Học thử</th>
-                    <th className="text-center p-3 font-semibold text-foreground">Trạng thái</th>
-                    <th className="text-center p-3 font-semibold text-foreground">Hành động</th>
+                  <tr className="border-b border-border/60 bg-muted/40">
+                    <th className="text-left p-3.5 font-bold text-foreground">#</th>
+                    <th className="text-left p-3.5 font-bold text-foreground">Tên khóa học</th>
+                    <th className="text-left p-3.5 font-bold text-foreground">Loại</th>
+                    <th className="text-center p-3.5 font-bold text-foreground">Giá</th>
+                    <th className="text-center p-3.5 font-bold text-foreground">Thời hạn</th>
+                    <th className="text-center p-3.5 font-bold text-foreground">Học thử</th>
+                    <th className="text-center p-3.5 font-bold text-foreground">Trạng thái</th>
+                    <th className="text-center p-3.5 font-bold text-foreground">Hành động</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filtered.map((c: any, i) => (
-                    <tr key={c.id} className="border-b last:border-0 hover:bg-muted/30">
-                      <td className="p-3 text-muted-foreground">{i + 1}</td>
-                      <td className="p-3 font-medium text-foreground">{c.title}</td>
-                      <td className="p-3 text-muted-foreground">{typeEmoji[c.course_type] ?? c.course_type}</td>
-                      <td className="p-3 text-center text-foreground">{c.price ? `${c.price.toLocaleString()}đ` : "Miễn phí"}</td>
-                      <td className="p-3 text-center text-muted-foreground">{c.duration_months ? `${c.duration_months} tháng` : "Vĩnh viễn"}</td>
-                      <td className="p-3 text-center">
+                    <tr key={c.id} className="border-b border-border/50 last:border-0 hover:bg-muted/40 transition-colors">
+                      <td className="p-3.5 text-muted-foreground font-semibold">{i + 1}</td>
+                      <td className="p-3.5 font-bold text-foreground">{c.title}</td>
+                      <td className="p-3.5 text-muted-foreground">{typeEmoji[c.course_type] ?? c.course_type}</td>
+                      <td className="p-3.5 text-center font-bold text-foreground">{c.price ? `${c.price.toLocaleString()}đ` : "Miễn phí"}</td>
+                      <td className="p-3.5 text-center text-muted-foreground">{c.duration_months ? `${c.duration_months} tháng` : "Vĩnh viễn"}</td>
+                      <td className="p-3.5 text-center">
                         <Button 
                           size="icon" 
                           variant="ghost" 
-                          className={`h-8 w-8 ${c.is_free ? 'text-emerald-600' : 'text-muted-foreground'}`}
+                          className={`h-8 w-8 rounded-xl transition-all duration-120 active:scale-95 ${c.is_free ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10' : 'text-muted-foreground'}`}
                           onClick={() => toggleFreeMutation.mutate({ id: c.id, isFree: !c.is_free })}
                           title={c.is_free ? "Khóa học miễn phí" : "Khóa học trả phí"}
                         >
@@ -154,16 +156,16 @@ const AdminCourses = () => {
                         </button>
                       </td>
                       <td className="p-3 text-center">
-                        <div className="flex items-center justify-center gap-1">
-                          <Button size="icon" variant="ghost" asChild>
-                            <Link to={`/admin/courses/${c.id}`}><Edit className="w-4 h-4" /></Link>
+                        <div className="flex items-center justify-center gap-1.5">
+                          <Button size="icon" variant="ghost" className="rounded-xl h-8 w-8 hover:bg-muted transition-all duration-120 active:scale-95" asChild>
+                            <Link to={`/admin/courses/${c.id}`}><Edit className="w-4 h-4 text-primary" /></Link>
                           </Button>
-                          <Button size="icon" variant="ghost" asChild>
-                            <Link to={c.course_type === 'fulltest' ? `/courses/${c.id}/fulltest` : c.course_type === 'flashcard' ? `/courses/${c.id}/vocab` : `/courses/${c.id}/learn`} target="_blank"><Eye className="w-4 h-4" /></Link>
+                          <Button size="icon" variant="ghost" className="rounded-xl h-8 w-8 hover:bg-muted transition-all duration-120 active:scale-95" asChild>
+                            <Link to={c.course_type === 'fulltest' ? `/courses/${c.id}/fulltest` : c.course_type === 'flashcard' ? `/courses/${c.id}/vocab` : `/courses/${c.id}/learn`} target="_blank"><Eye className="w-4 h-4 text-muted-foreground" /></Link>
                           </Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
-                              <Button size="icon" variant="ghost" disabled={deleteMutation.isPending}>
+                              <Button size="icon" variant="ghost" className="rounded-xl h-8 w-8 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-all duration-120 active:scale-95" disabled={deleteMutation.isPending}>
                                 <Trash2 className="w-4 h-4 text-destructive" />
                               </Button>
                             </AlertDialogTrigger>

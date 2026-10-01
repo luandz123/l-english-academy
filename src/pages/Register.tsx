@@ -87,7 +87,7 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#FAFAFA] dark:bg-zinc-950 px-4 py-8 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-background px-4 py-8 relative overflow-hidden">
       {/* Decorative elements */}
       <div className="absolute top-10 right-10 w-32 h-32 rounded-full bg-[var(--duo-green)]/10 blur-2xl pointer-events-none" />
       <div className="absolute bottom-10 left-10 w-40 h-40 rounded-full bg-[var(--duo-purple)]/10 blur-2xl pointer-events-none" />
@@ -101,28 +101,28 @@ const Register = () => {
           <p className="text-sm text-muted-foreground mt-1 font-medium">Bắt đầu lộ trình luyện thi TOEIC ngay hôm nay</p>
         </div>
 
-        <div className="card-duo p-6 space-y-6">
+        <div className="card-duo p-6 space-y-6 shadow-soft-md">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="fullName" className="font-bold">Họ và tên</Label>
-              <Input id="fullName" type="text" placeholder="Nguyễn Văn A" value={fullName} onChange={(e) => setFullName(e.target.value)} required autoComplete="name" className="h-12 rounded-xl border-2 border-[var(--duo-gray)] font-medium focus:border-[var(--duo-green)] transition-colors" />
+              <Label htmlFor="fullName" className="font-bold text-xs uppercase tracking-wider text-muted-foreground">Họ và tên</Label>
+              <Input id="fullName" type="text" placeholder="Nguyễn Văn A" value={fullName} onChange={(e) => setFullName(e.target.value)} required autoComplete="name" className="h-11 rounded-xl border border-border/80 font-medium focus:border-primary transition-colors text-base" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email" className="font-bold">Email</Label>
-              <Input id="email" type="email" placeholder="name@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" className="h-12 rounded-xl border-2 border-[var(--duo-gray)] font-medium focus:border-[var(--duo-green)] transition-colors" />
+              <Label htmlFor="email" className="font-bold text-xs uppercase tracking-wider text-muted-foreground">Email</Label>
+              <Input id="email" type="email" placeholder="name@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" className="h-11 rounded-xl border border-border/80 font-medium focus:border-primary transition-colors text-base" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password" className="font-bold">Mật khẩu</Label>
-              <Input id="password" type="password" placeholder="Tối thiểu 6 ký tự" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} autoComplete="new-password" className="h-12 rounded-xl border-2 border-[var(--duo-gray)] font-medium focus:border-[var(--duo-green)] transition-colors" />
+              <Label htmlFor="password" className="font-bold text-xs uppercase tracking-wider text-muted-foreground">Mật khẩu</Label>
+              <Input id="password" type="password" placeholder="Tối thiểu 6 ký tự" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} autoComplete="new-password" className="h-11 rounded-xl border border-border/80 font-medium focus:border-primary transition-colors text-base" />
             </div>
-            <button type="submit" className="btn-3d btn-3d-green w-full py-3.5 flex items-center justify-center gap-2 cursor-pointer" disabled={loading || googleLoading}>
+            <button type="submit" className="btn-3d btn-3d-green w-full py-3.5 flex items-center justify-center gap-2 cursor-pointer active:scale-95 duration-150 font-bold" disabled={loading || googleLoading}>
               {loading && <Loader2 className="w-4 h-4 animate-spin" />}
               <span>{loading ? "Đang tạo tài khoản..." : "ĐĂNG KÝ HỌC NGAY"}</span>
             </button>
           </form>
 
           <div className="relative">
-            <div className="absolute inset-0 flex items-center"><span className="w-full border-t-2 border-[var(--duo-gray)]" /></div>
+            <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border/70" /></div>
             <div className="relative flex justify-center text-xs uppercase">
               <span className="bg-card px-3 text-muted-foreground font-bold">hoặc</span>
             </div>
@@ -131,7 +131,7 @@ const Register = () => {
           <button
             onClick={handleGoogleLogin}
             disabled={googleLoading || loading}
-            className="btn-3d btn-3d-white w-full py-3 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+            className="btn-3d btn-3d-white w-full py-3 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 font-bold text-sm transition-all duration-120 active:scale-95"
           >
             {googleLoading ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -141,9 +141,9 @@ const Register = () => {
             <span>{googleLoading ? "Đang kết nối Google..." : "Đăng ký với Google"}</span>
           </button>
 
-          <p className="text-center text-sm text-muted-foreground font-medium pt-4 border-t-2 border-[var(--duo-gray)]">
+          <p className="text-center text-sm text-muted-foreground font-medium pt-4 border-t border-border/70">
             Đã có tài khoản?{" "}
-            <Link to="/login" className="text-[var(--duo-green)] font-bold hover:underline">Đăng nhập</Link>
+            <Link to="/login" className="text-primary font-bold hover:underline">Đăng nhập</Link>
           </p>
         </div>
       </div>

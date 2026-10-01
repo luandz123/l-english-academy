@@ -75,33 +75,39 @@ const AdminEnrollments = () => {
         {isLoading ? (
           <div className="space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
         ) : (
-          <div className="bg-card rounded-xl border overflow-hidden">
+          <div className="bg-card rounded-2xl border border-border/70 overflow-hidden shadow-soft-sm">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b bg-muted/50">
-                    <th className="text-left p-3 font-semibold text-foreground">Học viên</th>
-                    <th className="text-left p-3 font-semibold text-foreground">Khóa học</th>
-                    <th className="text-center p-3 font-semibold text-foreground">Bắt đầu</th>
-                    <th className="text-center p-3 font-semibold text-foreground">Hết hạn</th>
-                    <th className="text-center p-3 font-semibold text-foreground">Còn lại</th>
-                    <th className="text-center p-3 font-semibold text-foreground">Trạng thái</th>
+                  <tr className="border-b border-border/70 bg-muted/50 text-xs font-black uppercase text-muted-foreground">
+                    <th className="text-left px-4 py-3">Học viên</th>
+                    <th className="text-left px-4 py-3">Khóa học</th>
+                    <th className="text-center px-4 py-3">Bắt đầu</th>
+                    <th className="text-center px-4 py-3">Hết hạn</th>
+                    <th className="text-center px-4 py-3">Còn lại</th>
+                    <th className="text-center px-4 py-3">Trạng thái</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filtered.map((e: any) => (
-                    <tr key={e.id} className="border-b last:border-0 hover:bg-muted/30">
-                      <td className="p-3 font-medium text-foreground">{e.profiles?.full_name ?? "—"}</td>
-                      <td className="p-3 text-foreground">{e.courses?.title ?? "—"}</td>
-                      <td className="p-3 text-center text-muted-foreground">{e.enrolled_at ? new Date(e.enrolled_at).toLocaleDateString("vi-VN") : ""}</td>
-                      <td className="p-3 text-center text-muted-foreground">{e.expires_at ? new Date(e.expires_at).toLocaleDateString("vi-VN") : "Vĩnh viễn"}</td>
-                      <td className="p-3 text-center text-foreground">{e.remaining !== null ? `${e.remaining} ngày` : "∞"}</td>
-                      <td className="p-3 text-center">
-                        <Badge className={statusMap[e.status]?.color}>{statusMap[e.status]?.label}</Badge>
+                    <tr key={e.id} className="border-b border-border/60 last:border-0 hover:bg-muted/30 transition-colors">
+                      <td className="px-4 py-3.5 font-bold text-foreground">{e.profiles?.full_name ?? "—"}</td>
+                      <td className="px-4 py-3.5 text-foreground font-medium">{e.courses?.title ?? "—"}</td>
+                      <td className="px-4 py-3.5 text-center text-muted-foreground">{e.enrolled_at ? new Date(e.enrolled_at).toLocaleDateString("vi-VN") : ""}</td>
+                      <td className="px-4 py-3.5 text-center text-muted-foreground">{e.expires_at ? new Date(e.expires_at).toLocaleDateString("vi-VN") : "Vĩnh viễn"}</td>
+                      <td className="px-4 py-3.5 text-center font-bold text-foreground">{e.remaining !== null ? `${e.remaining} ngày` : "∞"}</td>
+                      <td className="px-4 py-3.5 text-center">
+                        <Badge className={`${statusMap[e.status]?.color} font-bold rounded-lg px-2.5 py-0.5`}>{statusMap[e.status]?.label}</Badge>
                       </td>
                     </tr>
                   ))}
-                  {filtered.length === 0 && <tr><td colSpan={6} className="p-4 text-center text-muted-foreground">Không có dữ liệu</td></tr>}
+                  {filtered.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-12 text-center text-muted-foreground font-semibold">
+                        Không có dữ liệu đăng ký nào phù hợp
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>

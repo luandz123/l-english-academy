@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { useSound } from "@/hooks/useSound";
 import { useGamification } from "@/hooks/useGamification";
 import { MysteryChestModal } from "@/components/MysteryChestModal";
+import EmptyState from "@/components/EmptyState";
 
 export default function VocabLessonPage() {
   const { courseId, lessonId } = useParams();
@@ -278,9 +279,15 @@ export default function VocabLessonPage() {
 
   if (!words || words.length === 0) return (
     <StudentLayout>
-      <div className="text-center py-24 card-duo max-w-2xl mx-auto bg-white border-2">
-        <p className="text-muted-foreground font-bold text-lg mb-6">Bài học này chưa có từ vựng.</p>
-        <Button className="btn-3d bg-white text-muted-foreground hover:bg-gray-50 border-border" onClick={() => navigate(`/courses/${courseId}/vocab`)}>Quay lại danh sách từ vựng</Button>
+      <div className="max-w-2xl mx-auto py-16">
+        <EmptyState
+          title="Bài học này chưa có từ vựng"
+          description="Nội dung từ vựng cho bài học này đang được biên soạn. Bạn vui lòng quay lại sau nhé!"
+          action={{
+            label: "Quay lại danh sách từ vựng",
+            onClick: () => navigate(`/courses/${courseId}/vocab`),
+          }}
+        />
       </div>
     </StudentLayout>
   );
@@ -289,9 +296,9 @@ export default function VocabLessonPage() {
 
   return (
     <StudentLayout>
-      <div className="max-w-2xl mx-auto flex flex-col min-h-[70vh] gap-6">
+      <div className="max-w-2xl mx-auto flex flex-col min-h-[70vh] gap-6 font-sans">
         {/* Header Tabs */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 card-duo bg-white p-5 border-2">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-card p-5 border border-border/70 rounded-2xl shadow-soft-sm">
           <div className="flex items-center gap-3 w-full sm:w-auto">
             <Button size="icon" variant="ghost" className="rounded-full hover:bg-muted" onClick={() => navigate(`/courses/${courseId}/vocab`)}>
               <XIcon className="w-6 h-6 text-muted-foreground" />
@@ -303,8 +310,8 @@ export default function VocabLessonPage() {
               <Button 
                 key={r}
                 className={cn(
-                  "font-bold text-sm px-6 h-12 flex-shrink-0",
-                  round === r ? "btn-3d btn-3d-blue" : "btn-3d bg-white text-muted-foreground border-border hover:bg-muted/30 hover:-translate-y-1 hover:shadow-[0_4px_0_var(--border)]"
+                  "font-bold text-sm px-6 h-11 rounded-xl flex-shrink-0 transition-all duration-120 active:scale-95 shadow-soft-xs cursor-pointer",
+                  round === r ? "bg-primary text-primary-foreground shadow-soft-sm" : "border border-border/70 bg-card text-muted-foreground hover:text-foreground hover:bg-muted"
                 )}
                 onClick={() => { setRound(r as any); setShowResult(false); setWrongChars(null); }}
               >
@@ -316,35 +323,35 @@ export default function VocabLessonPage() {
 
         {/* Progress Bar */}
         <div className="space-y-3 px-2">
-          <div className="flex justify-between text-xs font-black text-muted-foreground uppercase tracking-widest px-1">
+          <div className="flex justify-between text-xs font-bold text-muted-foreground uppercase tracking-wider px-1">
             <span>Tiến độ tổng quát</span>
-            <span className="text-[var(--duo-blue)]">{Math.round(progress)}%</span>
+            <span className="text-primary font-bold">{Math.round(progress)}%</span>
           </div>
-          <div className="w-full bg-border h-4 rounded-full overflow-hidden relative">
-            <div className="absolute top-0 bottom-0 left-0 bg-[var(--duo-correct)] transition-all duration-500 ease-out" style={{ width: `${progress}%` }} />
-            <div className="absolute top-1 bottom-1 left-0 bg-white/20 transition-all duration-500 ease-out mx-1 rounded-full" style={{ width: `calc(${progress}% - 8px)` }} />
+          <div className="w-full bg-muted h-3 rounded-full overflow-hidden relative">
+            <div className="absolute top-0 bottom-0 left-0 bg-emerald-500 rounded-full transition-all duration-500 ease-out" style={{ width: `${progress}%` }} />
           </div>
         </div>
 
         {/* Interaction Card */}
-        <div className="flex-1 flex flex-col items-center justify-center card-duo bg-white border-2 p-4 sm:p-8 relative min-h-[400px] sm:min-h-[500px]">
+        <div className="flex-1 flex flex-col items-center justify-center bg-card border border-border/70 rounded-2xl shadow-soft-md p-4 sm:p-8 relative min-h-[400px] sm:min-h-[500px]">
           
           {/* ROUND 1: LEARN */}
           {!isFinished && round === 1 && word && (
             <div className="w-full flex flex-col items-center space-y-8 animate-in fade-in zoom-in-95 duration-500">
-              <div className="w-full max-w-sm bg-white rounded-3xl border-4 border-border p-8 sm:p-10 shadow-[0_8px_0_var(--border)] flex flex-col items-center text-center space-y-6">
+              <div className="w-full max-w-sm bg-card rounded-3xl border border-border/70 p-8 sm:p-10 shadow-soft-lg flex flex-col items-center text-center space-y-6">
                 <div>
-                  <h2 className="text-5xl md:text-6xl font-black text-foreground mb-2 select-none drop-shadow-sm">{word.word}</h2>
-                  <p className="text-xl text-[var(--duo-blue)] font-mono font-bold bg-[var(--duo-blue)]/5 border-2 border-[var(--duo-blue)]/20 px-4 py-1.5 rounded-xl inline-block mt-2">
+                  <h2 className="text-5xl md:text-6xl font-black text-foreground mb-2 select-none">{word.word}</h2>
+                  <p className="text-xl text-primary font-mono font-bold bg-primary/10 border border-primary/20 px-4 py-1.5 rounded-xl inline-block mt-2">
                     {word.phonetic}
                   </p>
                 </div>
 
                 <div 
-                  className="w-20 h-20 bg-[var(--duo-blue)]/10 rounded-full flex items-center justify-center cursor-pointer hover:bg-[var(--duo-blue)]/20 transition-all border-4 border-[var(--duo-blue)]/30 shadow-[0_4px_0_rgba(28,176,246,0.3)] active:translate-y-1 active:shadow-none"
+                  className="w-20 h-20 bg-blue-500/10 dark:bg-blue-500/20 rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-500/20 transition-all duration-120 border border-blue-500/20 shadow-soft-sm active:scale-95"
                   onClick={() => playAudio(word.word, word.audio_male_url)}
+                  title="Nghe phát âm"
                 >
-                  <Volume2 className="w-10 h-10 text-[var(--duo-blue)]" />
+                  <Volume2 className="w-10 h-10 text-blue-600 dark:text-blue-400" />
                 </div>
 
                 <div className="h-1 rounded-full w-20 bg-muted/50 mx-auto"></div>
@@ -354,7 +361,7 @@ export default function VocabLessonPage() {
                 </div>
 
                 {word.example_sentence && (
-                  <div className="w-full text-left p-4 rounded-2xl bg-muted/30 border-2 border-dashed border-border mt-4">
+                  <div className="w-full text-left p-4 rounded-2xl bg-muted/40 border border-border/60 mt-4 shadow-soft-xs">
                     <p className="text-xs font-black uppercase text-muted-foreground mb-1 tracking-widest">Ví dụ:</p>
                     <p className="text-sm sm:text-base font-medium text-foreground italic">"{word.example_sentence}"</p>
                   </div>
@@ -362,15 +369,16 @@ export default function VocabLessonPage() {
               </div>
 
               {/* Navigation Footer */}
-              <div className="flex items-center gap-6 w-full max-w-sm">
-                <Button className="btn-3d bg-white rounded-full h-14 w-14 border-2 p-0 flex items-center justify-center" onClick={handleBack} disabled={currentIdx === 0}>
-                  <ChevronLeft className="w-6 h-6 text-muted-foreground" />
+              <div className="flex items-center gap-4 w-full max-w-sm">
+                <Button className="btn-3d btn-3d-white rounded-2xl h-12 w-12 p-0 flex items-center justify-center shadow-soft-xs active:scale-95" onClick={handleBack} disabled={currentIdx === 0}>
+                  <ChevronLeft className="w-5 h-5 text-muted-foreground" />
                 </Button>
-                <div className="flex-1 text-center font-black text-muted-foreground text-lg bg-muted/30 py-2 rounded-2xl border-2">
+                <div className="flex-1 text-center font-bold text-muted-foreground text-sm bg-muted/40 py-3 rounded-2xl border border-border/60">
                   {currentIdx + 1} / {words.length}
                 </div>
-                <Button className="btn-3d btn-3d-blue h-14 px-8 rounded-2xl font-black text-lg" onClick={handleNext}>
-                  Tiếp tục <ArrowRight className="w-5 h-5 ml-2" />
+                <Button className="btn-3d btn-3d-primary h-12 px-6 rounded-2xl font-bold text-sm flex items-center gap-2 active:scale-95" onClick={handleNext}>
+                  <span>Tiếp tục</span>
+                  <ArrowRight className="w-4 h-4" />
                 </Button>
               </div>
             </div>
@@ -380,7 +388,7 @@ export default function VocabLessonPage() {
           {!isFinished && round === 2 && word && (
             <div className="w-full max-w-sm text-center space-y-12 animate-in fade-in duration-300">
               <div 
-                className="w-32 h-32 bg-[var(--duo-blue)]/10 rounded-full mx-auto flex items-center justify-center cursor-pointer hover:bg-[var(--duo-blue)]/20 transition-all border-4 border-[var(--duo-blue)]/30 shadow-[0_6px_0_rgba(28,176,246,0.3)] active:translate-y-2 active:shadow-none"
+                className="w-28 h-28 bg-blue-500/10 dark:bg-blue-500/20 rounded-full mx-auto flex items-center justify-center cursor-pointer hover:bg-blue-500/20 transition-all duration-120 border border-blue-500/20 shadow-soft-md active:scale-95"
                 onClick={() => playAudio(word.word, word.audio_male_url)}
               >
                 <Volume2 className="w-14 h-14 text-[var(--duo-blue)]" />

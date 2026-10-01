@@ -7,6 +7,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/ErrorState";
 import { Headphones } from "lucide-react";
 
+import EmptyState from "@/components/EmptyState";
+
 export const ListeningPage: React.FC = () => {
   const { data: courses = [], isLoading, isError, refetch } = useQuery<CourseRow[]>({
     queryKey: ["student-listening-courses"],
@@ -27,7 +29,7 @@ export const ListeningPage: React.FC = () => {
     <StudentLayout>
       <div className="space-y-6 max-w-7xl mx-auto">
         {/* Page Header */}
-        <div className="bg-card border border-border rounded-3xl p-6 sm:p-8 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="bg-card border border-border/60 rounded-3xl p-6 sm:p-8 shadow-soft-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2.5">
               <div className="w-10 h-10 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center font-black">
@@ -37,11 +39,11 @@ export const ListeningPage: React.FC = () => {
                 Luyện Nghe Điền Từ (Dictation)
               </h1>
             </div>
-            <p className="text-xs sm:text-sm text-muted-foreground font-medium pl-12.5">
+            <p className="text-xs sm:text-sm text-muted-foreground font-medium pl-12.5 leading-relaxed">
               Luyện nghe chép chính tả Part 1–4, kéo thả từ khóa mượt mà, phản xạ nghe và ghi nhớ từ vựng tức thì.
             </p>
           </div>
-          <span className="self-start sm:self-auto px-3 py-1 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 text-xs font-black uppercase">
+          <span className="self-start sm:self-auto px-3.5 py-1 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 text-xs font-bold uppercase">
             {courses.length} Khóa Luyện
           </span>
         </div>
@@ -66,11 +68,13 @@ export const ListeningPage: React.FC = () => {
             ))}
           </div>
         ) : (
-          <div className="py-16 text-center bg-card border border-border rounded-3xl p-8 space-y-2">
-            <Headphones className="w-12 h-12 text-muted-foreground/40 mx-auto" />
-            <h3 className="text-base font-bold text-foreground">Chưa có khóa học nào</h3>
-            <p className="text-xs text-muted-foreground">Hiện tại chưa có khóa luyện nghe Dictation nào sẵn sàng.</p>
-          </div>
+          <EmptyState
+            icon={<Headphones className="w-8 h-8 text-purple-600" />}
+            title="Các bài luyện nghe đang được tổng hợp"
+            description="Bạn có thể chuyển sang thử sức với các bài thi Full Test ETS hoặc luyện phản xạ Part 2 ngay bây giờ."
+            actionLabel="Luyện Phản Xạ Part 2"
+            onAction={() => window.location.href = "/part2-coach"}
+          />
         )}
       </div>
     </StudentLayout>

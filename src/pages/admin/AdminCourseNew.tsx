@@ -84,24 +84,24 @@ const AdminCourseNew = () => {
         <h1 className="text-2xl font-bold text-foreground">Tạo khóa học mới</h1>
         <div className="grid lg:grid-cols-5 gap-6">
           <div className="lg:col-span-3 space-y-4">
-            <div className="bg-card rounded-xl border p-6 space-y-4">
+            <div className="bg-card rounded-2xl border border-border/70 p-6 space-y-4 shadow-soft-sm">
               <div className="space-y-2">
-                <Label>Tên khóa học *</Label>
-                <Input value={form.title} onChange={(e) => update("title", e.target.value)} placeholder="Ví dụ: Luyện thi TOEIC Nghe-Đọc" />
+                <Label className="font-bold">Tên khóa học *</Label>
+                <Input value={form.title} onChange={(e) => update("title", e.target.value)} placeholder="Ví dụ: Luyện thi TOEIC Nghe-Đọc" className="font-medium rounded-xl" />
               </div>
               <div className="space-y-2">
-                <Label>Mô tả ngắn</Label>
-                <Input value={form.subtitle} onChange={(e) => update("subtitle", e.target.value)} placeholder="Subtitle ngắn gọn" />
+                <Label className="font-bold">Mô tả ngắn</Label>
+                <Input value={form.subtitle} onChange={(e) => update("subtitle", e.target.value)} placeholder="Subtitle ngắn gọn" className="font-medium rounded-xl" />
               </div>
               <div className="space-y-2">
-                <Label>Mô tả chi tiết</Label>
-                <Textarea value={form.description} onChange={(e) => update("description", e.target.value)} rows={5} />
+                <Label className="font-bold">Mô tả chi tiết</Label>
+                <Textarea value={form.description} onChange={(e) => update("description", e.target.value)} rows={5} className="font-medium rounded-xl resize-none" />
               </div>
               <div className="space-y-2">
-                <Label>Link ảnh khóa học (Thumbnail URL)</Label>
+                <Label className="font-bold">Link ảnh khóa học (Thumbnail URL)</Label>
                 <div className="flex gap-2">
-                  <Input value={form.thumbnail_url} onChange={(e) => update("thumbnail_url", e.target.value)} placeholder="https://..." className="flex-1" />
-                  <Button variant="outline" className="shrink-0" asChild disabled={isUploading}>
+                  <Input value={form.thumbnail_url} onChange={(e) => update("thumbnail_url", e.target.value)} placeholder="https://..." className="flex-1 font-mono text-sm rounded-xl" />
+                  <Button variant="outline" className="shrink-0 font-bold rounded-xl active:scale-95 duration-120" asChild disabled={isUploading}>
                     <label className="cursor-pointer">
                       {isUploading ? "Đang tải..." : <><Upload className="w-4 h-4 mr-2" /> Tải ảnh lên</>}
                       <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} disabled={isUploading} />
@@ -109,16 +109,16 @@ const AdminCourseNew = () => {
                   </Button>
                 </div>
                 {form.thumbnail_url && (
-                    <div className="mt-2 aspect-video w-full max-w-sm rounded-lg overflow-hidden border bg-muted">
+                    <div className="mt-2 aspect-video w-full max-w-sm rounded-xl overflow-hidden border border-border/70 bg-muted shadow-soft-xs">
                       <img src={form.thumbnail_url} alt="Preview" className="w-full h-full object-cover" />
                     </div>
                 )}
               </div>
               <div className="space-y-2">
-                <Label>Loại nội dung *</Label>
+                <Label className="font-bold">Loại nội dung *</Label>
                 <Select value={form.course_type} onValueChange={(v) => update("course_type", v)}>
-                  <SelectTrigger><SelectValue placeholder="Chọn loại" /></SelectTrigger>
-                  <SelectContent>
+                  <SelectTrigger className="font-medium rounded-xl"><SelectValue placeholder="Chọn loại" /></SelectTrigger>
+                  <SelectContent className="rounded-xl">
                     <SelectItem value="video_quiz">Video + Quiz</SelectItem>
                     <SelectItem value="flashcard">Flashcard</SelectItem>
                     <SelectItem value="listening">Listening</SelectItem>
@@ -128,10 +128,10 @@ const AdminCourseNew = () => {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Danh mục hiển thị</Label>
+                <Label className="font-bold">Danh mục hiển thị</Label>
                 <Select value={form.category_id} onValueChange={(v) => update("category_id", v)}>
-                  <SelectTrigger><SelectValue placeholder="Chọn danh mục" /></SelectTrigger>
-                  <SelectContent>
+                  <SelectTrigger className="font-medium rounded-xl"><SelectValue placeholder="Chọn danh mục" /></SelectTrigger>
+                  <SelectContent className="rounded-xl">
                     {categories.map(c => (
                       <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
                     ))}
@@ -139,22 +139,22 @@ const AdminCourseNew = () => {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Giảng viên</Label>
-                <Input value={form.instructor} onChange={(e) => update("instructor", e.target.value)} />
+                <Label className="font-bold">Giảng viên</Label>
+                <Input value={form.instructor} onChange={(e) => update("instructor", e.target.value)} className="font-medium rounded-xl" />
               </div>
             </div>
           </div>
           <div className="lg:col-span-2 space-y-4">
-            <div className="bg-card rounded-xl border p-6 space-y-4">
+            <div className="bg-card rounded-2xl border border-border/70 p-6 space-y-4 shadow-soft-sm">
               <div className="space-y-2">
-                <Label>Giá (VNĐ)</Label>
-                <Input type="number" value={form.price} onChange={(e) => update("price", +e.target.value)} />
+                <Label className="font-bold">Giá (VNĐ)</Label>
+                <Input type="number" value={form.price} onChange={(e) => update("price", +e.target.value)} className="font-medium rounded-xl" />
               </div>
               <div className="space-y-2">
-                <Label>Thời hạn (tháng)</Label>
+                <Label className="font-bold">Thời hạn (tháng)</Label>
                 <Select value={String(form.duration_months)} onValueChange={(v) => update("duration_months", +v)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
+                  <SelectTrigger className="font-medium rounded-xl"><SelectValue /></SelectTrigger>
+                  <SelectContent className="rounded-xl">
                     <SelectItem value="3">3 tháng</SelectItem>
                     <SelectItem value="6">6 tháng</SelectItem>
                     <SelectItem value="12">12 tháng</SelectItem>
@@ -162,21 +162,23 @@ const AdminCourseNew = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex items-center justify-between">
-                <Label>Trạng thái hoạt động</Label>
+              <div className="flex items-center justify-between p-3 bg-muted/40 rounded-xl border border-border/60">
+                <Label className="font-bold cursor-pointer">Trạng thái hoạt động</Label>
                 <Switch checked={form.is_active} onCheckedChange={(v) => update("is_active", v)} />
               </div>
               <div className="space-y-2">
-                <Label>Thứ tự hiển thị</Label>
-                <Input type="number" value={form.display_order} onChange={(e) => update("display_order", +e.target.value)} />
+                <Label className="font-bold">Thứ tự hiển thị</Label>
+                <Input type="number" value={form.display_order} onChange={(e) => update("display_order", +e.target.value)} className="font-medium rounded-xl" />
               </div>
             </div>
           </div>
         </div>
         <div className="flex gap-3">
-          <Button variant="outline" onClick={() => navigate("/admin/courses")}>Hủy</Button>
-          <Button variant="outline" onClick={() => createMutation.mutate(false)} disabled={!form.title || !form.course_type || createMutation.isPending}>Lưu nháp</Button>
-          <Button onClick={() => createMutation.mutate(true)} disabled={!form.title || !form.course_type || createMutation.isPending}>Xuất bản</Button>
+          <Button variant="outline" className="font-bold rounded-xl active:scale-95 duration-120" onClick={() => navigate("/admin/courses")}>Hủy</Button>
+          <Button variant="outline" className="font-bold rounded-xl active:scale-95 duration-120" onClick={() => createMutation.mutate(false)} disabled={!form.title || !form.course_type || createMutation.isPending}>Lưu nháp</Button>
+          <Button className="btn-3d-green font-black rounded-xl active:scale-95 duration-120" onClick={() => createMutation.mutate(true)} disabled={!form.title || !form.course_type || createMutation.isPending}>
+            {createMutation.isPending ? "Đang xuất bản..." : "Xuất bản"}
+          </Button>
         </div>
       </div>
     </AdminLayout>

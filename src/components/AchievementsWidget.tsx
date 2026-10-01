@@ -18,7 +18,7 @@ export const AchievementsWidget: React.FC = () => {
   };
 
   return (
-    <div className="card-duo bg-card border-2 p-5 sm:p-6 space-y-6">
+    <div className="card-duo bg-card p-5 sm:p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3 border-b pb-4">
         <div className="w-10 h-10 rounded-xl bg-purple-500/10 border-2 border-purple-500/30 flex items-center justify-center text-purple-500">
@@ -97,7 +97,7 @@ export const AchievementsWidget: React.FC = () => {
                     </Button>
                   )
                 ) : (
-                  <div className="text-center text-[11px] font-extrabold text-muted-foreground py-1 bg-muted/30 rounded-xl">
+                  <div className="text-center text-xs font-bold text-muted-foreground py-1.5 bg-muted/30 rounded-xl">
                     Chưa đạt cột mốc
                   </div>
                 )}

@@ -262,7 +262,7 @@ export const WordShooterResult: React.FC<WordShooterResultProps> = ({
                 </span>
               </div>
               <div className="bg-slate-950 p-3 text-center">
-                <span className="text-[10px] font-bold text-slate-500">VS</span>
+                <span className="text-xs font-bold text-slate-500">VS</span>
               </div>
               <div className="bg-slate-950 p-3 text-center">
                 <span className={cn(
@@ -290,7 +290,7 @@ export const WordShooterResult: React.FC<WordShooterResultProps> = ({
                     <span className={cn("text-sm font-black", myVal > theirVal ? "text-emerald-300" : "text-white")}>{mine}</span>
                   </div>
                   <div className="bg-slate-950 p-2.5 text-center">
-                    <span className="text-[10px] font-bold text-slate-500">{label}</span>
+                    <span className="text-xs font-bold text-slate-500">{label}</span>
                   </div>
                   <div className={cn(
                     "bg-slate-950 p-2.5 text-center",
@@ -309,7 +309,7 @@ export const WordShooterResult: React.FC<WordShooterResultProps> = ({
           <div className="flex flex-wrap items-center justify-center gap-3">
             <Button
               onClick={onPlayAgain}
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-sm px-6 py-3 rounded-xl shadow-lg"
+              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-sm px-6 py-3 rounded-xl shadow-lg active:scale-95 duration-120"
             >
               <RotateCcw className="w-4 h-4 mr-2" />
               Chơi Lại Ván Mới
@@ -319,7 +319,7 @@ export const WordShooterResult: React.FC<WordShooterResultProps> = ({
               <Button
                 onClick={() => onPracticeMissedWords(missedWords)}
                 variant="outline"
-                className="bg-rose-950/40 border-rose-500/50 text-rose-300 hover:bg-rose-900/40 text-sm font-bold px-5 py-3 rounded-xl"
+                className="bg-rose-950/40 border-rose-500/50 text-rose-300 hover:bg-rose-900/40 text-sm font-bold px-5 py-3 rounded-xl active:scale-95 duration-120"
               >
                 <Zap className="w-4 h-4 mr-2 text-rose-400" />
                 Luyện Riêng {missedWords.length} Từ Bắn Hụt
@@ -329,14 +329,14 @@ export const WordShooterResult: React.FC<WordShooterResultProps> = ({
             <Button
               onClick={onBackToLobby}
               variant="ghost"
-              className="text-slate-300 hover:text-white hover:bg-slate-800 text-sm font-bold px-5 py-3 rounded-xl"
+              className="text-slate-300 hover:text-white hover:bg-slate-800 text-sm font-bold px-5 py-3 rounded-xl active:scale-95 duration-120"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Về Sảnh Chọn Bài
             </Button>
           </div>
 
-          <p className="text-[11px] text-slate-500 font-medium">
+          <p className="text-xs text-slate-500 font-medium">
             Phím tắt: Bấm <span className="font-mono text-slate-400 bg-slate-900 px-1 py-0.5 rounded border border-slate-800">[Space]</span> hoặc <span className="font-mono text-slate-400 bg-slate-900 px-1 py-0.5 rounded border border-slate-800">[Enter]</span> để Chơi lại ngay • <span className="font-mono text-slate-400 bg-slate-900 px-1 py-0.5 rounded border border-slate-800">[Esc]</span> Về sảnh
           </p>
         </div>
@@ -360,7 +360,7 @@ export const WordShooterResult: React.FC<WordShooterResultProps> = ({
             <button
               onClick={() => setFilterType('all')}
               className={cn(
-                "px-3 py-1.5 rounded-lg font-bold transition-colors",
+                "px-3 py-1.5 rounded-lg font-bold transition-all active:scale-95",
                 filterType === 'all' ? "bg-blue-600 text-white" : "text-slate-400 hover:text-white"
               )}
             >
@@ -370,7 +370,7 @@ export const WordShooterResult: React.FC<WordShooterResultProps> = ({
             <button
               onClick={() => setFilterType('hit')}
               className={cn(
-                "px-3 py-1.5 rounded-lg font-bold transition-colors flex items-center gap-1",
+                "px-3 py-1.5 rounded-lg font-bold transition-all active:scale-95 flex items-center gap-1",
                 filterType === 'hit' ? "bg-emerald-600 text-white" : "text-slate-400 hover:text-white"
               )}
             >
@@ -427,11 +427,11 @@ export const WordShooterResult: React.FC<WordShooterResultProps> = ({
                       </span>
                     )}
                     {item.hit ? (
-                      <span className="text-[10px] font-black uppercase text-emerald-400 bg-emerald-950/60 border border-emerald-800/50 px-2 py-0.5 rounded-md">
+                      <span className="text-xs font-black uppercase text-emerald-400 bg-emerald-950/60 border border-emerald-800/50 px-2 py-0.5 rounded-md">
                         Đã bắn
                       </span>
                     ) : (
-                      <span className="text-[10px] font-black uppercase text-rose-400 bg-rose-950/60 border border-rose-800/50 px-2 py-0.5 rounded-md">
+                      <span className="text-xs font-black uppercase text-rose-400 bg-rose-950/60 border border-rose-800/50 px-2 py-0.5 rounded-md">
                         Bị hụt
                       </span>
                     )}

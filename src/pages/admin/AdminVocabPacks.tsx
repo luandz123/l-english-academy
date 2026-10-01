@@ -611,9 +611,9 @@ export default function AdminVocabPacks() {
     <AdminLayout>
       <div className="space-y-6 pb-20">
         {/* Top Header & Actions */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 bg-card p-6 rounded-2xl border-2 border-[var(--duo-gray)] shadow-sm">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 bg-card p-6 rounded-2xl border border-border/70 shadow-soft-sm">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-[var(--duo-purple)]/15 border-2 border-[var(--duo-purple)]/30 flex items-center justify-center text-[var(--duo-purple)] shadow-sm">
+            <div className="w-12 h-12 rounded-2xl bg-[var(--duo-purple)]/15 border border-[var(--duo-purple)]/30 flex items-center justify-center text-[var(--duo-purple)] shadow-soft-xs">
               <Gamepad2 className="w-7 h-7" />
             </div>
             <div>
@@ -666,7 +666,7 @@ export default function AdminVocabPacks() {
             <Button
               variant="outline"
               onClick={handleExportJSON}
-              className="border-2 border-[var(--duo-gray)] font-bold text-xs"
+              className="border border-border/70 font-bold text-xs shadow-soft-xs"
               title="Xuất file JSON sao lưu"
             >
               <Download className="w-4 h-4 mr-1.5" /> Xuất JSON
@@ -676,7 +676,7 @@ export default function AdminVocabPacks() {
               <Button
                 variant="outline"
                 asChild
-                className="border-2 border-[var(--duo-gray)] font-bold text-xs"
+                className="border border-border/70 font-bold text-xs shadow-soft-xs"
                 title="Nạp file JSON sao lưu"
               >
                 <span>
@@ -699,7 +699,7 @@ export default function AdminVocabPacks() {
 
         {/* Stats Strip */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-card p-4 rounded-xl border-2 border-[var(--duo-gray)] flex items-center justify-between">
+          <div className="bg-card p-4 rounded-xl border border-border/70 shadow-soft-xs flex items-center justify-between">
             <div>
               <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Tổng số bộ từ vựng</p>
               <p className="text-2xl font-black text-foreground mt-1">{stats.totalPacks} bộ</p>
@@ -709,7 +709,7 @@ export default function AdminVocabPacks() {
             </div>
           </div>
 
-          <div className="bg-card p-4 rounded-xl border-2 border-[var(--duo-gray)] flex items-center justify-between">
+          <div className="bg-card p-4 rounded-xl border border-border/70 shadow-soft-xs flex items-center justify-between">
             <div>
               <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Tổng số từ vựng game</p>
               <p className="text-2xl font-black text-foreground mt-1">{stats.totalWords} từ</p>
@@ -719,7 +719,7 @@ export default function AdminVocabPacks() {
             </div>
           </div>
 
-          <div className="bg-card p-4 rounded-xl border-2 border-[var(--duo-gray)] flex items-center justify-between">
+          <div className="bg-card p-4 rounded-xl border border-border/70 shadow-soft-xs flex items-center justify-between">
             <div>
               <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Trung bình từ / bộ</p>
               <p className="text-2xl font-black text-foreground mt-1">{stats.avgWords} từ</p>
@@ -737,7 +737,7 @@ export default function AdminVocabPacks() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Tìm kiếm bộ từ vựng theo tên, mô tả hoặc từ vựng bên trong..."
-            className="pl-10 h-11 border-2 border-[var(--duo-gray)] rounded-xl bg-card font-medium"
+            className="pl-10 h-11 border border-border/70 rounded-xl bg-card font-medium shadow-soft-xs"
           />
         </div>
 
@@ -748,11 +748,11 @@ export default function AdminVocabPacks() {
             <p className="text-sm font-bold text-muted-foreground">Đang tải danh sách bộ từ vựng...</p>
           </div>
         ) : filteredPacks.length === 0 ? (
-          <div className="text-center py-16 bg-card rounded-2xl border-2 border-dashed border-[var(--duo-gray)] p-8">
+          <div className="text-center py-16 bg-card rounded-2xl border border-dashed border-border/80 p-8 shadow-soft-xs">
             <p className="text-4xl mb-2">🔍</p>
             <h3 className="text-lg font-bold text-foreground">Không tìm thấy bộ từ vựng nào</h3>
             <p className="text-xs text-muted-foreground mt-1 mb-4">Hãy thử tìm kiếm từ khóa khác hoặc tạo một bộ từ mới.</p>
-            <Button onClick={handleOpenCreatePack} className="bg-[var(--duo-blue)] text-white font-bold">
+            <Button onClick={handleOpenCreatePack} className="bg-[var(--duo-blue)] text-white font-bold rounded-xl active:scale-95 duration-120">
               <Plus className="w-4 h-4 mr-1.5" /> Tạo Bộ Từ Mới
             </Button>
           </div>
@@ -766,21 +766,21 @@ export default function AdminVocabPacks() {
                   key={pack.id}
                   onClick={() => setActivePackId(pack.id)}
                   className={cn(
-                    "group relative bg-card p-5 rounded-2xl border-2 cursor-pointer transition-all duration-200 flex flex-col justify-between hover:shadow-md",
+                    "group relative bg-card p-5 rounded-2xl border cursor-pointer transition-all duration-200 flex flex-col justify-between hover:shadow-soft-md",
                     isSelected
-                      ? "border-[var(--duo-blue)] ring-2 ring-[var(--duo-blue)]/20 shadow-md"
-                      : "border-[var(--duo-gray)] hover:border-slate-400 dark:hover:border-slate-600"
+                      ? "border-primary ring-2 ring-primary/20 shadow-soft-md"
+                      : "border-border/70 hover:border-border shadow-soft-xs"
                   )}
                 >
                   <div>
                     {/* Header: Icon + Name + Badge */}
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3">
-                        <span className="text-3xl p-2 rounded-xl bg-muted/60 border border-[var(--duo-gray)]">
+                        <span className="text-3xl p-2 rounded-xl bg-muted/60 border border-border/70">
                           {pack.icon || '📚'}
                         </span>
                         <div>
-                          <h3 className="font-extrabold text-base text-foreground group-hover:text-[var(--duo-blue)] transition-colors line-clamp-1">
+                          <h3 className="font-extrabold text-base text-foreground group-hover:text-primary transition-colors line-clamp-1">
                             {pack.name}
                           </h3>
                           <Badge variant="secondary" className="mt-1 font-bold text-xs bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
@@ -820,7 +820,7 @@ export default function AdminVocabPacks() {
                   </div>
 
                   {/* Actions Footer */}
-                  <div className="flex items-center justify-between pt-4 mt-4 border-t border-[var(--duo-gray)] gap-2">
+                  <div className="flex items-center justify-between pt-4 mt-4 border-t border-border/70 gap-2">
                     <Button
                       size="sm"
                       onClick={() => setActivePackId(pack.id)}
@@ -876,7 +876,7 @@ export default function AdminVocabPacks() {
 
         {/* Selected Pack Word Manager Section (Drawer View) */}
         {activePack && (
-          <div className="mt-8 bg-card rounded-2xl border-2 border-[var(--duo-blue)]/50 p-6 shadow-lg space-y-5 animate-in fade-in-50 duration-200">
+          <div className="mt-8 bg-card rounded-2xl border border-[var(--duo-blue)]/50 p-6 shadow-soft-xl space-y-5 animate-in fade-in-50 duration-200">
             {/* Header of Active Pack */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b pb-4">
               <div className="flex items-center gap-3">
@@ -914,7 +914,7 @@ export default function AdminVocabPacks() {
                   size="sm"
                   variant="outline"
                   onClick={handleOpenDbImport}
-                  className="border-2 border-[var(--duo-gray)] font-bold text-xs h-9"
+                  className="border border-border/70 font-bold text-xs h-9 shadow-soft-xs"
                 >
                   <Database className="w-4 h-4 mr-1.5" /> Từ Ngân Hàng Hệ Thống
                 </Button>
@@ -938,7 +938,7 @@ export default function AdminVocabPacks() {
                   value={wordSearchQuery}
                   onChange={(e) => setWordSearchQuery(e.target.value)}
                   placeholder={`Tìm trong ${activePack.words.length} từ của bộ "${activePack.name}"...`}
-                  className="pl-9 h-9 border border-[var(--duo-gray)] rounded-lg text-xs"
+                  className="pl-9 h-9 border border-border/70 rounded-lg text-xs"
                 />
               </div>
 
@@ -958,9 +958,9 @@ export default function AdminVocabPacks() {
                 </Button>
               </div>
             ) : (
-              <div className="overflow-x-auto rounded-xl border border-[var(--duo-gray)]">
+              <div className="overflow-x-auto rounded-xl border border-border/70 shadow-soft-xs">
                 <table className="w-full text-left text-sm">
-                  <thead className="bg-muted/80 text-muted-foreground text-xs uppercase tracking-wider font-extrabold border-b">
+                  <thead className="bg-muted/80 text-muted-foreground text-xs uppercase tracking-wider font-extrabold border-b border-border/70">
                     <tr>
                       <th className="p-3 w-12 text-center">#</th>
                       <th className="p-3">Từ vựng (English)</th>
@@ -970,7 +970,7 @@ export default function AdminVocabPacks() {
                       <th className="p-3 w-28 text-right">Thao tác</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[var(--duo-gray)]">
+                  <tbody className="divide-y divide-border/60">
                     {filteredWords.map((w, idx) => (
                       <tr key={w.id} className="hover:bg-muted/40 transition-colors">
                         <td className="p-3 text-center text-xs text-muted-foreground font-mono">{idx + 1}</td>
@@ -1291,7 +1291,7 @@ export default function AdminVocabPacks() {
                             type="checkbox"
                             checked={isSelected}
                             onChange={() => {}}
-                            className="rounded border-[var(--duo-gray)] text-[var(--duo-blue)]"
+                            className="rounded border-border text-primary focus:ring-primary"
                           />
                           <div>
                             <span className="font-mono font-black text-foreground">{w.word}</span>
@@ -1400,7 +1400,7 @@ export default function AdminVocabPacks() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 my-2">
               <div
                 onClick={handleImportToeicMaster}
-                className="p-4 rounded-2xl border-2 border-amber-500/40 bg-amber-500/10 hover:border-amber-500 cursor-pointer transition-all flex flex-col justify-between group"
+                className="p-4 rounded-2xl border border-amber-500/40 bg-amber-500/10 hover:border-amber-500 cursor-pointer transition-all flex flex-col justify-between group active:scale-[0.98] duration-120 shadow-soft-xs"
               >
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
@@ -1414,14 +1414,14 @@ export default function AdminVocabPacks() {
                     Nạp 1 bộ duy nhất chứa đủ <strong>600 từ vựng</strong> để học viên luyện tập liên tục.
                   </p>
                 </div>
-                <Button size="sm" className="mt-3 bg-amber-500 hover:bg-amber-600 text-white font-extrabold w-full text-xs">
+                <Button size="sm" className="mt-3 bg-amber-500 hover:bg-amber-600 text-white font-extrabold w-full text-xs rounded-xl active:scale-95 duration-120">
                   Nạp Gói 600 Từ
                 </Button>
               </div>
 
               <div
                 onClick={handleImportToeicThematic}
-                className="p-4 rounded-2xl border-2 border-[var(--duo-blue)]/40 bg-[var(--duo-blue)]/10 hover:border-[var(--duo-blue)] cursor-pointer transition-all flex flex-col justify-between group"
+                className="p-4 rounded-2xl border border-[var(--duo-blue)]/40 bg-[var(--duo-blue)]/10 hover:border-[var(--duo-blue)] cursor-pointer transition-all flex flex-col justify-between group active:scale-[0.98] duration-120 shadow-soft-xs"
               >
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
@@ -1435,19 +1435,19 @@ export default function AdminVocabPacks() {
                     Chia thành 9 gói theo lĩnh vực (Kinh doanh, Nhân sự, Tài chính...) từ 60-120 từ/bộ.
                   </p>
                 </div>
-                <Button size="sm" className="mt-3 bg-[var(--duo-blue)] hover:bg-[var(--duo-blue)]/90 text-white font-extrabold w-full text-xs">
+                <Button size="sm" className="mt-3 bg-[var(--duo-blue)] hover:bg-[var(--duo-blue)]/90 text-white font-extrabold w-full text-xs rounded-xl active:scale-95 duration-120">
                   Nạp 9 Chuyên Đề
                 </Button>
               </div>
 
               <div
                 onClick={handleDownloadToeicJson}
-                className="p-4 rounded-2xl border-2 border-slate-200 dark:border-slate-800 bg-card hover:border-[var(--duo-purple)] cursor-pointer transition-all flex flex-col justify-between group"
+                className="p-4 rounded-2xl border border-border/80 bg-card hover:border-[var(--duo-purple)] cursor-pointer transition-all flex flex-col justify-between group active:scale-[0.98] duration-120 shadow-soft-xs"
               >
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <span className="text-2xl">💾</span>
-                    <Badge variant="outline" className="text-xs">JSON BACKUP</Badge>
+                    <Badge variant="outline" className="text-xs font-bold">JSON BACKUP</Badge>
                   </div>
                   <h4 className="text-sm font-black text-foreground group-hover:text-[var(--duo-purple)] transition-colors">
                     Tải File Sao Lưu
@@ -1456,7 +1456,7 @@ export default function AdminVocabPacks() {
                     Tải file <code>.json</code> chứa toàn bộ 600 từ về máy tính để lưu trữ hoặc chia sẻ.
                   </p>
                 </div>
-                <Button size="sm" variant="outline" className="mt-3 font-extrabold w-full text-xs border-2">
+                <Button size="sm" variant="outline" className="mt-3 font-extrabold w-full text-xs rounded-xl active:scale-95 duration-120 border border-border/70">
                   <Download className="w-3.5 h-3.5 mr-1" /> Tải JSON (177KB)
                 </Button>
               </div>

@@ -258,7 +258,7 @@ const FullTestResult = () => {
     return (
       <StudentLayout>
         <div className="max-w-4xl mx-auto px-4 py-16 text-center space-y-6 font-sans">
-          <Award className="w-16 h-16 text-[var(--duo-gray)] mx-auto animate-bounce" />
+          <Award className="w-16 h-16 text-muted-foreground/40 mx-auto animate-bounce" />
           <h1 className="text-3xl font-black text-foreground">Không tìm thấy kết quả bài thi</h1>
           <p className="text-muted-foreground font-semibold max-w-md mx-auto">
             Có vẻ như bạn chưa hoàn thành bài thi này, hoặc phiên làm bài đã bị hủy. Hãy thử bắt đầu làm bài lại nhé!
@@ -313,17 +313,17 @@ const FullTestResult = () => {
     return (
       <div className="h-screen flex flex-col bg-background overflow-hidden font-sans">
         {/* Sticky Header */}
-        <header className="h-16 border-b-2 border-[var(--duo-gray)] shrink-0 bg-card z-20 flex items-center justify-between px-4 lg:px-8">
+        <header className="h-16 border-b border-border/60 shrink-0 bg-card/95 backdrop-blur-md z-20 flex items-center justify-between px-4 lg:px-8 shadow-soft-xs">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setShowReview(false)}
-              className="p-2 rounded-xl bg-slate-50 border-2 border-[var(--duo-gray)] hover:bg-slate-100 transition-colors"
+              className="p-2 rounded-xl bg-muted/60 border border-border/60 hover:bg-muted text-foreground transition-all duration-120 active:scale-95 cursor-pointer shadow-soft-xs"
             >
-              <ChevronLeft className="w-5 h-5 text-foreground" />
+              <ChevronLeft className="w-5 h-5" />
             </button>
             <div>
-              <h1 className="font-extrabold text-sm lg:text-base hidden sm:block truncate max-w-xs">Giải thích chi tiết</h1>
-              <span className="text-[10px] text-muted-foreground font-bold">
+              <h1 className="font-bold text-sm lg:text-base hidden sm:block truncate max-w-xs text-foreground">Giải thích chi tiết</h1>
+              <span className="text-xs text-muted-foreground font-semibold">
                 {isFullTest ? "Toàn bộ 200 câu" : `Các phần đã làm: Part ${attemptedParts.join(", ")}`}
               </span>
             </div>
@@ -331,7 +331,7 @@ const FullTestResult = () => {
 
           <div className="flex items-center gap-2 sm:gap-3">
             {!isFullTest && (
-              <label className="flex items-center gap-2 cursor-pointer font-bold text-xs bg-slate-100 text-slate-700 px-3 py-2 rounded-full border-2 border-slate-200 hover:bg-slate-200 transition-all select-none hidden md:flex">
+              <label className="flex items-center gap-2 cursor-pointer font-bold text-xs bg-muted/60 text-muted-foreground hover:text-foreground px-3 py-2 rounded-xl border border-border/60 hover:bg-muted transition-all select-none hidden md:flex">
                 <input
                   type="checkbox"
                   checked={filterOnlyAttempted}
@@ -342,17 +342,20 @@ const FullTestResult = () => {
               </label>
             )}
 
-            <label className="flex items-center gap-2 cursor-pointer font-bold text-xs bg-red-50 text-[var(--duo-red)] px-3 py-2 rounded-full border-2 border-red-200 hover:bg-red-100/50 transition-all select-none">
+            <label className="flex items-center gap-2 cursor-pointer font-bold text-xs bg-rose-500/10 text-rose-600 dark:text-rose-400 px-3 py-2 rounded-xl border border-rose-500/20 hover:bg-rose-500/20 transition-all select-none">
               <input
                 type="checkbox"
                 checked={onlyShowIncorrect}
                 onChange={(e) => setOnlyShowIncorrect(e.target.checked)}
-                className="w-4 h-4 rounded accent-[var(--duo-red)] cursor-pointer"
+                className="w-4 h-4 rounded accent-rose-600 cursor-pointer"
               />
               <span>Chỉ xem câu sai ❌</span>
             </label>
 
-            <button onClick={() => setShowReview(false)} className="btn-3d btn-3d-white py-2 px-4 text-xs sm:text-sm font-bold">
+            <button
+              onClick={() => setShowReview(false)}
+              className="py-2 px-4 rounded-xl border border-border/70 bg-card hover:bg-muted text-xs sm:text-sm font-bold text-foreground transition-all duration-120 active:scale-95 shadow-soft-xs cursor-pointer"
+            >
               Đóng xem giải
             </button>
           </div>
@@ -378,20 +381,22 @@ const FullTestResult = () => {
                 <div key={gIdx} className="max-w-4xl mx-auto space-y-5">
                   {/* Group Header Context */}
                   {(group.passage || group.audio_url || group.image_url) && (
-                    <div className="card-duo p-5 sm:p-7 bg-[#DDF4FF]/30 border-[#A8E0FD] space-y-4 rounded-2xl">
-                      <span className="badge-duo badge-blue">{partShortNames[group.part_number - 1]}</span>
+                    <div className="p-5 sm:p-7 bg-primary/5 dark:bg-primary/10 border border-primary/20 space-y-4 rounded-2xl shadow-soft-sm">
+                      <span className="badge-duo badge-blue font-bold text-xs">{partShortNames[group.part_number - 1]}</span>
 
                       {group.image_url && (
-                        <img
-                          src={group.image_url}
-                          alt="Passage Context"
-                          className="max-w-full h-auto rounded-xl border-2 border-[var(--duo-gray)] mx-auto max-h-[300px]"
-                        />
+                        <div className="w-full flex justify-center bg-muted/20 rounded-xl overflow-hidden p-1 border border-border/50">
+                          <img
+                            src={group.image_url}
+                            alt="Passage Context"
+                            className="max-w-full h-auto rounded-lg mx-auto max-h-[300px] object-contain image-safe"
+                          />
+                        </div>
                       )}
 
                       {group.audio_url && (
-                        <div className="flex items-center gap-4 bg-white/80 p-3 rounded-xl border-2 border-[var(--duo-blue)]/20 shadow-sm">
-                          <div className="w-10 h-10 rounded-lg bg-[var(--duo-blue)] flex items-center justify-center text-white shrink-0">
+                        <div className="flex items-center gap-4 bg-card p-4 rounded-xl border border-border/60 shadow-soft-xs">
+                          <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 text-xl font-bold">
                             🎧
                           </div>
                           <div className="flex-1 min-w-0">
@@ -408,7 +413,7 @@ const FullTestResult = () => {
 
                       {group.passage && (
                         <div 
-                          className="prose prose-sm max-w-none text-foreground font-medium bg-white p-5 rounded-xl border-2 border-[var(--duo-gray)] leading-relaxed"
+                          className="prose prose-sm max-w-none text-foreground font-medium bg-card p-5 rounded-xl border border-border/60 leading-relaxed shadow-soft-xs"
                           dangerouslySetInnerHTML={{ __html: group.passage }}
                         />
                       )}
@@ -427,31 +432,33 @@ const FullTestResult = () => {
                       <div
                         key={q.id}
                         id={`question-${q.globalIdx}`}
-                        className="card-duo p-6 bg-white border-2 border-[var(--duo-gray)] rounded-2xl space-y-4 relative scroll-mt-6"
+                        className="p-6 bg-card border border-border/60 rounded-2xl space-y-4 relative scroll-mt-6 shadow-soft-sm"
                       >
                         {/* Status Label */}
                         <div className={cn(
-                          "absolute top-0 right-0 px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-bl-xl text-white",
-                          selectedId ? (isCorrect ? "bg-[var(--duo-correct)]" : "bg-[var(--duo-red)]") : "bg-slate-400"
+                          "absolute top-0 right-0 px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-bl-xl rounded-tr-2xl text-white shadow-soft-xs",
+                          selectedId ? (isCorrect ? "bg-emerald-600" : "bg-rose-500") : "bg-slate-500"
                         )}>
-                          {selectedId ? (isCorrect ? "Đúng" : "Sai") : "Chưa làm"}
+                          {selectedId ? (isCorrect ? "Đúng ✓" : "Sai ✗") : "Chưa làm"}
                         </div>
 
-                        <div className="flex justify-between items-center mr-16">
-                          <span className="badge-duo badge-orange font-black">
+                        <div className="flex justify-between items-center mr-24">
+                          <span className="badge-duo badge-orange font-bold text-xs">
                             Câu {q.globalIdx + 1}
                           </span>
-                          <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
+                          <span className="text-xs text-muted-foreground font-bold uppercase tracking-wider bg-muted/60 px-2.5 py-0.5 rounded-full">
                             {partShortNames[q.part_number - 1]}
                           </span>
                         </div>
 
                         {q.image_url && q.image_url !== group.image_url && (
-                          <img
-                            src={q.image_url}
-                            alt="Question context"
-                            className="max-w-full h-auto rounded-xl border-2 border-[var(--duo-gray)] max-h-[250px] mx-auto"
-                          />
+                          <div className="w-full flex justify-center bg-muted/20 rounded-xl overflow-hidden p-1 border border-border/50">
+                            <img
+                              src={q.image_url}
+                              alt="Question context"
+                              className="max-w-full h-auto rounded-lg max-h-[250px] mx-auto object-contain image-safe"
+                            />
+                          </div>
                         )}
 
                         {q.audio_url && q.audio_url !== group.audio_url && (
@@ -464,7 +471,7 @@ const FullTestResult = () => {
                         )}
 
                         {q.cleanText && !isPart1 && !isPart2 && (
-                          <p className="text-base font-extrabold text-foreground leading-relaxed">
+                          <p className="text-base font-bold text-foreground leading-relaxed">
                             {q.cleanText}
                           </p>
                         )}
@@ -477,28 +484,28 @@ const FullTestResult = () => {
 
                             if (isPart2 && oi === 3) return null;
 
-                            let optClass = "border-[var(--duo-gray)] bg-white text-foreground";
-                            let indicatorClass = "border-[var(--duo-gray-dark)] text-muted-foreground";
+                            let optClass = "border-border/60 bg-card text-foreground";
+                            let indicatorClass = "border-border/80 text-muted-foreground bg-muted/40";
 
                             if (isOptCorrect) {
-                              optClass = "border-[var(--duo-correct)] bg-[var(--duo-correct)]/10 shadow-[0_3px_0_var(--duo-correct-dark)]/20 font-bold";
-                              indicatorClass = "border-[var(--duo-correct)] bg-[var(--duo-correct)] text-white";
+                              optClass = "border-emerald-500/80 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 font-bold shadow-soft-xs";
+                              indicatorClass = "border-emerald-600 bg-emerald-600 text-white";
                             } else if (isSelected) {
-                              optClass = "border-[var(--duo-red)] bg-red-50 shadow-[0_3px_0_#FFB3B3] font-bold";
-                              indicatorClass = "border-[var(--duo-red)] bg-[var(--duo-red)] text-white";
+                              optClass = "border-rose-500/80 bg-rose-500/10 text-rose-800 dark:text-rose-300 font-bold shadow-soft-xs";
+                              indicatorClass = "border-rose-500 bg-rose-500 text-white";
                             }
 
                             return (
                               <div
                                 key={opt.id}
-                                className={cn("w-full p-4 rounded-xl border-2 text-sm transition-all flex items-center", optClass)}
+                                className={cn("w-full p-4 rounded-xl border text-sm transition-all duration-120 flex items-center", optClass)}
                               >
-                                <div className={cn("w-7 h-7 rounded-full border-2 flex items-center justify-center shrink-0 mr-3 font-extrabold text-sm", indicatorClass)}>
+                                <div className={cn("w-7 h-7 rounded-full border flex items-center justify-center shrink-0 mr-3 font-bold text-sm", indicatorClass)}>
                                   {isOptCorrect ? "✓" : isSelected ? "✗" : String.fromCharCode(65 + oi)}
                                 </div>
-                                <span className="flex-1 font-bold">
+                                <span className="flex-1 font-semibold leading-relaxed">
                                   {(isPart1 || isPart2) && !opt.answer_text ? (
-                                    <span className="text-muted-foreground/30 select-none tracking-widest">••••••••</span>
+                                    <span className="text-muted-foreground/40 select-none tracking-widest italic">••••••••</span>
                                   ) : (
                                     opt.answer_text
                                   )}
@@ -509,20 +516,20 @@ const FullTestResult = () => {
                         </div>
 
                         {/* Detailed Explanations */}
-                        <div className="pt-3 border-t border-dashed border-[var(--duo-gray)] space-y-2">
+                        <div className="pt-3 border-t border-dashed border-border/60 space-y-2.5">
                           {q.translation && (
-                            <div className="p-3 bg-slate-50 border-2 rounded-xl text-xs font-medium text-slate-700">
-                              🇻🇳 <b>Dịch nghĩa:</b> {q.translation}
+                            <div className="p-3 bg-muted/40 border border-border/60 rounded-xl text-xs font-medium text-foreground">
+                              🇻🇳 <b className="font-bold text-foreground">Dịch nghĩa:</b> {q.translation}
                             </div>
                           )}
                           {(q.explanation || correctOpt?.explanation) && (
-                            <div className="p-3 bg-emerald-50 border-2 border-emerald-100 rounded-xl text-xs font-medium text-emerald-800">
-                              💡 <b>Giải thích:</b> {q.explanation || correctOpt?.explanation}
+                            <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs font-medium text-emerald-800 dark:text-emerald-300">
+                              💡 <b className="font-bold">Giải thích:</b> {q.explanation || correctOpt?.explanation}
                             </div>
                           )}
                           {q.transcript && (
-                            <div className="p-3 bg-blue-50 border-2 border-blue-100 rounded-xl text-xs font-medium text-blue-800">
-                              📝 <b>Transcript:</b> {q.transcript}
+                            <div className="p-3 bg-primary/10 border border-primary/20 rounded-xl text-xs font-medium text-primary">
+                              📝 <b className="font-bold">Transcript:</b> {q.transcript}
                             </div>
                           )}
                         </div>
@@ -535,15 +542,15 @@ const FullTestResult = () => {
           </div>
 
           {/* Right Sidebar navigation (Desktop) */}
-          <aside className="hidden lg:flex w-80 flex-col border-l-2 border-[var(--duo-gray)] bg-card h-full relative shrink-0 select-none">
-            <div className="p-5 border-b-2 border-[var(--duo-gray)] bg-muted/50">
-              <h3 className="font-extrabold text-base flex items-center gap-2 mb-2">
+          <aside className="hidden lg:flex w-80 flex-col border-l border-border/60 bg-card h-full relative shrink-0 select-none shadow-soft-sm">
+            <div className="p-5 border-b border-border/60 bg-muted/30">
+              <h3 className="font-bold text-base flex items-center gap-2 mb-2 text-foreground">
                 <LayoutGrid className="w-5 h-5 text-primary" />
                 Danh sách câu hỏi
               </h3>
-              <div className="flex gap-4 text-xs font-black text-muted-foreground">
-                <span className="flex items-center gap-1.5"><span className="w-3 h-3 bg-[var(--duo-correct)] rounded-full" /> Đúng: {correct}</span>
-                <span className="flex items-center gap-1.5"><span className="w-3 h-3 bg-[var(--duo-red)] rounded-full" /> Sai: {totalQCount - correct}</span>
+              <div className="flex gap-4 text-xs font-bold text-muted-foreground">
+                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 bg-emerald-500 rounded-full" /> Đúng: {correct}</span>
+                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 bg-rose-500 rounded-full" /> Sai: {totalQCount - correct}</span>
               </div>
             </div>
 
@@ -554,11 +561,11 @@ const FullTestResult = () => {
                 if (partQList.length === 0) return null;
 
                 return (
-                  <div key={part} className="space-y-1.5">
-                    <span className="text-[10px] font-black text-muted-foreground tracking-wider uppercase block">
+                  <div key={part} className="space-y-2">
+                    <span className="text-xs font-bold text-muted-foreground tracking-wider uppercase block">
                       Part {part}
                     </span>
-                    <div className="flex flex-wrap gap-1">
+                    <div className="flex flex-wrap gap-1.5">
                       {questions.map((q, idx) => {
                         if (q.part_number !== part) return null;
                         const isAns = answerLookup[q.id] !== undefined;
@@ -573,10 +580,10 @@ const FullTestResult = () => {
                               document.getElementById(`question-${idx}`)?.scrollIntoView({ behavior: "smooth" });
                             }}
                             className={cn(
-                              "w-9 h-9 text-xs font-bold rounded-lg border-2 transition-all flex items-center justify-center hover:-translate-y-0.5",
+                              "w-9 h-9 text-xs font-bold rounded-xl border transition-all duration-120 flex items-center justify-center active:scale-95 cursor-pointer shadow-soft-xs",
                               isAns
-                                ? (isCorr ? "bg-[var(--duo-correct)] text-white border-[var(--duo-correct)]" : "bg-[var(--duo-red)] text-white border-[var(--duo-red)]")
-                                : "bg-white text-muted-foreground border-[var(--duo-gray)]"
+                                ? (isCorr ? "bg-emerald-600 text-white border-emerald-600" : "bg-rose-500 text-white border-rose-500")
+                                : "bg-card text-muted-foreground border-border/70 hover:border-primary/50 hover:text-foreground"
                             )}
                           >
                             {idx + 1}
@@ -594,47 +601,50 @@ const FullTestResult = () => {
     );
   }
 
-  // 4. Score Dashboard View
+  // 4. Score Dashboard View (Peak-End Rule & Modernized Stats)
   return (
     <StudentLayout>
       <div className="max-w-4xl mx-auto space-y-8 pb-20 font-sans">
-        {/* Banner Header */}
-        <div className="card-duo p-8 text-center space-y-5 bg-white rounded-2xl shadow-lg border-2 relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[var(--duo-blue)] via-[var(--duo-correct)] to-[var(--duo-yellow)]" />
+        {/* Banner Header with Peak-End Rule Polish */}
+        <div className="p-8 text-center space-y-5 bg-card text-card-foreground rounded-2xl shadow-soft-lg border border-border/60 relative overflow-hidden">
+          <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-primary via-emerald-500 to-amber-400" />
 
-          <div className="text-6xl mb-2">{scoreDisplay.emoji}</div>
-          <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-wide">{scoreDisplay.mainTitle}</h1>
-          <p className="text-sm sm:text-base font-extrabold text-[var(--duo-blue-dark)] uppercase tracking-widest">{scoreDisplay.subtitle}</p>
+          <div className="text-6xl mb-2 animate-bounce">{scoreDisplay.emoji}</div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">{scoreDisplay.mainTitle}</h1>
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary font-bold text-xs sm:text-sm uppercase tracking-wider">
+            <span>✨</span>
+            <span>{scoreDisplay.subtitle}</span>
+          </div>
 
           {/* Main Score Callout */}
           <div className="flex flex-col items-center justify-center my-6">
             {isFullTest ? (
               <>
-                <span className="text-6xl font-black text-[var(--duo-correct)] tracking-tight">
-                  {totalScore} <span className="text-xl font-bold text-muted-foreground">/ 990</span>
+                <span className="text-6xl sm:text-7xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight">
+                  {totalScore} <span className="text-2xl font-bold text-muted-foreground">/ 990</span>
                 </span>
-                <p className="text-xs text-muted-foreground font-black uppercase mt-1">Điểm TOEIC ước tính</p>
+                <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider mt-2">Điểm TOEIC ước tính</p>
               </>
             ) : isOnlyListening && attemptedParts.length === 4 ? (
               <>
-                <span className="text-6xl font-black text-[var(--duo-blue)] tracking-tight">
-                  {listeningScore} <span className="text-xl font-bold text-muted-foreground">/ 495</span>
+                <span className="text-6xl sm:text-7xl font-black text-primary tracking-tight">
+                  {listeningScore} <span className="text-2xl font-bold text-muted-foreground">/ 495</span>
                 </span>
-                <p className="text-xs text-muted-foreground font-black uppercase mt-1">Điểm Listening ước tính</p>
+                <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider mt-2">Điểm Listening ước tính</p>
               </>
             ) : isOnlyReading && attemptedParts.length === 3 ? (
               <>
-                <span className="text-6xl font-black text-[var(--duo-correct)] tracking-tight">
-                  {readingScore} <span className="text-xl font-bold text-muted-foreground">/ 495</span>
+                <span className="text-6xl sm:text-7xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight">
+                  {readingScore} <span className="text-2xl font-bold text-muted-foreground">/ 495</span>
                 </span>
-                <p className="text-xs text-muted-foreground font-black uppercase mt-1">Điểm Reading ước tính</p>
+                <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider mt-2">Điểm Reading ước tính</p>
               </>
             ) : (
               <>
-                <span className="text-6xl font-black text-[var(--duo-correct)] tracking-tight">
+                <span className="text-6xl sm:text-7xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight">
                   {correct} <span className="text-2xl font-bold text-muted-foreground">/ {totalQCount}</span>
                 </span>
-                <p className="text-xs text-muted-foreground font-black uppercase mt-1">Số câu trả lời đúng ({accuracyPct}%)</p>
+                <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider mt-2">Số câu đúng ({accuracyPct}%)</p>
               </>
             )}
           </div>
@@ -642,125 +652,131 @@ const FullTestResult = () => {
           {/* Listening & Reading breakout cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
             <div className={cn(
-              "p-5 rounded-2xl border-2 flex items-center justify-between transition-all",
+              "p-5 rounded-2xl border flex items-center justify-between transition-all shadow-soft-xs",
               attemptedParts.some(p => p <= 4)
-                ? "bg-[#DDF4FF]/40 border-[#A8E0FD]"
-                : "bg-muted/30 border-[var(--duo-gray)] opacity-60"
+                ? "bg-primary/5 dark:bg-primary/10 border-primary/20"
+                : "bg-muted/30 border-border/60 opacity-60"
             )}>
               <div className="text-left">
-                <span className="text-[10px] font-black text-muted-foreground uppercase flex items-center gap-1">
-                  <Headphones className="w-3 h-3" /> Phần Listening (Part 1 - 4)
+                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                  <Headphones className="w-3.5 h-3.5 text-primary" /> Phần Listening (Part 1 - 4)
                 </span>
                 {attemptedParts.some(p => p <= 4) ? (
                   <>
-                    <p className="text-2xl font-black text-[var(--duo-blue)]">{listeningScore} điểm</p>
-                    <p className="text-xs text-muted-foreground font-semibold mt-1">
+                    <p className="text-2xl font-extrabold text-primary mt-1">{listeningScore} điểm</p>
+                    <p className="text-xs text-muted-foreground font-medium mt-1">
                       Đúng {latestResult?.listening_correct ?? 0}/{questions.filter(q => q.part_number <= 4 && attemptedParts.includes(q.part_number)).length || 100} câu
                     </p>
                   </>
                 ) : (
-                  <p className="text-sm font-bold text-muted-foreground mt-2">Không làm trong lần thi này</p>
+                  <p className="text-sm font-semibold text-muted-foreground mt-2">Không làm trong lần thi này</p>
                 )}
               </div>
-              <div className="w-12 h-12 bg-[var(--duo-blue)]/10 rounded-full flex items-center justify-center text-xl text-[var(--duo-blue)] shrink-0">🎧</div>
+              <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-xl text-primary shrink-0">🎧</div>
             </div>
 
             <div className={cn(
-              "p-5 rounded-2xl border-2 flex items-center justify-between transition-all",
+              "p-5 rounded-2xl border flex items-center justify-between transition-all shadow-soft-xs",
               attemptedParts.some(p => p >= 5)
-                ? "bg-[#E8F8EE] border-[#B7EFC5]"
-                : "bg-muted/30 border-[var(--duo-gray)] opacity-60"
+                ? "bg-emerald-500/10 border-emerald-500/20"
+                : "bg-muted/30 border-border/60 opacity-60"
             )}>
               <div className="text-left">
-                <span className="text-[10px] font-black text-muted-foreground uppercase flex items-center gap-1">
-                  <BookOpen className="w-3 h-3" /> Phần Reading (Part 5 - 7)
+                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                  <BookOpen className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> Phần Reading (Part 5 - 7)
                 </span>
                 {attemptedParts.some(p => p >= 5) ? (
                   <>
-                    <p className="text-2xl font-black text-[var(--duo-correct)]">{readingScore} điểm</p>
-                    <p className="text-xs text-muted-foreground font-semibold mt-1">
+                    <p className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-1">{readingScore} điểm</p>
+                    <p className="text-xs text-muted-foreground font-medium mt-1">
                       Đúng {latestResult?.reading_correct ?? 0}/{questions.filter(q => q.part_number >= 5 && attemptedParts.includes(q.part_number)).length || 100} câu
                     </p>
                   </>
                 ) : (
-                  <p className="text-sm font-bold text-muted-foreground mt-2">Không làm trong lần thi này</p>
+                  <p className="text-sm font-semibold text-muted-foreground mt-2">Không làm trong lần thi này</p>
                 )}
               </div>
-              <div className="w-12 h-12 bg-[var(--duo-correct)]/10 rounded-full flex items-center justify-center text-xl text-[var(--duo-correct)] shrink-0">📖</div>
+              <div className="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-xl text-emerald-600 dark:text-emerald-400 shrink-0">📖</div>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-6 text-sm font-bold text-muted-foreground pt-4 border-t border-[var(--duo-gray)]">
-            <span className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-[var(--duo-correct)]" /> Tổng đúng: {correct}/{totalQCount} câu ({accuracyPct}%)</span>
-            <span className="flex items-center gap-2"><Clock className="w-4 h-4 text-[var(--duo-blue)]" /> Thời gian: {timeMin} phút {timeSec} giây</span>
+          <div className="flex flex-wrap items-center justify-center gap-6 text-sm font-semibold text-muted-foreground pt-4 border-t border-border/60">
+            <span className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-emerald-500" /> Tổng đúng: {correct}/{totalQCount} câu ({accuracyPct}%)</span>
+            <span className="flex items-center gap-2"><Clock className="w-4 h-4 text-primary" /> Thời gian: {timeMin} phút {timeSec} giây</span>
             {latestResult?.pause_count ? (
-              <span className="badge-duo badge-yellow">Tạm dừng {latestResult.pause_count} lần</span>
+              <span className="badge-duo badge-yellow text-xs font-bold">Tạm dừng {latestResult.pause_count} lần</span>
             ) : null}
           </div>
         </div>
 
-        {/* Action Buttons */}
+        {/* Action Buttons (Von Restorff Hierarchy) */}
         <div className="flex flex-wrap gap-3 justify-center">
-          <Link to={`/courses/${courseId}/fulltest`} className="btn-3d btn-3d-white py-3 px-6 text-sm font-bold">
+          <Link
+            to={`/courses/${courseId}/fulltest`}
+            className="py-3 px-6 rounded-xl border border-border/70 bg-card hover:bg-muted text-sm font-bold text-foreground transition-all duration-120 active:scale-95 shadow-soft-xs cursor-pointer"
+          >
             ← Danh sách bộ đề
           </Link>
           <button
             onClick={() => setShowReview(true)}
-            className="btn-3d btn-3d-primary py-3 px-6 text-sm font-black flex items-center gap-2"
+            className="py-3 px-6 rounded-xl bg-primary text-primary-foreground text-sm font-bold flex items-center gap-2 transition-all duration-120 active:scale-95 shadow-soft-md cursor-pointer hover:bg-primary/90"
           >
             <Eye className="w-4 h-4" /> Xem giải chi tiết ({totalQCount} câu)
           </button>
-          <Link to={`/courses/${courseId}/fulltest/${testId}`} className="btn-3d btn-3d-blue py-3 px-6 text-sm font-bold">
+          <Link
+            to={`/courses/${courseId}/fulltest/${testId}`}
+            className="py-3 px-6 rounded-xl border border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 text-sm font-bold transition-all duration-120 active:scale-95 shadow-soft-xs cursor-pointer"
+          >
             🔄 Làm lại đề này
           </Link>
         </div>
 
         {/* Detailed stats by part */}
         <div className="space-y-4">
-          <h2 className="text-lg font-black text-foreground flex items-center gap-2">
+          <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
             <Award className="w-5 h-5 text-primary" />
             Thống kê kết quả theo từng Phần (Part)
           </h2>
 
-          <div className="card-duo overflow-hidden bg-white border-2 border-[var(--duo-gray)] rounded-2xl">
+          <div className="overflow-hidden bg-card border border-border/60 rounded-2xl shadow-soft-sm">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b-2 border-[var(--duo-gray)] bg-slate-50">
-                  <th className="text-left p-4 font-black text-foreground">Phần thi (Part)</th>
-                  <th className="text-center p-4 font-black text-foreground">Đúng / Tổng câu</th>
-                  <th className="text-left p-4 font-black text-foreground">Tiến độ đúng</th>
-                  <th className="text-center p-4 font-black text-foreground">Đánh giá</th>
+                <tr className="border-b border-border/60 bg-muted/40">
+                  <th className="text-left p-4 font-bold text-foreground">Phần thi (Part)</th>
+                  <th className="text-center p-4 font-bold text-foreground">Đúng / Tổng câu</th>
+                  <th className="text-left p-4 font-bold text-foreground">Tiến độ đúng</th>
+                  <th className="text-center p-4 font-bold text-foreground">Đánh giá</th>
                 </tr>
               </thead>
               <tbody>
                 {partStats.map(stat => {
                   const pct = stat.total > 0 && stat.isAttempted ? Math.round((stat.correct / stat.total) * 100) : 0;
                   return (
-                    <tr key={stat.part} className={cn("border-b-2 border-[var(--duo-gray)] last:border-0 hover:bg-slate-50/50", !stat.isAttempted && "opacity-50")}>
-                      <td className="p-4 font-bold text-foreground">
+                    <tr key={stat.part} className={cn("border-b border-border/50 last:border-0 hover:bg-muted/30 transition-colors", !stat.isAttempted && "opacity-50")}>
+                      <td className="p-4 font-medium text-foreground">
                         <div className="flex items-center gap-2">
-                          <span>{stat.name}</span>
+                          <span className="font-semibold">{stat.name}</span>
                           {!stat.isAttempted && (
-                            <span className="badge-duo badge-white text-[10px] text-muted-foreground font-bold">Không chọn</span>
+                            <span className="badge-duo badge-white text-xs text-muted-foreground font-semibold">Không chọn</span>
                           )}
                         </div>
                       </td>
-                      <td className="p-4 text-center font-extrabold text-slate-800">
+                      <td className="p-4 text-center font-bold text-foreground">
                         {stat.isAttempted ? `${stat.correct} / ${stat.total}` : `- / ${stat.total}`}
                       </td>
                       <td className="p-4 w-1/3">
                         {stat.isAttempted ? (
                           <div className="flex items-center gap-3">
-                            <div className="progress-duo flex-1">
+                            <div className="h-2.5 bg-muted rounded-full flex-1 overflow-hidden">
                               <div
-                                className="progress-duo-fill"
+                                className="h-full rounded-full transition-all duration-300"
                                 style={{
-                                 width: `${pct}%`,
-                                  backgroundColor: pct >= 80 ? "var(--duo-correct)" : pct >= 50 ? "var(--duo-blue)" : "var(--duo-red)"
+                                  width: `${pct}%`,
+                                  backgroundColor: pct >= 80 ? "rgb(16, 185, 129)" : pct >= 50 ? "rgb(59, 130, 246)" : "rgb(239, 68, 68)"
                                 }}
                               />
                             </div>
-                            <span className="text-xs font-black text-slate-700 w-8 text-right">{pct}%</span>
+                            <span className="text-xs font-bold text-muted-foreground w-8 text-right">{pct}%</span>
                           </div>
                         ) : (
                           <span className="text-xs text-muted-foreground italic">Không có dữ liệu</span>
@@ -769,13 +785,13 @@ const FullTestResult = () => {
                       <td className="p-4 text-center">
                         {stat.isAttempted ? (
                           <span className={cn(
-                            "badge-duo text-[10px] uppercase font-black tracking-widest",
+                            "badge-duo text-xs uppercase font-bold tracking-wider",
                             pct >= 80 ? "badge-green" : pct >= 50 ? "badge-blue" : "badge-orange"
                           )}>
                             {pct >= 80 ? "Tốt" : pct >= 50 ? "Trung bình" : "Cần ôn thêm"}
                           </span>
                         ) : (
-                          <span className="badge-duo badge-white text-[10px] text-muted-foreground">
+                          <span className="badge-duo badge-white text-xs text-muted-foreground">
                             Chưa làm
                           </span>
                         )}

@@ -32,18 +32,20 @@ import {
 } from "@/components/ui/dropdown-menu";
 import GamificationChips from "@/components/GamificationChips";
 
-const navItems = [
-  { to: "/library", label: "Kho khóa học", icon: BookOpen, badge: "Bàn học", badgeColor: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20" },
-  { to: "/fulltests", label: "Luyện đề Full Test", icon: FileCheck2, badge: "Thi thử", badgeColor: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" },
-  { to: "/listening", label: "Luyện nghe điền từ", icon: Headphones, badge: "Dictation", badgeColor: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20" },
-  { to: "/part2-coach", label: "Phản Xạ Part 2", icon: Zap, badge: "8 Bước", badgeColor: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20" },
-  { to: "/games", label: "Khu Trò Chơi", icon: Gamepad2, badge: "Arcade", badgeColor: "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20" },
+const primaryNavItems = [
+  { to: "/library", label: "Kho khóa học", icon: BookOpen },
+  { to: "/fulltests", label: "Luyện đề Full Test", icon: FileCheck2 },
+  { to: "/listening", label: "Luyện nghe điền từ", icon: Headphones },
+  { to: "/part2-coach", label: "Phản Xạ Part 2", icon: Zap },
   { to: "/profile", label: "Hồ sơ cá nhân", icon: User },
-  { to: "/", label: "Về Trang chủ", icon: Home },
+];
+
+const secondaryNavItems = [
+  { to: "/games", label: "Khu Trò Chơi", icon: Gamepad2, badge: "Mini App" },
 ];
 
 const mobileNavItems = [
-  { to: "/library", label: "Bàn học", icon: BookOpen },
+  { to: "/library", label: "Khóa học", icon: BookOpen },
   { to: "/fulltests", label: "Luyện đề", icon: FileCheck2 },
   { to: "/listening", label: "Điền từ", icon: Headphones },
   { to: "/part2-coach", label: "Part 2", icon: Zap, isHighlight: true },
@@ -170,8 +172,8 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
         )}
 
         {/* Navigation list */}
-        <nav className="flex-1 px-3 py-2 space-y-1.5 overflow-y-auto">
-          {navItems.map((item) => {
+        <nav className="flex-1 px-3 py-3 space-y-1.5 overflow-y-auto">
+          {primaryNavItems.map((item) => {
             const active = 
               item.to.includes("part2-coach")
                 ? isPart2Active
@@ -188,60 +190,100 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
                 key={item.to}
                 to={item.to}
                 onClick={() => setSidebarOpen(false)}
-                title={isCollapsed ? `${item.label}${item.badge ? ` (${item.badge})` : ''}` : undefined}
+                title={isCollapsed ? item.label : undefined}
                 className={cn(
-                  "flex items-center rounded-xl text-sm font-medium transition-all group relative",
+                  "flex items-center rounded-xl text-sm font-semibold transition-all group relative active:scale-95 duration-150",
                   isCollapsed ? "justify-center p-2.5" : "justify-between px-3.5 py-2.5",
                   active
-                    ? "bg-primary text-primary-foreground font-semibold shadow-sm"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                    ? "bg-primary text-primary-foreground font-bold shadow-soft-sm"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/70"
                 )}
               >
                 <div className={cn("flex items-center min-w-0", isCollapsed ? "justify-center" : "gap-3")}>
-                  <item.icon className={cn("w-4 h-4 shrink-0", active ? "text-primary-foreground" : "text-muted-foreground group-hover:text-foreground")} />
+                  <item.icon className={cn("w-4 h-4 shrink-0 transition-transform group-hover:scale-110", active ? "text-primary-foreground" : "text-muted-foreground group-hover:text-primary")} />
                   {!isCollapsed && <span className="truncate">{item.label}</span>}
                 </div>
-                {!isCollapsed && item.badge && (
-                  <span className={cn(
-                    "text-xs font-black uppercase px-2 py-0.5 rounded-md border tracking-wider shrink-0",
-                    active ? "bg-white/20 text-primary-foreground border-white/30" : item.badgeColor
-                  )}>
-                    {item.badge}
-                  </span>
-                )}
-                {isCollapsed && item.badge && (
-                  <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary" />
-                )}
               </Link>
             );
           })}
 
-          {isAdmin && (
-            <Link
-              to="/admin/dashboard"
-              title={isCollapsed ? "Quản trị Admin" : undefined}
-              className={cn(
-                "flex items-center rounded-xl text-sm font-medium text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition-colors mt-2",
-                isCollapsed ? "justify-center p-2.5" : "gap-3 px-3.5 py-2.5"
-              )}
-            >
-              <ShieldCheck className="w-4 h-4 shrink-0" />
-              {!isCollapsed && <span>Quản trị Admin</span>}
-            </Link>
-          )}
+          {/* Active whitespace separation before secondary utility items */}
+          <div className="pt-3 mt-3 border-t border-border/40 space-y-1.5">
+            {!isCollapsed && (
+              <p className="px-3.5 text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">
+                Khu vực khác
+              </p>
+            )}
+            {secondaryNavItems.map((item) => {
+              const active = location.pathname.startsWith(item.to);
+              return (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  onClick={() => setSidebarOpen(false)}
+                  title={isCollapsed ? `${item.label} (${item.badge})` : undefined}
+                  className={cn(
+                    "flex items-center rounded-xl text-sm font-medium transition-all group relative active:scale-95 duration-150",
+                    isCollapsed ? "justify-center p-2.5" : "justify-between px-3.5 py-2",
+                    active
+                      ? "bg-purple-600 text-white font-bold shadow-soft-sm"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/70"
+                  )}
+                >
+                  <div className={cn("flex items-center min-w-0", isCollapsed ? "justify-center" : "gap-3")}>
+                    <item.icon className={cn("w-4 h-4 shrink-0 transition-transform group-hover:scale-110", active ? "text-white" : "text-purple-500")} />
+                    {!isCollapsed && <span className="truncate">{item.label}</span>}
+                  </div>
+                  {!isCollapsed && item.badge && (
+                    <span className={cn(
+                      "text-xs font-bold px-2 py-0.5 rounded-full border tracking-normal shrink-0",
+                      active ? "bg-white/20 text-white border-white/30" : "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800"
+                    )}>
+                      {item.badge}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
+
+            {isAdmin && (
+              <Link
+                to="/admin/dashboard"
+                title={isCollapsed ? "Quản trị Admin" : undefined}
+                className={cn(
+                  "flex items-center rounded-xl text-sm font-semibold text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition-all active:scale-95",
+                  isCollapsed ? "justify-center p-2.5" : "gap-3 px-3.5 py-2"
+                )}
+              >
+                <ShieldCheck className="w-4 h-4 shrink-0 text-amber-500" />
+                {!isCollapsed && <span>Quản trị Admin</span>}
+              </Link>
+            )}
+          </div>
         </nav>
 
-        {/* Bottom sign out */}
-        <div className="p-3 border-t border-border">
+        {/* Bottom sign out & home link */}
+        <div className="p-3 border-t border-border/50 space-y-1">
+          <Link
+            to="/"
+            title={isCollapsed ? "Về Trang chủ" : undefined}
+            className={cn(
+              "flex items-center rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-all active:scale-95 w-full text-left",
+              isCollapsed ? "justify-center p-2" : "gap-2.5 px-3 py-2"
+            )}
+          >
+            <Home className="w-4 h-4 shrink-0 text-primary" />
+            {!isCollapsed && <span>Về Trang chủ</span>}
+          </Link>
           <button
             onClick={handleSignOut}
             title={isCollapsed ? "Đăng xuất" : undefined}
             className={cn(
-              "flex items-center rounded-xl text-sm font-medium text-muted-foreground hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all w-full text-left",
-              isCollapsed ? "justify-center p-2.5" : "gap-3 px-3.5 py-2.5"
+              "flex items-center rounded-xl text-xs font-semibold text-muted-foreground hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all active:scale-95 w-full text-left",
+              isCollapsed ? "justify-center p-2" : "gap-2.5 px-3 py-2"
             )}
           >
-            <LogOut className="w-4 h-4" />
+            <LogOut className="w-4 h-4 shrink-0 text-rose-500" />
             {!isCollapsed && <span>Đăng xuất</span>}
           </button>
         </div>

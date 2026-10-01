@@ -298,12 +298,12 @@ const AdminCourseJsonImport = () => {
         </div>
 
         {/* Step 1: Chọn khóa học */}
-        <div className="bg-card rounded-xl border p-5 space-y-3">
-          <h2 className="font-semibold text-sm">1. Chọn khóa học target</h2>
+        <div className="bg-card rounded-2xl border border-border/70 p-6 space-y-3 shadow-soft-sm">
+          <h2 className="font-black text-base text-foreground">1. Chọn khóa học target</h2>
           <div className="space-y-2">
-            <Label>Khóa học</Label>
+            <Label className="font-bold">Khóa học</Label>
             <select
-              className="w-full border rounded-md px-3 py-2 text-sm bg-background text-foreground"
+              className="w-full border border-border/80 rounded-xl px-4 py-2.5 text-base sm:text-sm bg-background text-foreground font-medium shadow-soft-xs focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
               value={courseId}
               onChange={(e) => setCourseId(e.target.value)}
             >
@@ -318,22 +318,22 @@ const AdminCourseJsonImport = () => {
         </div>
 
         {/* Step 2: Upload JSON */}
-        <div className="bg-card rounded-xl border p-5 space-y-3">
-          <h2 className="font-semibold text-sm">2. Upload file JSON (toeic_cap_toc_part_X.json)</h2>
+        <div className="bg-card rounded-2xl border border-border/70 p-6 space-y-3 shadow-soft-sm">
+          <h2 className="font-black text-base text-foreground">2. Upload file JSON (toeic_cap_toc_part_X.json)</h2>
           <div
-            className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 transition-colors"
+            className="border border-dashed border-border/80 rounded-2xl p-8 text-center cursor-pointer hover:border-primary/50 shadow-soft-xs hover:shadow-soft-sm transition-all bg-card/50"
             onClick={() => fileInputRef.current?.click()}
           >
-            <Upload className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
-            <p className="text-sm text-muted-foreground">
+            <Upload className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
+            <p className="text-sm font-semibold text-foreground">
               {fileName ? (
-                <span className="text-foreground font-medium">{fileName}</span>
+                <span className="text-primary font-bold">{fileName}</span>
               ) : (
                 "Click để chọn file JSON hoặc kéo thả vào đây"
               )}
             </p>
             {preview && (
-              <p className="text-xs text-primary mt-2 font-medium">{preview}</p>
+              <p className="text-xs text-primary mt-2 font-bold bg-primary/10 py-1 px-3 rounded-lg inline-block">{preview}</p>
             )}
           </div>
           <input
@@ -347,33 +347,33 @@ const AdminCourseJsonImport = () => {
 
         {/* Step 3: Import */}
         <Button
-          className="w-full"
+          className="w-full btn-3d-green font-black rounded-xl py-6 text-base active:scale-95 duration-120 shadow-soft-md"
           disabled={importing || !courseId || !jsonData}
           onClick={handleImport}
         >
           {importing ? (
             <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
               Đang import...
             </>
           ) : (
-            "🚀 Bắt đầu Import"
+            "🚀 Bắt đầu Import Dữ Liệu"
           )}
         </Button>
 
         {/* Logs */}
         {logs.length > 0 && (
-          <div className="bg-muted/50 rounded-xl border p-4 space-y-1 max-h-80 overflow-y-auto font-mono text-xs">
+          <div className="bg-muted/40 rounded-2xl border border-border/70 p-4 space-y-1.5 max-h-80 overflow-y-auto font-mono text-xs shadow-soft-xs">
             {logs.map((l, i) => (
               <div
                 key={i}
                 className={
                   l.type === "ok"
-                    ? "text-emerald-600 dark:text-emerald-400"
+                    ? "text-emerald-600 dark:text-emerald-400 font-semibold"
                     : l.type === "warn"
-                    ? "text-yellow-600 dark:text-yellow-400"
+                    ? "text-amber-600 dark:text-amber-400 font-semibold"
                     : l.type === "error"
-                    ? "text-red-600 dark:text-red-400"
+                    ? "text-destructive font-bold"
                     : "text-foreground"
                 }
               >
@@ -381,9 +381,9 @@ const AdminCourseJsonImport = () => {
               </div>
             ))}
             {done && (
-              <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 mt-2 pt-2 border-t">
+              <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 mt-2 pt-2 border-t border-border/60">
                 <CheckCircle className="w-4 h-4" />
-                <span className="font-semibold">Import hoàn tất!</span>
+                <span className="font-black">Import hoàn tất thành công!</span>
               </div>
             )}
           </div>

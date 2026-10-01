@@ -257,27 +257,27 @@ const AdminMaterials = () => {
         </div>
 
         {/* Upload area */}
-        <div className="bg-card rounded-xl border-2 border-dashed p-8 text-center space-y-3 relative overflow-hidden">
+        <div className="bg-card rounded-2xl border border-dashed border-border/80 p-8 text-center space-y-3 relative overflow-hidden shadow-soft-xs hover:border-primary/50 transition-colors">
           <Upload className="w-10 h-10 text-muted-foreground mx-auto" />
-          <p className="text-sm text-muted-foreground">Kéo thả TẤT CẢ TẬP TIN ảnh / audio vào đây hoặc click để chọn hàng loạt</p>
+          <p className="text-sm font-semibold text-foreground">Kéo thả TẤT CẢ TẬP TIN ảnh / audio vào đây hoặc click để chọn hàng loạt</p>
           <p className="text-xs text-muted-foreground">
             Đang upload vào: <strong className="text-foreground">{currentPath}</strong> · PDF, JPG, PNG, MP3, MP4
           </p>
           <div className="flex gap-2 justify-center flex-wrap">
-            <Button variant="outline" asChild>
+            <Button variant="outline" className="font-bold rounded-xl active:scale-95 duration-120 shadow-soft-xs" asChild>
               <label className="cursor-pointer">
                 Chọn nhiều file
                 <input type="file" multiple className="hidden" onChange={handleUpload} accept=".pdf,.jpg,.jpeg,.png,.gif,.mp3,.wav,.mp4,.webm,.svg,.ogg,.m4a,.webp" />
               </label>
             </Button>
-            <Button variant="outline" asChild>
+            <Button variant="outline" className="font-bold rounded-xl active:scale-95 duration-120 shadow-soft-xs" asChild>
               <label className="cursor-pointer">
                 <Folder className="w-4 h-4 mr-1" />
                 Upload thư mục
                 <input type="file" className="hidden" onChange={handleUpload} {...{ webkitdirectory: "", directory: "", multiple: true } as any} />
               </label>
             </Button>
-            <Button variant="outline" onClick={() => setNewFolderOpen(true)}>
+            <Button variant="outline" className="font-bold rounded-xl active:scale-95 duration-120 shadow-soft-xs" onClick={() => setNewFolderOpen(true)}>
               <FolderPlus className="w-4 h-4 mr-1" /> Tạo thư mục
             </Button>
           </div>
@@ -324,19 +324,19 @@ const AdminMaterials = () => {
                     <div key={folder} className="group relative">
                       <button
                         onClick={() => navigateToFolder(folder)}
-                        className="w-full bg-card rounded-xl border p-4 flex items-center gap-3 hover:border-primary/50 hover:bg-primary/5 transition-all text-left"
+                        className="w-full bg-card rounded-2xl border border-border/70 p-4 flex items-center gap-3 hover:border-primary/50 hover:bg-muted/40 transition-all text-left shadow-soft-xs hover:shadow-soft-sm active:scale-[0.98] duration-120"
                       >
                         <FolderOpen className="w-8 h-8 text-amber-500 shrink-0 transition-transform" />
                         <div className="min-w-0">
-                          <p className="text-sm font-medium text-foreground truncate">{folder}</p>
+                          <p className="text-sm font-bold text-foreground truncate">{folder}</p>
                           <p className="text-xs text-muted-foreground">{folderFileCount(folder)} file</p>
                         </div>
                       </button>
-                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 bg-white/80 dark:bg-black/80 p-1 rounded-lg backdrop-blur shadow-sm border">
+                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 bg-card/90 p-1 rounded-xl backdrop-blur shadow-soft-xs border border-border/70">
                         <Button
                           size="icon"
                           variant="ghost"
-                          className="h-7 w-7 text-muted-foreground hover:text-primary"
+                          className="h-7 w-7 text-muted-foreground hover:text-primary active:scale-95 duration-120 rounded-lg"
                           onClick={(e) => {
                             e.stopPropagation();
                             setEditingFolder({ oldName: folder, oldPath: fullPath });
@@ -350,25 +350,25 @@ const AdminMaterials = () => {
                             <Button
                               size="icon"
                               variant="ghost"
-                              className="h-7 w-7 text-destructive hover:bg-destructive/10"
+                              className="h-7 w-7 text-destructive hover:bg-destructive/10 active:scale-95 duration-120 rounded-lg"
                               onClick={(e) => e.stopPropagation()}
                               disabled={deleteFolderMutation.isPending}
                             >
                               <Trash2 className="h-3 w-3" />
                             </Button>
                           </AlertDialogTrigger>
-                          <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                          <AlertDialogContent className="border border-border/80 shadow-soft-xl rounded-2xl" onClick={(e) => e.stopPropagation()}>
                             <AlertDialogHeader>
-                              <AlertDialogTitle>Xác nhận xóa thư mục?</AlertDialogTitle>
-                              <AlertDialogDescription>
+                              <AlertDialogTitle className="font-black text-lg">Xác nhận xóa thư mục?</AlertDialogTitle>
+                              <AlertDialogDescription className="text-muted-foreground">
                                 Bạn có chắc chắn muốn xóa thư mục <strong>"{folder}"</strong>? Toàn bộ file và tài liệu nằm trong thư mục này sẽ bị xóa hoàn toàn khỏi hệ thống.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
-                              <AlertDialogCancel>Hủy bỏ</AlertDialogCancel>
+                              <AlertDialogCancel className="rounded-xl font-bold">Hủy bỏ</AlertDialogCancel>
                               <AlertDialogAction
                                 onClick={() => deleteFolderMutation.mutate(fullPath)}
-                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-xl font-bold active:scale-95 duration-120"
                               >
                                 {deleteFolderMutation.isPending ? "Đang xóa..." : "Xóa vĩnh viễn"}
                               </AlertDialogAction>
@@ -387,9 +387,9 @@ const AdminMaterials = () => {
               {filtered.map((m: any) => {
                 const Icon = typeIcon[m.file_type as string] || FileText;
                 return (
-                  <div key={m.id} className="bg-card rounded-xl border p-4 space-y-3 group relative hover:border-primary/50 transition-colors">
+                  <div key={m.id} className="bg-card rounded-2xl border border-border/70 p-4 space-y-3 group relative hover:border-primary/50 shadow-soft-xs hover:shadow-soft-sm transition-all">
                     <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden">
+                      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden">
                         {m.file_type === "image" ? (
                            <img src={m.file_url} className="w-full h-full object-cover" alt="" />
                         ) : (
@@ -397,41 +397,41 @@ const AdminMaterials = () => {
                         )}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-foreground truncate">{m.title}</p>
+                        <p className="text-sm font-bold text-foreground truncate">{m.title}</p>
                         <p className="text-xs text-muted-foreground">{(m.file_type ?? "").toUpperCase()} · {m.created_at ? new Date(m.created_at).toLocaleDateString("vi-VN") : ""}</p>
                       </div>
                     </div>
                     {m.folder_path && m.folder_path !== "/" && (
                       <p className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Folder className="w-3 h-3" /> {m.folder_path}
+                        <Folder className="w-3 h-3 text-muted-foreground" /> {m.folder_path}
                       </p>
                     )}
                     {m.courses?.title && <p className="text-xs text-muted-foreground">📎 {m.courses.title}</p>}
                     
-                    <div className="flex justify-between items-center bg-muted/30 p-2 rounded-lg border">
+                    <div className="flex justify-between items-center bg-muted/40 p-2 rounded-xl border border-border/60">
                        <span className="text-xs text-muted-foreground truncate flex-1 block max-w-[150px]">{m.file_url}</span>
                        <div className="flex gap-1 shrink-0">
-                          <Button size="sm" variant="secondary" className="h-7 text-xs" onClick={() => copyUrl(m.file_url)}>
+                          <Button size="sm" variant="secondary" className="h-7 text-xs font-bold rounded-lg active:scale-95 duration-120" onClick={() => copyUrl(m.file_url)}>
                             <Copy className="w-3 h-3 mr-1" /> Copy
                           </Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
-                              <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" disabled={deleteMutation.isPending}>
+                              <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:bg-destructive/10 active:scale-95 duration-120 rounded-lg" disabled={deleteMutation.isPending}>
                                 <Trash2 className="w-3 h-3" />
                               </Button>
                             </AlertDialogTrigger>
-                            <AlertDialogContent>
+                            <AlertDialogContent className="border border-border/80 shadow-soft-xl rounded-2xl">
                               <AlertDialogHeader>
-                                <AlertDialogTitle>Xác nhận xóa tài liệu?</AlertDialogTitle>
-                                <AlertDialogDescription>
+                                <AlertDialogTitle className="font-black text-lg">Xác nhận xóa tài liệu?</AlertDialogTitle>
+                                <AlertDialogDescription className="text-muted-foreground">
                                   Bạn có chắc muốn xóa tài liệu <strong>"{m.title}"</strong> không?
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
-                                <AlertDialogCancel>Hủy bỏ</AlertDialogCancel>
+                                <AlertDialogCancel className="rounded-xl font-bold">Hủy bỏ</AlertDialogCancel>
                                 <AlertDialogAction
                                   onClick={() => deleteMutation.mutate(m.id)}
-                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-xl font-bold active:scale-95 duration-120"
                                 >
                                   {deleteMutation.isPending ? "Đang xóa..." : "Xóa"}
                                 </AlertDialogAction>
@@ -451,27 +451,28 @@ const AdminMaterials = () => {
 
       {/* New Folder Dialog */}
       <Dialog open={newFolderOpen} onOpenChange={setNewFolderOpen}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-sm border border-border/80 shadow-soft-2xl rounded-2xl">
           <DialogHeader>
-            <DialogTitle>Tạo thư mục mới</DialogTitle>
+            <DialogTitle className="text-lg font-black">Tạo thư mục mới</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Vị trí hiện tại</Label>
-              <p className="text-sm text-muted-foreground font-mono">{currentPath}</p>
+              <Label className="font-bold">Vị trí hiện tại</Label>
+              <p className="text-sm text-muted-foreground font-mono bg-muted/50 p-2 rounded-lg border border-border/60">{currentPath}</p>
             </div>
             <div className="space-y-2">
-              <Label>Tên thư mục</Label>
+              <Label className="font-bold">Tên thư mục</Label>
               <Input
                 value={newFolderName}
                 onChange={(e) => setNewFolderName(e.target.value)}
                 placeholder="VD: Part1, Audio, Images..."
+                className="font-medium"
                 onKeyDown={(e) => e.key === "Enter" && createFolder()}
               />
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setNewFolderOpen(false)}>Hủy</Button>
-              <Button onClick={createFolder} disabled={!newFolderName.trim()}>Tạo & Mở</Button>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" className="font-bold rounded-xl active:scale-95 duration-120" onClick={() => setNewFolderOpen(false)}>Hủy</Button>
+              <Button onClick={createFolder} disabled={!newFolderName.trim()} className="btn-3d-green font-black rounded-xl active:scale-95 duration-120">Tạo & Mở</Button>
             </div>
           </div>
         </DialogContent>
@@ -479,16 +480,17 @@ const AdminMaterials = () => {
 
       {/* Rename Folder Dialog */}
       <Dialog open={!!editingFolder} onOpenChange={(open) => !open && setEditingFolder(null)}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-sm border border-border/80 shadow-soft-2xl rounded-2xl">
           <DialogHeader>
-            <DialogTitle>Đổi tên thư mục</DialogTitle>
+            <DialogTitle className="text-lg font-black">Đổi tên thư mục</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Tên mới</Label>
+              <Label className="font-bold">Tên mới</Label>
               <Input
                 value={renameValue}
                 onChange={(e) => setRenameValue(e.target.value)}
+                className="font-medium"
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && editingFolder && renameValue.trim() && renameValue !== editingFolder.oldName) {
                     const newPath = editingFolder.oldPath.substring(0, editingFolder.oldPath.lastIndexOf("/")) + "/" + renameValue.trim();
@@ -498,8 +500,8 @@ const AdminMaterials = () => {
                 }}
               />
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setEditingFolder(null)}>Hủy</Button>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" className="font-bold rounded-xl active:scale-95 duration-120" onClick={() => setEditingFolder(null)}>Hủy</Button>
               <Button
                 onClick={() => {
                   if (editingFolder && renameValue.trim() && renameValue !== editingFolder.oldName) {
@@ -509,6 +511,7 @@ const AdminMaterials = () => {
                   }
                 }}
                 disabled={!renameValue.trim() || renameValue === editingFolder?.oldName || renameFolderMutation.isPending}
+                className="btn-3d-green font-black rounded-xl active:scale-95 duration-120"
               >
                 Lưu
               </Button>

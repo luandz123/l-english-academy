@@ -167,7 +167,7 @@ export default function GamesHub() {
                   ⚡
                 </div>
                 <div>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase">Kinh nghiệm</span>
+                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Kinh nghiệm</span>
                   <p className="text-base font-black text-amber-300">{xp.toLocaleString()} XP</p>
                 </div>
               </div>
@@ -179,7 +179,7 @@ export default function GamesHub() {
                   🔥
                 </div>
                 <div>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase">Chuỗi ngày học</span>
+                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Chuỗi ngày học</span>
                   <p className="text-base font-black text-rose-400">{streak} ngày liên tiếp</p>
                 </div>
               </div>
@@ -202,7 +202,7 @@ export default function GamesHub() {
                   key={tab.id}
                   onClick={() => setActiveFilter(tab.id as any)}
                   className={cn(
-                    "px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 flex items-center gap-2 whitespace-nowrap shadow-sm select-none",
+                    "px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 flex items-center gap-2 whitespace-nowrap shadow-sm select-none cursor-pointer",
                     isSelected
                       ? "bg-cyan-500 text-slate-950 shadow-cyan-500/20 font-black"
                       : "bg-slate-900/80 border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800"
@@ -249,7 +249,7 @@ export default function GamesHub() {
                   {featuredGame.tags.map((tag, i) => (
                     <span
                       key={i}
-                      className="px-2.5 py-1 rounded-lg bg-slate-950/80 border border-slate-800 text-[11px] font-bold text-slate-300"
+                      className="px-2.5 py-1 rounded-lg bg-slate-950/80 border border-slate-800 text-xs font-medium text-slate-300"
                     >
                       {tag}
                     </span>
@@ -261,14 +261,14 @@ export default function GamesHub() {
               <div className="flex flex-col sm:flex-row lg:flex-col gap-3 w-full lg:w-auto shrink-0">
                 <Button
                   onClick={() => navigate('/games/word-shooter')}
-                  className="bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-slate-950 font-black text-sm px-8 py-6 rounded-2xl shadow-lg hover:shadow-cyan-500/30 transition-all active:scale-95"
+                  className="bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-slate-950 font-black text-sm px-8 py-6 rounded-2xl shadow-lg hover:shadow-cyan-500/30 transition-all duration-120 active:scale-95 cursor-pointer"
                 >
                   <Rocket className="w-5 h-5 mr-2" />
                   VÀO CHƠI NGAY
                 </Button>
 
-                <p className="text-[11px] text-slate-400 text-center">
-                  Hỗ trợ cả Solo & Đấu Realtime 2 người
+                <p className="text-xs text-slate-400 text-center font-medium">
+                  Hỗ trợ cả Solo &amp; Đấu Realtime 2 người
                 </p>
               </div>
             </div>
@@ -295,7 +295,7 @@ export default function GamesHub() {
                   className={cn(
                     "relative p-5 rounded-3xl border transition-all duration-300 flex flex-col justify-between select-none shadow-xl",
                     game.isAvailable
-                      ? "bg-slate-900/90 border-slate-700/80 hover:border-cyan-400/80 hover:shadow-cyan-500/10 hover:-translate-y-1 cursor-pointer"
+                      ? "bg-slate-900/90 border-slate-700/80 hover:border-cyan-400/80 hover:shadow-cyan-500/10 hover:-translate-y-1 active:scale-[0.98] cursor-pointer"
                       : "bg-slate-950/60 border-slate-800/80 opacity-80"
                   )}
                   onClick={() => {
@@ -313,7 +313,7 @@ export default function GamesHub() {
 
                       <span
                         className={cn(
-                          "px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border",
+                          "px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider border",
                           game.badgeColor || "bg-slate-800 text-slate-400 border-slate-700"
                         )}
                       >
@@ -338,7 +338,7 @@ export default function GamesHub() {
                   {/* Bottom details & action */}
                   <div className="mt-5 pt-4 border-t border-slate-800/80 flex items-center justify-between">
                     <div className="space-y-0.5">
-                      <span className="text-[10px] font-bold text-slate-500 uppercase block">Trạng thái</span>
+                      <span className="text-xs font-medium text-slate-500 uppercase block tracking-wider">Trạng thái</span>
                       <span className="text-xs font-bold text-slate-300">
                         {game.playerCount}
                       </span>
@@ -347,7 +347,7 @@ export default function GamesHub() {
                     {game.isAvailable ? (
                       <Button
                         size="sm"
-                        className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl shadow-md"
+                        className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl shadow-soft-sm transition-all duration-120 active:scale-95 cursor-pointer"
                         onClick={(e) => {
                           e.stopPropagation();
                           if (game.route) navigate(game.route);

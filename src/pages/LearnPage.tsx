@@ -410,10 +410,10 @@ const LearnPage = () => {
           <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 bg-background">
             {/* YouTube/PDF Player */}
             {(isVideoLesson || isPdfLesson) && (
-              <div className="overflow-hidden rounded-2xl border-4 border-border bg-muted/10 max-w-4xl mx-auto w-full shadow-sm">
+              <div className="overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-800/80 bg-slate-900 max-w-4xl mx-auto w-full shadow-soft-md">
                 {isVideoLesson && isPdfLesson ? (
                   <Tabs defaultValue="video" className="w-full">
-                    <div className="bg-card border-b p-2">
+                    <div className="bg-card border-b border-border/50 p-2">
                       <TabsList className="grid w-full max-w-[400px] grid-cols-2">
                         <TabsTrigger value="video" className="font-bold text-xs sm:text-sm">🎬 Xem Video</TabsTrigger>
                         <TabsTrigger value="pdf" className="font-bold text-xs sm:text-sm">📄 Đọc Tài liệu PDF</TabsTrigger>
@@ -464,11 +464,11 @@ const LearnPage = () => {
 
             {/* Banner for manual practices */}
             {practices.length > 0 && (
-              <div className="bg-[var(--duo-orange)]/10 border-2 border-[var(--duo-orange)]/20 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 max-w-4xl mx-auto w-full">
+              <div className="bg-amber-500/10 border border-amber-500/25 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 max-w-4xl mx-auto w-full shadow-soft-sm">
                 <div className="flex items-center gap-3">
                   <span className="text-3xl shrink-0">📝</span>
                   <div>
-                    <h4 className="text-sm sm:text-base font-extrabold text-[var(--duo-orange)]">Bài tập thực hành đính kèm</h4>
+                    <h4 className="text-sm sm:text-base font-extrabold text-amber-700 dark:text-amber-400">Bài tập thực hành đính kèm</h4>
                     <p className="text-xs sm:text-sm font-semibold text-muted-foreground mt-0.5">Hãy hoàn thành các bài tập này để tự đánh giá mức độ tiếp thu bài học nhé!</p>
                   </div>
                 </div>
@@ -476,7 +476,7 @@ const LearnPage = () => {
                   {practices.map((p: any) => (
                     <Button
                       key={p.id}
-                      className="btn-3d bg-[var(--duo-orange)] hover:bg-[var(--duo-orange)]/90 text-white border-[#E58700] text-xs sm:text-sm font-extrabold py-2 px-4 h-10 w-full sm:w-auto shrink-0"
+                      className="btn-3d bg-amber-500 hover:bg-amber-600 text-white text-xs sm:text-sm font-extrabold py-2 px-4 h-10 w-full sm:w-auto shrink-0 shadow-soft-sm active:scale-95"
                       onClick={() => openPractice(p)}
                     >
                       {p.title || "Làm bài tập 🚀"}
@@ -492,19 +492,19 @@ const LearnPage = () => {
 
               return (
                 <div className="p-4 flex items-center justify-center min-h-[40vh] max-w-4xl mx-auto w-full">
-                  <div className="card-duo w-full text-center space-y-6 p-6 sm:p-8 bg-card shadow-sm border-2">
-                    <div className="w-20 h-20 bg-[var(--duo-blue)]/10 rounded-full flex items-center justify-center mx-auto border-4 border-[var(--duo-blue)]/20">
-                      <FileQuestion className="w-10 h-10 text-[var(--duo-blue)]" />
+                  <div className="w-full text-center space-y-6 p-6 sm:p-8 bg-card rounded-2xl shadow-soft-md border border-border/70">
+                    <div className="w-20 h-20 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto border border-primary/20 shadow-soft-sm">
+                      <FileQuestion className="w-10 h-10 text-primary" />
                     </div>
                     <h2 className="text-xl sm:text-2xl font-extrabold text-foreground">{currentLesson.title}</h2>
-                    <p className="text-muted-foreground font-bold text-sm sm:text-base">Bài {currentLesson.lesson_type === "exam" ? "thi online 🏆" : "luyện tập 🎯"}</p>
+                    <p className="text-muted-foreground font-semibold text-sm sm:text-base">Bài {currentLesson.lesson_type === "exam" ? "thi online 🏆" : "luyện tập 🎯"}</p>
 
                     {latestResult && (
                       <div className="flex flex-col items-center justify-center gap-1.5 mb-4">
-                        <span className="text-base font-extrabold text-[var(--duo-correct)] bg-[var(--duo-correct)]/10 px-5 py-2.5 rounded-xl border-2 border-[var(--duo-correct)]/20">
+                        <span className="text-base font-extrabold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-5 py-2.5 rounded-xl border border-emerald-500/30">
                           Điểm gần nhất: {latestResult.score}/10 ⭐
                         </span>
-                        <span className="text-xs font-bold text-muted-foreground">
+                        <span className="text-xs font-semibold text-muted-foreground">
                           Đúng {latestResult.correct_answers}/{latestResult.total_questions} câu
                         </span>
                       </div>
@@ -779,24 +779,26 @@ const LearnPage = () => {
 
       {/* Practice popup panel */}
         {activePractice && practiceQuestions.length > 0 && (
-          <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm lg:items-stretch lg:justify-end">
-            <div className="card-duo w-full max-w-xl lg:max-w-md lg:h-full lg:rounded-none max-h-[90vh] lg:max-h-screen flex flex-col p-0 overflow-hidden shadow-2xl">
-              <div className="sticky top-0 bg-card border-b-2 p-5 flex items-center justify-between z-10">
-                <h3 className="text-xl font-extrabold text-[var(--duo-orange)] flex items-center gap-2">📝 {activePractice.title || "Luyện tập nhanh"}</h3>
+          <div className="fixed inset-0 z-50 bg-background/80 flex items-center justify-center p-4 backdrop-blur-md lg:items-stretch lg:justify-end">
+            <div className="w-full max-w-xl lg:max-w-md lg:h-full lg:rounded-none max-h-[90vh] lg:max-h-screen flex flex-col p-0 overflow-hidden bg-card rounded-2xl border border-border/70 shadow-soft-2xl">
+              <div className="sticky top-0 bg-card border-b border-border/60 p-5 flex items-center justify-between z-10 shadow-soft-xs">
+                <h3 className="text-xl font-bold text-primary flex items-center gap-2">📝 {activePractice.title || "Luyện tập nhanh"}</h3>
                 <Button size="icon" variant="ghost" className="hover:bg-muted rounded-full" onClick={() => setActivePractice(null)}><X className="w-6 h-6 text-muted-foreground" /></Button>
               </div>
               <div className="p-6 overflow-y-auto flex-1 bg-muted/10">
                 {!practiceSubmitted ? (
                   <div className="space-y-6">
                     <div className="flex items-center gap-3">
-                      <div className="progress-duo h-3 flex-1 bg-muted border-2">
-                        <div className="h-full bg-[var(--duo-blue)] rounded-full transition-all" style={{ width: `${((practiceCurrentQ) / practiceQuestions.length) * 100}%` }} />
+                      <div className="h-2.5 flex-1 bg-muted rounded-full overflow-hidden">
+                        <div className="h-full bg-primary rounded-full transition-all duration-300" style={{ width: `${((practiceCurrentQ) / practiceQuestions.length) * 100}%` }} />
                       </div>
-                      <span className="text-sm font-bold text-[var(--duo-blue)]">{practiceCurrentQ + 1}/{practiceQuestions.length}</span>
+                      <span className="text-sm font-bold text-primary">{practiceCurrentQ + 1}/{practiceQuestions.length}</span>
                     </div>
 
                     {practiceQuestions[practiceCurrentQ]?.image_url && (
-                      <img src={practiceQuestions[practiceCurrentQ].image_url} alt="" className="w-full rounded-2xl border-2 shadow-sm" />
+                      <div className="w-full flex justify-center bg-muted/20 rounded-2xl overflow-hidden p-1 border border-border/50 shadow-soft-xs">
+                        <img src={practiceQuestions[practiceCurrentQ].image_url} alt="" className="max-w-full h-auto rounded-xl object-contain image-safe" />
+                      </div>
                     )}
                     {practiceQuestions[practiceCurrentQ]?.audio_url && (
                       <audio controls src={practiceQuestions[practiceCurrentQ].audio_url} className="w-full rounded-full mt-4" />
@@ -883,13 +885,13 @@ const LearnPage = () => {
 
       {/* A3: Exit Confirm Modal */}
       {showExitConfirm && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="card-duo p-6 max-w-sm w-full space-y-4 bg-card text-center animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 bg-background/80 flex items-center justify-center p-4 backdrop-blur-md">
+          <div className="p-6 max-w-sm w-full space-y-4 bg-card rounded-2xl border border-border/70 shadow-soft-2xl text-center animate-in zoom-in-95 duration-200">
             <h3 className="font-extrabold text-xl text-foreground">Bạn muốn rời khỏi bài học?</h3>
             <p className="text-sm font-semibold text-muted-foreground">Tiến độ bài học hiện tại của bạn sẽ được lưu giữ tự động.</p>
             <div className="flex gap-3 pt-2">
-              <Button className="btn-3d btn-3d-white flex-1 py-3 text-sm font-bold" onClick={() => setShowExitConfirm(false)}>Ở lại học</Button>
-              <Button className="btn-3d btn-3d-primary flex-1 py-3 text-sm font-bold" onClick={() => navigate("/profile")}>Rời đi</Button>
+              <Button className="btn-interactive border border-border/70 bg-card hover:bg-muted text-foreground flex-1 py-3 text-sm font-bold shadow-soft-xs" onClick={() => setShowExitConfirm(false)}>Ở lại học</Button>
+              <Button className="btn-interactive bg-primary text-primary-foreground flex-1 py-3 text-sm font-bold shadow-soft-sm" onClick={() => navigate("/profile")}>Rời đi</Button>
             </div>
           </div>
         </div>
@@ -897,13 +899,13 @@ const LearnPage = () => {
 
       {/* A4: Module Complete Modal */}
       {moduleCompleteModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="card-duo p-8 max-w-md w-full space-y-6 bg-card text-center relative overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 bg-background/80 flex items-center justify-center p-4 backdrop-blur-md">
+          <div className="p-8 max-w-md w-full space-y-6 bg-card rounded-2xl border border-border/70 shadow-soft-2xl text-center relative overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="text-6xl animate-bounce">🏆🎉</div>
             <h3 className="font-extrabold text-2xl text-foreground">Hoàn Thành Module!</h3>
-            <p className="text-sm font-bold text-muted-foreground">
+            <p className="text-sm font-semibold text-muted-foreground">
               Chúc mừng bạn đã chinh phục xong module:
-              <span className="block text-foreground font-black text-lg mt-2 p-3 bg-muted rounded-2xl border-2">
+              <span className="block text-foreground font-bold text-lg mt-2 p-3 bg-muted/60 rounded-xl border border-border/60">
                 {moduleCompleteModal.moduleName}
               </span>
             </p>

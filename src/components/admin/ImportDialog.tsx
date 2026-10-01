@@ -466,13 +466,13 @@ const ImportDialog = ({
               <Button
                 size="sm"
                 variant="ghost"
-                className="h-7 text-[10px] text-blue-600"
+                className="h-7 text-xs text-blue-600 font-semibold"
                 onClick={handleCopyPrompt}
               >
                 📋 Copy Prompt
               </Button>
             </div>
-            <p className="text-[11px] text-muted-foreground leading-relaxed">
+            <p className="text-xs text-muted-foreground leading-relaxed">
               {renderDescription()}
               <br />
               <span className="text-blue-600 dark:text-blue-400 font-medium">

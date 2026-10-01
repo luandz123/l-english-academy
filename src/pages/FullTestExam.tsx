@@ -688,7 +688,7 @@ const FullTestExam = () => {
   if (!enrollment) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="card-duo p-8 max-w-md text-center space-y-5 bg-card rounded-2xl border-2">
+        <div className="card-duo p-8 max-w-md text-center space-y-5 bg-card rounded-2xl shadow-soft-xl">
           <div className="w-16 h-16 rounded-full bg-red-50 text-[var(--duo-red)] flex items-center justify-center mx-auto">
             <ShieldAlert className="w-8 h-8" />
           </div>
@@ -714,15 +714,15 @@ const FullTestExam = () => {
     const totalSelectedQuestionsCount = examQuestions.length;
 
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 sm:p-6 relative font-sans">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4 sm:p-6 relative font-sans">
         <button
           onClick={() => navigate(`/courses/${courseId}/fulltest`)}
-          className="absolute top-4 left-4 flex items-center gap-1.5 text-xs sm:text-sm font-bold text-muted-foreground hover:text-foreground transition-colors bg-card border-2 border-[var(--duo-gray)] px-3.5 py-2 rounded-xl hover:border-[var(--duo-blue)] shadow-sm"
+          className="absolute top-4 left-4 flex items-center gap-1.5 text-xs sm:text-sm font-bold text-muted-foreground hover:text-foreground transition-colors bg-card border border-border/70 px-3.5 py-2 rounded-xl hover:border-primary/50 shadow-soft-sm"
         >
           <ChevronLeft className="w-4 h-4" /> Danh sách đề thi
         </button>
 
-        <div className="card-duo p-6 sm:p-8 max-w-3xl w-full bg-card shadow-2xl rounded-3xl border-2 border-[var(--duo-gray)] space-y-6 my-10">
+        <div className="card-duo p-6 sm:p-8 max-w-3xl w-full bg-card shadow-soft-2xl rounded-3xl space-y-6 my-10">
           {/* Header Banner */}
           <div className="text-center space-y-2">
             <div className="w-16 h-16 rounded-2xl bg-[var(--duo-blue)] shadow-[0_4px_0_var(--duo-blue-dark)] flex items-center justify-center mx-auto text-3xl">
@@ -777,14 +777,14 @@ const FullTestExam = () => {
                 type="button"
                 onClick={() => setTestMode("exam")}
                 className={cn(
-                  "p-4 rounded-2xl border-2 text-left transition-all relative overflow-hidden",
+                  "p-4 rounded-2xl border text-left transition-all relative overflow-hidden",
                   testMode === "exam"
-                    ? "border-[var(--duo-correct)] bg-[var(--duo-correct)]/5 shadow-[0_3px_0_var(--duo-correct-dark)]/20"
-                    : "border-[var(--duo-gray)] hover:border-[var(--duo-blue)] bg-card"
+                    ? "border-primary bg-primary/5 shadow-soft-sm"
+                    : "border-border/70 hover:border-primary/40 bg-card shadow-soft-xs"
                 )}
               >
                 <div className="flex items-center gap-2">
-                  <span className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0", testMode === "exam" ? "border-[var(--duo-correct)] bg-[var(--duo-correct)] text-white" : "border-[var(--duo-gray-dark)]")}>
+                  <span className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0", testMode === "exam" ? "border-primary bg-primary text-white" : "border-muted-foreground/30")}>
                     {testMode === "exam" && <span className="w-2.5 h-2.5 rounded-full bg-white block" />}
                   </span>
                   <span className="font-black text-foreground text-sm">⏱ Thi thử (Exam Mode)</span>
@@ -796,14 +796,14 @@ const FullTestExam = () => {
                 type="button"
                 onClick={() => setTestMode("practice")}
                 className={cn(
-                  "p-4 rounded-2xl border-2 text-left transition-all relative overflow-hidden",
+                  "p-4 rounded-2xl border text-left transition-all relative overflow-hidden",
                   testMode === "practice"
-                    ? "border-[var(--duo-correct)] bg-[var(--duo-correct)]/5 shadow-[0_3px_0_var(--duo-correct-dark)]/20"
-                    : "border-[var(--duo-gray)] hover:border-[var(--duo-blue)] bg-card"
+                    ? "border-primary bg-primary/5 shadow-soft-sm"
+                    : "border-border/70 hover:border-primary/40 bg-card shadow-soft-xs"
                 )}
               >
                 <div className="flex items-center gap-2">
-                  <span className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0", testMode === "practice" ? "border-[var(--duo-correct)] bg-[var(--duo-correct)] text-white" : "border-[var(--duo-gray-dark)]")}>
+                  <span className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0", testMode === "practice" ? "border-primary bg-primary text-white" : "border-muted-foreground/30")}>
                     {testMode === "practice" && <span className="w-2.5 h-2.5 rounded-full bg-white block" />}
                   </span>
                   <span className="font-black text-foreground text-sm">📚 Luyện tập (Practice Mode)</span>
@@ -814,7 +814,7 @@ const FullTestExam = () => {
           </div>
 
           {/* Part Selection Section */}
-          <div className="space-y-3 pt-1 border-t-2 border-[var(--duo-gray)]">
+          <div className="space-y-3 pt-1 border-t border-border/70">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <label className="text-xs font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                 <Settings2 className="w-4 h-4 text-primary" /> 2. Chọn phần thi (Parts) muốn làm
@@ -828,8 +828,8 @@ const FullTestExam = () => {
                   className={cn(
                     "text-xs font-bold px-2.5 py-1 rounded-lg border transition-all",
                     selectedParts.length === 7
-                      ? "bg-[var(--duo-blue)] text-white border-[var(--duo-blue-dark)] shadow-sm"
-                      : "bg-white text-muted-foreground border-[var(--duo-gray)] hover:border-[var(--duo-blue)]"
+                      ? "bg-primary text-primary-foreground border-primary shadow-soft-xs"
+                      : "bg-card text-muted-foreground border-border/70 hover:border-primary/40 hover:text-foreground"
                   )}
                 >
                   🚀 Toàn bộ đề (7 Parts)
@@ -840,8 +840,8 @@ const FullTestExam = () => {
                   className={cn(
                     "text-xs font-bold px-2.5 py-1 rounded-lg border transition-all",
                     selectedParts.length === 4 && isListeningSelected && !isReadingSelected
-                      ? "bg-[var(--duo-blue)] text-white border-[var(--duo-blue-dark)] shadow-sm"
-                      : "bg-white text-muted-foreground border-[var(--duo-gray)] hover:border-[var(--duo-blue)]"
+                      ? "bg-primary text-primary-foreground border-primary shadow-soft-xs"
+                      : "bg-card text-muted-foreground border-border/70 hover:border-primary/40 hover:text-foreground"
                   )}
                 >
                   🎧 Chỉ Listening
@@ -852,8 +852,8 @@ const FullTestExam = () => {
                   className={cn(
                     "text-xs font-bold px-2.5 py-1 rounded-lg border transition-all",
                     selectedParts.length === 3 && isReadingSelected && !isListeningSelected
-                      ? "bg-[var(--duo-blue)] text-white border-[var(--duo-blue-dark)] shadow-sm"
-                      : "bg-white text-muted-foreground border-[var(--duo-gray)] hover:border-[var(--duo-blue)]"
+                      ? "bg-primary text-primary-foreground border-primary shadow-soft-xs"
+                      : "bg-card text-muted-foreground border-border/70 hover:border-primary/40 hover:text-foreground"
                   )}
                 >
                   📖 Chỉ Reading
@@ -864,9 +864,9 @@ const FullTestExam = () => {
             {/* Grid of Parts */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Listening Column */}
-              <div className="space-y-2 bg-slate-50/80 p-3.5 rounded-2xl border-2 border-[var(--duo-gray)]">
+              <div className="space-y-2 bg-muted/30 p-3.5 rounded-2xl border border-border/70 shadow-soft-xs">
                 <div className="flex items-center justify-between pb-1">
-                  <span className="text-xs font-black text-[var(--duo-blue-dark)] uppercase tracking-wider flex items-center gap-1.5">
+                  <span className="text-xs font-black text-primary uppercase tracking-wider flex items-center gap-1.5">
                     <Headphones className="w-3.5 h-3.5" /> Listening (Part 1 - 4)
                   </span>
                   <span className="text-xs font-bold text-muted-foreground">
@@ -882,16 +882,16 @@ const FullTestExam = () => {
                         key={part}
                         onClick={() => togglePart(part)}
                         className={cn(
-                          "p-2.5 rounded-xl border-2 flex items-center justify-between cursor-pointer transition-all select-none",
+                          "p-2.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all select-none",
                           isSelected
-                            ? "border-[var(--duo-blue)] bg-white shadow-sm ring-1 ring-[var(--duo-blue)]/20"
-                            : "border-[var(--duo-gray)] bg-white/50 opacity-60 hover:opacity-100 hover:border-slate-400"
+                            ? "border-primary bg-card shadow-soft-xs ring-1 ring-primary/20"
+                            : "border-border/70 bg-card/60 opacity-70 hover:opacity-100 hover:border-border"
                         )}
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
                           <div className={cn(
-                            "w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors",
-                            isSelected ? "bg-[var(--duo-blue)] border-[var(--duo-blue)] text-white" : "border-[var(--duo-gray-dark)] bg-white"
+                            "w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition-colors",
+                            isSelected ? "bg-primary border-primary text-primary-foreground" : "border-muted-foreground/30 bg-card"
                           )}>
                             {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
                           </div>
@@ -911,9 +911,9 @@ const FullTestExam = () => {
               </div>
 
               {/* Reading Column */}
-              <div className="space-y-2 bg-slate-50/80 p-3.5 rounded-2xl border-2 border-[var(--duo-gray)]">
+              <div className="space-y-2 bg-muted/30 p-3.5 rounded-2xl border border-border/70 shadow-soft-xs">
                 <div className="flex items-center justify-between pb-1">
-                  <span className="text-xs font-black text-[var(--duo-correct-dark)] uppercase tracking-wider flex items-center gap-1.5">
+                  <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
                     <BookOpen className="w-3.5 h-3.5" /> Reading (Part 5 - 7)
                   </span>
                   <span className="text-xs font-bold text-muted-foreground">
@@ -929,16 +929,16 @@ const FullTestExam = () => {
                         key={part}
                         onClick={() => togglePart(part)}
                         className={cn(
-                          "p-2.5 rounded-xl border-2 flex items-center justify-between cursor-pointer transition-all select-none",
+                          "p-2.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all select-none",
                           isSelected
-                            ? "border-[var(--duo-correct)] bg-white shadow-sm ring-1 ring-[var(--duo-correct)]/20"
-                            : "border-[var(--duo-gray)] bg-white/50 opacity-60 hover:opacity-100 hover:border-slate-400"
+                            ? "border-emerald-500 bg-card shadow-soft-xs ring-1 ring-emerald-500/20"
+                            : "border-border/70 bg-card/60 opacity-70 hover:opacity-100 hover:border-border"
                         )}
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
                           <div className={cn(
-                            "w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors",
-                            isSelected ? "bg-[var(--duo-correct)] border-[var(--duo-correct)] text-white" : "border-[var(--duo-gray-dark)] bg-white"
+                            "w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition-colors",
+                            isSelected ? "bg-emerald-500 border-emerald-500 text-white" : "border-muted-foreground/30 bg-card"
                           )}>
                             {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
                           </div>
@@ -961,12 +961,12 @@ const FullTestExam = () => {
 
           {/* Time Limit Setting (Exam Mode Only) */}
           {testMode === "exam" && (
-            <div className="space-y-2 pt-1 border-t-2 border-[var(--duo-gray)]">
+            <div className="space-y-2 pt-1 border-t border-border/70">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                   <Clock className="w-4 h-4 text-primary" /> 3. Thời gian làm bài (Phút)
                 </label>
-                <span className="text-xs font-extrabold text-[var(--duo-blue-dark)]">
+                <span className="text-xs font-extrabold text-primary">
                   Thời gian chọn: {effectiveTimeMinutes} phút
                 </span>
               </div>
@@ -978,8 +978,8 @@ const FullTestExam = () => {
                   className={cn(
                     "text-xs font-bold px-3 py-1.5 rounded-xl border transition-all",
                     customTimeMinutes === null
-                      ? "bg-[var(--duo-blue)] text-white border-[var(--duo-blue-dark)] shadow-sm"
-                      : "bg-white text-muted-foreground border-[var(--duo-gray)] hover:border-[var(--duo-blue)]"
+                      ? "bg-primary text-primary-foreground border-primary shadow-soft-xs"
+                      : "bg-card text-muted-foreground border-border/70 hover:border-primary/40 hover:text-foreground"
                   )}
                 >
                   ⚡ Đề xuất ({recommendedMinutes} phút)
@@ -993,8 +993,8 @@ const FullTestExam = () => {
                     className={cn(
                       "text-xs font-bold px-3 py-1.5 rounded-xl border transition-all",
                       customTimeMinutes === mins
-                        ? "bg-[var(--duo-blue)] text-white border-[var(--duo-blue-dark)] shadow-sm"
-                        : "bg-white text-muted-foreground border-[var(--duo-gray)] hover:border-[var(--duo-blue)]"
+                        ? "bg-primary text-primary-foreground border-primary shadow-soft-xs"
+                        : "bg-card text-muted-foreground border-border/70 hover:border-primary/40 hover:text-foreground"
                     )}
                   >
                     {mins}p
@@ -1005,7 +1005,7 @@ const FullTestExam = () => {
           )}
 
           {/* Summary Box & Start Action */}
-          <div className="bg-slate-100 p-4 rounded-2xl border-2 border-[var(--duo-gray)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="bg-muted/40 p-4 rounded-2xl border border-border/70 shadow-soft-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-extrabold text-foreground text-sm sm:text-base">
@@ -1037,8 +1037,8 @@ const FullTestExam = () => {
   if (needsSoundCheck) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="card-duo p-8 max-w-lg text-center space-y-6 bg-card rounded-2xl border-2">
-          <div className="w-16 h-16 rounded-full bg-[var(--duo-blue)]/10 text-[var(--duo-blue)] flex items-center justify-center mx-auto text-3xl">
+        <div className="card-duo p-8 max-w-lg text-center space-y-6 bg-card rounded-2xl shadow-soft-xl">
+          <div className="w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto text-3xl">
             <Volume2 className="w-8 h-8" />
           </div>
           <div>
@@ -1048,7 +1048,7 @@ const FullTestExam = () => {
             </p>
           </div>
 
-          <div className="bg-slate-50 p-4 rounded-xl border-2 border-dashed border-[var(--duo-gray)] space-y-3">
+          <div className="bg-muted/40 p-4 rounded-xl border border-dashed border-border/80 space-y-3">
             <audio
               ref={volumeAudioRef}
               src={sampleAudioUrl}
@@ -1090,11 +1090,11 @@ const FullTestExam = () => {
   return (
     <div className="h-screen flex flex-col bg-background overflow-hidden font-sans">
       {/* Header Bar */}
-      <header className="h-16 border-b-2 border-[var(--duo-gray)] shrink-0 bg-card z-20 flex items-center justify-between px-4 lg:px-8">
+      <header className="h-16 border-b border-border/70 shrink-0 bg-card z-20 flex items-center justify-between px-4 lg:px-8">
         <div className="flex items-center gap-3">
           <button
             onClick={() => setShowExitConfirm(true)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-zinc-800 border-2 border-[var(--duo-gray)] hover:bg-slate-100 dark:hover:bg-zinc-700 transition-colors"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-card border border-border/70 hover:bg-muted shadow-soft-xs transition-colors"
             title="Thoát bài thi"
             aria-label="Thoát bài thi"
           >
@@ -1115,7 +1115,7 @@ const FullTestExam = () => {
         </div>
 
         {/* Quick Part Tabs for selected parts */}
-        <div className="hidden xl:flex items-center gap-1">
+        <div className="hidden xl:flex items-center gap-1.5">
           {selectedParts.map(part => {
             const hasQuestions = examQuestions.some((q: any) => q.part_number === part);
             if (!hasQuestions) return null;
@@ -1124,10 +1124,10 @@ const FullTestExam = () => {
                 key={part}
                 onClick={() => goToPart(part)}
                 className={cn(
-                  "px-3 py-1.5 text-xs font-black rounded-xl border-2 transition-all",
+                  "px-3 py-1.5 text-xs font-bold rounded-xl transition-all duration-150 active:scale-95",
                   currentPart === part - 1
-                    ? "bg-[var(--duo-blue)] text-white border-[var(--duo-blue)] shadow-[0_2px_0_var(--duo-blue-dark)]"
-                    : "bg-white text-muted-foreground border-[var(--duo-gray)] hover:border-[var(--duo-blue)]"
+                    ? "bg-primary text-primary-foreground shadow-soft-sm font-extrabold"
+                    : "bg-muted/70 text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
               >
                 {partShortNames[part - 1]}
@@ -1137,20 +1137,22 @@ const FullTestExam = () => {
         </div>
 
         {/* Timer, Answer count and submit actions */}
-        <div className="flex items-center gap-3">
-          <div className="text-xs font-bold text-muted-foreground hidden md:block">
-            {answeredCount}/{examQuestions.length} đã trả lời
+        <div className="flex items-center gap-2.5 sm:gap-3">
+          {/* Zeigarnik progress badge */}
+          <div className="text-xs font-bold text-muted-foreground hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted/50 border border-border/50">
+            <span>{answeredCount}/{examQuestions.length} câu</span>
+            <span className="text-primary font-black">({Math.round((answeredCount / (examQuestions.length || 1)) * 100)}%)</span>
           </div>
 
           {testMode === "exam" ? (
-            <div className="flex items-center gap-2 bg-red-50 border-2 border-red-200 text-[var(--duo-red)] px-3 py-1.5 rounded-xl font-mono font-black text-sm sm:text-base">
-              <Clock className="w-4 h-4 shrink-0 animate-pulse" />
-              {formatTime(timeLeft)}
+            <div className="flex items-center gap-1.5 bg-rose-50 border border-rose-200 text-rose-600 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800 px-3 py-1.5 rounded-xl font-mono font-bold text-xs sm:text-sm shadow-soft-sm">
+              <Clock className="w-3.5 h-3.5 shrink-0 animate-pulse text-rose-500" />
+              <span>{formatTime(timeLeft)}</span>
             </div>
           ) : (
-            <div className="flex items-center gap-2 bg-[#DDF4FF] border-2 border-[#A8E0FD] text-[var(--duo-blue-dark)] px-3 py-1.5 rounded-xl font-mono font-black text-sm sm:text-base">
-              <Clock className="w-4 h-4 shrink-0" />
-              {formatTime(elapsedTime)}
+            <div className="flex items-center gap-1.5 bg-blue-50 border border-blue-200 text-primary dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800 px-3 py-1.5 rounded-xl font-mono font-bold text-xs sm:text-sm shadow-soft-sm">
+              <Clock className="w-3.5 h-3.5 shrink-0 text-primary" />
+              <span>{formatTime(elapsedTime)}</span>
             </div>
           )}
 
@@ -1160,32 +1162,40 @@ const FullTestExam = () => {
               setIsPaused(prev => !prev);
               if (!isPaused) setPauseCount(prev => prev + 1);
             }}
-            className="btn-3d btn-3d-white py-1.5 px-3 text-xs"
+            className="btn-3d btn-3d-white py-1.5 px-3 text-xs font-bold"
           >
             {isPaused ? "Tiếp tục" : "Tạm dừng"}
           </button>
 
           <button
             onClick={() => setShowConfirm(true)}
-            className="btn-3d btn-3d-primary py-2 px-4 text-xs sm:text-sm font-black"
+            className="btn-3d btn-3d-primary py-2 px-4 text-xs sm:text-sm font-bold shadow-soft-sm"
           >
             Nộp bài
           </button>
         </div>
       </header>
 
+      {/* Zeigarnik Micro Progress Bar right below header */}
+      <div className="w-full h-1 bg-muted/60 overflow-hidden">
+        <div
+          className="h-full bg-gradient-to-r from-blue-600 to-indigo-600 transition-all duration-300 ease-out"
+          style={{ width: `${Math.round((answeredCount / (examQuestions.length || 1)) * 100)}%` }}
+        />
+      </div>
+
       {/* Pause Modal Overlay */}
       {isPaused && (
-        <div className="fixed inset-0 bg-background/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="card-duo p-8 max-w-md w-full bg-white border-2 text-center space-y-5">
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="card-duo p-8 max-w-md w-full bg-card border border-border/80 text-center space-y-5 shadow-soft-lg rounded-2xl">
             <span className="text-4xl block">⏸</span>
-            <h2 className="text-xl font-black text-foreground">Đã tạm dừng bài thi</h2>
-            <p className="text-sm text-muted-foreground font-medium">
+            <h2 className="text-xl font-extrabold text-foreground">Đã tạm dừng bài thi</h2>
+            <p className="text-sm text-muted-foreground font-normal leading-relaxed">
               Thời gian đang tạm ngưng. Hãy nhấn tiếp tục để tiếp tục trả lời các câu hỏi.
             </p>
             <button
               onClick={() => setIsPaused(false)}
-              className="btn-3d btn-3d-primary w-full py-3 text-base font-bold"
+              className="btn-3d btn-3d-primary w-full py-3 text-sm font-bold shadow-soft-sm"
             >
               TIẾP TỤC LÀM BÀI
             </button>
@@ -1196,10 +1206,10 @@ const FullTestExam = () => {
       {/* Main split content */}
       <div className="flex flex-1 overflow-hidden">
         {/* Left Sidebar Palette (Question Grid) */}
-        <aside className="hidden lg:flex w-80 flex-col border-r-2 border-[var(--duo-gray)] bg-card shrink-0 select-none h-full">
-          <div className="p-4 border-b-2 border-[var(--duo-gray)] space-y-3">
-            <h3 className="font-extrabold text-sm flex items-center gap-2">
-              <LayoutGrid className="w-4 h-4 text-[var(--duo-correct)]" /> Bảng câu hỏi ({answeredCount}/{examQuestions.length})
+        <aside className="hidden lg:flex w-80 flex-col border-r border-border/60 bg-card shrink-0 select-none h-full shadow-soft-sm">
+          <div className="p-4 border-b border-border/50 space-y-3">
+            <h3 className="font-extrabold text-sm flex items-center gap-2 text-foreground">
+              <LayoutGrid className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> Bảng câu hỏi ({answeredCount}/{examQuestions.length})
             </h3>
             
             {/* Filter chips */}
@@ -1214,10 +1224,10 @@ const FullTestExam = () => {
                   key={f.key}
                   onClick={() => setPaletteFilter(f.key as any)}
                   className={cn(
-                    "text-xs font-bold px-2.5 py-1.5 rounded-lg border transition-all",
+                    "text-xs font-semibold px-2.5 py-1.5 rounded-xl border transition-all duration-120 active:scale-95",
                     paletteFilter === f.key
-                      ? "bg-[var(--duo-blue)] text-white border-[var(--duo-blue-dark)]"
-                      : "bg-muted text-muted-foreground border-transparent hover:border-[var(--duo-gray)]"
+                      ? "bg-primary text-primary-foreground border-primary shadow-soft-sm font-bold"
+                      : "bg-muted/70 text-muted-foreground border-border/50 hover:bg-muted hover:text-foreground"
                   )}
                 >
                   {f.label}
@@ -1243,9 +1253,9 @@ const FullTestExam = () => {
 
               return (
                 <div key={part} className="space-y-2">
-                  <p className="text-xs font-black text-muted-foreground uppercase tracking-widest flex items-center justify-between">
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center justify-between">
                     <span>{partShortNames[part - 1]}</span>
-                    <span className="text-xs lowercase font-bold">({partQList.length} câu)</span>
+                    <span className="text-xs font-semibold lowercase">({partQList.length} câu)</span>
                   </p>
                   <div className="grid grid-cols-5 gap-1.5">
                     {examQuestions.map((q: any) => {
@@ -1265,11 +1275,11 @@ const FullTestExam = () => {
                             document.getElementById(`question-${q.sessionIdx}`)?.scrollIntoView({ behavior: "smooth" });
                           }}
                           className={cn(
-                            "w-10 h-10 text-xs font-bold rounded-xl border-2 transition-all flex items-center justify-center hover:-translate-y-0.5 relative cursor-pointer",
-                            isFlagged ? "border-[var(--duo-orange)] ring-2 ring-[var(--duo-orange)]/30" : "",
+                            "w-10 h-10 text-xs font-bold rounded-xl border transition-all duration-120 flex items-center justify-center relative cursor-pointer active:scale-95 shadow-soft-sm",
+                            isFlagged ? "border-amber-500 ring-2 ring-amber-500/30" : "",
                             hasAns
-                              ? "bg-[var(--duo-correct)] text-white border-[var(--duo-correct)] shadow-[0_2px_0_var(--duo-correct-dark)]"
-                              : "bg-white text-muted-foreground border-[var(--duo-gray)] hover:border-[var(--duo-blue)]"
+                              ? "bg-emerald-600 text-white border-emerald-600 shadow-soft-sm"
+                              : "bg-card text-muted-foreground border-border/80 hover:border-primary hover:text-foreground"
                           )}
                         >
                           <span className="flex items-center justify-center gap-0.5">
@@ -1277,7 +1287,7 @@ const FullTestExam = () => {
                             {hasAns && <Check className="w-2.5 h-2.5 stroke-[3] text-white shrink-0" />}
                           </span>
                           {isFlagged && (
-                            <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-[var(--duo-orange)] border border-white" />
+                            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-500 border border-card" />
                           )}
                         </button>
                       );
@@ -1299,23 +1309,23 @@ const FullTestExam = () => {
               <div key={gIdx} className="max-w-4xl mx-auto space-y-5">
                 {/* Group Headers & Passages / Shared Audio */}
                 {(group.passage || group.audio_url || group.image_url) && (
-                  <div className="card-duo p-5 sm:p-7 bg-slate-50 border-2 border-[var(--duo-gray)] rounded-2xl space-y-4">
+                  <div className="card-duo p-5 sm:p-7 bg-muted/30 border border-border/60 rounded-2xl space-y-4 shadow-soft-sm">
                     <span className="badge-duo badge-blue">{partShortNames[group.part_number - 1]}</span>
 
                     {group.image_url && (
-                      <div className="w-full flex justify-center bg-muted/20 rounded-xl overflow-hidden min-h-[160px] border-2 border-[var(--duo-gray)] p-1">
+                      <div className="w-full flex justify-center bg-card rounded-xl overflow-hidden min-h-[160px] border border-border/60 p-2 shadow-soft-sm">
                         <img
                           src={group.image_url}
                           alt="Passage Context"
-                          className="max-w-full h-auto rounded-lg mx-auto max-h-[350px] object-contain"
+                          className="max-w-full h-auto rounded-lg mx-auto max-h-[350px] object-contain image-safe"
                           loading="lazy"
                         />
                       </div>
                     )}
 
                     {group.audio_url && (
-                      <div className="flex items-center gap-4 bg-white p-3 rounded-xl border-2 border-[var(--duo-gray)]">
-                        <div className="w-10 h-10 rounded-lg bg-[var(--duo-blue)] flex items-center justify-center text-white shrink-0">
+                      <div className="flex items-center gap-4 bg-card p-3 rounded-xl border border-border/60 shadow-soft-sm">
+                        <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-white shrink-0 shadow-soft-sm">
                           🎧
                         </div>
                         <div className="flex-1 min-w-0">
@@ -1332,7 +1342,7 @@ const FullTestExam = () => {
 
                     {group.passage && (
                       <div 
-                        className="prose prose-sm max-w-none text-foreground font-medium bg-white p-5 rounded-xl border-2 border-[var(--duo-gray)] leading-relaxed"
+                        className="prose prose-sm max-w-none text-foreground font-normal bg-card p-5 rounded-xl border border-border/60 leading-relaxed shadow-soft-sm"
                         dangerouslySetInnerHTML={{ __html: group.passage }}
                       />
                     )}
@@ -1353,19 +1363,19 @@ const FullTestExam = () => {
                     <div
                       key={q.id}
                       id={`question-${q.sessionIdx}`}
-                      className="card-duo p-6 bg-white border-2 border-[var(--duo-gray)] rounded-2xl space-y-4 relative scroll-mt-6"
+                      className="card-duo p-6 bg-card border border-border/60 rounded-2xl space-y-4 relative scroll-mt-6 shadow-soft-sm"
                     >
-                      <div className="flex justify-between items-center border-b-2 border-[var(--duo-gray)] pb-3">
+                      <div className="flex justify-between items-center border-b border-border/50 pb-3">
                         <div className="flex items-center gap-2">
-                          <span className="badge-duo badge-orange font-black">
+                          <span className="badge-duo badge-orange font-bold text-xs">
                             Câu {q.sessionIdx + 1}
                           </span>
                           {selectedParts.length < 7 && q.originalGlobalIdx && (
-                            <span className="text-xs text-muted-foreground font-bold">
+                            <span className="text-xs text-muted-foreground font-semibold">
                               (Đề gốc: #{q.originalGlobalIdx})
                             </span>
                           )}
-                          <span className="text-xs text-muted-foreground font-bold uppercase tracking-widest bg-muted px-2 py-0.5 rounded-full">
+                          <span className="text-xs text-muted-foreground font-bold uppercase tracking-wider bg-muted/60 px-2.5 py-0.5 rounded-full">
                             {partShortNames[q.part_number - 1]}
                           </span>
                         </div>
@@ -1374,23 +1384,23 @@ const FullTestExam = () => {
                         <button
                           onClick={() => toggleFlag(q.sessionIdx)}
                           className={cn(
-                            "flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full border-2 transition-all cursor-pointer",
+                            "flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl border transition-all duration-120 active:scale-95 cursor-pointer shadow-soft-sm",
                             isFlagged
-                              ? "border-[var(--duo-orange)] bg-[var(--duo-orange)]/10 text-[var(--duo-orange)] shadow-sm"
-                              : "border-[var(--duo-gray)] text-muted-foreground hover:text-foreground hover:border-[var(--duo-orange)]"
+                              ? "border-amber-500 bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-700"
+                              : "border-border/70 text-muted-foreground hover:text-foreground hover:bg-muted/70"
                           )}
                         >
-                          {isFlagged ? <BookmarkCheck className="w-3.5 h-3.5 fill-[var(--duo-orange)]" /> : <Bookmark className="w-3.5 h-3.5" />}
+                          {isFlagged ? <BookmarkCheck className="w-3.5 h-3.5 fill-amber-500 text-amber-600" /> : <Bookmark className="w-3.5 h-3.5" />}
                           <span>{isFlagged ? "Đã đánh dấu" : "Đánh dấu xem lại"}</span>
                         </button>
                       </div>
 
                       {q.image_url && q.image_url !== group.image_url && (
-                        <div className="w-full flex justify-center bg-muted/20 rounded-xl overflow-hidden min-h-[140px] border-2 border-[var(--duo-gray)] p-1">
+                        <div className="w-full flex justify-center bg-muted/20 rounded-xl overflow-hidden min-h-[140px] border border-border/50 p-1">
                           <img
                             src={q.image_url}
                             alt="Question Image"
-                            className="max-w-full h-auto rounded-lg max-h-[280px] mx-auto object-contain"
+                            className="max-w-full h-auto rounded-lg max-h-[280px] mx-auto object-contain image-safe"
                             loading="lazy"
                           />
                         </div>
@@ -1407,7 +1417,7 @@ const FullTestExam = () => {
 
                       {/* Clean Text */}
                       {q.cleanText && !isPart1 && !isPart2 && (
-                        <p className="text-base font-extrabold text-foreground leading-relaxed">
+                        <p className="text-base font-bold text-foreground leading-relaxed">
                           {q.cleanText}
                         </p>
                       )}
@@ -1421,25 +1431,25 @@ const FullTestExam = () => {
                           // Part 2 has only 3 choices A, B, C
                           if (isPart2 && oi === 3) return null;
 
-                          let btnClass = "border-[var(--duo-gray)] bg-white text-foreground hover:border-[var(--duo-blue)]";
-                          let indicatorClass = "border-[var(--duo-gray-dark)] text-muted-foreground";
+                          let btnClass = "border-border/70 bg-card text-foreground hover:border-primary/50 hover:bg-muted/40 shadow-soft-sm";
+                          let indicatorClass = "border-border/80 text-muted-foreground bg-muted/40";
 
                           if (isSelected) {
                             if (testMode === "practice" && isChecked) {
                               if (isOptCorrect) {
-                                btnClass = "border-[var(--duo-correct)] bg-[var(--duo-correct)]/10 shadow-[0_3px_0_var(--duo-correct-dark)]/20 font-bold";
-                                indicatorClass = "border-[var(--duo-correct)] bg-[var(--duo-correct)] text-white";
+                                btnClass = "border-emerald-600 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-700 font-bold shadow-soft-sm";
+                                indicatorClass = "border-emerald-600 bg-emerald-600 text-white";
                               } else {
-                                btnClass = "border-[var(--duo-red)] bg-red-50 shadow-[0_3px_0_#FFB3B3] font-bold";
-                                indicatorClass = "border-[var(--duo-red)] bg-[var(--duo-red)] text-white";
+                                btnClass = "border-rose-500 bg-rose-50 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-700 font-bold shadow-soft-sm";
+                                indicatorClass = "border-rose-500 bg-rose-500 text-white";
                               }
                             } else {
-                              btnClass = "border-[var(--duo-blue)] bg-[var(--duo-blue)]/10 shadow-[0_3px_0_var(--duo-blue-dark)]/20 font-bold";
-                              indicatorClass = "border-[var(--duo-blue)] bg-[var(--duo-blue)] text-white";
+                              btnClass = "border-primary bg-primary/10 text-primary font-bold shadow-soft-sm";
+                              indicatorClass = "border-primary bg-primary text-white";
                             }
                           } else if (testMode === "practice" && isChecked && isOptCorrect) {
-                            btnClass = "border-[var(--duo-correct)] bg-[var(--duo-correct)]/5 font-bold";
-                            indicatorClass = "border-[var(--duo-correct)] bg-[var(--duo-correct)] text-white";
+                            btnClass = "border-emerald-600 bg-emerald-50/50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 font-bold";
+                            indicatorClass = "border-emerald-600 bg-emerald-600 text-white";
                           }
 
                           return (
@@ -1447,14 +1457,14 @@ const FullTestExam = () => {
                               key={opt.id}
                               disabled={testMode === "practice" && isChecked}
                               onClick={() => handleSelectAnswer(q.sessionIdx, opt.id)}
-                              className={cn("w-full text-left p-4 rounded-xl border-2 text-sm transition-all flex items-center group disabled:opacity-90 active:scale-[0.99]", btnClass)}
+                              className={cn("w-full text-left p-4 rounded-xl border text-sm transition-all duration-120 flex items-center group disabled:opacity-90 active:scale-95 cursor-pointer", btnClass)}
                             >
-                              <div className={cn("w-7 h-7 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors mr-3 font-extrabold text-sm", indicatorClass)}>
+                              <div className={cn("w-7 h-7 rounded-full border flex items-center justify-center shrink-0 transition-colors mr-3 font-bold text-sm", indicatorClass)}>
                                 {String.fromCharCode(65 + oi)}
                               </div>
-                              <span className="flex-1 font-bold">
+                              <span className="flex-1 font-semibold leading-relaxed">
                                 {(isPart1 || isPart2) && !opt.answer_text ? (
-                                  <span className="text-muted-foreground/30 italic font-medium select-none tracking-widest">••••••••</span>
+                                  <span className="text-muted-foreground/40 italic font-normal select-none tracking-widest">••••••••</span>
                                 ) : (
                                   opt.answer_text
                                 )}
@@ -1466,7 +1476,7 @@ const FullTestExam = () => {
 
                       {/* Practice Mode Actions & Explanations */}
                       {testMode === "practice" && (
-                        <div className="pt-3 border-t border-dashed border-[var(--duo-gray)] flex flex-col gap-3">
+                        <div className="pt-3 border-t border-dashed border-border/60 flex flex-col gap-3">
                           {!isChecked ? (
                             <button
                               disabled={!hasSelected}
@@ -1474,25 +1484,25 @@ const FullTestExam = () => {
                                 setCheckedAnswers(prev => ({ ...prev, [q.id]: true }));
                                 playSound(q.answers.find((a: any) => a.id === selectedId)?.is_correct ? "correct" : "incorrect");
                               }}
-                              className="btn-3d btn-3d-primary py-2 px-4 text-xs font-bold self-start disabled:opacity-50"
+                              className="px-4 py-2 rounded-xl bg-primary text-primary-foreground font-bold text-xs hover:bg-primary/90 transition-all duration-120 active:scale-95 disabled:opacity-50 self-start shadow-soft-sm cursor-pointer"
                             >
                               Kiểm tra đáp án
                             </button>
                           ) : (
                             <div className="space-y-3">
                               {q.translation && (
-                                <div className="p-3 bg-slate-50 border-2 rounded-xl text-xs font-medium text-slate-700">
-                                  🇻🇳 <b>Dịch nghĩa:</b> {q.translation}
+                                <div className="p-3 bg-muted/40 border border-border/60 rounded-xl text-xs font-medium text-foreground">
+                                  🇻🇳 <b className="font-bold text-foreground">Dịch nghĩa:</b> {q.translation}
                                 </div>
                               )}
                               {(q.explanation || q.answers.find((a: any) => a.is_correct)?.explanation) && (
-                                <div className="p-3 bg-emerald-50 border-2 border-emerald-100 rounded-xl text-xs font-medium text-emerald-800">
-                                  💡 <b>Giải thích:</b> {q.explanation || q.answers.find((a: any) => a.is_correct)?.explanation}
+                                <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs font-medium text-emerald-800 dark:text-emerald-300">
+                                  💡 <b className="font-bold">Giải thích:</b> {q.explanation || q.answers.find((a: any) => a.is_correct)?.explanation}
                                 </div>
                               )}
                               {q.transcript && (
-                                <div className="p-3 bg-blue-50 border-2 border-blue-100 rounded-xl text-xs font-medium text-blue-800">
-                                  📝 <b>Transcript:</b> {q.transcript}
+                                <div className="p-3 bg-primary/10 border border-primary/20 rounded-xl text-xs font-medium text-primary">
+                                  📝 <b className="font-bold">Transcript:</b> {q.transcript}
                                 </div>
                               )}
                             </div>
@@ -1509,27 +1519,27 @@ const FullTestExam = () => {
       </div>
 
       {/* Fixed Bottom Palette for Mobile/Tablet (< lg) */}
-      <footer className="h-16 border-t-2 border-[var(--duo-gray)] shrink-0 bg-card z-30 flex lg:hidden items-center justify-between px-4 sticky bottom-0">
+      <footer className="h-16 border-t border-border/60 shrink-0 bg-card/95 backdrop-blur-md z-30 flex lg:hidden items-center justify-between px-4 sticky bottom-0 shadow-soft-lg">
         <button
           onClick={() => setMobilePaletteOpen(!mobilePaletteOpen)}
-          className="btn-3d btn-3d-white w-full py-2.5 text-xs font-extrabold flex items-center justify-center gap-2"
+          className="w-full py-2.5 px-4 rounded-xl border border-border/80 bg-background hover:bg-muted text-xs font-bold flex items-center justify-center gap-2 transition-all duration-120 active:scale-95 shadow-soft-sm cursor-pointer"
         >
-          <LayoutGrid className="w-4 h-4" />
-          Danh sách câu hỏi ({answeredCount}/{examQuestions.length})
-          {flagged.size > 0 && <span className="text-[var(--duo-orange)] font-black">🚩 {flagged.size}</span>}
+          <LayoutGrid className="w-4 h-4 text-primary" />
+          <span>Danh sách câu hỏi ({answeredCount}/{examQuestions.length})</span>
+          {flagged.size > 0 && <span className="text-amber-500 font-bold">🚩 {flagged.size}</span>}
         </button>
       </footer>
 
       {/* Mobile Expandable Drawer */}
       {mobilePaletteOpen && (
-        <div className="fixed inset-x-0 bottom-16 bg-card border-t-4 border-[var(--duo-blue)] shadow-[0_-10px_40px_rgba(0,0,0,0.15)] z-40 max-h-[65vh] overflow-y-auto p-5 animate-in slide-in-from-bottom-5 lg:hidden rounded-t-3xl">
+        <div className="fixed inset-x-0 bottom-16 bg-card border-t border-border/80 shadow-soft-2xl z-40 max-h-[65vh] overflow-y-auto p-5 animate-in slide-in-from-bottom-5 lg:hidden rounded-t-3xl">
           <div className="max-w-xl mx-auto space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b-2 border-[var(--duo-gray)]">
-              <h3 className="font-extrabold text-sm text-foreground">Điều hướng câu hỏi đề thi</h3>
-              <button onClick={() => setMobilePaletteOpen(false)} className="text-xs font-bold text-muted-foreground hover:text-foreground">Đóng ✕</button>
+            <div className="flex items-center justify-between pb-3 border-b border-border/60">
+              <h3 className="font-bold text-sm text-foreground">Điều hướng câu hỏi đề thi</h3>
+              <button onClick={() => setMobilePaletteOpen(false)} className="text-xs font-bold text-muted-foreground hover:text-foreground p-1 cursor-pointer">Đóng ✕</button>
             </div>
 
-            <div className="flex gap-1.5 overflow-x-auto pb-1">
+            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
               {[
                 { key: "all", label: `Tất cả (${examQuestions.length})` },
                 { key: "done", label: `Đã làm (${answeredCount})` },
@@ -1540,10 +1550,10 @@ const FullTestExam = () => {
                   key={f.key}
                   onClick={() => setPaletteFilter(f.key as any)}
                   className={cn(
-                    "text-xs font-bold px-3 py-1.5 rounded-lg border whitespace-nowrap transition-all",
+                    "text-xs font-bold px-3 py-1.5 rounded-xl border whitespace-nowrap transition-all duration-120 active:scale-95 cursor-pointer",
                     paletteFilter === f.key
-                      ? "bg-[var(--duo-blue)] text-white border-[var(--duo-blue-dark)]"
-                      : "bg-muted text-muted-foreground border-transparent"
+                      ? "bg-primary text-primary-foreground border-primary shadow-soft-xs"
+                      : "bg-muted/50 text-muted-foreground border-border/50 hover:bg-muted"
                   )}
                 >
                   {f.label}
@@ -1558,7 +1568,7 @@ const FullTestExam = () => {
 
                 return (
                   <div key={part} className="space-y-2">
-                    <p className="text-xs font-black text-muted-foreground uppercase">{partShortNames[part - 1]}</p>
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{partShortNames[part - 1]}</p>
                     <div className="flex flex-wrap gap-2">
                       {examQuestions.map((q: any) => {
                         if (q.part_number !== part) return null;
@@ -1580,11 +1590,11 @@ const FullTestExam = () => {
                               }, 100);
                             }}
                             className={cn(
-                              "w-11 h-11 text-xs font-bold rounded-xl border-2 transition-all flex items-center justify-center relative",
-                              isFlagged ? "border-[var(--duo-orange)] ring-2 ring-[var(--duo-orange)]/30" : "",
+                              "w-10 h-10 text-xs font-bold rounded-xl border transition-all duration-120 flex items-center justify-center relative active:scale-95 cursor-pointer shadow-soft-xs",
+                              isFlagged ? "border-amber-500 ring-2 ring-amber-500/30" : "",
                               hasAns
-                                ? "bg-[var(--duo-correct)] text-white border-[var(--duo-correct)] shadow-[0_2px_0_var(--duo-correct-dark)]"
-                                : "bg-white text-muted-foreground border-[var(--duo-gray)] hover:border-[var(--duo-blue)]"
+                                ? "bg-emerald-600 text-white border-emerald-600"
+                                : "bg-card text-muted-foreground border-border/70 hover:border-primary/50 hover:text-foreground"
                             )}
                           >
                             <span className="flex items-center justify-center gap-0.5">
@@ -1592,7 +1602,7 @@ const FullTestExam = () => {
                               {hasAns && <Check className="w-2.5 h-2.5 stroke-[3] text-white shrink-0" />}
                             </span>
                             {isFlagged && (
-                              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-[var(--duo-orange)] border border-white" />
+                              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-500 border border-white" />
                             )}
                           </button>
                         );
@@ -1608,28 +1618,28 @@ const FullTestExam = () => {
 
       {/* Confirmation Submit Dialog */}
       {showConfirm && (
-        <div className="fixed inset-0 bg-background/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="card-duo p-8 max-w-md w-full bg-white border-2 text-center space-y-5">
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in">
+          <div className="p-6 sm:p-8 max-w-md w-full bg-card border border-border/70 rounded-2xl text-center space-y-5 shadow-soft-2xl">
             <span className="text-4xl block">📢</span>
-            <h2 className="text-xl font-black text-foreground">Bạn có chắc muốn nộp bài?</h2>
+            <h2 className="text-xl font-bold text-foreground">Bạn có chắc muốn nộp bài?</h2>
             
-            <div className="bg-slate-50 p-4 rounded-xl text-sm font-bold text-slate-600 space-y-2 border-2 border-[var(--duo-gray)]">
+            <div className="bg-muted/40 p-4 rounded-xl text-sm font-medium text-muted-foreground space-y-2.5 border border-border/60">
               <div className="flex justify-between items-center">
                 <span>Số câu trong phần đã chọn:</span>
-                <span className="font-extrabold text-foreground">{examQuestions.length} câu</span>
+                <span className="font-bold text-foreground">{examQuestions.length} câu</span>
               </div>
               <div className="flex justify-between items-center">
                 <span>Đã trả lời:</span>
-                <span className="text-[var(--duo-correct)] font-extrabold">{answeredCount} câu</span>
+                <span className="text-emerald-600 dark:text-emerald-400 font-bold">{answeredCount} câu</span>
               </div>
               {flagged.size > 0 && (
                 <div className="flex justify-between items-center">
                   <span>Đang đánh dấu xem lại:</span>
-                  <span className="text-[var(--duo-orange)] font-extrabold">{flagged.size} câu 🚩</span>
+                  <span className="text-amber-500 font-bold">{flagged.size} câu 🚩</span>
                 </div>
               )}
               {unansweredCount > 0 && (
-                <div className="pt-2 border-t border-[var(--duo-gray)] flex items-center justify-center gap-1.5 text-[var(--duo-red)] font-extrabold text-xs">
+                <div className="pt-2 border-t border-border/60 flex items-center justify-center gap-1.5 text-rose-600 dark:text-rose-400 font-bold text-xs">
                   <AlertTriangle className="w-4 h-4 shrink-0" />
                   <span>Còn {unansweredCount} câu chưa điền đáp án!</span>
                 </div>
@@ -1639,14 +1649,14 @@ const FullTestExam = () => {
             <div className="flex gap-3 pt-2">
               <button
                 onClick={() => setShowConfirm(false)}
-                className="btn-3d btn-3d-white flex-1 py-2.5 text-sm font-bold"
+                className="flex-1 py-2.5 px-4 rounded-xl border border-border/70 bg-card hover:bg-muted text-sm font-bold transition-all duration-120 active:scale-95 cursor-pointer shadow-soft-xs"
               >
                 Làm tiếp
               </button>
               <button
                 onClick={submit}
                 disabled={submitting}
-                className="btn-3d btn-3d-primary flex-1 py-2.5 text-sm font-black"
+                className="flex-1 py-2.5 px-4 rounded-xl bg-primary text-primary-foreground text-sm font-bold transition-all duration-120 active:scale-95 disabled:opacity-50 cursor-pointer shadow-soft-sm"
               >
                 {submitting ? "Đang nộp..." : "Nộp bài"}
               </button>
@@ -1657,13 +1667,13 @@ const FullTestExam = () => {
 
       {/* Confirmation Exit Dialog */}
       {showExitConfirm && (
-        <div className="fixed inset-0 bg-background/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="card-duo p-6 sm:p-8 max-w-md w-full bg-card border-2 text-center space-y-5 shadow-2xl">
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in">
+          <div className="p-6 sm:p-8 max-w-md w-full bg-card border border-border/70 rounded-2xl text-center space-y-5 shadow-soft-2xl">
             <span className="text-4xl block">⏸</span>
-            <h2 className="text-xl font-black text-foreground">Tạm dừng hoặc Rời bài thi?</h2>
+            <h2 className="text-xl font-bold text-foreground">Tạm dừng hoặc Rời bài thi?</h2>
             
-            <p className="text-xs sm:text-sm text-muted-foreground font-medium">
-              Bạn đã hoàn thành <b>{answeredCount}/{examQuestions.length} câu</b>. Bài làm của bạn đã được tự động lưu tạm thời trên trình duyệt.
+            <p className="text-xs sm:text-sm text-muted-foreground font-medium leading-relaxed">
+              Bạn đã hoàn thành <b className="text-foreground">{answeredCount}/{examQuestions.length} câu</b>. Bài làm của bạn đã được tự động lưu tạm thời trên trình duyệt.
             </p>
 
             <div className="flex flex-col gap-2.5 pt-2">
@@ -1673,7 +1683,7 @@ const FullTestExam = () => {
                   setShowExitConfirm(false);
                   navigate(`/courses/${courseId}/fulltest`, { replace: true });
                 }}
-                className="btn-3d btn-3d-primary w-full py-3 text-sm font-black"
+                className="w-full py-3 px-4 rounded-xl bg-primary text-primary-foreground text-sm font-bold transition-all duration-120 active:scale-95 shadow-soft-sm cursor-pointer"
               >
                 💾 Tạm dừng &amp; Thoát (Lưu bài làm)
               </button>
@@ -1685,7 +1695,7 @@ const FullTestExam = () => {
                   setShowExitConfirm(false);
                   navigate(`/courses/${courseId}/fulltest`, { replace: true });
                 }}
-                className="py-2.5 text-xs text-rose-600 hover:text-rose-700 font-bold hover:underline"
+                className="py-2.5 text-xs text-rose-600 dark:text-rose-400 hover:underline font-bold cursor-pointer"
               >
                 Hủy bài thi này (Không lưu)
               </button>
@@ -1693,7 +1703,7 @@ const FullTestExam = () => {
               <button
                 type="button"
                 onClick={() => setShowExitConfirm(false)}
-                className="btn-3d btn-3d-white w-full py-2.5 text-sm font-bold"
+                className="w-full py-2.5 px-4 rounded-xl border border-border/70 bg-card hover:bg-muted text-sm font-bold transition-all duration-120 active:scale-95 shadow-soft-xs cursor-pointer"
               >
                 Ở lại làm tiếp
               </button>
@@ -1705,12 +1715,12 @@ const FullTestExam = () => {
       {/* Draft Resume Dialog */}
       {showDraftDialog && savedDraftInfo && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in">
-          <div className="card-duo p-6 sm:p-8 max-w-md w-full bg-card border-2 text-center space-y-5 shadow-2xl">
+          <div className="p-6 sm:p-8 max-w-md w-full bg-card border border-border/70 rounded-2xl text-center space-y-5 shadow-soft-2xl">
             <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto text-2xl font-black">
               ⚡
             </div>
             <div className="space-y-2">
-              <h3 className="text-xl font-black text-foreground">Bạn có bài đang làm dở</h3>
+              <h3 className="text-xl font-bold text-foreground">Bạn có bài đang làm dở</h3>
               <p className="text-sm text-muted-foreground font-medium">
                 Bạn có bài đang làm dở ({savedDraftInfo.answeredCount} câu đã trả lời). Tiếp tục hay làm mới?
               </p>
@@ -1720,14 +1730,14 @@ const FullTestExam = () => {
                 type="button"
                 onClick={discardDraft}
                 variant="outline"
-                className="flex-1 py-2.5 rounded-xl font-bold border-2"
+                className="flex-1 py-2.5 rounded-xl font-bold border border-border/70"
               >
                 Làm mới
               </Button>
               <Button
                 type="button"
                 onClick={restoreDraft}
-                className="btn-3d btn-3d-primary flex-1 py-2.5 rounded-xl font-black"
+                className="flex-1 py-2.5 rounded-xl font-bold"
               >
                 Tiếp tục
               </Button>

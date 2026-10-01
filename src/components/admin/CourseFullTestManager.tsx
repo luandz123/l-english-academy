@@ -462,7 +462,7 @@ export const CourseFullTestManager = ({ courseId, courseTitle }: CourseFullTestM
   return (
     <div className="space-y-6">
       {/* Top Banner / Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card/60 p-4 rounded-xl border border-border/70 shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card p-5 rounded-2xl border border-border/70 shadow-soft-sm">
         <div>
           <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
             <FileCheck2 className="w-5 h-5 text-primary" /> Quản lý Đề Thi Full Test ({fullTests.length})
@@ -472,7 +472,7 @@ export const CourseFullTestManager = ({ courseId, courseTitle }: CourseFullTestM
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button onClick={openCreateModal} className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm">
+          <Button onClick={openCreateModal} className="btn-3d btn-3d-primary font-bold rounded-xl active:scale-95 duration-120">
             <Plus className="w-4 h-4 mr-1.5" /> Thêm Đề Thi Mới
           </Button>
         </div>
@@ -482,12 +482,12 @@ export const CourseFullTestManager = ({ courseId, courseTitle }: CourseFullTestM
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-16 gap-3">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">Đang tải danh sách đề thi...</p>
+          <p className="text-sm text-muted-foreground font-medium">Đang tải danh sách đề thi...</p>
         </div>
       ) : fullTests.length === 0 ? (
-        <Card className="border-dashed border-2 bg-muted/20">
+        <Card className="border border-dashed border-border/70 bg-muted/15 rounded-2xl shadow-soft-xs">
           <CardContent className="flex flex-col items-center justify-center py-16 text-center space-y-4">
-            <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
+            <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shadow-soft-xs">
               <FileText className="w-7 h-7" />
             </div>
             <div className="space-y-1">
@@ -496,7 +496,7 @@ export const CourseFullTestManager = ({ courseId, courseTitle }: CourseFullTestM
                 Hãy tạo đề thi mới để học viên có thể luyện tập đề thi thử TOEIC 200 câu sát thực tế.
               </p>
             </div>
-            <Button onClick={openCreateModal}>
+            <Button onClick={openCreateModal} className="btn-3d btn-3d-primary font-bold rounded-xl active:scale-95 duration-120">
               <Plus className="w-4 h-4 mr-2" /> Tạo Đề Thi Đầu Tiên
             </Button>
           </CardContent>
@@ -513,21 +513,21 @@ export const CourseFullTestManager = ({ courseId, courseTitle }: CourseFullTestM
             return (
               <Card 
                 key={test.id} 
-                className="overflow-hidden border border-border/80 hover:border-primary/50 transition-all duration-200 hover:shadow-md bg-card/80 flex flex-col justify-between"
+                className="overflow-hidden border border-border/70 hover:border-primary/50 transition-all duration-200 hover:shadow-soft-md bg-card rounded-2xl flex flex-col justify-between"
               >
                 <div>
                   <CardHeader className="p-5 pb-3">
                     <div className="flex items-start justify-between gap-3">
                       <div className="space-y-1 flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <Badge variant="outline" className="font-semibold text-xs border-primary/30 text-primary bg-primary/5">
+                          <Badge variant="outline" className="font-semibold text-xs border-primary/30 text-primary bg-primary/5 rounded-lg">
                             #{test.display_order || idx + 1}
                           </Badge>
-                          <Badge variant="secondary" className="text-xs">
+                          <Badge variant="secondary" className="text-xs rounded-lg font-semibold">
                             {categoryLabels[test.category] || test.category || "2026"}
                           </Badge>
                           {test.audio_url && (
-                            <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-600 border-emerald-500/20 flex items-center gap-1">
+                            <Badge variant="outline" className="text-xs bg-emerald-500/10 text-emerald-600 border-emerald-500/20 flex items-center gap-1 rounded-lg">
                               <Volume2 className="w-3 h-3" /> Audio sẵn sàng
                             </Badge>
                           )}
@@ -545,7 +545,7 @@ export const CourseFullTestManager = ({ courseId, courseTitle }: CourseFullTestM
                   </CardHeader>
 
                   <CardContent className="p-5 pt-0 space-y-3">
-                    <div className="grid grid-cols-2 gap-2 text-xs bg-muted/30 p-2.5 rounded-lg border border-border/50">
+                    <div className="grid grid-cols-2 gap-2 text-xs bg-muted/30 p-3 rounded-xl border border-border/50">
                       <div className="flex items-center gap-1.5 text-muted-foreground">
                         <ListOrdered className="w-3.5 h-3.5 text-primary" />
                         <span>Số câu hỏi: <strong className="text-foreground">{totalQuestions || test.total_questions || 200} câu</strong></span>
@@ -568,7 +568,7 @@ export const CourseFullTestManager = ({ courseId, courseTitle }: CourseFullTestM
                 <div className="p-4 border-t border-border/60 bg-muted/10 flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5 flex-wrap">
                     {/* Direct to Questions Editor */}
-                    <Button size="sm" asChild className="text-xs h-8 bg-primary hover:bg-primary/90">
+                    <Button size="sm" asChild className="text-xs h-8 btn-3d btn-3d-primary font-bold rounded-xl active:scale-95 duration-120">
                       <Link to={`/admin/fulltests/${test.id}/questions`}>
                         <Edit3 className="w-3.5 h-3.5 mr-1" /> Sửa 200 câu hỏi
                       </Link>
@@ -579,10 +579,10 @@ export const CourseFullTestManager = ({ courseId, courseTitle }: CourseFullTestM
                       size="sm" 
                       variant="outline" 
                       onClick={() => openImportModal(test)} 
-                      className="text-xs h-8 border-border hover:bg-muted"
+                      className="text-xs h-8 border-border/80 hover:bg-muted font-semibold rounded-xl active:scale-95 duration-120"
                       title="Nhập câu hỏi từ file JSON"
                     >
-                      <UploadCloud className="w-3.5 h-3.5 mr-1" /> Nhập JSON
+                      <UploadCloud className="w-3.5 h-3.5 mr-1 text-primary" /> Nhập JSON
                     </Button>
 
                     {/* Preview Student Test */}
@@ -590,10 +590,10 @@ export const CourseFullTestManager = ({ courseId, courseTitle }: CourseFullTestM
                       size="sm" 
                       variant="ghost" 
                       asChild 
-                      className="text-xs h-8 text-muted-foreground hover:text-foreground"
+                      className="text-xs h-8 text-muted-foreground hover:text-foreground font-semibold rounded-xl active:scale-95 duration-120"
                     >
                       <Link to={`/courses/${courseId}/fulltest/${test.id}`} target="_blank">
-                        <Eye className="w-3.5 h-3.5 mr-1" /> Thi thử <ExternalLink className="w-2.5 h-2.5 ml-0.5 opacity-60" />
+                        <Eye className="w-3.5 h-3.5 mr-1 text-primary" /> Thi thử <ExternalLink className="w-2.5 h-2.5 ml-0.5 opacity-60" />
                       </Link>
                     </Button>
                   </div>
@@ -603,7 +603,7 @@ export const CourseFullTestManager = ({ courseId, courseTitle }: CourseFullTestM
                       size="icon" 
                       variant="ghost" 
                       onClick={() => openEditModal(test)}
-                      className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                      className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-xl active:scale-95 duration-120"
                       title="Sửa thông tin đề thi"
                     >
                       <Edit3 className="w-3.5 h-3.5" />
@@ -616,7 +616,7 @@ export const CourseFullTestManager = ({ courseId, courseTitle }: CourseFullTestM
                           deleteMutation.mutate(test.id);
                         }
                       }}
-                      className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                      className="h-8 w-8 text-destructive hover:bg-destructive/10 rounded-xl active:scale-95 duration-120"
                       title="Xóa đề thi"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -636,9 +636,9 @@ export const CourseFullTestManager = ({ courseId, courseTitle }: CourseFullTestM
           setIsEditOpen(false);
         }
       }}>
-        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="rounded-2xl border-border/80 shadow-soft-xl max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold">
+            <DialogTitle className="text-lg font-bold text-foreground">
               {isEditOpen ? "Chỉnh sửa Thông tin Đề Thi" : "Thêm Đề Thi Mới"}
             </DialogTitle>
             <DialogDescription className="text-xs">
@@ -648,24 +648,24 @@ export const CourseFullTestManager = ({ courseId, courseTitle }: CourseFullTestM
 
           <div className="space-y-4 py-3">
             <div className="space-y-1.5">
-              <Label htmlFor="test-title" className="text-xs font-semibold">Tên đề thi *</Label>
+              <Label htmlFor="test-title" className="text-xs font-bold text-foreground">Tên đề thi (*)</Label>
               <Input
                 id="test-title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Ví dụ: TOEIC 2026 Practice Test 01"
-                className="text-sm"
+                className="text-sm rounded-xl border-border/80"
               />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label htmlFor="test-category" className="text-xs font-semibold">Bộ đề / Năm thi</Label>
+                <Label htmlFor="test-category" className="text-xs font-bold text-foreground">Bộ đề / Năm thi</Label>
                 <Select value={category} onValueChange={setCategory}>
-                  <SelectTrigger id="test-category" className="text-sm">
+                  <SelectTrigger id="test-category" className="text-sm rounded-xl border-border/80">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="rounded-xl">
                     <SelectItem value="2026">Bộ Đề TOEIC 2026</SelectItem>
                     <SelectItem value="real_2024_2026">Đề Thi Thực Tế 2024 - 2026</SelectItem>
                     <SelectItem value="2025">Bộ Đề TOEIC 2025</SelectItem>
@@ -676,34 +676,34 @@ export const CourseFullTestManager = ({ courseId, courseTitle }: CourseFullTestM
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="display-order" className="text-xs font-semibold">Thứ tự hiển thị</Label>
+                <Label htmlFor="display-order" className="text-xs font-bold text-foreground">Thứ tự hiển thị</Label>
                 <Input
                   id="display-order"
                   type="number"
                   value={displayOrder}
                   onChange={(e) => setDisplayOrder(Number(e.target.value))}
-                  className="text-sm"
+                  className="text-sm rounded-xl border-border/80"
                 />
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="test-description" className="text-xs font-semibold">Mô tả / Ghi chú</Label>
+              <Label htmlFor="test-description" className="text-xs font-bold text-foreground">Mô tả / Ghi chú</Label>
               <Textarea
                 id="test-description"
                 rows={2}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Ví dụ: Đề thi thử ETS 2026 format mới, kiểm tra Listening & Reading..."
-                className="text-sm"
+                className="text-sm rounded-xl border-border/80"
               />
             </div>
 
             {/* Audio URL + File Uploader */}
             <div className="space-y-1.5">
-              <Label htmlFor="audio-url" className="text-xs font-semibold flex items-center justify-between">
+              <Label htmlFor="audio-url" className="text-xs font-bold text-foreground flex items-center justify-between">
                 <span>File nghe tổng thể (Audio Listening)</span>
-                {audioUrl && <span className="text-emerald-600 font-normal">✓ Đã gắn link</span>}
+                {audioUrl && <span className="text-emerald-600 dark:text-emerald-400 font-semibold">✓ Đã gắn link</span>}
               </Label>
               <div className="flex gap-2">
                 <Input
@@ -711,9 +711,9 @@ export const CourseFullTestManager = ({ courseId, courseTitle }: CourseFullTestM
                   value={audioUrl}
                   onChange={(e) => setAudioUrl(e.target.value)}
                   placeholder="https://storage.googleapis.com/.../audio.mp3"
-                  className="text-sm flex-1 font-mono text-xs"
+                  className="text-sm flex-1 font-mono text-xs rounded-xl border-border/80"
                 />
-                <Button variant="outline" className="shrink-0 text-xs" asChild disabled={isAudioUploading}>
+                <Button variant="outline" className="shrink-0 text-xs rounded-xl font-semibold active:scale-95 duration-120" asChild disabled={isAudioUploading}>
                   <label className="cursor-pointer">
                     {isAudioUploading ? (
                       <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" />
@@ -732,27 +732,28 @@ export const CourseFullTestManager = ({ courseId, courseTitle }: CourseFullTestM
                 </Button>
               </div>
               {audioUrl && (
-                <div className="mt-2 p-2 bg-muted/40 rounded-lg border border-border/60">
+                <div className="mt-2 p-2 bg-muted/40 rounded-xl border border-border/60">
                   <audio controls src={audioUrl} className="w-full h-8" />
                 </div>
               )}
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="release-date" className="text-xs font-semibold">Ngày mở đề (Bỏ trống nếu mở ngay)</Label>
+              <Label htmlFor="release-date" className="text-xs font-bold text-foreground">Ngày mở đề (Bỏ trống nếu mở ngay)</Label>
               <Input
                 id="release-date"
                 type="date"
                 value={releaseDate}
                 onChange={(e) => setReleaseDate(e.target.value)}
-                className="text-sm"
+                className="text-sm rounded-xl border-border/80"
               />
             </div>
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0 pt-2 border-t">
+          <DialogFooter className="gap-2 sm:gap-0 pt-2 border-t border-border/60">
             <Button 
               variant="outline" 
+              className="rounded-xl font-semibold active:scale-95 duration-120"
               onClick={() => {
                 setIsCreateOpen(false);
                 setIsEditOpen(false);
@@ -761,6 +762,7 @@ export const CourseFullTestManager = ({ courseId, courseTitle }: CourseFullTestM
               Hủy
             </Button>
             <Button
+              className="btn-3d btn-3d-primary font-bold rounded-xl active:scale-95 duration-120"
               onClick={() => {
                 if (isEditOpen) {
                   updateMutation.mutate();
@@ -781,9 +783,9 @@ export const CourseFullTestManager = ({ courseId, courseTitle }: CourseFullTestM
 
       {/* ================= IMPORT JSON MODAL ================= */}
       <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="rounded-2xl border-border/80 shadow-soft-xl max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold flex items-center gap-2">
+            <DialogTitle className="text-lg font-bold text-foreground flex items-center gap-2">
               <UploadCloud className="w-5 h-5 text-primary" /> Nhập Câu Hỏi Cho Đề: {testForImport?.title}
             </DialogTitle>
             <DialogDescription className="text-xs">
@@ -793,30 +795,30 @@ export const CourseFullTestManager = ({ courseId, courseTitle }: CourseFullTestM
 
           <div className="space-y-4 py-3">
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">Tải lên file .json</Label>
+              <Label className="text-xs font-bold text-foreground">Tải lên file .json</Label>
               <Input
                 type="file"
                 accept=".json"
                 onChange={(e) => setImportFile(e.target.files?.[0] || null)}
-                className="text-sm"
+                className="text-sm rounded-xl border-border/80"
                 disabled={isImporting}
               />
             </div>
 
             <div className="relative flex py-1 items-center">
               <div className="flex-grow border-t border-border"></div>
-              <span className="flex-shrink mx-3 text-[11px] text-muted-foreground uppercase font-semibold">hoặc dán trực tiếp mã JSON</span>
+              <span className="flex-shrink mx-3 text-xs text-muted-foreground uppercase font-semibold">hoặc dán trực tiếp mã JSON</span>
               <div className="flex-grow border-t border-border"></div>
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">Mã JSON câu hỏi</Label>
+              <Label className="text-xs font-bold text-foreground">Mã JSON câu hỏi</Label>
               <Textarea
                 rows={8}
                 value={importJson}
                 onChange={(e) => setImportJson(e.target.value)}
                 placeholder='[{"part_number": 1, "display_order": 1, "question_text": "...", "answers": [{"answer_text": "A", "is_correct": true}]}]'
-                className="font-mono text-xs"
+                className="font-mono text-xs rounded-xl border-border/80"
                 disabled={isImporting}
               />
             </div>
@@ -834,11 +836,11 @@ export const CourseFullTestManager = ({ courseId, courseTitle }: CourseFullTestM
             )}
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0 pt-2 border-t">
-            <Button variant="outline" onClick={() => setImportDialogOpen(false)} disabled={isImporting}>
+          <DialogFooter className="gap-2 sm:gap-0 pt-2 border-t border-border/60">
+            <Button variant="outline" className="rounded-xl font-semibold active:scale-95 duration-120" onClick={() => setImportDialogOpen(false)} disabled={isImporting}>
               Hủy
             </Button>
-            <Button onClick={handleImportJSON} disabled={isImporting || (!importJson.trim() && !importFile)}>
+            <Button className="btn-3d btn-3d-primary font-bold rounded-xl active:scale-95 duration-120" onClick={handleImportJSON} disabled={isImporting || (!importJson.trim() && !importFile)}>
               {isImporting && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
               Bắt đầu Nhập dữ liệu
             </Button>

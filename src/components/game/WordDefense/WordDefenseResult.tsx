@@ -112,7 +112,7 @@ export const WordDefenseResult: React.FC<WordDefenseResultProps> = ({
         <div className="flex flex-wrap items-center justify-center gap-3 pt-4">
           <Button
             onClick={onPlayAgain}
-            className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white font-bold text-sm px-6 py-3 rounded-xl shadow-lg"
+            className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white font-bold text-sm px-6 py-3 rounded-xl shadow-lg active:scale-95 duration-120"
           >
             <RotateCcw className="w-4 h-4 mr-2" />
             Chơi Lại Trận Này
@@ -121,7 +121,7 @@ export const WordDefenseResult: React.FC<WordDefenseResultProps> = ({
           <Button
             onClick={onBackToLobby}
             variant="ghost"
-            className="text-slate-300 hover:text-white hover:bg-slate-800 text-sm font-bold px-5 py-3 rounded-xl"
+            className="text-slate-300 hover:text-white hover:bg-slate-800 text-sm font-bold px-5 py-3 rounded-xl active:scale-95 duration-120"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Về Sảnh Trò Chơi
@@ -145,19 +145,19 @@ export const WordDefenseResult: React.FC<WordDefenseResultProps> = ({
           <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-950 border border-slate-800 text-xs">
             <button
               onClick={() => setFilter('all')}
-              className={cn("px-3 py-1.5 rounded-lg font-bold transition-colors", filter === 'all' ? "bg-emerald-600 text-white" : "text-slate-400 hover:text-white")}
+              className={cn("px-3 py-1.5 rounded-lg font-bold transition-all active:scale-95", filter === 'all' ? "bg-emerald-600 text-white" : "text-slate-400 hover:text-white")}
             >
               Tất cả ({stats.wordsReviewed.length})
             </button>
             <button
               onClick={() => setFilter('hit')}
-              className={cn("px-3 py-1.5 rounded-lg font-bold transition-colors", filter === 'hit' ? "bg-green-600 text-white" : "text-slate-400 hover:text-white")}
+              className={cn("px-3 py-1.5 rounded-lg font-bold transition-all active:scale-95", filter === 'hit' ? "bg-green-600 text-white" : "text-slate-400 hover:text-white")}
             >
               Đã gõ ({stats.wordsReviewed.filter(w=>w.hit).length})
             </button>
             <button
               onClick={() => setFilter('missed')}
-              className={cn("px-3 py-1.5 rounded-lg font-bold transition-colors", filter === 'missed' ? "bg-rose-600 text-white" : "text-slate-400 hover:text-white")}
+              className={cn("px-3 py-1.5 rounded-lg font-bold transition-all active:scale-95", filter === 'missed' ? "bg-rose-600 text-white" : "text-slate-400 hover:text-white")}
             >
               Chưa gõ ({stats.wordsReviewed.filter(w=>!w.hit).length})
             </button>
@@ -171,7 +171,7 @@ export const WordDefenseResult: React.FC<WordDefenseResultProps> = ({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Tìm kiếm từ vựng, phiên âm, nghĩa tiếng Việt..."
-            className="pl-10 bg-slate-950 border-slate-800 text-white text-xs rounded-xl"
+            className="pl-10 bg-slate-950 border-slate-800 text-white text-base sm:text-xs rounded-xl"
           />
         </div>
 
@@ -196,7 +196,7 @@ export const WordDefenseResult: React.FC<WordDefenseResultProps> = ({
                     </span>
                   )}
                   {item.hit ? (
-                    <span className="text-[10px] font-black uppercase text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded">
+                    <span className="text-xs font-bold uppercase text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded-md border border-emerald-800/40">
                       Đã triệu hồi
                     </span>
                   ) : null}
@@ -207,7 +207,7 @@ export const WordDefenseResult: React.FC<WordDefenseResultProps> = ({
               <button
                 onClick={() => handlePlayAudio(item.word)}
                 className={cn(
-                  "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-all",
+                  "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-all active:scale-90 duration-120",
                   playingWord === item.word 
                     ? "bg-emerald-500 text-slate-950 scale-105" 
                     : "bg-slate-900 border border-slate-700 text-slate-300 hover:text-white"

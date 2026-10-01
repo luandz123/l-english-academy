@@ -79,60 +79,72 @@ const AdminSettings = () => {
         <h1 className="text-2xl font-bold text-foreground">Cài đặt Hệ thống</h1>
 
         <Tabs defaultValue="platform">
-          <TabsList>
-            <TabsTrigger value="platform">Nền tảng</TabsTrigger>
-            <TabsTrigger value="admins">Tài khoản Admin</TabsTrigger>
+          <TabsList className="bg-muted/60 p-1 rounded-2xl border border-border/60 h-auto">
+            <TabsTrigger value="platform" className="rounded-xl font-bold py-2 px-4 data-[state=active]:bg-card data-[state=active]:shadow-soft-xs">
+              Nền tảng
+            </TabsTrigger>
+            <TabsTrigger value="admins" className="rounded-xl font-bold py-2 px-4 data-[state=active]:bg-card data-[state=active]:shadow-soft-xs">
+              Tài khoản Admin
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="platform" className="mt-4">
-            <div className="bg-card rounded-xl border p-6 space-y-4">
+            <div className="bg-card rounded-2xl border border-border/70 p-6 shadow-soft-sm space-y-4">
               <div className="space-y-2">
-                <Label>Tên nền tảng</Label>
-                <Input value={platformName} onChange={(e) => setPlatformName(e.target.value)} />
+                <Label className="font-bold">Tên nền tảng</Label>
+                <Input value={platformName} onChange={(e) => setPlatformName(e.target.value)} className="font-medium" />
               </div>
               <div className="space-y-2">
-                <Label>Tagline</Label>
-                <Input value={tagline} onChange={(e) => setTagline(e.target.value)} />
+                <Label className="font-bold">Tagline</Label>
+                <Input value={tagline} onChange={(e) => setTagline(e.target.value)} className="font-medium" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Màu chủ đạo</Label>
-                  <div className="flex gap-2">
-                    <div className="w-10 h-10 rounded-lg border" style={{ backgroundColor: primaryColor }} />
-                    <Input value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} className="flex-1" />
+                  <Label className="font-bold">Màu chủ đạo</Label>
+                  <div className="flex gap-2 items-center">
+                    <div className="w-10 h-10 rounded-xl border border-border/80 shadow-soft-xs shrink-0" style={{ backgroundColor: primaryColor }} />
+                    <Input value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} className="flex-1 font-mono text-sm" />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>Màu accent</Label>
-                  <div className="flex gap-2">
-                    <div className="w-10 h-10 rounded-lg border" style={{ backgroundColor: accentColor }} />
-                    <Input value={accentColor} onChange={(e) => setAccentColor(e.target.value)} className="flex-1" />
+                  <Label className="font-bold">Màu accent</Label>
+                  <div className="flex gap-2 items-center">
+                    <div className="w-10 h-10 rounded-xl border border-border/80 shadow-soft-xs shrink-0" style={{ backgroundColor: accentColor }} />
+                    <Input value={accentColor} onChange={(e) => setAccentColor(e.target.value)} className="flex-1 font-mono text-sm" />
                   </div>
                 </div>
               </div>
-              <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>Lưu thay đổi</Button>
+              <div className="pt-2">
+                <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} className="btn-3d-green font-black rounded-xl active:scale-95 duration-120">
+                  {saveMutation.isPending ? "Đang lưu..." : "Lưu thay đổi"}
+                </Button>
+              </div>
             </div>
           </TabsContent>
 
           <TabsContent value="admins" className="mt-4">
-            <div className="bg-card rounded-xl border overflow-hidden">
+            <div className="bg-card rounded-2xl border border-border/70 overflow-hidden shadow-soft-sm">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b bg-muted/50">
-                    <th className="text-left p-3 font-semibold text-foreground">Tên</th>
-                    <th className="text-center p-3 font-semibold text-foreground">Vai trò</th>
-                    <th className="text-center p-3 font-semibold text-foreground">Ngày tạo</th>
+                  <tr className="border-b border-border/70 bg-muted/50 text-xs font-black uppercase text-muted-foreground">
+                    <th className="text-left px-4 py-3">Tên</th>
+                    <th className="text-center px-4 py-3">Vai trò</th>
+                    <th className="text-center px-4 py-3">Ngày tạo</th>
                   </tr>
                 </thead>
                 <tbody>
                   {admins.map((a: any) => (
-                    <tr key={a.id} className="border-b last:border-0 hover:bg-muted/30">
-                      <td className="p-3 font-medium text-foreground">{a.full_name ?? "—"}</td>
-                      <td className="p-3 text-center text-primary">Admin</td>
-                      <td className="p-3 text-center text-muted-foreground">{a.created_at ? new Date(a.created_at).toLocaleDateString("vi-VN") : ""}</td>
+                    <tr key={a.id} className="border-b border-border/60 last:border-0 hover:bg-muted/30 transition-colors">
+                      <td className="px-4 py-3.5 font-bold text-foreground">{a.full_name ?? "—"}</td>
+                      <td className="px-4 py-3.5 text-center font-bold text-primary">Admin</td>
+                      <td className="px-4 py-3.5 text-center text-muted-foreground">{a.created_at ? new Date(a.created_at).toLocaleDateString("vi-VN") : ""}</td>
                     </tr>
                   ))}
-                  {admins.length === 0 && <tr><td colSpan={3} className="p-4 text-center text-muted-foreground">Chưa có admin</td></tr>}
+                  {admins.length === 0 && (
+                    <tr>
+                      <td colSpan={3} className="px-4 py-12 text-center text-muted-foreground font-semibold">Chưa có admin</td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>

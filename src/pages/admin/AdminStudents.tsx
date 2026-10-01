@@ -105,29 +105,29 @@ const AdminStudents = () => {
           </div>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-gradient-to-r from-primary to-accent hover:opacity-90">
+              <Button className="bg-gradient-to-r from-primary to-accent hover:opacity-90 rounded-xl shadow-soft-sm transition-all duration-120 active:scale-95">
                 <Plus className="w-4 h-4 mr-2" /> Tạo học viên
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-md">
+            <DialogContent className="max-w-md rounded-2xl border border-border/70 shadow-soft-2xl bg-card">
               <DialogHeader>
-                <DialogTitle>Tạo tài khoản học viên mới</DialogTitle>
+                <DialogTitle className="font-bold text-foreground">Tạo tài khoản học viên mới</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 pt-4">
                 <div className="space-y-2">
-                  <Label>Họ và tên</Label>
-                  <Input placeholder="Nguyễn Văn A" value={fullName} onChange={(e) => setFullName(e.target.value)} />
+                  <Label className="font-bold text-xs uppercase tracking-wider text-muted-foreground">Họ và tên</Label>
+                  <Input placeholder="Nguyễn Văn A" value={fullName} onChange={(e) => setFullName(e.target.value)} className="rounded-xl border-border/70 text-base" />
                 </div>
                 <div className="space-y-2">
-                  <Label>Email</Label>
-                  <Input type="email" placeholder="student@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+                  <Label className="font-bold text-xs uppercase tracking-wider text-muted-foreground">Email</Label>
+                  <Input type="email" placeholder="student@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className="rounded-xl border-border/70 text-base" />
                 </div>
                 <div className="space-y-2">
-                  <Label>Mật khẩu</Label>
-                  <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                  <Label className="font-bold text-xs uppercase tracking-wider text-muted-foreground">Mật khẩu</Label>
+                  <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="rounded-xl border-border/70 text-base" />
                 </div>
                 <Button 
-                  className="w-full" 
+                  className="w-full rounded-xl shadow-soft-sm transition-all duration-120 active:scale-95 font-bold" 
                   onClick={() => createStudentMutation.mutate()} 
                   disabled={createStudentMutation.isPending || !email || !password || !fullName}
                 >
@@ -140,40 +140,40 @@ const AdminStudents = () => {
 
         <div className="relative max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input placeholder="Tìm theo tên hoặc email..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <Input placeholder="Tìm theo tên hoặc email..." className="pl-9 rounded-xl border-border/70 shadow-soft-xs text-base" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
 
         {isLoading ? (
-          <div className="space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
+          <div className="space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-12 w-full rounded-xl" />)}</div>
         ) : (
-          <div className="bg-card rounded-xl border overflow-hidden">
+          <div className="bg-card rounded-2xl border border-border/70 shadow-soft-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b bg-muted/50">
-                    <th className="text-left p-3 font-semibold text-foreground">#</th>
-                    <th className="text-left p-3 font-semibold text-foreground">Họ tên</th>
-                    <th className="text-left p-3 font-semibold text-foreground">Email</th>
-                    <th className="text-center p-3 font-semibold text-foreground">Khóa</th>
-                    <th className="text-center p-3 font-semibold text-foreground">Ngày ĐK</th>
-                    <th className="text-center p-3 font-semibold text-foreground">Trạng thái</th>
-                    <th className="text-center p-3 font-semibold text-foreground">Hành động</th>
+                  <tr className="border-b border-border/60 bg-muted/40">
+                    <th className="text-left p-3.5 font-bold text-foreground">#</th>
+                    <th className="text-left p-3.5 font-bold text-foreground">Họ tên</th>
+                    <th className="text-left p-3.5 font-bold text-foreground">Email</th>
+                    <th className="text-center p-3.5 font-bold text-foreground">Khóa</th>
+                    <th className="text-center p-3.5 font-bold text-foreground">Ngày ĐK</th>
+                    <th className="text-center p-3.5 font-bold text-foreground">Trạng thái</th>
+                    <th className="text-center p-3.5 font-bold text-foreground">Hành động</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filtered.map((s, i) => (
-                    <tr key={s.id} className="border-b last:border-0 hover:bg-muted/30">
-                      <td className="p-3 text-muted-foreground">{i + 1}</td>
-                      <td className="p-3 font-medium text-foreground">{s.full_name ?? "—"}</td>
-                      <td className="p-3 text-foreground font-mono text-xs">{s.email ?? "—"}</td>
-                      <td className="p-3 text-center text-foreground">{s.courseCount} khóa</td>
-                      <td className="p-3 text-center text-muted-foreground">{s.created_at ? new Date(s.created_at).toLocaleDateString("vi-VN") : ""}</td>
-                      <td className="p-3 text-center">
+                    <tr key={s.id} className="border-b border-border/50 last:border-0 hover:bg-muted/40 transition-colors">
+                      <td className="p-3.5 text-muted-foreground font-semibold">{i + 1}</td>
+                      <td className="p-3.5 font-bold text-foreground">{s.full_name ?? "—"}</td>
+                      <td className="p-3.5 text-foreground font-mono text-xs">{s.email ?? "—"}</td>
+                      <td className="p-3.5 text-center font-bold text-foreground">{s.courseCount} khóa</td>
+                      <td className="p-3.5 text-center text-muted-foreground text-xs">{s.created_at ? new Date(s.created_at).toLocaleDateString("vi-VN") : ""}</td>
+                      <td className="p-3.5 text-center">
                         <Badge className={statusMap[s.status]?.color}>{statusMap[s.status]?.label}</Badge>
                       </td>
-                      <td className="p-3 text-center">
-                        <Button size="icon" variant="ghost" asChild>
-                          <Link to={`/admin/students/${s.user_id}`}><Eye className="w-4 h-4" /></Link>
+                      <td className="p-3.5 text-center">
+                        <Button size="icon" variant="ghost" className="rounded-xl h-8 w-8 hover:bg-muted transition-all duration-120 active:scale-95" asChild>
+                          <Link to={`/admin/students/${s.user_id}`}><Eye className="w-4 h-4 text-primary" /></Link>
                         </Button>
                       </td>
                     </tr>

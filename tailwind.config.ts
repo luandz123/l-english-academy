@@ -77,6 +77,22 @@ export default {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      boxShadow: {
+        "soft-sm": "var(--shadow-soft-sm)",
+        "soft-md": "var(--shadow-soft-md)",
+        "soft-lg": "var(--shadow-soft-lg)",
+      },
+      transitionTimingFunction: {
+        "out-cubic": "var(--ease-out-cubic)",
+        "in-cubic": "var(--ease-in-cubic)",
+        "standard-cubic": "var(--ease-standard-cubic)",
+      },
+      transitionDuration: {
+        micro: "var(--duration-micro)",
+        sm: "var(--duration-sm)",
+        md: "var(--duration-md)",
+        lg: "var(--duration-lg)",
+      },
       keyframes: {
         "accordion-down": {
           from: { height: "0" },

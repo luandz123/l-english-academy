@@ -131,7 +131,7 @@ export const DailyQuestsWidget: React.FC = () => {
                 {/* Progress bar and Button */}
                 <div className="space-y-2.5 pt-1">
                   <div className="space-y-1">
-                    <div className="flex justify-between text-[11px] font-black text-muted-foreground">
+                    <div className="flex justify-between text-xs font-bold text-muted-foreground">
                       <span>Tiến độ</span>
                       <span className={isDone ? "text-emerald-600 dark:text-emerald-400" : ""}>
                         {quest.current}/{quest.target}

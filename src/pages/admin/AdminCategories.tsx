@@ -164,15 +164,15 @@ const AdminCategories = () => {
             Quản lý các loại khóa học hiển thị trên trang chủ
           </p>
         </div>
-        <Button onClick={openNewDialog} className="btn-3d-green font-black rounded-xl">
+        <Button onClick={openNewDialog} className="btn-3d-green font-black rounded-xl active:scale-95 duration-120">
           <Plus className="w-4 h-4 mr-2" /> Thêm Danh Mục
         </Button>
       </div>
 
-      <div className="bg-card border-2 border-[var(--duo-gray)] rounded-2xl overflow-hidden shadow-[0_4px_0_var(--duo-gray)]">
+      <div className="bg-card border border-border/70 rounded-2xl overflow-hidden shadow-soft-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
-            <thead className="text-xs font-black uppercase bg-muted/50 text-muted-foreground border-b-2 border-[var(--duo-gray)]">
+            <thead className="text-xs font-black uppercase bg-muted/50 text-muted-foreground border-b border-border/70">
               <tr>
                 <th className="px-4 py-3">TT</th>
                 <th className="px-4 py-3">Tên Danh Mục</th>
@@ -199,7 +199,7 @@ const AdminCategories = () => {
                 categories.map((cat, index) => (
                   <tr
                     key={cat.id}
-                    className="border-b border-[var(--duo-gray)]/30 hover:bg-muted/30 transition-colors"
+                    className="border-b border-border/60 hover:bg-muted/30 transition-colors"
                   >
                     <td className="px-4 py-4 font-black text-muted-foreground w-16">
                       <div className="flex items-center gap-1">
@@ -227,7 +227,7 @@ const AdminCategories = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="font-bold h-8"
+                          className="font-bold h-8 active:scale-95 duration-120 rounded-lg"
                           onClick={() => openEditDialog(cat)}
                         >
                           <Pencil className="w-3 h-3 mr-1" /> Sửa
@@ -237,23 +237,23 @@ const AdminCategories = () => {
                             <Button
                               variant="destructive"
                               size="sm"
-                              className="font-bold h-8 bg-rose-100 text-rose-600 hover:bg-rose-200 border-none cursor-pointer"
+                              className="font-bold h-8 bg-destructive/10 text-destructive hover:bg-destructive/20 active:scale-95 duration-120 rounded-lg border-none cursor-pointer"
                             >
                               <Trash2 className="w-3 h-3" />
                             </Button>
                           </AlertDialogTrigger>
-                          <AlertDialogContent className="border-2 border-border rounded-2xl">
+                          <AlertDialogContent className="border border-border/80 shadow-soft-xl rounded-2xl">
                             <AlertDialogHeader>
-                              <AlertDialogTitle>Xác nhận xóa danh mục?</AlertDialogTitle>
-                              <AlertDialogDescription>
+                              <AlertDialogTitle className="font-black text-lg">Xác nhận xóa danh mục?</AlertDialogTitle>
+                              <AlertDialogDescription className="text-muted-foreground">
                                 Bạn có chắc muốn xóa danh mục <strong>"{cat.name}"</strong>? Các khóa học thuộc danh mục này sẽ bị mất liên kết phân loại.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
-                              <AlertDialogCancel>Hủy</AlertDialogCancel>
+                              <AlertDialogCancel className="rounded-xl font-bold">Hủy</AlertDialogCancel>
                               <AlertDialogAction
                                 onClick={() => deleteMutation.mutate(cat.id)}
-                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-xl font-bold active:scale-95 duration-120"
                               >
                                 Xóa danh mục
                               </AlertDialogAction>
@@ -271,7 +271,7 @@ const AdminCategories = () => {
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[425px] border-2 border-[var(--duo-gray)] rounded-2xl">
+        <DialogContent className="sm:max-w-[425px] border border-border/80 shadow-soft-2xl rounded-2xl">
           <DialogHeader>
             <DialogTitle className="text-xl font-black">
               {editingCat?.id ? "Sửa Danh Mục" : "Thêm Danh Mục Mới"}
@@ -315,7 +315,7 @@ const AdminCategories = () => {
                 />
               </div>
             </div>
-            <div className="flex items-center justify-between mt-2 p-3 bg-muted rounded-xl border border-[var(--duo-gray)]">
+            <div className="flex items-center justify-between mt-2 p-3 bg-muted rounded-xl border border-border/70">
               <Label className="font-bold cursor-pointer">Trạng thái hiển thị</Label>
               <Switch
                 checked={editingCat?.is_active || false}
@@ -324,10 +324,10 @@ const AdminCategories = () => {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" className="font-bold rounded-xl" onClick={() => setIsDialogOpen(false)}>
+            <Button variant="ghost" className="font-bold rounded-xl active:scale-95 duration-120" onClick={() => setIsDialogOpen(false)}>
               Hủy
             </Button>
-            <Button onClick={handleSave} disabled={saveMutation.isPending} className="btn-3d-green font-black rounded-xl">
+            <Button onClick={handleSave} disabled={saveMutation.isPending} className="btn-3d-green font-black rounded-xl active:scale-95 duration-120">
               {saveMutation.isPending ? "Đang lưu..." : "Lưu Thay Đổi"}
             </Button>
           </DialogFooter>

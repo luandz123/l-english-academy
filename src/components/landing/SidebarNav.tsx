@@ -50,8 +50,8 @@ const getCategoryLink = (cat: { id: number; slug: string }): string | null => {
 };
 
 const getCategoryBadge = (slug: string) => {
-  if (slug === "listening") return { text: "HOT", color: "bg-rose-100 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400" };
-  if (slug === "fulltest") return { text: "ETS", color: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400" };
+  if (slug === "listening") return { text: "HOT", color: "bg-orange-50 text-orange-600 dark:bg-orange-950/50 dark:text-orange-400 border border-orange-200 dark:border-orange-800/60" };
+  if (slug === "fulltest") return { text: "ETS", color: "bg-slate-100 text-slate-600 dark:bg-zinc-800 dark:text-zinc-300 border border-slate-200 dark:border-zinc-700" };
   return null;
 };
 
@@ -142,8 +142,8 @@ export const SidebarNav = ({ isOpen = false, onClose }: SidebarNavProps) => {
               </div>
               <span className="truncate">Khu Trò Chơi</span>
             </div>
-            <span className="shrink-0 whitespace-nowrap px-1.5 py-0.5 rounded text-xs font-extrabold bg-cyan-100 text-cyan-700 dark:bg-cyan-950/60 dark:text-cyan-300">
-              ARCADE
+            <span className="shrink-0 whitespace-nowrap text-xs font-semibold text-slate-400 dark:text-zinc-500">
+              Arcade
             </span>
           </Link>
 

@@ -14,7 +14,7 @@ const Logo = ({ className = "", imgClassName = "w-10 h-10", showText = true }: L
         <img src={logoImg} alt="L-English Logo" className="w-full h-full object-cover" />
       </div>
       {showText && (
-        <span className="text-xl font-black tracking-tight bg-gradient-to-r from-[var(--duo-green)] to-[var(--duo-orange)] bg-clip-text text-transparent">
+        <span className="text-xl font-black tracking-normal bg-gradient-to-r from-[var(--duo-green)] to-[var(--duo-orange)] bg-clip-text text-transparent">
           L-English
         </span>
       )}
