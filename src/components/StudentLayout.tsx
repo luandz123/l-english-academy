@@ -14,7 +14,8 @@ import {
   Zap,
   Gamepad2,
   PanelLeftClose,
-  PanelLeftOpen
+  PanelLeftOpen,
+  Home
 } from "lucide-react";
 import React, { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -32,19 +33,20 @@ import {
 import GamificationChips from "@/components/GamificationChips";
 
 const navItems = [
+  { to: "/library", label: "Kho khóa học", icon: BookOpen, badge: "Bàn học", badgeColor: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20" },
   { to: "/fulltests", label: "Luyện đề Full Test", icon: FileCheck2, badge: "Thi thử", badgeColor: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" },
   { to: "/listening", label: "Luyện nghe điền từ", icon: Headphones, badge: "Dictation", badgeColor: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20" },
   { to: "/part2-coach", label: "Phản Xạ Part 2", icon: Zap, badge: "8 Bước", badgeColor: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20" },
   { to: "/games", label: "Khu Trò Chơi", icon: Gamepad2, badge: "Arcade", badgeColor: "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20" },
-  { to: "/library", label: "Kho khóa học", icon: BookOpen },
   { to: "/profile", label: "Hồ sơ cá nhân", icon: User },
+  { to: "/", label: "Về Trang chủ", icon: Home },
 ];
 
 const mobileNavItems = [
-  { to: "/part2-coach", label: "Phản Xạ P2", icon: Zap, isHighlight: true },
+  { to: "/library", label: "Bàn học", icon: BookOpen },
   { to: "/fulltests", label: "Luyện đề", icon: FileCheck2 },
   { to: "/listening", label: "Điền từ", icon: Headphones },
-  { to: "/games", label: "Trò Chơi", icon: Gamepad2 },
+  { to: "/part2-coach", label: "Part 2", icon: Zap, isHighlight: true },
   { to: "/profile", label: "Hồ sơ", icon: User },
 ];
 
@@ -270,8 +272,9 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
             </Button>
             
             <div className="hidden sm:flex items-center gap-2 text-xs font-medium text-muted-foreground overflow-hidden">
-              <Link to="/profile" className="hover:text-foreground transition-colors" title="Hồ sơ cá nhân">
-                <User className="w-3.5 h-3.5" />
+              <Link to="/" className="hover:text-foreground transition-colors flex items-center gap-1" title="Về Trang chủ">
+                <Home className="w-3.5 h-3.5" />
+                <span>Trang chủ</span>
               </Link>
               {breadcrumbs.map((crumb, i) => (
                 <React.Fragment key={crumb.path}>
