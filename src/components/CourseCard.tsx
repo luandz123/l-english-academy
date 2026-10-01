@@ -34,7 +34,7 @@ export const CourseCard: React.FC<{ course: CourseRow }> = ({ course: c }) => {
   return (
     <Link
       to={courseUrl}
-      className="group bg-card rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-2xs hover:shadow-md hover:border-blue-500/50 dark:hover:border-blue-500/50 transition-all duration-200 flex flex-col h-full overflow-hidden cursor-pointer"
+      className="group bg-card rounded-[1.35rem] border border-slate-200/80 dark:border-zinc-800 shadow-sm hover:shadow-[0_18px_35px_-18px_rgba(37,99,235,.5)] hover:-translate-y-1 hover:border-blue-300 dark:hover:border-blue-500/50 transition-all duration-300 flex flex-col h-full overflow-hidden cursor-pointer"
     >
       {/* Thumbnail Banner */}
       <div className="aspect-video w-full relative overflow-hidden bg-slate-100 dark:bg-zinc-800">

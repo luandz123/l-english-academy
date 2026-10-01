@@ -76,7 +76,7 @@ export const CourseShowcase = () => {
       {/* ========================================================================= */}
       <section
         id="section-fulltest"
-        className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200 dark:border-zinc-800 p-5 sm:p-7 md:p-8 shadow-sm space-y-6 scroll-mt-20 sm:scroll-mt-24"
+        className="bg-white/95 dark:bg-zinc-900 rounded-[1.75rem] border border-blue-100/80 dark:border-zinc-800 p-4 sm:p-7 md:p-8 shadow-[0_16px_50px_-38px_rgba(37,99,235,.65)] space-y-6 scroll-mt-20 sm:scroll-mt-24"
       >
         {/* Header Kệ Section */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-zinc-800">
@@ -126,7 +126,7 @@ export const CourseShowcase = () => {
       {/* ========================================================================= */}
       <section
         id="section-video"
-        className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200 dark:border-zinc-800 p-5 sm:p-7 md:p-8 shadow-sm space-y-6 scroll-mt-20 sm:scroll-mt-24"
+        className="bg-white/95 dark:bg-zinc-900 rounded-[1.75rem] border border-blue-100/80 dark:border-zinc-800 p-4 sm:p-7 md:p-8 shadow-[0_16px_50px_-38px_rgba(37,99,235,.65)] space-y-6 scroll-mt-20 sm:scroll-mt-24"
       >
         {/* Header Kệ Section */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-zinc-800">
@@ -176,7 +176,7 @@ export const CourseShowcase = () => {
       {/* ========================================================================= */}
       <section
         id="section-listening"
-        className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200 dark:border-zinc-800 p-5 sm:p-7 md:p-8 shadow-sm space-y-6 scroll-mt-20 sm:scroll-mt-24"
+        className="bg-white/95 dark:bg-zinc-900 rounded-[1.75rem] border border-blue-100/80 dark:border-zinc-800 p-4 sm:p-7 md:p-8 shadow-[0_16px_50px_-38px_rgba(37,99,235,.65)] space-y-6 scroll-mt-20 sm:scroll-mt-24"
       >
         {/* Header Kệ Section */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-zinc-800">

@@ -111,7 +111,7 @@ export const HeroCarousel = () => {
   const slide = slides[currentIndex];
 
   return (
-    <div className="relative w-full overflow-hidden rounded-3xl border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm">
+    <div className="relative w-full overflow-hidden rounded-[2rem] border border-blue-100/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-[0_18px_60px_-28px_rgba(37,99,235,.35)]">
       {/* Background Gradient */}
       <div
         className={`absolute inset-0 bg-gradient-to-r ${slide.bgGradient} transition-all duration-700 pointer-events-none`}

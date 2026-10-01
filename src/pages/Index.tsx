@@ -46,7 +46,7 @@ const Index = () => {
   }, [location.hash, location.pathname, navigate]);
 
   return (
-    <div className="min-h-screen flex bg-slate-50/60 dark:bg-zinc-950 text-foreground">
+    <div className="min-h-screen flex bg-[#f7fbff] dark:bg-zinc-950 text-foreground">
       {/* 1. Sticky Left Sidebar Navigation (Phong cách Ngoại Ngữ 24h) */}
       <SidebarNav
         isOpen={isMobileSidebarOpen}
@@ -59,7 +59,7 @@ const Index = () => {
         <Navbar onOpenSidebar={() => setIsMobileSidebarOpen(true)} />
 
         {/* Page Content Body */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-8">
+        <main className="flex-1 px-3 py-4 sm:px-6 sm:py-6 lg:px-10 lg:py-8 max-w-[1480px] w-full mx-auto space-y-8">
           {/* Banner Hero Carousel Trượt Lớn */}
           <HeroCarousel />
 

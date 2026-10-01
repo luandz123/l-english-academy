@@ -76,7 +76,7 @@ export const SidebarNav = ({ isOpen = false, onClose }: SidebarNavProps) => {
   });
 
   const sidebarContent = (
-    <aside className="w-72 h-full flex flex-col justify-between bg-white dark:bg-zinc-900 border-r border-slate-200 dark:border-zinc-800 select-none">
+    <aside className="w-72 h-full flex flex-col justify-between bg-white dark:bg-zinc-900 border-r border-blue-100/80 dark:border-zinc-800 select-none">
       {/* Top: Logo & Menu Danh Mục Liền Mạch Không Phân Chia */}
       <div className="flex-1 overflow-y-auto px-4 py-5 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-zinc-800">
         <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-zinc-800/80 mb-4">

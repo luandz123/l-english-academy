@@ -56,7 +56,7 @@ const Navbar = ({ onOpenSidebar }: NavbarProps) => {
   const initials = displayName.charAt(0).toUpperCase();
 
   return (
-    <header className="sticky top-0 z-30 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border-b border-slate-200 dark:border-zinc-800 shadow-sm">
+    <header className="sticky top-0 z-30 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl border-b border-blue-100/80 dark:border-zinc-800 shadow-[0_8px_30px_-24px_rgba(37,99,235,.7)]">
       <div className="flex items-center justify-between h-16 px-4 md:px-6 gap-3">
         {/* Left: Mobile Drawer Trigger & Search */}
         <div className="flex items-center gap-3 flex-1 max-w-xl">
