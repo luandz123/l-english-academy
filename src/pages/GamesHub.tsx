@@ -134,60 +134,60 @@ export default function GamesHub() {
 
   return (
     <StudentLayout>
-      <div className="w-full max-w-6xl mx-auto px-4 py-6 md:py-10 space-y-8 select-none">
+      <div className="w-full max-w-6xl mx-auto px-4 py-6 md:py-8 space-y-8 select-none">
         {/* Header Hero Banner */}
-        <div className="relative overflow-hidden rounded-3xl border border-slate-800 bg-gradient-to-b from-slate-900 via-slate-950 to-zinc-950 p-6 md:p-10 shadow-2xl">
+        <div className="relative overflow-hidden rounded-3xl border border-border/70 bg-gradient-to-b from-card via-card/95 to-background p-6 md:p-10 shadow-soft-sm">
           {/* Ambient lighting */}
-          <div className="absolute top-0 right-10 w-96 h-96 bg-blue-600/15 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute bottom-0 left-10 w-80 h-80 bg-purple-600/15 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute top-0 right-10 w-96 h-96 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute bottom-0 left-10 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
 
           <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
             <div className="space-y-3 max-w-2xl">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-black tracking-wider uppercase">
-                <Gamepad2 className="w-4 h-4 text-cyan-400 animate-pulse" />
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-black tracking-wider uppercase">
+                <Gamepad2 className="w-4 h-4 text-primary animate-pulse" />
                 L-English Game Arcade Center
               </div>
 
-              <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight leading-tight">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-foreground tracking-tight leading-tight">
                 KHU TRÒ CHƠI HỌC TẬP <br />
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400">
+                <span className="text-gradient">
                   GAMIFIED LEARNING ZONE
                 </span>
               </h1>
 
-              <p className="text-sm md:text-base text-slate-300 leading-relaxed">
+              <p className="text-sm md:text-base text-muted-foreground leading-relaxed">
                 Biến những giờ học từ vựng và ngữ pháp khô khan thành những trận chiến gay cấn. Rèn luyện phản xạ siêu tốc, tranh tài leo bảng xếp hạng cùng bạn bè!
               </p>
             </div>
 
             {/* User Gamification Stats Summary Card */}
-            <div className="flex flex-col sm:flex-row md:flex-col gap-3 p-4 rounded-2xl bg-slate-900/80 border border-slate-800 backdrop-blur-md shrink-0 w-full sm:w-auto md:min-w-[200px]">
+            <div className="flex flex-col sm:flex-row md:flex-col gap-3 p-4 rounded-2xl bg-card border border-border/80 shadow-soft-sm shrink-0 w-full sm:w-auto md:min-w-[200px]">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-lg">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-500 flex items-center justify-center font-bold text-lg">
                   ⚡
                 </div>
                 <div>
-                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Kinh nghiệm</span>
-                  <p className="text-base font-black text-amber-300">{xp.toLocaleString()} XP</p>
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Kinh nghiệm</span>
+                  <p className="text-base font-black text-amber-600 dark:text-amber-400">{xp.toLocaleString()} XP</p>
                 </div>
               </div>
 
-              <div className="h-px bg-slate-800 hidden sm:block md:block" />
+              <div className="h-px bg-border/60 hidden sm:block md:block" />
 
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center font-bold text-lg">
+                <div className="w-10 h-10 rounded-xl bg-rose-500/20 text-rose-500 flex items-center justify-center font-bold text-lg">
                   🔥
                 </div>
                 <div>
-                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Chuỗi ngày học</span>
-                  <p className="text-base font-black text-rose-400">{streak} ngày liên tiếp</p>
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Chuỗi ngày học</span>
+                  <p className="text-base font-black text-rose-600 dark:text-rose-400">{streak} ngày liên tiếp</p>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Quick Filters */}
-          <div className="flex items-center gap-2 mt-8 pt-6 border-t border-slate-800/80 overflow-x-auto pb-1">
+          <div className="flex items-center gap-2 mt-8 pt-6 border-t border-border/70 overflow-x-auto pb-1">
             {[
               { id: 'all', label: 'Tất cả trò chơi', icon: Gamepad2 },
               { id: 'vocab', label: 'Từ vựng & Phản xạ', icon: Rocket },
@@ -202,10 +202,10 @@ export default function GamesHub() {
                   key={tab.id}
                   onClick={() => setActiveFilter(tab.id as any)}
                   className={cn(
-                    "px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 flex items-center gap-2 whitespace-nowrap shadow-sm select-none cursor-pointer",
+                    "px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 flex items-center gap-2 whitespace-nowrap shadow-sm select-none cursor-pointer active:scale-95",
                     isSelected
-                      ? "bg-cyan-500 text-slate-950 shadow-cyan-500/20 font-black"
-                      : "bg-slate-900/80 border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800"
+                      ? "bg-primary text-primary-foreground font-black shadow-soft-sm"
+                      : "bg-card border border-border/80 text-muted-foreground hover:text-foreground hover:bg-muted/50"
                   )}
                 >
                   <Icon className="w-3.5 h-3.5" />
@@ -218,29 +218,29 @@ export default function GamesHub() {
 
         {/* Featured Big Card: Phi Cơ Diệt Từ Vựng */}
         {activeFilter === 'all' || activeFilter === 'vocab' ? (
-          <div className="relative overflow-hidden rounded-3xl border border-cyan-500/30 bg-gradient-to-r from-blue-950/60 via-slate-900 to-indigo-950/50 p-6 md:p-8 backdrop-blur-md shadow-2xl">
+          <div className="relative overflow-hidden rounded-3xl border border-primary/30 bg-gradient-to-r from-primary/5 via-card to-purple-500/5 p-6 md:p-8 backdrop-blur-md shadow-soft-sm">
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
               <div className="space-y-4 max-w-2xl">
                 <div className="flex items-center gap-2.5 flex-wrap">
-                  <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 animate-pulse">
+                  <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-primary/10 text-primary border border-primary/30">
                     {featuredGame.badge}
                   </span>
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-800 text-slate-300">
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-muted text-muted-foreground">
                     {featuredGame.playerCount}
                   </span>
                 </div>
 
                 <div>
-                  <h2 className="text-2xl md:text-3xl font-black text-white flex items-center gap-3">
+                  <h2 className="text-2xl md:text-3xl font-black text-foreground flex items-center gap-3">
                     <span className="text-3xl">{featuredGame.icon}</span>
                     <span>{featuredGame.title}</span>
                   </h2>
-                  <p className="text-xs font-bold text-cyan-400 tracking-wider uppercase font-mono mt-0.5">
+                  <p className="text-xs font-bold text-primary tracking-wider uppercase font-mono mt-0.5">
                     {featuredGame.subtitle}
                   </p>
                 </div>
 
-                <p className="text-sm text-slate-300 leading-relaxed">
+                <p className="text-sm text-muted-foreground leading-relaxed">
                   {featuredGame.description}
                 </p>
 
@@ -249,7 +249,7 @@ export default function GamesHub() {
                   {featuredGame.tags.map((tag, i) => (
                     <span
                       key={i}
-                      className="px-2.5 py-1 rounded-lg bg-slate-950/80 border border-slate-800 text-xs font-medium text-slate-300"
+                      className="px-2.5 py-1 rounded-lg bg-muted/60 border border-border/60 text-xs font-medium text-foreground"
                     >
                       {tag}
                     </span>
@@ -261,13 +261,13 @@ export default function GamesHub() {
               <div className="flex flex-col sm:flex-row lg:flex-col gap-3 w-full lg:w-auto shrink-0">
                 <Button
                   onClick={() => navigate('/games/word-shooter')}
-                  className="bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-slate-950 font-black text-sm px-8 py-6 rounded-2xl shadow-lg hover:shadow-cyan-500/30 transition-all duration-120 active:scale-95 cursor-pointer"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground font-black text-sm px-8 py-6 rounded-2xl shadow-soft-sm transition-all duration-120 active:scale-95 cursor-pointer"
                 >
                   <Rocket className="w-5 h-5 mr-2" />
                   VÀO CHƠI NGAY
                 </Button>
 
-                <p className="text-xs text-slate-400 text-center font-medium">
+                <p className="text-xs text-muted-foreground text-center font-medium">
                   Hỗ trợ cả Solo &amp; Đấu Realtime 2 người
                 </p>
               </div>
@@ -278,11 +278,11 @@ export default function GamesHub() {
         {/* Other Games List (Available & Coming Soon) */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-black text-white flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-amber-400" />
+            <h2 className="text-xl font-black text-foreground flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-amber-500" />
               Tất Cả Trò Chơi ({filteredGames.length})
             </h2>
-            <span className="text-xs text-slate-400 font-bold">
+            <span className="text-xs text-muted-foreground font-bold">
               Đang tiếp tục phát triển thêm các trò chơi mới
             </span>
           </div>
@@ -293,10 +293,10 @@ export default function GamesHub() {
                 <div
                   key={game.id}
                   className={cn(
-                    "relative p-5 rounded-3xl border transition-all duration-300 flex flex-col justify-between select-none shadow-xl",
+                    "relative p-5 rounded-3xl border transition-all duration-300 flex flex-col justify-between select-none shadow-soft-sm",
                     game.isAvailable
-                      ? "bg-slate-900/90 border-slate-700/80 hover:border-cyan-400/80 hover:shadow-cyan-500/10 hover:-translate-y-1 cursor-pointer"
-                      : "bg-slate-950/60 border-slate-800/80 opacity-80"
+                      ? "bg-card border-border/80 hover:border-primary/60 hover:shadow-soft-md hover:-translate-y-1 cursor-pointer"
+                      : "bg-muted/30 border-border/50 opacity-80"
                   )}
                   onClick={() => {
                     if (game.isAvailable && game.route) {
@@ -307,14 +307,14 @@ export default function GamesHub() {
                   <div className="space-y-3">
                     {/* Top row */}
                     <div className="flex items-start justify-between gap-2">
-                      <div className="w-12 h-12 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-2xl shadow-md">
+                      <div className="w-12 h-12 rounded-2xl bg-muted/50 border border-border/70 flex items-center justify-center text-2xl shadow-soft-xs">
                         {game.icon}
                       </div>
 
                       <span
                         className={cn(
                           "px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider border",
-                          game.badgeColor || "bg-slate-800 text-slate-400 border-slate-700"
+                          game.badgeColor || "bg-muted text-muted-foreground border-border/60"
                         )}
                       >
                         {game.badge}
@@ -322,24 +322,24 @@ export default function GamesHub() {
                     </div>
 
                     <div>
-                      <h3 className="text-lg font-black text-white tracking-tight">
+                      <h3 className="text-lg font-black text-foreground tracking-tight">
                         {game.title}
                       </h3>
-                      <p className="text-xs font-bold text-slate-400">
+                      <p className="text-xs font-bold text-muted-foreground">
                         {game.subtitle}
                       </p>
                     </div>
 
-                    <p className="text-xs text-slate-400 leading-relaxed line-clamp-3">
+                    <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">
                       {game.description}
                     </p>
                   </div>
 
                   {/* Bottom details & action */}
-                  <div className="mt-5 pt-4 border-t border-slate-800/80 flex items-center justify-between">
+                  <div className="mt-5 pt-4 border-t border-border/60 flex items-center justify-between">
                     <div className="space-y-0.5">
-                      <span className="text-xs font-medium text-slate-500 uppercase block tracking-wider">Trạng thái</span>
-                      <span className="text-xs font-bold text-slate-300">
+                      <span className="text-xs font-medium text-muted-foreground uppercase block tracking-wider">Trạng thái</span>
+                      <span className="text-xs font-bold text-foreground">
                         {game.playerCount}
                       </span>
                     </div>
@@ -347,7 +347,7 @@ export default function GamesHub() {
                     {game.isAvailable ? (
                       <Button
                         size="sm"
-                        className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl shadow-md"
+                        className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs rounded-xl shadow-soft-xs active:scale-95"
                         onClick={(e) => {
                           e.stopPropagation();
                           if (game.route) navigate(game.route);
@@ -357,7 +357,7 @@ export default function GamesHub() {
                         <ChevronRight className="w-3.5 h-3.5 ml-1" />
                       </Button>
                     ) : (
-                      <span className="px-3 py-1 rounded-xl bg-slate-900 text-slate-500 border border-slate-800 text-xs font-bold">
+                      <span className="px-3 py-1 rounded-xl bg-muted/60 text-muted-foreground border border-border/60 text-xs font-bold">
                         Đang làm
                       </span>
                     )}

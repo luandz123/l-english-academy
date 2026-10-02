@@ -437,7 +437,7 @@ const FullTestResult = () => {
                         {/* Status Label */}
                         <div className={cn(
                           "absolute top-0 right-0 px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-bl-xl rounded-tr-2xl text-white shadow-soft-xs",
-                          selectedId ? (isCorrect ? "bg-emerald-600" : "bg-rose-500") : "bg-slate-500"
+                          selectedId ? (isCorrect ? "bg-success text-success-foreground" : "bg-destructive text-destructive-foreground") : "bg-muted-foreground text-background"
                         )}>
                           {selectedId ? (isCorrect ? "Đúng ✓" : "Sai ✗") : "Chưa làm"}
                         </div>
@@ -488,11 +488,11 @@ const FullTestResult = () => {
                             let indicatorClass = "border-border/80 text-muted-foreground bg-muted/40";
 
                             if (isOptCorrect) {
-                              optClass = "border-emerald-500/80 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 font-bold shadow-soft-xs";
-                              indicatorClass = "border-emerald-600 bg-emerald-600 text-white";
+                              optClass = "border-success/80 bg-success/10 text-success font-bold shadow-soft-xs";
+                              indicatorClass = "border-success bg-success text-success-foreground";
                             } else if (isSelected) {
-                              optClass = "border-rose-500/80 bg-rose-500/10 text-rose-800 dark:text-rose-300 font-bold shadow-soft-xs";
-                              indicatorClass = "border-rose-500 bg-rose-500 text-white";
+                              optClass = "border-destructive/80 bg-destructive/10 text-destructive font-bold shadow-soft-xs";
+                              indicatorClass = "border-destructive bg-destructive text-destructive-foreground";
                             }
 
                             return (
@@ -523,7 +523,7 @@ const FullTestResult = () => {
                             </div>
                           )}
                           {(q.explanation || correctOpt?.explanation) && (
-                            <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs font-medium text-emerald-800 dark:text-emerald-300">
+                            <div className="p-3 bg-success/10 border border-success/30 rounded-xl text-xs font-medium text-success">
                               💡 <b className="font-bold">Giải thích:</b> {q.explanation || correctOpt?.explanation}
                             </div>
                           )}
@@ -607,7 +607,7 @@ const FullTestResult = () => {
       <div className="max-w-4xl mx-auto space-y-8 pb-20 font-sans">
         {/* Banner Header with Peak-End Rule Polish */}
         <div className="p-8 text-center space-y-5 bg-card text-card-foreground rounded-2xl shadow-soft-lg border border-border/60 relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-primary via-emerald-500 to-amber-400" />
+          <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-primary via-success to-amber-400" />
 
           <div className="text-6xl mb-2 animate-bounce">{scoreDisplay.emoji}</div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">{scoreDisplay.mainTitle}</h1>
@@ -620,7 +620,7 @@ const FullTestResult = () => {
           <div className="flex flex-col items-center justify-center my-6">
             {isFullTest ? (
               <>
-                <span className="text-6xl sm:text-7xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight">
+                <span className="text-6xl sm:text-7xl font-black text-success tracking-tight">
                   {totalScore} <span className="text-2xl font-bold text-muted-foreground">/ 990</span>
                 </span>
                 <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider mt-2">Điểm TOEIC ước tính</p>
@@ -634,14 +634,14 @@ const FullTestResult = () => {
               </>
             ) : isOnlyReading && attemptedParts.length === 3 ? (
               <>
-                <span className="text-6xl sm:text-7xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight">
+                <span className="text-6xl sm:text-7xl font-black text-success tracking-tight">
                   {readingScore} <span className="text-2xl font-bold text-muted-foreground">/ 495</span>
                 </span>
                 <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider mt-2">Điểm Reading ước tính</p>
               </>
             ) : (
               <>
-                <span className="text-6xl sm:text-7xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight">
+                <span className="text-6xl sm:text-7xl font-black text-success tracking-tight">
                   {correct} <span className="text-2xl font-bold text-muted-foreground">/ {totalQCount}</span>
                 </span>
                 <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider mt-2">Số câu đúng ({accuracyPct}%)</p>
@@ -678,16 +678,16 @@ const FullTestResult = () => {
             <div className={cn(
               "p-5 rounded-2xl border flex items-center justify-between transition-all shadow-soft-xs",
               attemptedParts.some(p => p >= 5)
-                ? "bg-emerald-500/10 border-emerald-500/20"
+                ? "bg-success/10 border-success/20"
                 : "bg-muted/30 border-border/60 opacity-60"
             )}>
               <div className="text-left">
                 <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                  <BookOpen className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> Phần Reading (Part 5 - 7)
+                  <BookOpen className="w-3.5 h-3.5 text-success" /> Phần Reading (Part 5 - 7)
                 </span>
                 {attemptedParts.some(p => p >= 5) ? (
                   <>
-                    <p className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-1">{readingScore} điểm</p>
+                    <p className="text-2xl font-extrabold text-success mt-1">{readingScore} điểm</p>
                     <p className="text-xs text-muted-foreground font-medium mt-1">
                       Đúng {latestResult?.reading_correct ?? 0}/{questions.filter(q => q.part_number >= 5 && attemptedParts.includes(q.part_number)).length || 100} câu
                     </p>
@@ -696,12 +696,12 @@ const FullTestResult = () => {
                   <p className="text-sm font-semibold text-muted-foreground mt-2">Không làm trong lần thi này</p>
                 )}
               </div>
-              <div className="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-xl text-emerald-600 dark:text-emerald-400 shrink-0">📖</div>
+              <div className="w-12 h-12 bg-success/10 rounded-2xl flex items-center justify-center text-xl text-success shrink-0">📖</div>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-6 text-sm font-semibold text-muted-foreground pt-4 border-t border-border/60">
-            <span className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-emerald-500" /> Tổng đúng: {correct}/{totalQCount} câu ({accuracyPct}%)</span>
+            <span className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-success" /> Tổng đúng: {correct}/{totalQCount} câu ({accuracyPct}%)</span>
             <span className="flex items-center gap-2"><Clock className="w-4 h-4 text-primary" /> Thời gian: {timeMin} phút {timeSec} giây</span>
             {latestResult?.pause_count ? (
               <span className="badge-duo badge-yellow text-xs font-bold">Tạm dừng {latestResult.pause_count} lần</span>

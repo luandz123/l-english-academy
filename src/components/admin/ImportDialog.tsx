@@ -458,15 +458,15 @@ const ImportDialog = ({
           )}
 
           {/* Guide + prompt copy */}
-          <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-100 dark:border-blue-800 space-y-2">
+          <div className="bg-primary/5 dark:bg-primary/10 p-3.5 rounded-xl border border-primary/20 space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-blue-700 dark:text-blue-400">
+              <span className="text-xs font-semibold text-primary">
                 💡 Hướng dẫn &amp; Prompt ChatGPT
               </span>
               <Button
                 size="sm"
                 variant="ghost"
-                className="h-7 text-xs text-blue-600 font-semibold"
+                className="h-7 text-xs text-primary hover:text-primary/90 hover:bg-primary/10 font-semibold rounded-lg"
                 onClick={handleCopyPrompt}
               >
                 📋 Copy Prompt
@@ -475,7 +475,7 @@ const ImportDialog = ({
             <p className="text-xs text-muted-foreground leading-relaxed">
               {renderDescription()}
               <br />
-              <span className="text-blue-600 dark:text-blue-400 font-medium">
+              <span className="text-primary font-medium">
                 • Cột vocabulary: <code>từ|nghĩa|phiên âm|ví dụ</code> (nhiều từ cách nhau bằng <code>;</code>)
               </span>
             </p>

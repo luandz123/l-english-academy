@@ -364,9 +364,9 @@ export default function AdminLessonVocab({ lessonId, lessonTitle, questionId }: 
             </Button>
           )}
           <Button size="sm" variant="outline" className="rounded-xl font-semibold border-border/80 shadow-soft-xs active:scale-95 duration-120" onClick={() => setAddOpen(true)}><Plus className="w-4 h-4 mr-1.5 text-primary"/> Thêm</Button>
-          <Button size="sm" variant="outline" className="rounded-xl font-semibold border-border/80 shadow-soft-xs active:scale-95 duration-120" onClick={() => setCopyOpen(true)}><Copy className="w-4 h-4 mr-1.5 text-purple-600"/> Gộp từ bài khác</Button>
-          <Button size="sm" variant="outline" className="rounded-xl font-semibold border-border/80 shadow-soft-xs active:scale-95 duration-120" onClick={() => setImportOpen(true)}><Upload className="w-4 h-4 mr-1.5 text-emerald-600"/> Import</Button>
-          <Button size="sm" variant="outline" className="rounded-xl font-semibold border-border/80 shadow-soft-xs active:scale-95 duration-120" onClick={exportWords}><Download className="w-4 h-4 mr-1.5 text-blue-600"/> Export</Button>
+          <Button size="sm" variant="outline" className="rounded-xl font-semibold border-border/80 shadow-soft-xs active:scale-95 duration-120" onClick={() => setCopyOpen(true)}><Copy className="w-4 h-4 mr-1.5 text-muted-foreground"/> Gộp từ bài khác</Button>
+          <Button size="sm" variant="outline" className="rounded-xl font-semibold border-border/80 shadow-soft-xs active:scale-95 duration-120" onClick={() => setImportOpen(true)}><Upload className="w-4 h-4 mr-1.5 text-muted-foreground"/> Import</Button>
+          <Button size="sm" variant="outline" className="rounded-xl font-semibold border-border/80 shadow-soft-xs active:scale-95 duration-120" onClick={exportWords}><Download className="w-4 h-4 mr-1.5 text-muted-foreground"/> Export</Button>
         </div>
       </div>
 
@@ -386,7 +386,7 @@ export default function AdminLessonVocab({ lessonId, lessonTitle, questionId }: 
           </div>
         )}
         {words?.map((w, idx) => (
-          <div key={w.id} className="flex items-center gap-3 bg-muted/20 hover:bg-muted/30 p-3.5 sm:p-4 rounded-xl border border-border/60 shadow-soft-xs text-sm transition-all hover:border-primary/30">
+          <div key={w.id} className="flex items-center gap-3 bg-card hover:bg-muted/30 p-3.5 sm:p-4 rounded-xl border border-border/70 shadow-soft-xs text-sm transition-all hover:border-primary/30">
             <input 
               type="checkbox" 
               className="rounded-md border-border text-primary focus:ring-primary h-4 w-4 cursor-pointer"
@@ -400,7 +400,7 @@ export default function AdminLessonVocab({ lessonId, lessonTitle, questionId }: 
               <div className="flex flex-wrap items-center gap-2 min-w-0">
                 <span className="font-bold text-base text-foreground">{w.word}</span>
                 {w.phonetic && <span className="text-muted-foreground font-mono text-xs px-2 py-0.5 rounded bg-muted/60">({w.phonetic})</span>}
-                <span className="text-slate-600 dark:text-slate-300 font-medium">— {w.definition_vi}</span>
+                <span className="text-muted-foreground font-medium">— {w.definition_vi}</span>
                 {!questionId && allQuestions && allQuestions.length > 0 && (
                   <div className="w-32">
                     <Select 

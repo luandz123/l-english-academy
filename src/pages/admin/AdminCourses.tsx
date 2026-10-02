@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";
-import { Plus, Search, Edit, Eye, Trash2, EyeOff, Unlock, Lock, Loader2 } from "lucide-react";
+import { Plus, Search, Edit, Eye, Trash2, EyeOff, Unlock, Lock, Loader2, BookOpen } from "lucide-react";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -93,15 +94,17 @@ const AdminCourses = () => {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Quản lý Khóa Học</h1>
-            <p className="text-sm text-muted-foreground">{courses.length} khóa học</p>
-          </div>
-          <Button className="rounded-xl shadow-soft-sm transition-all duration-120 active:scale-95" asChild>
-            <Link to="/admin/courses/new"><Plus className="w-4 h-4 mr-2" /> Tạo khóa học mới</Link>
-          </Button>
-        </div>
+        <PageHeader
+          title="Quản lý Khóa Học"
+          description="Danh sách khóa học video, flashcard, đề thi và bài giảng trên hệ thống."
+          icon={BookOpen}
+          badge={`${courses.length} Khóa học`}
+          actions={
+            <Button className="rounded-xl shadow-soft-sm transition-all duration-120 active:scale-95" asChild>
+              <Link to="/admin/courses/new"><Plus className="w-4 h-4 mr-2" /> Tạo khóa học mới</Link>
+            </Button>
+          }
+        />
 
         <div className="relative max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />

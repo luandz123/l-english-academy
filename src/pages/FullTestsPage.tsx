@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/ErrorState";
 import { FileCheck2 } from "lucide-react";
 
+import { PageHeader } from "@/components/ui/PageHeader";
 import EmptyState from "@/components/EmptyState";
 
 export const FullTestsPage: React.FC = () => {
@@ -28,25 +29,14 @@ export const FullTestsPage: React.FC = () => {
   return (
     <StudentLayout>
       <div className="space-y-6 max-w-7xl mx-auto">
-        {/* Page Header */}
-        <div className="bg-card border border-border/60 rounded-3xl p-6 sm:p-8 shadow-soft-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-black">
-                <FileCheck2 className="w-5 h-5" />
-              </div>
-              <h1 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">
-                Phòng Thi Thử Full Test (ETS)
-              </h1>
-            </div>
-            <p className="text-xs sm:text-sm text-muted-foreground font-medium pl-12.5 leading-relaxed">
-              Luyện thi thử TOEIC 200 câu Listening &amp; Reading chuẩn format ETS, bấm giờ thật 120 phút, chấm điểm tự động.
-            </p>
-          </div>
-          <span className="self-start sm:self-auto px-3.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-xs font-bold uppercase">
-            {courses.length} Bộ Đề
-          </span>
-        </div>
+        <PageHeader
+          title="Phòng Thi Thử Full Test (ETS)"
+          description="Luyện thi thử TOEIC 200 câu Listening & Reading chuẩn format ETS, bấm giờ thật 120 phút, chấm điểm tự động."
+          icon={FileCheck2}
+          iconBgColor="bg-emerald-500/10"
+          iconTextColor="text-emerald-600 dark:text-emerald-400"
+          badge={`${courses.length} Bộ Đề`}
+        />
 
         {/* Content Body */}
         {isLoading ? (

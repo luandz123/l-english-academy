@@ -197,6 +197,11 @@
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
     
+    --warning: 38 92% 50%;
+    --warning-foreground: 48 96% 12%;
+    --success: 152 69% 46%;
+    --success-foreground: 0 0% 100%;
+
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 224.3 76.3% 48%;
@@ -212,6 +217,12 @@
 
     --duo-gray: #1E293B;
     --duo-gray-dark: #475569;
+    --duo-blue: #3B82F6;
+    --duo-blue-dark: #2563EB;
+    --duo-green: #10B981;
+    --duo-green-dark: #059669;
+    --duo-purple: #A855F7;
+    --duo-purple-dark: #9333EA;
   }
 }
 

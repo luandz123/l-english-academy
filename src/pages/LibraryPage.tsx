@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/ErrorState";
 import { BookOpen } from "lucide-react";
 
+import { PageHeader } from "@/components/ui/PageHeader";
 import EmptyState from "@/components/EmptyState";
 
 export const LibraryPage: React.FC = () => {
@@ -27,25 +28,14 @@ export const LibraryPage: React.FC = () => {
   return (
     <StudentLayout>
       <div className="space-y-6 max-w-7xl mx-auto">
-        {/* Page Header */}
-        <div className="bg-card border border-border/60 rounded-3xl p-6 sm:p-8 shadow-soft-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center font-black">
-                <BookOpen className="w-5 h-5" />
-              </div>
-              <h1 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">
-                Kho Khóa Học &amp; Bài Giảng
-              </h1>
-            </div>
-            <p className="text-xs sm:text-sm text-muted-foreground font-medium pl-12.5 leading-relaxed">
-              Toàn bộ hệ thống khóa học video bài giảng, luyện đề thi thử, từ vựng và ngữ pháp TOEIC trọng điểm.
-            </p>
-          </div>
-          <span className="self-start sm:self-auto px-3.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 text-xs font-bold uppercase">
-            {courses.length} Khóa Học
-          </span>
-        </div>
+        <PageHeader
+          title="Kho Khóa Học & Bài Giảng"
+          description="Toàn bộ hệ thống khóa học video bài giảng, luyện đề thi thử, từ vựng và ngữ pháp TOEIC trọng điểm."
+          icon={BookOpen}
+          iconBgColor="bg-primary/10"
+          iconTextColor="text-primary"
+          badge={`${courses.length} Khóa Học`}
+        />
 
         {/* Content Body */}
         {isLoading ? (

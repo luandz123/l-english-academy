@@ -1,6 +1,7 @@
 import AdminLayout from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
-import { Users, BookOpen, ClipboardCheck, TrendingUp } from "lucide-react";
+import { Users, BookOpen, ClipboardCheck, TrendingUp, LayoutDashboard } from "lucide-react";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -132,7 +133,11 @@ const AdminDashboard = () => {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-foreground">Tổng quan Admin</h1>
+        <PageHeader
+          title="Tổng quan Quản trị"
+          description="Thống kê tổng quan học viên, khóa học và lượt thi thử trực tiếp theo thời gian thực."
+          icon={LayoutDashboard}
+        />
 
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
           {kpis.map((k) => (

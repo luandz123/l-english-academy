@@ -95,7 +95,7 @@ const SortableModuleItem = ({
           <Button 
             size="icon" 
             variant="ghost" 
-            className={`h-8 w-8 rounded-xl active:scale-95 duration-120 ${mod.is_free ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10' : 'text-muted-foreground hover:bg-muted/60'}`}
+            className={`h-8 w-8 rounded-xl active:scale-95 duration-120 ${mod.is_free ? 'text-success bg-success/10' : 'text-muted-foreground hover:bg-muted/60'}`}
             onClick={(e) => {
               e.stopPropagation();
               const newStatus = !mod.is_free;

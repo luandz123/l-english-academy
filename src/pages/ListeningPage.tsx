@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/ErrorState";
 import { Headphones } from "lucide-react";
 
+import { PageHeader } from "@/components/ui/PageHeader";
 import EmptyState from "@/components/EmptyState";
 
 export const ListeningPage: React.FC = () => {
@@ -28,25 +29,14 @@ export const ListeningPage: React.FC = () => {
   return (
     <StudentLayout>
       <div className="space-y-6 max-w-7xl mx-auto">
-        {/* Page Header */}
-        <div className="bg-card border border-border/60 rounded-3xl p-6 sm:p-8 shadow-soft-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center font-black">
-                <Headphones className="w-5 h-5" />
-              </div>
-              <h1 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">
-                Luyện Nghe Điền Từ (Dictation)
-              </h1>
-            </div>
-            <p className="text-xs sm:text-sm text-muted-foreground font-medium pl-12.5 leading-relaxed">
-              Luyện nghe chép chính tả Part 1–4, kéo thả từ khóa mượt mà, phản xạ nghe và ghi nhớ từ vựng tức thì.
-            </p>
-          </div>
-          <span className="self-start sm:self-auto px-3.5 py-1 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 text-xs font-bold uppercase">
-            {courses.length} Khóa Luyện
-          </span>
-        </div>
+        <PageHeader
+          title="Luyện Nghe Điền Từ (Dictation)"
+          description="Luyện nghe chép chính tả Part 1–4, kéo thả từ khóa mượt mà, phản xạ nghe và ghi nhớ từ vựng tức thì."
+          icon={Headphones}
+          iconBgColor="bg-purple-500/10"
+          iconTextColor="text-purple-600 dark:text-purple-400"
+          badge={`${courses.length} Khóa Luyện`}
+        />
 
         {/* Content Body */}
         {isLoading ? (

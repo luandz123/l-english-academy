@@ -7,17 +7,17 @@ import Logo from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 
 const navItems = [
-  { to: "/admin/dashboard", label: "Tổng quan", icon: LayoutDashboard, color: "text-[var(--duo-green)]" },
-  { to: "/admin/vocab-packs", label: "Bộ từ vựng Game", icon: Gamepad2, color: "text-[var(--duo-purple)]" },
-  { to: "/admin/categories", label: "Danh mục", icon: BookOpen, color: "text-[var(--duo-purple)]" },
-  { to: "/admin/courses", label: "Khóa học", icon: BookOpen, color: "text-[var(--duo-blue)]" },
-  { to: "/admin/fulltests", label: "Full Test TOEIC", icon: ClipboardList, color: "text-[var(--duo-orange)]" },
-  { to: "/admin/import-json", label: "Import Part JSON", icon: FileJson, color: "text-[var(--duo-green)]" },
-  { to: "/admin/students", label: "Học viên", icon: Users, color: "text-[var(--duo-purple)]" },
-  { to: "/admin/enrollments", label: "Đăng ký", icon: ClipboardList, color: "text-[var(--duo-orange)]" },
-  { to: "/admin/materials", label: "Tài liệu", icon: FileText, color: "text-[var(--duo-yellow)]" },
-  { to: "/admin/reports", label: "Báo cáo", icon: BarChart3, color: "text-[var(--duo-red)]" },
-  { to: "/admin/settings", label: "Cài đặt", icon: Settings, color: "text-muted-foreground" },
+  { to: "/admin/dashboard", label: "Tổng quan", icon: LayoutDashboard },
+  { to: "/admin/vocab-packs", label: "Bộ từ vựng Game", icon: Gamepad2 },
+  { to: "/admin/categories", label: "Danh mục", icon: BookOpen },
+  { to: "/admin/courses", label: "Khóa học", icon: BookOpen },
+  { to: "/admin/fulltests", label: "Full Test TOEIC", icon: ClipboardList },
+  { to: "/admin/import-json", label: "Import Part JSON", icon: FileJson },
+  { to: "/admin/students", label: "Học viên", icon: Users },
+  { to: "/admin/enrollments", label: "Đăng ký", icon: ClipboardList },
+  { to: "/admin/materials", label: "Tài liệu", icon: FileText },
+  { to: "/admin/reports", label: "Báo cáo", icon: BarChart3 },
+  { to: "/admin/settings", label: "Cài đặt", icon: Settings },
 ];
 
 const AdminLayout = ({ children }: { children: React.ReactNode }) => {
@@ -92,8 +92,8 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
             <div className="min-w-0 flex-1">
               <p className="text-sm font-bold text-foreground truncate">{displayName}</p>
               <div className="flex items-center gap-1.5 mt-0.5">
-                <ShieldAlert className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
-                <span className="text-xs font-semibold text-purple-600 dark:text-purple-400">Quản trị viên</span>
+                <ShieldAlert className="w-3.5 h-3.5 text-primary" />
+                <span className="text-xs font-semibold text-primary">Quản trị viên</span>
               </div>
             </div>
           </div>
@@ -115,7 +115,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
                     : "text-muted-foreground hover:bg-muted/70 hover:text-foreground"
                 )}
               >
-                <item.icon className={cn("w-4 h-4 transition-transform group-hover:scale-110", active ? "text-primary-foreground" : item.color)} />
+                <item.icon className={cn("w-4 h-4 transition-transform group-hover:scale-110", active ? "text-primary-foreground" : "text-muted-foreground group-hover:text-primary")} />
                 <span className="truncate">{item.label}</span>
               </Link>
             );
@@ -135,7 +135,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
             to="/profile"
             className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-muted-foreground hover:bg-muted/70 hover:text-foreground transition-all active:scale-95 w-full"
           >
-            <LayoutDashboard className="w-4 h-4 text-blue-500" />
+            <LayoutDashboard className="w-4 h-4 text-primary" />
             <span>Hồ sơ học tập</span>
           </Link>
           <Button 
@@ -144,14 +144,14 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
             onClick={toggleDarkMode}
             className="w-full justify-start gap-2.5 px-3 py-2 h-auto text-xs text-muted-foreground hover:text-foreground font-semibold rounded-xl"
           >
-            {isDark ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4 text-purple-500" />}
+            {isDark ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4 text-primary" />}
             <span>{isDark ? "Giao diện sáng" : "Giao diện tối"}</span>
           </Button>
           <button
             onClick={handleSignOut}
-            className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-muted-foreground hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/30 transition-all active:scale-95 w-full"
+            className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all active:scale-95 w-full"
           >
-            <LogOut className="w-4 h-4 text-rose-500" />
+            <LogOut className="w-4 h-4 text-destructive" />
             <span>Đăng xuất</span>
           </button>
         </div>
@@ -188,12 +188,12 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
               to="/"
               className="btn-3d btn-3d-white text-xs sm:text-sm py-2 px-4 inline-flex items-center gap-1.5 font-bold rounded-xl shadow-soft-xs active:scale-95"
             >
-              <Home className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+              <Home className="w-4 h-4 text-primary" />
               Trang chủ
             </Link>
-            <div className="hidden md:flex items-center gap-1.5 bg-blue-500/10 dark:bg-blue-500/20 px-3 py-1.5 rounded-full border border-blue-500/30">
-              <ShieldAlert className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              <span className="text-xs font-bold text-blue-700 dark:text-blue-300">Admin Mode</span>
+            <div className="hidden md:flex items-center gap-1.5 bg-primary/10 px-3 py-1.5 rounded-full border border-primary/20">
+              <ShieldAlert className="w-4 h-4 text-primary" />
+              <span className="text-xs font-bold text-primary">Admin Mode</span>
             </div>
           </div>
         </header>
