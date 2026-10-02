@@ -295,7 +295,7 @@ export default function GamesHub() {
                   className={cn(
                     "relative p-5 rounded-3xl border transition-all duration-300 flex flex-col justify-between select-none shadow-xl",
                     game.isAvailable
-                      ? "bg-slate-900/90 border-slate-700/80 hover:border-cyan-400/80 hover:shadow-cyan-500/10 hover:-translate-y-1 active:scale-[0.98] cursor-pointer"
+                      ? "bg-slate-900/90 border-slate-700/80 hover:border-cyan-400/80 hover:shadow-cyan-500/10 hover:-translate-y-1 cursor-pointer"
                       : "bg-slate-950/60 border-slate-800/80 opacity-80"
                   )}
                   onClick={() => {
@@ -347,7 +347,7 @@ export default function GamesHub() {
                     {game.isAvailable ? (
                       <Button
                         size="sm"
-                        className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl shadow-soft-sm transition-all duration-120 active:scale-95 cursor-pointer"
+                        className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl shadow-md"
                         onClick={(e) => {
                           e.stopPropagation();
                           if (game.route) navigate(game.route);

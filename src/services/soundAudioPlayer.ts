@@ -24,7 +24,9 @@ class SoundAudioPlayer {
   private currentPlayId: number = 0;
   private currentSequenceId: number = 0;
   private activeTimeout: any = null;
+  private activeTimeoutResolve: (() => void) | null = null;
   private activeListeners: Set<(isPlaying: boolean, currentText?: string) => void> = new Set();
+  private isSequenceActive: boolean = false;
 
   /**
    * Đăng ký lắng nghe trạng thái phát âm thanh
@@ -67,11 +69,16 @@ class SoundAudioPlayer {
     // 1. Tăng mã chuỗi và mã phát để vô hiệu hóa mọi async loop cũ
     this.currentSequenceId++;
     this.currentPlayId++;
+    this.isSequenceActive = false;
 
-    // 2. Xóa timeout nghỉ giữa các câu
+    // 2. Xóa timeout nghỉ giữa các câu và resolve promise đang chờ để tránh treo
     if (this.activeTimeout) {
       clearTimeout(this.activeTimeout);
       this.activeTimeout = null;
+    }
+    if (this.activeTimeoutResolve) {
+      this.activeTimeoutResolve();
+      this.activeTimeoutResolve = null;
     }
 
     // 3. Tắt và giải phóng Audio Element hiện tại
@@ -171,7 +178,7 @@ class SoundAudioPlayer {
     return new Promise((resolve) => {
       const isStale = () => {
         if (this.currentPlayId !== playId) return true;
-        if (parentSequenceId !== undefined && this.currentSequenceId !== parentSequenceId) return true;
+        if (parentSequenceId !== undefined && (this.currentSequenceId !== parentSequenceId || !this.isSequenceActive)) return true;
         return false;
       };
 
@@ -189,64 +196,71 @@ class SoundAudioPlayer {
           return;
         }
 
+        let handled = false;
+        let audio: HTMLAudioElement | null = null;
+
+        const cleanup = () => {
+          if (audio) {
+            audio.onended = null;
+            audio.onerror = null;
+            audio.onplay = null;
+            if (this.currentAudio === audio) {
+              this.currentAudio = null;
+            }
+          }
+        };
+
+        const handleSuccess = () => {
+          if (handled) return;
+          handled = true;
+          cleanup();
+          // Chỉ notify false khi phát đơn lẻ. Nếu là chuỗi, sequence sẽ quản lý notify.
+          if (!isStale() && parentSequenceId === undefined) {
+            this.notify(false);
+          }
+          resolve();
+        };
+
+        const handleFail = () => {
+          if (handled) return;
+          handled = true;
+          cleanup();
+          if (audio) {
+            try { audio.pause(); } catch (e) {}
+          }
+          if (isStale()) {
+            resolve();
+            return;
+          }
+          onFail();
+        };
+
         try {
-          const audio = new Audio();
+          audio = new Audio();
           audio.src = url;
           audio.playbackRate = rate;
           this.currentAudio = audio;
 
-          let done = false;
-          const finish = () => {
-            if (!done) {
-              done = true;
-              audio.onended = null;
-              audio.onerror = null;
-              if (this.currentAudio === audio) {
-                this.currentAudio = null;
-              }
-              if (!isStale()) {
-                this.notify(false);
-              }
-              resolve();
-            }
-          };
-
           const timeout = setTimeout(() => {
-            if (!done) {
-              try { audio.pause(); } catch (e) {}
-              finish();
-            }
+            handleFail();
           }, 8000);
 
           audio.onended = () => {
             clearTimeout(timeout);
-            finish();
+            handleSuccess();
           };
 
           audio.onerror = () => {
             clearTimeout(timeout);
-            // Nếu bị stop() hoặc bị thay thế bởi câu mới, tuyệt đối không gọi onFail để tránh kích hoạt fallback đè lên
-            if (isStale()) {
-              finish();
-              return;
-            }
-            onFail();
+            handleFail();
           };
 
           audio.play().catch(() => {
             clearTimeout(timeout);
-            if (isStale()) {
-              finish();
-              return;
-            }
-            onFail();
+            handleFail();
           });
         } catch {
-          if (!isStale()) {
-            onFail();
-          } else {
-            resolve();
-          }
+          handleFail();
         }
       };
 
@@ -260,7 +274,7 @@ class SoundAudioPlayer {
           if (isStale()) { resolve(); return; }
           // 3. Fallback sang Web Speech API
           this.fallbackWebSpeech(cleanText, rate).then(() => {
-            if (!isStale()) {
+            if (!isStale() && parentSequenceId === undefined) {
               this.notify(false);
             }
             resolve();
@@ -287,11 +301,15 @@ class SoundAudioPlayer {
 
     // 2. Cấp mã sequenceId duy nhất cho lần phát này
     const sequenceId = ++this.currentSequenceId;
+    this.isSequenceActive = true;
     const rate = options?.rate ?? 0.95;
 
     const isStale = () => {
-      return this.currentSequenceId !== sequenceId;
+      return this.currentSequenceId !== sequenceId || !this.isSequenceActive;
     };
+
+    // Bắt đầu chuỗi, giữ trạng thái isPlaying = true xuyên suốt cả chuỗi
+    this.notify(true, items[0]?.text);
 
     for (let i = 0; i < items.length; i++) {
       if (isStale()) return;
@@ -310,8 +328,10 @@ class SoundAudioPlayer {
       const pause = item.pauseAfterMs ?? 500;
       if (pause > 0) {
         await new Promise<void>((resolve) => {
+          this.activeTimeoutResolve = resolve;
           this.activeTimeout = setTimeout(() => {
             this.activeTimeout = null;
+            this.activeTimeoutResolve = null;
             resolve();
           }, pause);
         });
@@ -322,8 +342,40 @@ class SoundAudioPlayer {
     }
 
     if (!isStale()) {
+      this.isSequenceActive = false;
       this.notify(false);
     }
+  }
+
+  /**
+   * Lấy voice tiếng Anh chuẩn và duy nhất để tránh đổi giọng thất thường
+   */
+  private getConsistentEnglishVoice(): SpeechSynthesisVoice | null {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return null;
+    if (typeof window.speechSynthesis.getVoices !== 'function') return null;
+    const voices = window.speechSynthesis.getVoices();
+    if (!voices || voices.length === 0) return null;
+
+    // Ưu tiên voice tự nhiên chất lượng cao
+    const preferredNames = [
+      'Google US English',
+      'Samantha',
+      'Microsoft Jenny Online (Natural) - English (United States)',
+      'Microsoft Guy Online (Natural) - English (United States)',
+      'Microsoft David - English (United States)',
+      'Microsoft Zira - English (United States)',
+      'Daniel',
+    ];
+
+    for (const name of preferredNames) {
+      const match = voices.find((v) => v.name.includes(name) && v.lang.startsWith('en'));
+      if (match) return match;
+    }
+
+    const usVoice = voices.find((v) => v.lang === 'en-US' || v.lang === 'en_US');
+    if (usVoice) return usVoice;
+
+    return voices.find((v) => v.lang.startsWith('en')) || null;
   }
 
   /**
@@ -332,13 +384,32 @@ class SoundAudioPlayer {
   private fallbackWebSpeech(text: string, rate: number = 0.9): Promise<void> {
     return new Promise((resolve) => {
       if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'en-US';
-        utterance.rate = rate;
-        utterance.onend = () => resolve();
-        utterance.onerror = () => resolve();
-        window.speechSynthesis.speak(utterance);
+        try {
+          window.speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.lang = 'en-US';
+          utterance.rate = rate;
+
+          const voice = this.getConsistentEnglishVoice();
+          if (voice) {
+            utterance.voice = voice;
+          }
+
+          let done = false;
+          const finish = () => {
+            if (!done) {
+              done = true;
+              utterance.onend = null;
+              utterance.onerror = null;
+              resolve();
+            }
+          };
+          utterance.onend = finish;
+          utterance.onerror = finish;
+          window.speechSynthesis.speak(utterance);
+        } catch {
+          resolve();
+        }
       } else {
         resolve();
       }

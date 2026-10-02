@@ -481,36 +481,36 @@ const Profile = () => {
         {/* 5. TABS: KHÓA HỌC • LỊCH SỬ THI • THÀNH TÍCH • TÀI KHOẢN  */}
         {/* ======================================================== */}
         <Tabs defaultValue="courses" className="w-full space-y-4 pt-2">
-          <TabsList className="bg-muted/50 p-1.5 rounded-2xl border border-border/70 inline-flex h-auto flex-wrap gap-1.5 shadow-soft-xs">
+          <TabsList className="bg-muted/50 p-1 rounded-xl border border-border inline-flex h-auto flex-wrap gap-1">
             <TabsTrigger
               value="courses"
-              className="data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-soft-sm px-4 py-2 rounded-xl font-bold text-sm transition-all flex items-center gap-2 select-none active:scale-95"
+              className="data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm px-4 py-2 rounded-lg font-bold text-xs transition-all flex items-center gap-1.5"
             >
-              <BookOpen className="w-4 h-4 text-blue-600" /> Khóa học của tôi ({enrollments?.length || 0})
+              <BookOpen className="w-3.5 h-3.5 text-blue-600" /> Khóa học của tôi ({enrollments?.length || 0})
             </TabsTrigger>
             <TabsTrigger
               value="history"
-              className="data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-soft-sm px-4 py-2 rounded-xl font-bold text-sm transition-all flex items-center gap-2 select-none active:scale-95"
+              className="data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm px-4 py-2 rounded-lg font-bold text-xs transition-all flex items-center gap-1.5"
             >
-              <Trophy className="w-4 h-4 text-amber-500" /> Lịch sử làm bài ({quizResults?.length || 0})
+              <Trophy className="w-3.5 h-3.5 text-amber-500" /> Lịch sử làm bài ({quizResults?.length || 0})
             </TabsTrigger>
             <TabsTrigger
               value="quests"
-              className="data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-soft-sm px-4 py-2 rounded-xl font-bold text-sm transition-all flex items-center gap-2 select-none active:scale-95"
+              className="data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm px-4 py-2 rounded-lg font-bold text-xs transition-all flex items-center gap-1.5"
             >
-              <Target className="w-4 h-4 text-purple-600" /> Nhiệm vụ & Danh hiệu
+              <Target className="w-3.5 h-3.5 text-purple-600" /> Nhiệm vụ & Danh hiệu
             </TabsTrigger>
             <TabsTrigger
               value="info"
-              className="data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-soft-sm px-4 py-2 rounded-xl font-bold text-sm transition-all flex items-center gap-2 select-none active:scale-95"
+              className="data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm px-4 py-2 rounded-lg font-bold text-xs transition-all flex items-center gap-1.5"
             >
-              <User className="w-4 h-4 text-slate-500" /> Thông tin cá nhân
+              <User className="w-3.5 h-3.5 text-slate-500" /> Thông tin cá nhân
             </TabsTrigger>
             <TabsTrigger
               value="password"
-              className="data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-soft-sm px-4 py-2 rounded-xl font-bold text-sm transition-all flex items-center gap-2 select-none active:scale-95"
+              className="data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm px-4 py-2 rounded-lg font-bold text-xs transition-all flex items-center gap-1.5"
             >
-              <KeyRound className="w-4 h-4 text-slate-500" /> Đổi mật khẩu
+              <KeyRound className="w-3.5 h-3.5 text-slate-500" /> Đổi mật khẩu
             </TabsTrigger>
           </TabsList>
 
@@ -654,30 +654,31 @@ const Profile = () => {
 
           {/* TAB 4: THÔNG TIN CÁ NHÂN */}
           <TabsContent value="info" className="mt-4 focus-visible:outline-none">
-            <div className="rounded-2xl border border-border/70 bg-card p-6 sm:p-8 space-y-5 max-w-lg shadow-soft-sm">
-              <div className="space-y-2">
-                <Label className="text-sm font-bold text-slate-800 dark:text-slate-200">Họ và tên</Label>
+            <div className="rounded-xl border border-border bg-card p-6 space-y-4 max-w-lg shadow-sm">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-foreground">Họ và tên</Label>
                 <Input
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
+                  className="h-10 rounded-lg border-border text-sm"
                   placeholder="Nhập họ và tên..."
                 />
               </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-bold text-slate-800 dark:text-slate-200">Địa chỉ Email</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-foreground">Địa chỉ Email</Label>
                 <Input
                   value={user?.email || ""}
                   disabled
-                  className="bg-muted/60 text-slate-500 cursor-not-allowed"
+                  className="h-10 rounded-lg border-border text-sm bg-muted/60 text-muted-foreground"
                 />
-                <p className="text-xs text-slate-500 dark:text-slate-400">Email đăng nhập tài khoản không thể thay đổi.</p>
+                <p className="text-xs text-muted-foreground">Email đăng nhập tài khoản không thể thay đổi.</p>
               </div>
               <button
                 onClick={handleUpdateProfile}
                 disabled={saving}
-                className="btn-3d btn-3d-primary py-2.5 px-6 rounded-xl text-sm font-bold flex items-center gap-2 active:scale-95"
+                className="btn-3d btn-3d-primary py-2 px-5 text-xs font-bold flex items-center gap-1.5"
               >
-                {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+                {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                 <span>{saving ? "Đang lưu..." : "Lưu thay đổi"}</span>
               </button>
             </div>
@@ -685,31 +686,33 @@ const Profile = () => {
 
           {/* TAB 5: ĐỔI MẬT KHẨU */}
           <TabsContent value="password" className="mt-4 focus-visible:outline-none">
-            <div className="rounded-2xl border border-border/70 bg-card p-6 sm:p-8 space-y-5 max-w-lg shadow-soft-sm">
-              <div className="space-y-2">
-                <Label className="text-sm font-bold text-slate-800 dark:text-slate-200">Mật khẩu mới</Label>
+            <div className="rounded-xl border border-border bg-card p-6 space-y-4 max-w-lg shadow-sm">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-foreground">Mật khẩu mới</Label>
                 <Input
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
+                  className="h-10 rounded-lg border-border text-sm"
                   placeholder="Nhập ít nhất 6 ký tự..."
                 />
               </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-bold text-slate-800 dark:text-slate-200">Xác nhận mật khẩu mới</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-foreground">Xác nhận mật khẩu mới</Label>
                 <Input
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="h-10 rounded-lg border-border text-sm"
                   placeholder="Nhập lại mật khẩu mới..."
                 />
               </div>
               <button
                 onClick={handleChangePassword}
                 disabled={savingPassword}
-                className="btn-3d btn-3d-primary py-2.5 px-6 rounded-xl text-sm font-bold flex items-center gap-2 active:scale-95"
+                className="btn-3d btn-3d-primary py-2 px-5 text-xs font-bold flex items-center gap-1.5"
               >
-                {savingPassword && <Loader2 className="w-4 h-4 animate-spin" />}
+                {savingPassword && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                 <span>{savingPassword ? "Đang đổi mật khẩu..." : "Đổi mật khẩu"}</span>
               </button>
             </div>

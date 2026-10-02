@@ -31,6 +31,7 @@ export const Part2Step1Diagnostic: React.FC<Part2Step1DiagnosticProps> = ({
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [activeStepIndex, setActiveStepIndex] = useState<number | null>(null);
   const [userGuesses, setUserGuesses] = useState<Record<number, 'A' | 'B' | 'C'>>({});
   const [comprehensionRatings, setComprehensionRatings] = useState<Record<number, number>>({});
   const [showScriptHint, setShowScriptHint] = useState(false);
@@ -41,6 +42,9 @@ export const Part2Step1Diagnostic: React.FC<Part2Step1DiagnosticProps> = ({
     // Subscribe to soundAudioPlayer playback state
     const unsubscribe = soundAudioPlayer.subscribe((playing) => {
       setIsPlaying(playing);
+      if (!playing) {
+        setActiveStepIndex(null);
+      }
     });
     return () => {
       unsubscribe();
@@ -51,6 +55,8 @@ export const Part2Step1Diagnostic: React.FC<Part2Step1DiagnosticProps> = ({
   useEffect(() => {
     // Reset play state and pause when changing question
     soundAudioPlayer.stop();
+    setIsPlaying(false);
+    setActiveStepIndex(null);
     setShowScriptHint(false);
   }, [currentIndex]);
 
@@ -66,12 +72,19 @@ export const Part2Step1Diagnostic: React.FC<Part2Step1DiagnosticProps> = ({
       { text: `(C) ${cText}`, pauseAfterMs: 400 },
     ];
 
-    soundAudioPlayer.speakSequence(items, { rate: 0.95 });
+    soundAudioPlayer.speakSequence(items, {
+      rate: 0.95,
+      onStepChange: (idx) => {
+        setActiveStepIndex(idx);
+      },
+    });
   };
 
   const togglePlayAudio = () => {
     if (isPlaying) {
       soundAudioPlayer.stop();
+      setIsPlaying(false);
+      setActiveStepIndex(null);
     } else {
       playAudioSequence();
     }
@@ -79,6 +92,8 @@ export const Part2Step1Diagnostic: React.FC<Part2Step1DiagnosticProps> = ({
 
   const handleReplay = () => {
     soundAudioPlayer.stop();
+    setIsPlaying(false);
+    setActiveStepIndex(null);
     playAudioSequence();
   };
 
@@ -208,7 +223,17 @@ export const Part2Step1Diagnostic: React.FC<Part2Step1DiagnosticProps> = ({
           </div>
 
           <p className="text-xs text-muted-foreground font-medium">
-            {isPlaying ? 'Đang phát audio câu hỏi + 3 đáp án (1.0x)...' : 'Bấm Play để nghe câu hỏi (A, B, C)'}
+            {isPlaying ? (
+              <span className="font-semibold text-purple-600 dark:text-purple-400">
+                {activeStepIndex === 0 && '🔊 Đang đọc: Câu hỏi...'}
+                {activeStepIndex === 1 && '🔊 Đang đọc: Đáp án (A)...'}
+                {activeStepIndex === 2 && '🔊 Đang đọc: Đáp án (B)...'}
+                {activeStepIndex === 3 && '🔊 Đang đọc: Đáp án (C)...'}
+                {activeStepIndex === null && '🔊 Đang phát audio câu hỏi + 3 đáp án...'}
+              </span>
+            ) : (
+              'Bấm Play để nghe câu hỏi (A, B, C)'
+            )}
           </p>
         </div>
 
@@ -219,8 +244,9 @@ export const Part2Step1Diagnostic: React.FC<Part2Step1DiagnosticProps> = ({
           </div>
 
           <div className="grid grid-cols-3 gap-3">
-            {(['A', 'B', 'C'] as const).map((choice) => {
+            {(['A', 'B', 'C'] as const).map((choice, cIdx) => {
               const isSelected = userGuesses[currentQ.id] === choice;
+              const isCurrentlySpeaking = activeStepIndex === cIdx + 1;
               return (
                 <button
                   key={choice}
@@ -230,6 +256,8 @@ export const Part2Step1Diagnostic: React.FC<Part2Step1DiagnosticProps> = ({
                     'py-3.5 rounded-2xl border font-bold transition-all duration-120 flex items-center justify-center gap-2 cursor-pointer text-base sm:text-lg select-none active:scale-95 shadow-soft-xs',
                     isSelected
                       ? 'bg-purple-600 text-white border-purple-600 shadow-soft-md'
+                      : isCurrentlySpeaking
+                      ? 'bg-purple-50 dark:bg-purple-950/40 border-purple-400 dark:border-purple-600 text-purple-700 dark:text-purple-300 ring-2 ring-purple-400/40'
                       : 'bg-card border-border/70 text-foreground hover:border-purple-300 dark:hover:border-purple-700'
                   )}
                 >

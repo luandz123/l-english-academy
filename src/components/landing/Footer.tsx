@@ -1,122 +1,205 @@
 import Logo from "@/components/Logo";
+import { Link } from "react-router-dom";
+import { Phone, Mail, Clock, MessageCircle, ArrowRight, ShieldCheck, Heart } from "lucide-react";
 
-// Placeholder links — thay link thật vào đây
 const SOCIAL_LINKS = {
   tiktok: "https://www.tiktok.com/@YOUR_TIKTOK",
   youtube: "https://www.youtube.com/@YOUR_YOUTUBE",
   facebook: "https://www.facebook.com/YOUR_FACEBOOK",
+  zalo: "https://zalo.me/0334729066",
 };
 
 const Footer = () => {
   return (
-    <footer className="bg-[var(--duo-blue-dark)] text-white/80 py-12" id="contact">
-      <div className="container mx-auto px-4">
-        <div className="grid md:grid-cols-3 gap-8">
-          {/* Brand */}
-          <div className="space-y-4">
+    <footer className="bg-slate-950 text-white/80 pt-16 pb-12 border-t border-slate-800" id="contact">
+      <div className="container mx-auto px-4 max-w-7xl">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10 pb-12 border-b border-slate-800/80">
+          {/* Cột 1: Thương hiệu (4 Cột trên Desktop) */}
+          <div className="lg:col-span-4 space-y-4">
             <Logo showText={true} />
-            <p className="text-sm text-white/60 font-medium">Học Tiếng Anh Vui Như Chơi Game! 🎮</p>
-            <p className="text-xs text-white/40 font-medium leading-relaxed">
-              Nền tảng học Tiếng Anh trực tuyến kết hợp Dictation, Flashcard, Video bài giảng và Đề thi thử Full Test.
+            <p className="text-sm font-bold text-emerald-400 flex items-center gap-1.5">
+              <span>Học Tiếng Anh Vui Như Chơi Game!</span>
+              <span>🎮</span>
+            </p>
+            <p className="text-xs text-slate-400 font-medium leading-relaxed max-w-sm">
+              Nền tảng luyện thi TOEIC trực tuyến ứng dụng Gamification đầu tiên tại Việt Nam. Kết hợp phương pháp Dictation nghe chép chính tả, Flashcard từ vựng và Đề thi thử Full Test 200 câu chuẩn format ETS.
             </p>
 
-            {/* Social icons */}
-            <div className="flex items-center gap-3 pt-1">
-              <a
-                href={SOCIAL_LINKS.tiktok}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="TikTok"
-                className="w-9 h-9 rounded-lg bg-white/10 hover:bg-white/20 border border-white/10 flex items-center justify-center transition-all hover:scale-110"
-              >
-                <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.18 8.18 0 004.77 1.52V6.74a4.85 4.85 0 01-1-.05z"/>
-                </svg>
-              </a>
-              <a
-                href={SOCIAL_LINKS.youtube}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="YouTube"
-                className="w-9 h-9 rounded-lg bg-white/10 hover:bg-[var(--duo-orange)] border border-white/10 flex items-center justify-center transition-all hover:scale-110"
-              >
-                <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-                </svg>
-              </a>
-              <a
-                href={SOCIAL_LINKS.facebook}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Facebook"
-                className="w-9 h-9 rounded-lg bg-white/10 hover:bg-[var(--duo-green)] border border-white/10 flex items-center justify-center transition-all hover:scale-110"
-              >
-                <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                </svg>
-              </a>
-            </div>
-          </div>
-
-          {/* Navigation links */}
-          <div className="space-y-3">
-            <h4 className="font-extrabold text-white">Điều hướng</h4>
-            <div className="flex flex-col gap-2 text-sm text-white/60 font-medium">
-              <a href="/#section-video" className="hover:text-[var(--duo-green)] transition-colors">Khóa học</a>
-              <a href="/register" className="hover:text-[var(--duo-green)] transition-colors">Đăng ký học</a>
-              <a href="/login" className="hover:text-[var(--duo-green)] transition-colors">Đăng nhập</a>
-              <a href="#" className="hover:text-[var(--duo-green)] transition-colors">Chính sách bảo mật</a>
-              <a href="#" className="hover:text-[var(--duo-green)] transition-colors">Điều khoản sử dụng</a>
-            </div>
-          </div>
-
-          {/* Contact */}
-          <div className="space-y-3">
-            <h4 className="font-extrabold text-white">Liên hệ</h4>
-            <div className="flex flex-col gap-2 text-sm text-white/60 font-medium">
-              <p>📱 Zalo: 0334729066</p>
-              <p>📧 Email: hotro@l-english.vn</p>
-              <div className="pt-2 space-y-1.5">
+            <div className="pt-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-2.5">
+                Kênh kết nối chính thức:
+              </span>
+              <div className="flex items-center gap-2.5">
+                {/* TikTok */}
                 <a
                   href={SOCIAL_LINKS.tiktok}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 hover:text-white transition-colors"
+                  aria-label="TikTok"
+                  className="w-9 h-9 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 flex items-center justify-center transition-all hover:scale-110 text-white hover:text-emerald-400"
                 >
                   <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.18 8.18 0 004.77 1.52V6.74a4.85 4.85 0 01-1-.05z"/>
+                    <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.18 8.18 0 004.77 1.52V6.74a4.85 4.85 0 01-1-.05z" />
                   </svg>
-                  TikTok: @YOUR_TIKTOK
                 </a>
+
+                {/* YouTube */}
                 <a
                   href={SOCIAL_LINKS.youtube}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 hover:text-[var(--duo-orange)] transition-colors"
+                  aria-label="YouTube"
+                  className="w-9 h-9 rounded-xl bg-slate-900 hover:bg-red-600/20 border border-slate-800 hover:border-red-500/50 flex items-center justify-center transition-all hover:scale-110 text-white hover:text-red-400"
                 >
                   <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                    <path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
                   </svg>
-                  YouTube: @YOUR_YOUTUBE
                 </a>
+
+                {/* Facebook */}
                 <a
                   href={SOCIAL_LINKS.facebook}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 hover:text-[var(--duo-green-light)] transition-colors"
+                  aria-label="Facebook"
+                  className="w-9 h-9 rounded-xl bg-slate-900 hover:bg-blue-600/20 border border-slate-800 hover:border-blue-500/50 flex items-center justify-center transition-all hover:scale-110 text-white hover:text-blue-400"
                 >
                   <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
                   </svg>
-                  Facebook: YOUR_FACEBOOK
+                </a>
+
+                {/* Zalo */}
+                <a
+                  href={SOCIAL_LINKS.zalo}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Zalo"
+                  className="px-3 h-9 rounded-xl bg-blue-600 hover:bg-blue-500 border border-blue-500 flex items-center justify-center transition-all hover:scale-105 text-white font-black text-xs"
+                >
+                  <span>Zalo</span>
+                </a>
+              </div>
+            </div>
+          </div>
+
+          {/* Cột 2: Chương trình luyện thi (3 Cột) */}
+          <div className="lg:col-span-3 space-y-3.5">
+            <h4 className="font-black text-sm uppercase tracking-wider text-white">
+              Chương Trình Luyện Thi
+            </h4>
+            <div className="flex flex-col gap-2.5 text-xs text-slate-400 font-medium">
+              <a href="/#section-listening" className="hover:text-emerald-400 transition-colors">
+                Luyện Nghe Dictation Chép Chính Tả
+              </a>
+              <a href="/#section-fulltest" className="hover:text-emerald-400 transition-colors">
+                Bộ Đề Thi Thử Full Test ETS 2026
+              </a>
+              <Link to="/part2-coach" className="hover:text-emerald-400 transition-colors">
+                Phản Xạ Part 2 (Quy Trình 8 Bước)
+              </Link>
+              <Link to="/vocab" className="hover:text-emerald-400 transition-colors">
+                Khóa 600 Từ Vựng Trọng Tâm TOEIC
+              </Link>
+              <a href="/#section-video" className="hover:text-emerald-400 transition-colors">
+                Video Bài Giảng Toàn Diện Part 1–7
+              </a>
+              <Link to="/games" className="hover:text-emerald-400 transition-colors">
+                Đấu Trường Từ Vựng Word Shooter AI
+              </Link>
+            </div>
+          </div>
+
+          {/* Cột 3: Dành cho học viên (2 Cột) */}
+          <div className="lg:col-span-2 space-y-3.5">
+            <h4 className="font-black text-sm uppercase tracking-wider text-white">
+              Dành Cho Học Viên
+            </h4>
+            <div className="flex flex-col gap-2.5 text-xs text-slate-400 font-medium">
+              <Link to="/profile" className="hover:text-emerald-400 transition-colors">
+                Bảng Xếp Hạng Tuần
+              </Link>
+              <a href="/#section-video" className="hover:text-emerald-400 transition-colors">
+                Cẩm Nang Học Từ Mất Gốc
+              </a>
+              <a href={SOCIAL_LINKS.zalo} target="_blank" rel="noopener noreferrer" className="hover:text-emerald-400 transition-colors">
+                Cộng Đồng Học Viên
+              </a>
+              <a href="/#combos" className="hover:text-emerald-400 transition-colors">
+                Hướng Dẫn Kích Hoạt VIP
+              </a>
+              <a href="#" className="hover:text-emerald-400 transition-colors">
+                Điều Khoản Sử Dụng
+              </a>
+            </div>
+          </div>
+
+          {/* Cột 4: Hỗ trợ trực tiếp 24/7 (3 Cột) */}
+          <div className="lg:col-span-3 space-y-3.5">
+            <h4 className="font-black text-sm uppercase tracking-wider text-white">
+              Hỗ Trợ Trực Tiếp 24/7
+            </h4>
+            <div className="space-y-3 bg-slate-900/80 border border-slate-800 p-4 rounded-2xl">
+              <div className="space-y-1">
+                <span className="text-[11px] text-slate-400 font-medium block">
+                  Hotline Cố Vấn Học Tập:
+                </span>
+                <a
+                  href="tel:0334729066"
+                  className="text-xs font-black text-white hover:text-emerald-400 flex items-center gap-1.5 transition-colors"
+                >
+                  <Phone className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>0334 729 066 (Thầy Luận)</span>
+                </a>
+              </div>
+
+              <div className="space-y-1 pt-1 border-t border-slate-800">
+                <span className="text-[11px] text-slate-400 font-medium block">
+                  Email Hỗ Trợ:
+                </span>
+                <a
+                  href="mailto:hotro@l-english.vn"
+                  className="text-xs font-bold text-slate-300 hover:text-white flex items-center gap-1.5 transition-colors"
+                >
+                  <Mail className="w-3.5 h-3.5 text-blue-400" />
+                  <span>hotro@l-english.vn</span>
+                </a>
+              </div>
+
+              <div className="space-y-1 pt-1 border-t border-slate-800">
+                <span className="text-[11px] text-slate-400 font-medium block">
+                  Giờ Làm Việc:
+                </span>
+                <p className="text-[11px] font-medium text-slate-300 flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-amber-400" />
+                  <span>08:00 – 23:00 (Cả Thứ 7 &amp; CN)</span>
+                </p>
+              </div>
+
+              <div className="pt-1">
+                <a
+                  href={SOCIAL_LINKS.zalo}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black text-xs inline-flex items-center justify-center gap-1.5 shadow-md transition-all active:scale-95"
+                >
+                  <MessageCircle className="w-3.5 h-3.5" />
+                  <span>Nhắn Tin Tư Vấn Nhanh Qua Zalo</span>
                 </a>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="border-t border-white/10 mt-8 pt-6 text-center text-xs text-white/40 font-medium">
-          © 2026 L-English Academy. All rights reserved. Made with 💚
+        {/* Dòng bản quyền & Hệ thống */}
+        <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500 font-medium">
+          <div>
+            © 2026 L-English Academy. Đã đăng ký bản quyền thương hiệu.
+          </div>
+          <div className="flex items-center gap-2">
+            <span>Đồng hành cùng học viên Việt Nam chinh phục TOEIC</span>
+            <span className="text-emerald-500 font-black">💚</span>
+          </div>
         </div>
       </div>
     </footer>
