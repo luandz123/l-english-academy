@@ -14,7 +14,9 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['"Nunito Sans"', 'sans-serif'],
+        sans: ['Inter', '"Plus Jakarta Sans"', 'sans-serif'],
+        display: ['"Chakra Petch"', 'Rajdhani', 'sans-serif'],
+        tech: ['Rajdhani', '"Chakra Petch"', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",

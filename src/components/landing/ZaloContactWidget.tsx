@@ -16,10 +16,12 @@ export const ZaloContactWidget = () => {
         rel="noopener noreferrer"
         onClick={() => trackEvent("click_zalo", { source: "floating_widget" })}
         aria-label="Liên hệ Zalo tư vấn: 0334 729 066"
-        className="relative w-12 h-12 sm:w-13 sm:h-13 rounded-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center shadow-lg shadow-blue-600/30 hover:scale-105 active:scale-95 transition-all duration-200"
+        className="relative w-12 h-12 sm:w-13 sm:h-13 rounded-full bg-blue-600 hover:bg-blue-500 text-white flex items-center justify-center shadow-[0_0_20px_rgba(37,99,235,0.6)] hover:scale-105 active:scale-95 transition-all duration-200"
       >
+        {/* Pulse wave ring */}
+        <span className="absolute inset-0 rounded-full bg-blue-400 animate-ping opacity-35 pointer-events-none" />
         {/* Zalo Icon / Text */}
-        <span className="font-black text-base sm:text-lg tracking-tighter select-none">Zalo</span>
+        <span className="relative z-10 font-black text-base sm:text-lg tracking-tighter select-none drop-shadow-sm">Zalo</span>
       </a>
     </aside>
   );

@@ -11,18 +11,18 @@ const SOCIAL_LINKS = {
 
 const Footer = () => {
   return (
-    <footer className="bg-slate-950 text-white/80 pt-16 pb-12 border-t border-slate-800" id="contact">
+    <footer className="bg-[#050c18] text-white/80 pt-16 pb-12 border-t border-cyan-500/20" id="contact">
       <div className="container mx-auto px-4 max-w-7xl">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10 pb-12 border-b border-slate-800/80">
           {/* Cột 1: Thương hiệu (4 Cột trên Desktop) */}
           <div className="lg:col-span-4 space-y-4">
-            <Logo showText={true} />
-            <p className="text-sm font-bold text-emerald-400 flex items-center gap-1.5">
+            <Logo showText={true} imgClassName="w-8 h-8 drop-shadow-[0_0_10px_rgba(6,182,212,0.4)]" />
+            <p className="text-sm font-bold text-cyan-400 flex items-center gap-1.5 font-display">
               <span>Học Tiếng Anh Vui Như Chơi Game!</span>
               <span>🎮</span>
             </p>
             <p className="text-xs text-slate-400 font-medium leading-relaxed max-w-sm">
-              Nền tảng luyện thi TOEIC trực tuyến ứng dụng Gamification đầu tiên tại Việt Nam. Kết hợp phương pháp Dictation nghe chép chính tả, Flashcard từ vựng và Đề thi thử Full Test 200 câu chuẩn format ETS.
+              L-English — Hệ thống học và luyện thi TOEIC tốt nhất 2026. Kết hợp đề thi thử chuẩn ETS, phương pháp phản xạ bắt âm 8 bước và đấu trường học từ vựng Arcade.
             </p>
 
             <div className="pt-2">
@@ -75,7 +75,7 @@ const Footer = () => {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Zalo"
-                  className="px-3 h-9 rounded-xl bg-blue-600 hover:bg-blue-500 border border-blue-500 flex items-center justify-center transition-all hover:scale-105 text-white font-black text-xs"
+                  className="px-3 h-9 rounded-xl bg-blue-600 hover:bg-blue-500 border border-blue-500 flex items-center justify-center transition-all hover:scale-105 text-white font-black text-xs shadow-[0_0_15px_rgba(59,130,246,0.3)]"
                 >
                   <span>Zalo</span>
                 </a>
@@ -85,28 +85,25 @@ const Footer = () => {
 
           {/* Cột 2: Chương trình luyện thi (3 Cột) */}
           <div className="lg:col-span-3 space-y-3.5">
-            <h4 className="font-black text-sm uppercase tracking-wider text-white">
+            <h4 className="font-black text-sm uppercase tracking-wider text-white font-display">
               Chương Trình Luyện Thi
             </h4>
             <div className="flex flex-col gap-2.5 text-xs text-slate-400 font-medium">
-              <a href="/#section-listening" className="hover:text-emerald-400 transition-colors">
-                Luyện Nghe Dictation Chép Chính Tả
+              <a href="#section-fulltest" className="hover:text-cyan-400 transition-colors">
+                Phòng Thi Thử Full Test ETS 2026
               </a>
-              <a href="/#section-fulltest" className="hover:text-emerald-400 transition-colors">
-                Bộ Đề Thi Thử Full Test ETS 2026
+              <a href="#section-listening" className="hover:text-cyan-400 transition-colors">
+                Luyện Nghe Từng Bước (Dictation)
               </a>
-              <Link to="/part2-coach" className="hover:text-emerald-400 transition-colors">
+              <Link to="/part2-coach" className="hover:text-cyan-400 transition-colors">
                 Phản Xạ Part 2 (Quy Trình 8 Bước)
               </Link>
-              <Link to="/vocab" className="hover:text-emerald-400 transition-colors">
-                Khóa 600 Từ Vựng Trọng Tâm TOEIC
-              </Link>
-              <a href="/#section-video" className="hover:text-emerald-400 transition-colors">
-                Video Bài Giảng Toàn Diện Part 1–7
+              <a href="#section-video" className="hover:text-cyan-400 transition-colors">
+                Khóa Học Video Nghe - Đọc 700+
               </a>
-              <Link to="/games" className="hover:text-emerald-400 transition-colors">
-                Đấu Trường Từ Vựng Word Shooter AI
-              </Link>
+              <a href="#section-games" className="hover:text-cyan-400 transition-colors">
+                Khu Trò Chơi Học Từ Vựng (Arcade)
+              </a>
             </div>
           </div>
 

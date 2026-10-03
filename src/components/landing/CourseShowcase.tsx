@@ -22,6 +22,10 @@ import {
   FileCheck2,
   Clock,
   Award,
+  Gamepad2,
+  Castle,
+  Rocket,
+  Compass,
 } from "lucide-react";
 import {
   Dialog,
@@ -63,62 +67,66 @@ export const CourseShowcase = () => {
     },
   });
 
-  // Phân chia khóa học theo từng chuyên đề theo phong cách Ngoại Ngữ 24h:
   // 1. Nhóm Đề Thi Thử Full Test 200 Câu
   const fullTestCourses = useMemo(() => {
     return activeCourses.filter((c) => c.course_type === "fulltest");
   }, [activeCourses]);
 
-  // 2. Nhóm Khóa Học Video & Nghe - Đọc
-  const videoCourses = useMemo(() => {
-    return activeCourses.filter((c) => c.course_type === "video_quiz");
-  }, [activeCourses]);
-
-  // 3. Nhóm Luyện Nghe Điền Từ (Dictation)
+  // 2. Nhóm Luyện Nghe Điền Từ (Dictation) & Từng Bước
   const listeningCourses = useMemo(() => {
     return activeCourses.filter((c) => c.course_type === "listening");
   }, [activeCourses]);
 
+  // 3. Nhóm Khóa Học Video & Nghe - Đọc
+  const videoCourses = useMemo(() => {
+    return activeCourses.filter((c) => c.course_type === "video_quiz");
+  }, [activeCourses]);
+
   return (
-    <div className="space-y-10" id="combos">
+    <div className="space-y-12">
       {/* ========================================================================= */}
-      {/* SECTION 1: PHÒNG THI THỬ FULL TEST TOEIC CHUẨN ETS (Phong cách Ngoại Ngữ 24h) */}
+      {/* SECTION 1: PHÒNG THI THỬ (FORMAT ETS 2026)                                */}
       {/* ========================================================================= */}
       <section
         id="section-fulltest"
-        className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200 dark:border-zinc-800 p-5 sm:p-7 md:p-8 shadow-sm space-y-6 scroll-mt-20 sm:scroll-mt-24"
+        className="rounded-3xl border border-emerald-500/25 bg-[#081226]/85 backdrop-blur-md p-6 sm:p-8 space-y-6 shadow-[0_10px_35px_rgba(0,0,0,0.5)] scroll-mt-24 transition-all"
       >
-        {/* Header Kệ Section */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-zinc-800">
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 p-1 flex items-center justify-center border border-emerald-500/20 shadow-xs shrink-0 mt-0.5 sm:mt-0">
-              <img src={iconFulltest} alt="" className="w-full h-full object-contain drop-shadow-xs" />
+        {/* Header Kệ */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+          <div className="flex items-start gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 p-2 flex items-center justify-center border border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.2)] shrink-0">
+              <img src={iconFulltest} alt="" className="w-full h-full object-contain" />
             </div>
             <div className="space-y-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <h2 className="text-base sm:text-xl md:text-2xl font-black text-foreground tracking-normal flex flex-wrap items-center">
-                  <span>PHÒNG THI THỬ</span>
-                  <span className="ml-1.5 mr-2">TOEIC FULL TEST</span>
-                  <span className="text-emerald-600 dark:text-emerald-400 font-black">
-                    (FORMAT ETS)
-                  </span>
+              <div className="flex flex-wrap items-center gap-2.5">
+                <h2 className="text-lg sm:text-2xl font-black text-white font-display tracking-wide">
+                  PHÒNG THI THỬ <span className="text-emerald-400">(FORMAT ETS 2026)</span>
                 </h2>
-                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 shrink-0">
+                <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
                   {fullTestCourses.length} bộ đề
                 </span>
               </div>
-              <p className="text-slate-500 dark:text-zinc-400 text-xs sm:text-sm font-medium">
-                Bộ đề bấm giờ thật 120 phút, 200 câu Listening &amp; Reading, chấm điểm tự động kèm phân tích đáp án chi tiết.
+              <p className="text-slate-400 text-xs sm:text-sm font-medium">
+                200 câu • 120 phút • Bấm giờ thật • Chấm điểm tự động kèm lời giải chi tiết.
               </p>
             </div>
           </div>
+
+          <Link
+            to="/fulltests"
+            onClick={() => trackEvent("click_fulltest_view_all", { source: "header_btn" })}
+            className="self-start sm:self-center py-2 px-4 rounded-xl text-xs font-bold text-emerald-400 hover:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 inline-flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap"
+          >
+            <span>Xem tất cả bộ đề</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
         </div>
 
-        {/* Lưới khóa học Full Test: Cân đối 3 cột trên desktop, không để lệch khoảng trống */}
+        {/* Lưới khóa học Full Test: 3 cột trên desktop */}
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-80 rounded-2xl" />
+              <Skeleton key={i} className="h-80 rounded-2xl bg-slate-800/60" />
             ))}
           </div>
         ) : fullTestCourses.length > 0 ? (
@@ -127,39 +135,37 @@ export const CourseShowcase = () => {
               <CourseCard key={c.id} course={c} />
             ))}
 
-            {/* Ô/Card thứ 3: Khám phá toàn bộ kho đề thi thử ETS giúp grid 3 cột cân đối 100% */}
+            {/* Ô Khám Phá Thêm Bộ Đề Full Test */}
             {fullTestCourses.length <= 2 && (
               <Link
                 to="/fulltests"
                 onClick={() =>
-                  trackEvent("click_fulltest_explore_all", {
-                    source: "showcase_3rd_card",
-                  })
+                  trackEvent("click_fulltest_explore_all", { source: "showcase_3rd_card" })
                 }
-                className="group rounded-2xl border-2 border-dashed border-slate-200 dark:border-zinc-800 hover:border-emerald-500/60 dark:hover:border-emerald-500/60 bg-slate-50/60 dark:bg-zinc-800/40 hover:bg-emerald-50/30 dark:hover:bg-emerald-950/20 p-5 sm:p-6 flex flex-col md:flex-row lg:flex-col justify-between items-start md:items-center lg:items-stretch gap-4 transition-all duration-200 cursor-pointer min-h-[160px] lg:min-h-[320px] md:col-span-2 lg:col-span-1"
+                className="group rounded-2xl border-2 border-dashed border-slate-800 hover:border-emerald-500/60 bg-slate-900/40 hover:bg-emerald-950/20 p-6 flex flex-col justify-between items-start gap-4 transition-all duration-200 cursor-pointer min-h-[260px]"
               >
                 <div className="space-y-3.5 max-w-xl">
-                  <div className="w-12 h-12 rounded-2xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center transition-transform group-hover:scale-110 shadow-xs">
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center transition-transform group-hover:scale-110 shadow-sm border border-emerald-500/30">
                     <FileCheck2 className="w-6 h-6" />
                   </div>
                   <div className="space-y-1.5">
-                    <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                    <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
                       Kho Đề Thi Mở Rộng
                     </span>
-                    <h3 className="text-base font-extrabold text-foreground group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                    <h3 className="text-base font-extrabold text-white group-hover:text-emerald-300 transition-colors">
                       Xem Tất Cả Bộ Đề Thi Thử ETS
                     </h3>
-                    <p className="text-xs text-slate-500 dark:text-zinc-400 leading-relaxed font-medium">
-                      Tùy chọn thi thử toàn bộ 7 Parts (200 câu) có tính giờ 120 phút hoặc luyện riêng từng Part theo trình độ.
+                    <p className="text-xs text-slate-400 leading-relaxed font-medium">
+                      Thi thử trọn gói 7 Parts (200 câu) có tính giờ 120 phút hoặc luyện riêng từng Part theo trình độ.
                     </p>
                   </div>
                 </div>
 
-                <div className="w-full md:w-auto lg:w-full pt-4 md:pt-0 lg:pt-4 border-t md:border-t-0 lg:border-t border-slate-200/70 dark:border-zinc-800 flex items-center justify-between md:gap-4 shrink-0">
-                  <span className="text-xs font-semibold text-slate-500 dark:text-zinc-400">
+                <div className="w-full pt-4 border-t border-slate-800 flex items-center justify-between">
+                  <span className="text-xs font-semibold text-slate-400">
                     Format ETS mới nhất
                   </span>
-                  <span className="py-2 px-3.5 rounded-xl font-bold text-xs bg-emerald-600 group-hover:bg-emerald-700 text-white inline-flex items-center gap-1.5 transition-colors shadow-xs shrink-0">
+                  <span className="py-2 px-3.5 rounded-xl font-bold text-xs bg-emerald-600 group-hover:bg-emerald-500 text-white inline-flex items-center gap-1.5 transition-colors shadow-xs">
                     <span>Xem tất cả</span>
                     <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
                   </span>
@@ -168,218 +174,68 @@ export const CourseShowcase = () => {
             )}
           </div>
         ) : (
-          <p className="text-xs text-muted-foreground">Đang cập nhật bộ đề thi mới...</p>
+          <p className="text-xs text-slate-400">Đang cập nhật bộ đề thi mới...</p>
         )}
       </section>
 
       {/* ========================================================================= */}
-      {/* SECTION 2: KHÓA HỌC BÀI GIẢNG VIDEO & NGỮ PHÁP TRỌNG ĐIỂM (Ngoại Ngữ 24h) */}
-      {/* ========================================================================= */}
-      <section
-        id="section-video"
-        className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200 dark:border-zinc-800 p-5 sm:p-7 md:p-8 shadow-sm space-y-6 scroll-mt-20 sm:scroll-mt-24"
-      >
-        {/* Header Kệ Section */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-zinc-800">
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-blue-50 dark:bg-blue-950/60 p-1 flex items-center justify-center border border-blue-500/20 shadow-xs shrink-0 mt-0.5 sm:mt-0">
-              <img src={iconVideo} alt="" className="w-full h-full object-contain drop-shadow-xs" />
-            </div>
-            <div className="space-y-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <h2 className="text-base sm:text-xl md:text-2xl font-black text-foreground">
-                  KHÓA HỌC VIDEO &amp; LUYỆN THI TOEIC{" "}
-                  <span className="text-blue-600 dark:text-blue-400 font-black">
-                    NGHE - ĐỌC
-                  </span>
-                </h2>
-                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 shrink-0">
-                  {videoCourses.length} khóa học
-                </span>
-              </div>
-              <p className="text-slate-500 dark:text-zinc-400 text-xs sm:text-sm font-medium">
-                Bài giảng video chuẩn mực theo từng Part 1–7, trang bị phương pháp giải đề, mẹo tránh bẫy và bài tập thực hành.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Lưới khóa học Video: Cân đối 3 cột trên desktop, không để lệch khoảng trống */}
-        {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-80 rounded-2xl" />
-            ))}
-          </div>
-        ) : videoCourses.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
-            {videoCourses.map((c) => (
-              <CourseCard key={c.id} course={c} />
-            ))}
-
-            {/* Card Bổ Trợ 2: Chuyên Đề Ngữ Pháp & Mẹo Tránh Bẫy Part 5-6 */}
-            {videoCourses.length <= 2 && (
-              <div className="group bg-card rounded-2xl border border-border/70 hover:border-blue-500/50 shadow-soft-sm hover:shadow-soft-md transition-all duration-200 flex flex-col h-full overflow-hidden">
-                <div className="aspect-video w-full relative overflow-hidden bg-gradient-to-tr from-blue-600/20 via-indigo-600/15 to-sky-500/20 flex flex-col items-center justify-center p-4 text-center">
-                  <div className="w-12 h-12 rounded-2xl bg-blue-100 dark:bg-blue-950/70 text-blue-600 dark:text-blue-400 flex items-center justify-center shadow-xs transition-transform group-hover:scale-110 mb-2">
-                    <img src={iconVideo} alt="" className="w-8 h-8 object-contain" />
-                  </div>
-                  <span className="text-[11px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400">
-                    Lộ Trình Cốt Lõi Part 5–6
-                  </span>
-                  <span className="text-sm font-extrabold text-foreground mt-0.5 line-clamp-1">
-                    70 Quy Tắc Ngữ Pháp &amp; Mẹo Bẫy ETS
-                  </span>
-                  <div className="absolute top-2.5 right-2.5">
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-blue-600 text-white shadow-xs">
-                      TẶNG KÈM VIP
-                    </span>
-                  </div>
-                </div>
-
-                <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 font-medium">
-                      <span>Video bài giảng</span>
-                      <span>•</span>
-                      <span className="text-blue-600 dark:text-blue-400 font-semibold">Tự học 30 ngày</span>
-                    </div>
-                    <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2 leading-snug">
-                      Chiến Thuật Xử Lý Nhanh Câu Ngữ Pháp &amp; Từ Loại
-                    </h3>
-                    <p className="text-xs text-slate-600 dark:text-slate-400 font-normal line-clamp-2 leading-relaxed">
-                      Phân loại 12 dạng câu hỏi cốt lõi, công thức 5 giây chọn đáp án đúng không cần dịch toàn câu, tối ưu thời gian làm bài.
-                    </p>
-                  </div>
-
-                  <div className="pt-2 border-t border-border/40 flex items-center justify-between text-xs text-muted-foreground font-medium">
-                    <div className="flex items-center gap-1">
-                      <GraduationCap className="w-3.5 h-3.5 text-blue-600" />
-                      <span>70+ bài học trọng tâm</span>
-                    </div>
-                    <span className="font-bold text-foreground/80">Thầy Luận Mentor</span>
-                  </div>
-
-                  <div className="pt-2.5 border-t border-border/40 flex items-center justify-between gap-2">
-                    <div>
-                      <span className="text-xs text-slate-400 line-through block">500.000 đ</span>
-                      <span className="text-sm font-black text-blue-600 dark:text-blue-400">
-                        Có trong Gói VIP
-                      </span>
-                    </div>
-                    <Link
-                      to="/#combos"
-                      className="py-1.5 px-3.5 rounded-xl font-bold text-xs inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white shadow-soft-sm transition-all group-hover:translate-x-0.5 shrink-0"
-                    >
-                      <span>Xem lộ trình</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Card Khám Phá 3: Toàn Bộ Thư Viện Bài Giảng Video */}
-            {videoCourses.length <= 2 && (
-              <Link
-                to="/#combos"
-                className="group rounded-2xl border-2 border-dashed border-slate-200 dark:border-zinc-800 hover:border-blue-500/60 dark:hover:border-blue-500/60 bg-slate-50/60 dark:bg-zinc-800/40 hover:bg-blue-50/30 dark:hover:bg-blue-950/20 p-5 sm:p-6 flex flex-col justify-between items-stretch gap-4 transition-all duration-200 cursor-pointer min-h-[280px]"
-              >
-                <div className="space-y-3.5">
-                  <div className="w-12 h-12 rounded-2xl bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center transition-transform group-hover:scale-110 shadow-xs">
-                    <BookOpen className="w-6 h-6" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <span className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">
-                      Kho Khóa Học Mở Rộng
-                    </span>
-                    <h3 className="text-base font-extrabold text-foreground group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                      Xem Toàn Bộ Video Bài Giảng TOEIC
-                    </h3>
-                    <p className="text-xs text-slate-500 dark:text-zinc-400 leading-relaxed font-medium">
-                      Hệ thống bài giảng từ nền tảng 450 đến bứt phá 850+, chia theo từng chuyên đề Part 1–7 kèm tài liệu PDF và bài tập áp dụng.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t border-slate-200/70 dark:border-zinc-800 flex items-center justify-between shrink-0">
-                  <span className="text-xs font-semibold text-slate-500 dark:text-zinc-400">
-                    Cập nhật liên tục
-                  </span>
-                  <span className="py-2 px-3.5 rounded-xl font-bold text-xs bg-blue-600 group-hover:bg-blue-700 text-white inline-flex items-center gap-1.5 transition-colors shadow-xs shrink-0">
-                    <span>Xem lộ trình</span>
-                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-                  </span>
-                </div>
-              </Link>
-            )}
-          </div>
-        ) : (
-          <p className="text-xs text-muted-foreground">Đang cập nhật khóa học video...</p>
-        )}
-      </section>
-
-      {/* ========================================================================= */}
-      {/* SECTION 3: LUYỆN NGHE CHÉP CHÍNH TẢ (DICTATION CẢM ỨNG ĐỘC QUYỀN)           */}
+      {/* SECTION 2: LUYỆN NGHE TỪNG BƯỚC & DICTATION                                */}
       {/* ========================================================================= */}
       <section
         id="section-listening"
-        className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200 dark:border-zinc-800 p-5 sm:p-7 md:p-8 shadow-sm space-y-6 scroll-mt-20 sm:scroll-mt-24"
+        className="rounded-3xl border border-purple-500/25 bg-[#081226]/85 backdrop-blur-md p-6 sm:p-8 space-y-6 shadow-[0_10px_35px_rgba(0,0,0,0.5)] scroll-mt-24 transition-all"
       >
-        {/* Header Kệ Section */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-zinc-800">
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-purple-50 dark:bg-purple-950/60 p-1 flex items-center justify-center border border-purple-500/20 shadow-xs shrink-0 mt-0.5 sm:mt-0">
-              <img src={iconDictation} alt="" className="w-full h-full object-contain drop-shadow-xs" />
+        {/* Header Kệ */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+          <div className="flex items-start gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-purple-500/15 p-2 flex items-center justify-center border border-purple-500/30 shadow-[0_0_15px_rgba(168,85,247,0.2)] shrink-0">
+              <img src={iconDictation} alt="" className="w-full h-full object-contain" />
             </div>
             <div className="space-y-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <h2 className="text-base sm:text-xl md:text-2xl font-black text-foreground">
-                  LUYỆN NGHE ĐIỀN TỪ{" "}
-                  <span className="text-purple-600 dark:text-purple-400 font-black">
-                    (DICTATION CHÉP CHÍNH TẢ)
-                  </span>
+              <div className="flex flex-wrap items-center gap-2.5">
+                <h2 className="text-lg sm:text-2xl font-black text-white font-display tracking-wide">
+                  LUYỆN NGHE TỪNG BƯỚC <span className="text-purple-400">&amp; DICTATION</span>
                 </h2>
-                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 shrink-0">
-                  {listeningCourses.length} chương trình
+                <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-purple-500/15 text-purple-300 border border-purple-500/30">
+                  {listeningCourses.length} bài luyện
                 </span>
               </div>
-              <p className="text-slate-500 dark:text-zinc-400 text-xs sm:text-sm font-medium">
-                Phương pháp nghe chép chính tả Part 1–4, cơ chế kéo thả từ khóa cảm ứng thông minh, nhận diện nuốt âm và nối từ.
+              <p className="text-slate-400 text-xs sm:text-sm font-medium">
+                Quy trình phản xạ 8 bước Part 2 độc quyền &amp; Nghe chép chính tả bẻ nhỏ âm thanh.
               </p>
             </div>
           </div>
         </div>
 
         {/* Banner Khám Phá Chế Độ Luyện Nghe Phản Xạ 8 Bước Part 2 */}
-        <div className="relative overflow-hidden bg-gradient-to-r from-purple-800 via-indigo-800 to-blue-800 rounded-3xl p-6 sm:p-7 text-white flex flex-col md:flex-row items-start md:items-center justify-between gap-5 shadow-lg border border-purple-500/30">
+        <div className="relative overflow-hidden bg-gradient-to-r from-purple-900/90 via-indigo-900/90 to-blue-900/90 rounded-2xl p-6 sm:p-7 text-white flex flex-col md:flex-row items-start md:items-center justify-between gap-5 shadow-[0_0_30px_rgba(147,51,234,0.25)] border border-purple-400/40">
           <div className="space-y-2 relative z-10">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 text-white text-xs font-black uppercase tracking-wider backdrop-blur-xs border border-white/20">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/20 text-purple-200 text-xs font-black uppercase tracking-wider backdrop-blur-xs border border-purple-400/30">
               <img src={iconReflex} alt="" className="w-4 h-4 object-contain inline-block" />
-              <span>Phương pháp phản xạ mới</span>
+              <span>Quy trình 8 bước độc quyền</span>
             </div>
-            <h3 className="text-xl sm:text-2xl font-black text-white">
+            <h3 className="text-xl sm:text-2xl font-black text-white font-display">
               Luyện Nghe Phản Xạ TOEIC Part 2 (Quy Trình 8 Bước Độc Quyền)
             </h3>
-            <p className="text-xs sm:text-sm text-white/85 font-medium max-w-2xl leading-relaxed">
-              Bẻ nhỏ Functional Chunks • Phản xạ 1s bật nghĩa • Đoán hướng trả lời • Shadowing nối âm nuốt âm • Vạch trần bẫy ETS • Nghe thực chiến như thi • Nghe thụ động liên tục.
+            <p className="text-xs sm:text-sm text-purple-200 font-medium max-w-2xl leading-relaxed">
+              Bẻ nhỏ Functional Chunks • Phản xạ 1s bật nghĩa • Đoán hướng trả lời • Shadowing nối âm nuốt âm • Vạch trần bẫy ETS.
             </p>
           </div>
           <Link
             to="/part2-coach"
             onClick={() => trackEvent("click_part2_coach", { source: "showcase_banner" })}
-            className="btn-3d btn-3d-yellow py-3 px-6 text-xs sm:text-sm font-black whitespace-nowrap flex items-center gap-2 shadow-xl shrink-0 relative z-10 cursor-pointer"
+            className="py-3 px-6 rounded-xl text-xs sm:text-sm font-black whitespace-nowrap flex items-center gap-2 bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-slate-950 shadow-[0_0_20px_rgba(245,158,11,0.4)] shrink-0 relative z-10 transition-transform hover:scale-105 active:scale-95 cursor-pointer"
           >
             <span>Trải Nghiệm 8 Bước Ngay</span>
             <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
 
-        {/* Lưới khóa học Listening: Cân đối 3 cột trên desktop */}
+        {/* Lưới khóa học Listening */}
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-80 rounded-2xl" />
+              <Skeleton key={i} className="h-80 rounded-2xl bg-slate-800/60" />
             ))}
           </div>
         ) : listeningCourses.length > 0 ? (
@@ -388,95 +244,34 @@ export const CourseShowcase = () => {
               <CourseCard key={c.id} course={c} />
             ))}
 
-            {/* Card Bổ Trợ 2: Phòng Luyện Bắt Âm & Nối Từ (Micro-listening) */}
-            {listeningCourses.length <= 2 && (
-              <div className="group bg-card rounded-2xl border border-border/70 hover:border-purple-500/50 shadow-soft-sm hover:shadow-soft-md transition-all duration-200 flex flex-col h-full overflow-hidden">
-                <div className="aspect-video w-full relative overflow-hidden bg-gradient-to-tr from-purple-600/20 via-indigo-600/15 to-pink-500/20 flex flex-col items-center justify-center p-4 text-center">
-                  <div className="w-12 h-12 rounded-2xl bg-purple-100 dark:bg-purple-950/70 text-purple-600 dark:text-purple-400 flex items-center justify-center shadow-xs transition-transform group-hover:scale-110 mb-2">
-                    <img src={iconDictation} alt="" className="w-8 h-8 object-contain" />
-                  </div>
-                  <span className="text-[11px] font-black uppercase tracking-wider text-purple-600 dark:text-purple-400">
-                    Kỹ Năng Bắt Âm
-                  </span>
-                  <span className="text-sm font-extrabold text-foreground mt-0.5 line-clamp-1">
-                    Bắt Nuốt Âm &amp; Nối Từ Thực Chiến
-                  </span>
-                  <div className="absolute top-2.5 right-2.5">
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-purple-600 text-white shadow-xs">
-                      ĐỘC QUYỀN
-                    </span>
-                  </div>
-                </div>
-
-                <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 font-medium">
-                      <span>Luyện nghe cảm ứng</span>
-                      <span>•</span>
-                      <span className="text-purple-600 dark:text-purple-400 font-semibold">Tua chậm 0.75x</span>
-                    </div>
-                    <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors line-clamp-2 leading-snug">
-                      Khắc Phục Tình Trạng "Nhìn Hiểu – Nghe Điếc"
-                    </h3>
-                    <p className="text-xs text-slate-600 dark:text-slate-400 font-normal line-clamp-2 leading-relaxed">
-                      Bẻ nhỏ câu thoại theo cụm nghĩa (chunks), luyện gõ từ khóa nghe được và đối chiếu đáp án tức thì với transcript chuẩn.
-                    </p>
-                  </div>
-
-                  <div className="pt-2 border-t border-border/40 flex items-center justify-between text-xs text-muted-foreground font-medium">
-                    <div className="flex items-center gap-1">
-                      <Headphones className="w-3.5 h-3.5 text-purple-600" />
-                      <span>500+ đoạn nghe Part 1–4</span>
-                    </div>
-                    <span className="font-bold text-foreground/80">Thầy Luận Mentor</span>
-                  </div>
-
-                  <div className="pt-2.5 border-t border-border/40 flex items-center justify-between gap-2">
-                    <div>
-                      <span className="text-sm font-black text-purple-600 dark:text-purple-400">
-                        Miễn phí
-                      </span>
-                    </div>
-                    <Link
-                      to="/part2-coach"
-                      className="py-1.5 px-3.5 rounded-xl font-bold text-xs inline-flex items-center gap-1.5 bg-purple-600 hover:bg-purple-700 text-white shadow-soft-sm transition-all group-hover:translate-x-0.5 shrink-0"
-                    >
-                      <span>Luyện tai ngay</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Card Khám Phá 3: Toàn Bộ Thư Viện Dictation */}
+            {/* Card Khám Phá Thêm Dictation */}
             {listeningCourses.length <= 2 && (
               <Link
                 to="/part2-coach"
-                className="group rounded-2xl border-2 border-dashed border-slate-200 dark:border-zinc-800 hover:border-purple-500/60 dark:hover:border-purple-500/60 bg-slate-50/60 dark:bg-zinc-800/40 hover:bg-purple-50/30 dark:hover:bg-purple-950/20 p-5 sm:p-6 flex flex-col justify-between items-stretch gap-4 transition-all duration-200 cursor-pointer min-h-[280px]"
+                className="group rounded-2xl border-2 border-dashed border-slate-800 hover:border-purple-500/60 bg-slate-900/40 hover:bg-purple-950/20 p-6 flex flex-col justify-between items-stretch gap-4 transition-all duration-200 cursor-pointer min-h-[260px]"
               >
                 <div className="space-y-3.5">
-                  <div className="w-12 h-12 rounded-2xl bg-purple-100 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center transition-transform group-hover:scale-110 shadow-xs">
+                  <div className="w-12 h-12 rounded-2xl bg-purple-500/15 text-purple-400 flex items-center justify-center transition-transform group-hover:scale-110 shadow-sm border border-purple-500/30">
                     <Headphones className="w-6 h-6" />
                   </div>
                   <div className="space-y-1.5">
-                    <span className="text-xs font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400">
+                    <span className="text-xs font-bold uppercase tracking-wider text-purple-400">
                       Kho Bài Nghe Mở Rộng
                     </span>
-                    <h3 className="text-base font-extrabold text-foreground group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+                    <h3 className="text-base font-extrabold text-white group-hover:text-purple-300 transition-colors">
                       Xem Tất Cả Bài Dictation &amp; Phản Xạ
                     </h3>
-                    <p className="text-xs text-slate-500 dark:text-zinc-400 leading-relaxed font-medium">
-                      Tuyển tập hơn 100 bài nghe chép chính tả Part 1, 2, 3, 4 phân cấp theo trình độ từ cơ bản đến nâng cao, rèn phản xạ tai nghe nhạy bén.
+                    <p className="text-xs text-slate-400 leading-relaxed font-medium">
+                      Hơn 100 bài nghe chép chính tả Part 1–4, bẻ nhỏ câu thoại theo cụm, nhận diện nuốt âm và nối từ.
                     </p>
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-slate-200/70 dark:border-zinc-800 flex items-center justify-between shrink-0">
-                  <span className="text-xs font-semibold text-slate-500 dark:text-zinc-400">
-                    Phương pháp độc quyền
+                <div className="pt-4 border-t border-slate-800 flex items-center justify-between">
+                  <span className="text-xs font-semibold text-slate-400">
+                    Bắt âm chuẩn xác
                   </span>
-                  <span className="py-2 px-3.5 rounded-xl font-bold text-xs bg-purple-600 group-hover:bg-purple-700 text-white inline-flex items-center gap-1.5 transition-colors shadow-xs shrink-0">
+                  <span className="py-2 px-3.5 rounded-xl font-bold text-xs bg-purple-600 group-hover:bg-purple-500 text-white inline-flex items-center gap-1.5 transition-colors shadow-xs">
                     <span>Vào luyện nghe</span>
                     <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
                   </span>
@@ -485,35 +280,262 @@ export const CourseShowcase = () => {
             )}
           </div>
         ) : (
-          <p className="text-xs text-muted-foreground">Đang cập nhật bài luyện nghe...</p>
+          <p className="text-xs text-slate-400">Đang cập nhật bài luyện nghe...</p>
         )}
       </section>
 
       {/* ========================================================================= */}
-      {/* SECTION 4: GÓI COMBO VIP TOÀN DIỆN TOEIC - ĐẬM CHẤT GAMIFICATION BENTO     */}
+      {/* SECTION 3: KHÓA HỌC VIDEO NGHE - ĐỌC 700+                                 */}
       {/* ========================================================================= */}
-      <div className="relative overflow-hidden rounded-3xl border-2 border-amber-400/90 dark:border-amber-500/70 bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 text-white p-6 sm:p-8 md:p-10 shadow-[0_12px_45px_rgba(245,158,11,0.2)]">
+      <section
+        id="section-video"
+        className="rounded-3xl border border-blue-500/25 bg-[#081226]/85 backdrop-blur-md p-6 sm:p-8 space-y-6 shadow-[0_10px_35px_rgba(0,0,0,0.5)] scroll-mt-24 transition-all"
+      >
+        {/* Header Kệ */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+          <div className="flex items-start gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-blue-500/15 p-2 flex items-center justify-center border border-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.2)] shrink-0">
+              <img src={iconVideo} alt="" className="w-full h-full object-contain" />
+            </div>
+            <div className="space-y-1">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <h2 className="text-lg sm:text-2xl font-black text-white font-display tracking-wide">
+                  KHÓA HỌC VIDEO <span className="text-blue-400">NGHE - ĐỌC 700+</span>
+                </h2>
+                <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-500/15 text-blue-300 border border-blue-500/30">
+                  {videoCourses.length} khóa học
+                </span>
+              </div>
+              <p className="text-slate-400 text-xs sm:text-sm font-medium">
+                Chiến thuật xử lý nhanh Part 1–7, mẹo tránh bẫy 5 giây, bứt phá 700+ đến 850+.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Lưới khóa học Video */}
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-80 rounded-2xl bg-slate-800/60" />
+            ))}
+          </div>
+        ) : videoCourses.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
+            {videoCourses.map((c) => (
+              <CourseCard key={c.id} course={c} />
+            ))}
+
+            {/* Card Khám Phá Thêm Video */}
+            {videoCourses.length <= 2 && (
+              <Link
+                to="/#combos"
+                className="group rounded-2xl border-2 border-dashed border-slate-800 hover:border-blue-500/60 bg-slate-900/40 hover:bg-blue-950/20 p-6 flex flex-col justify-between items-stretch gap-4 transition-all duration-200 cursor-pointer min-h-[260px]"
+              >
+                <div className="space-y-3.5">
+                  <div className="w-12 h-12 rounded-2xl bg-blue-500/15 text-blue-400 flex items-center justify-center transition-transform group-hover:scale-110 shadow-sm border border-blue-500/30">
+                    <BookOpen className="w-6 h-6" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <span className="text-xs font-bold uppercase tracking-wider text-blue-400">
+                      Kho Khóa Học Mở Rộng
+                    </span>
+                    <h3 className="text-base font-extrabold text-white group-hover:text-blue-300 transition-colors">
+                      Xem Toàn Bộ Video Bài Giảng TOEIC
+                    </h3>
+                    <p className="text-xs text-slate-400 leading-relaxed font-medium">
+                      Hệ thống bài giảng từ nền tảng 450 đến bứt phá 850+, chia theo từng chuyên đề Part 1–7 kèm tài liệu PDF.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-slate-800 flex items-center justify-between">
+                  <span className="text-xs font-semibold text-slate-400">
+                    Cập nhật liên tục
+                  </span>
+                  <span className="py-2 px-3.5 rounded-xl font-bold text-xs bg-blue-600 group-hover:bg-blue-500 text-white inline-flex items-center gap-1.5 transition-colors shadow-xs">
+                    <span>Xem lộ trình</span>
+                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                  </span>
+                </div>
+              </Link>
+            )}
+          </div>
+        ) : (
+          <p className="text-xs text-slate-400">Đang cập nhật khóa học video...</p>
+        )}
+      </section>
+
+      {/* ========================================================================= */}
+      {/* SECTION 4: KHỐI UỐN CONG NAVY IIG - KHU VỰC TRÒ CHƠI HỌC TỪ VỰNG           */}
+      {/* ========================================================================= */}
+      <section
+        id="section-games"
+        className="curved-navy-container p-6 sm:p-8 md:p-10 space-y-8 relative overflow-hidden"
+      >
+        {/* Glow ambient background */}
+        <div className="absolute top-0 right-0 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        {/* Section Header */}
+        <div className="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-4 pb-4 border-b border-cyan-500/20">
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-xs font-black uppercase tracking-wider">
+              <Gamepad2 className="w-4 h-4 text-cyan-400" />
+              <span>ARCADE GAMIFICATION · VỪA HỌC VỪA CHƠI</span>
+            </div>
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-white font-display tracking-wide">
+              KHU VỰC TRÒ CHƠI HỌC TỪ VỰNG THEO BỘ TỪ VỰNG TÙY CHỌN
+            </h2>
+            <p className="text-slate-300 text-xs sm:text-sm font-medium">
+              Chọn bộ từ vựng yêu thích (TOEIC 600 từ, Giao tiếp, Công nghệ...) và chiến game ngay!
+            </p>
+          </div>
+
+          <Link
+            to="/games"
+            onClick={() => trackEvent("click_arcade_view_all", { source: "games_header" })}
+            className="py-2.5 px-5 rounded-xl font-black text-xs text-cyan-300 bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/40 hover:border-cyan-400 transition-all inline-flex items-center gap-2 shadow-[0_0_15px_rgba(6,182,212,0.25)] shrink-0 self-start md:self-auto cursor-pointer"
+          >
+            <span>Vào đấu trường Game</span>
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+
+        {/* Bento Grid 2 Game Chủ Lực + Thẻ Bộ Từ Vựng */}
+        <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
+          {/* Card 1: Word Defense (Thủ Thành PvZ) */}
+          <div className="group rounded-2xl border border-emerald-500/30 bg-[#071329]/90 hover:border-emerald-400/60 p-6 flex flex-col justify-between space-y-5 transition-all duration-300 shadow-[0_4px_25px_rgba(0,0,0,0.5)] hover:shadow-[0_0_30px_rgba(16,185,129,0.3)]">
+            <div className="space-y-3.5">
+              <div className="flex items-center justify-between">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-2xl shadow-xs group-hover:scale-110 transition-transform">
+                  🌻
+                </div>
+                <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                  MỚI • PVZ STYLE
+                </span>
+              </div>
+              <div className="space-y-1.5">
+                <h3 className="text-lg font-black text-white group-hover:text-emerald-300 transition-colors font-display">
+                  Word Defense: Cuộc Chiến Khu Vườn
+                </h3>
+                <p className="text-xs text-slate-300 font-medium leading-relaxed">
+                  Bảo vệ khu vườn bằng cách gõ từ vựng triệu hồi Đậu Thần, Băng Tiễn, Bom Anh Đào. Giải mã khiên quái vật, luyện phản xạ từ vựng cấp tốc.
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-slate-800/80 flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-400">Chọn mọi bộ từ vựng</span>
+              <Link
+                to="/games/word-defense"
+                onClick={() => trackEvent("click_play_defense", { source: "homepage_bento" })}
+                className="py-2 px-4 rounded-xl font-black text-xs text-white bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 shadow-[0_0_15px_rgba(16,185,129,0.4)] inline-flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 cursor-pointer"
+              >
+                <span>⚔️ Chơi Ngay</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+          </div>
+
+          {/* Card 2: Word Shooter (Bắn Chữ Không Gian) */}
+          <div className="group rounded-2xl border border-cyan-500/30 bg-[#071329]/90 hover:border-cyan-400/60 p-6 flex flex-col justify-between space-y-5 transition-all duration-300 shadow-[0_4px_25px_rgba(0,0,0,0.5)] hover:shadow-[0_0_30px_rgba(6,182,212,0.3)]">
+            <div className="space-y-3.5">
+              <div className="flex items-center justify-between">
+                <div className="w-12 h-12 rounded-2xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-2xl shadow-xs group-hover:scale-110 transition-transform">
+                  🚀
+                </div>
+                <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
+                  HOT • NÂNG CẤP 2.0
+                </span>
+              </div>
+              <div className="space-y-1.5">
+                <h3 className="text-lg font-black text-white group-hover:text-cyan-300 transition-colors font-display">
+                  Phi Cơ Diệt Từ Vựng (Sky Strike 2.0)
+                </h3>
+                <p className="text-xs text-slate-300 font-medium leading-relaxed">
+                  Lái chiến đấu cơ bắn nổ từ vựng đang rơi bằng cách gõ phím. Tích hợp audio phát âm chuẩn TTS, popup nghĩa nổ và đóng băng từ đặc biệt.
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-slate-800/80 flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-400">Có Audio TTS &amp; PvP</span>
+              <Link
+                to="/games/word-shooter"
+                onClick={() => trackEvent("click_play_shooter", { source: "homepage_bento" })}
+                className="py-2 px-4 rounded-xl font-black text-xs text-white bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 shadow-[0_0_15px_rgba(6,182,212,0.4)] inline-flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 cursor-pointer"
+              >
+                <span>🚀 Xuất Kích</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+          </div>
+
+          {/* Card 3: Kho Bộ Từ Vựng Tùy Chọn */}
+          <div className="group rounded-2xl border border-purple-500/30 bg-[#071329]/90 hover:border-purple-400/60 p-6 flex flex-col justify-between space-y-5 transition-all duration-300 shadow-[0_4px_25px_rgba(0,0,0,0.5)] hover:shadow-[0_0_30px_rgba(168,85,247,0.3)]">
+            <div className="space-y-3.5">
+              <div className="flex items-center justify-between">
+                <div className="w-12 h-12 rounded-2xl bg-purple-500/20 border border-purple-500/40 flex items-center justify-center text-2xl shadow-xs group-hover:scale-110 transition-transform">
+                  📚
+                </div>
+                <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-purple-500/20 text-purple-300 border border-purple-500/40">
+                  TÙY CHỌN BỘ TỪ
+                </span>
+              </div>
+              <div className="space-y-1.5">
+                <h3 className="text-lg font-black text-white group-hover:text-purple-300 transition-colors font-display">
+                  Kho Bộ Từ Vựng Đa Dạng
+                </h3>
+                <p className="text-xs text-slate-300 font-medium leading-relaxed">
+                  Tùy ý nạp bộ từ: <strong>TOEIC 600 Master</strong>, <strong>Giao tiếp hàng ngày</strong>, <strong>Công nghệ</strong>, <strong>Động vật</strong> hoặc tự tạo bộ từ vựng cá nhân để chơi game.
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-slate-800/80 flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-400">1.000+ từ cốt lõi</span>
+              <Link
+                to="/games"
+                onClick={() => trackEvent("click_view_vocab_packs", { source: "homepage_bento" })}
+                className="py-2 px-4 rounded-xl font-black text-xs text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 shadow-[0_0_15px_rgba(168,85,247,0.4)] inline-flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 cursor-pointer"
+              >
+                <span>🕹️ Vào Kho Game</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ========================================================================= */}
+      {/* SECTION 5: NÂNG CẤP VIP TRỌN ĐỜI (COMBO DARK CARD VIỀN VÀNG NEON)           */}
+      {/* ========================================================================= */}
+      <div
+        id="combos"
+        className="relative overflow-hidden rounded-3xl border-2 border-amber-400/80 bg-gradient-to-br from-[#0c1629] via-[#080f1e] to-[#040810] text-white p-6 sm:p-8 md:p-10 shadow-[0_0_45px_rgba(245,158,11,0.25)] scroll-mt-24"
+      >
         {/* Glow ambient effects */}
-        <div className="absolute top-0 right-0 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-0 right-0 w-80 h-80 bg-amber-500/15 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-80 h-80 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
           {/* Cột Trái: Quyền Lợi VIP (7 Cột) */}
           <div className="lg:col-span-7 space-y-6">
             <div className="space-y-3">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/30 text-xs font-black uppercase tracking-wider backdrop-blur-xs">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/40 text-xs font-black uppercase tracking-wider backdrop-blur-xs">
                 <img src={iconFlame} alt="" className="w-4 h-4 object-contain inline-block" />
                 <span>GÓI VIP TOÀN DIỆN TOEIC · ƯU ĐÃI ĐỢT 1 TIẾT KIỆM 50%</span>
               </div>
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-white tracking-tight leading-tight">
-                Đăng Ký Combo Trọn Gói Khóa Học &amp; Kho Đề Thi ETS
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-white font-display tracking-wide leading-tight">
+                NÂNG CẤP VIP TRỌN ĐỜI
               </h2>
-              <p className="text-white/80 text-xs sm:text-sm font-normal leading-relaxed max-w-2xl">
-                Mở khóa toàn bộ 200+ bộ đề thi thử format ETS có lời giải chi tiết từng câu, trọn bộ video bài giảng Part 1–7 và hệ thống luyện nghe cảm ứng không giới hạn thời gian.
+              <p className="text-slate-300 text-xs sm:text-sm font-medium leading-relaxed max-w-2xl">
+                Mở khóa vĩnh viễn toàn bộ kho đề thi ETS 200 câu có giải chi tiết, hệ thống Dictation 8 bước và trọn bộ video bài giảng Part 1–7.
               </p>
             </div>
 
-            {/* 4 Vũ Khí Luyện Thi VIP */}
+            {/* 4 Quyền Lợi Cốt Lõi */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-white/5 border border-white/10 hover:border-amber-400/40 transition-colors">
                 <div className="w-8 h-8 rounded-xl bg-amber-400/20 text-amber-300 flex items-center justify-center shrink-0 mt-0.5">
@@ -521,7 +543,7 @@ export const CourseShowcase = () => {
                 </div>
                 <div className="space-y-0.5">
                   <h4 className="text-xs font-bold text-white">Kho Đề Full Test ETS 200 Câu</h4>
-                  <p className="text-[11px] text-white/70">Format 2026 chuẩn 120 phút, giải thích đáp án 100%.</p>
+                  <p className="text-[11px] text-slate-400">Format 2026 chuẩn 120 phút, giải chi tiết 100%.</p>
                 </div>
               </div>
 
@@ -531,7 +553,7 @@ export const CourseShowcase = () => {
                 </div>
                 <div className="space-y-0.5">
                   <h4 className="text-xs font-bold text-white">Luyện Nghe Dictation Không Giới Hạn</h4>
-                  <p className="text-[11px] text-white/70">Quy trình 8 bước độc quyền bẻ nhỏ âm thanh Part 2.</p>
+                  <p className="text-[11px] text-slate-400">Quy trình 8 bước độc quyền bẻ nhỏ âm thanh.</p>
                 </div>
               </div>
 
@@ -541,7 +563,7 @@ export const CourseShowcase = () => {
                 </div>
                 <div className="space-y-0.5">
                   <h4 className="text-xs font-bold text-white">Trọn Bộ Video Bài Giảng Part 1–7</h4>
-                  <p className="text-[11px] text-white/70">Trang bị chiến thuật tránh bẫy tinh vi của đề thi thật.</p>
+                  <p className="text-[11px] text-slate-400">Chiến thuật 5 giây xử lý bẫy ngữ pháp &amp; từ loại.</p>
                 </div>
               </div>
 
@@ -550,8 +572,8 @@ export const CourseShowcase = () => {
                   <CheckCircle2 className="w-4 h-4" />
                 </div>
                 <div className="space-y-0.5">
-                  <h4 className="text-xs font-bold text-white">Tự Động Cập Nhật Đề Mới Trọn Đời</h4>
-                  <p className="text-[11px] text-white/70">Miễn phí 100% khi ETS ra mắt các bộ đề 2026, 2027.</p>
+                  <h4 className="text-xs font-bold text-white">Cố Vấn Đồng Hành 1-1 Qua Zalo</h4>
+                  <p className="text-[11px] text-slate-400">Giải đáp thắc mắc câu hỏi khó 24/7 trực tiếp.</p>
                 </div>
               </div>
             </div>
@@ -559,20 +581,20 @@ export const CourseShowcase = () => {
 
           {/* Cột Phải: Thẻ Vé VIP Ticket Giá Sốc (5 Cột) */}
           <div className="lg:col-span-5">
-            <div className="bg-white/10 dark:bg-white/5 backdrop-blur-md rounded-2xl border-2 border-amber-400/50 p-6 flex flex-col items-center text-center space-y-4 shadow-2xl relative">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/20 text-red-300 border border-red-500/30 text-[11px] font-black uppercase tracking-wider">
+            <div className="bg-[#0b172d]/90 backdrop-blur-md rounded-2xl border-2 border-amber-400/60 p-6 flex flex-col items-center text-center space-y-4 shadow-[0_0_35px_rgba(245,158,11,0.2)] relative">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/20 text-red-300 border border-red-500/40 text-[11px] font-black uppercase tracking-wider">
                 <Zap className="w-3.5 h-3.5 text-red-400" />
                 <span>TIẾT KIỆM 1.750.000 Đ</span>
               </div>
 
               <div className="space-y-1">
-                <span className="text-xs text-white/60 line-through font-bold">
+                <span className="text-xs text-slate-400 line-through font-bold">
                   Giá gốc: 3.500.000 đ
                 </span>
-                <div className="text-3xl sm:text-4xl font-black text-amber-300 tracking-tight">
+                <div className="text-3xl sm:text-4xl font-black text-amber-300 tracking-tight font-tech">
                   1.750.000 đ
                 </div>
-                <p className="text-xs text-white/80 font-medium">
+                <p className="text-xs text-slate-300 font-medium">
                   Thanh toán 1 lần duy nhất để học trọn đời
                 </p>
               </div>
@@ -582,14 +604,14 @@ export const CourseShowcase = () => {
                   trackEvent("click_combo", { location: "showcase_vip_card" });
                   setModalOpen(true);
                 }}
-                className="btn-3d btn-3d-yellow w-full py-4 text-sm sm:text-base font-black flex items-center justify-center gap-2 shadow-xl hover:brightness-105 active:translate-y-1 cursor-pointer"
+                className="w-full py-3.5 rounded-2xl text-sm sm:text-base font-black text-slate-950 bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 shadow-[0_0_25px_rgba(245,158,11,0.5)] hover:shadow-[0_0_35px_rgba(245,158,11,0.7)] flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95 cursor-pointer"
               >
                 <img src={iconFlame} alt="" className="w-5 h-5 object-contain inline-block" />
                 <span>MUA GÓI VIP TRỌN GÓI</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
 
-              <div className="text-[11px] text-white/70 flex items-center gap-1.5 font-medium">
+              <div className="text-[11px] text-slate-400 flex items-center gap-1.5 font-medium">
                 <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
                 <span>Kích hoạt tài khoản tự động ngay sau khi chuyển khoản</span>
               </div>
@@ -599,108 +621,104 @@ export const CourseShowcase = () => {
       </div>
 
       {/* ========================================================================= */}
-      {/* 4 CAM KẾT HỌC VIÊN (GAMIFICATION VALUE PROPS BAR)                          */}
+      {/* 4 CAM KẾT CHUẨN KHẢO THÍ ETS                                              */}
       {/* ========================================================================= */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 flex items-center gap-3 shadow-xs">
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 p-1 flex items-center justify-center border border-emerald-500/20 shrink-0">
+        <div className="p-4 rounded-2xl bg-[#081226]/80 border border-slate-800 flex items-center gap-3 shadow-xs">
+          <div className="w-10 h-10 rounded-xl bg-emerald-500/15 p-1 flex items-center justify-center border border-emerald-500/30 shrink-0">
             <img src={iconFulltest} alt="" className="w-7 h-7 object-contain" />
           </div>
           <div>
-            <h4 className="text-xs font-black text-foreground">Bộ Đề Chuẩn ETS</h4>
-            <p className="text-[11px] text-muted-foreground font-medium">Format 2026 sát đề thi thật</p>
+            <h4 className="text-xs font-black text-white font-tech">Bộ Đề Chuẩn ETS</h4>
+            <p className="text-[11px] text-slate-400 font-medium">Format 2026 sát đề thi thật</p>
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 flex items-center gap-3 shadow-xs">
-          <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/60 p-1 flex items-center justify-center border border-amber-500/20 shrink-0">
+        <div className="p-4 rounded-2xl bg-[#081226]/80 border border-slate-800 flex items-center gap-3 shadow-xs">
+          <div className="w-10 h-10 rounded-xl bg-amber-500/15 p-1 flex items-center justify-center border border-amber-500/30 shrink-0">
             <img src={iconArcade} alt="" className="w-7 h-7 object-contain" />
           </div>
           <div>
-            <h4 className="text-xs font-black text-foreground">Gamification Thú Vị</h4>
-            <p className="text-[11px] text-muted-foreground font-medium">Luyện thi vui, phần quà hấp dẫn</p>
+            <h4 className="text-xs font-black text-white font-tech">Game Từ Vựng Tùy Chọn</h4>
+            <p className="text-[11px] text-slate-400 font-medium">Luyện thi vui, nhớ từ siêu tốc</p>
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 flex items-center gap-3 shadow-xs">
-          <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-950/60 p-1 flex items-center justify-center border border-purple-500/20 shrink-0">
+        <div className="p-4 rounded-2xl bg-[#081226]/80 border border-slate-800 flex items-center gap-3 shadow-xs">
+          <div className="w-10 h-10 rounded-xl bg-purple-500/15 p-1 flex items-center justify-center border border-purple-500/30 shrink-0">
             <img src={iconDictation} alt="" className="w-7 h-7 object-contain" />
           </div>
           <div>
-            <h4 className="text-xs font-black text-foreground">Dictation Đột Phá</h4>
-            <p className="text-[11px] text-muted-foreground font-medium">Bứt phá điểm số Listening</p>
+            <h4 className="text-xs font-black text-white font-tech">Dictation Đột Phá</h4>
+            <p className="text-[11px] text-slate-400 font-medium">Quy trình 8 bước bứt phá Listening</p>
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 flex items-center gap-3 shadow-xs">
-          <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/60 p-1 flex items-center justify-center border border-blue-500/20 shrink-0">
+        <div className="p-4 rounded-2xl bg-[#081226]/80 border border-slate-800 flex items-center gap-3 shadow-xs">
+          <div className="w-10 h-10 rounded-xl bg-blue-500/15 p-1 flex items-center justify-center border border-blue-500/30 shrink-0">
             <img src={iconShield} alt="" className="w-7 h-7 object-contain" />
           </div>
           <div>
-            <h4 className="text-xs font-black text-foreground">Đồng Hành 1-1</h4>
-            <p className="text-[11px] text-muted-foreground font-medium">Cố vấn giải đáp 24/7 qua Zalo</p>
+            <h4 className="text-xs font-black text-white font-tech">Đồng Hành 1-1</h4>
+            <p className="text-[11px] text-slate-400 font-medium">Cố vấn giải đáp 24/7 qua Zalo</p>
           </div>
         </div>
       </div>
 
       {/* MODAL THANH TOÁN VIETQR COMBO KHÓA HỌC */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-w-lg p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800">
+        <DialogContent className="max-w-lg p-6 rounded-3xl bg-[#09152b] border border-cyan-500/30 text-white">
           <DialogHeader className="space-y-2 text-center flex flex-col items-center">
-            <div className="w-14 h-14 rounded-2xl bg-blue-50 dark:bg-blue-950/60 p-2 flex items-center justify-center border border-blue-500/20 shadow-xs">
+            <div className="w-14 h-14 rounded-2xl bg-cyan-500/15 p-2 flex items-center justify-center border border-cyan-500/30 shadow-[0_0_20px_rgba(6,182,212,0.3)]">
               <img src={iconGift} alt="" className="w-full h-full object-contain drop-shadow-sm" />
             </div>
-            <DialogTitle className="text-xl font-black text-foreground">
+            <DialogTitle className="text-xl font-black text-white font-display">
               Đăng Ký Gói Combo Khóa Học VIP
             </DialogTitle>
-            <p className="text-xs text-slate-500 dark:text-zinc-400">
+            <p className="text-xs text-slate-300">
               Quét mã VietQR chuyển khoản tự động để kích hoạt tài khoản học viên ngay lập tức.
             </p>
           </DialogHeader>
 
           <div className="space-y-4 pt-2">
-            <div className="p-4 rounded-2xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/50 flex items-center justify-between">
+            <div className="p-4 rounded-2xl bg-[#0c1f40] border border-cyan-500/30 flex items-center justify-between">
               <div>
-                <span className="text-xs uppercase font-bold text-blue-600 dark:text-blue-400">
+                <span className="text-xs uppercase font-bold text-cyan-400">
                   GÓI HỌC TOÀN DIỆN
                 </span>
-                <h4 className="font-black text-sm text-foreground">
+                <h4 className="font-black text-sm text-white font-display">
                   Combo TOEIC VIP Toàn Bộ Khóa Học &amp; Đề Thi
                 </h4>
-                <span className="text-xs text-slate-500">Thời hạn: Vĩnh viễn (Kèm toàn bộ bản cập nhật)</span>
+                <span className="text-xs text-slate-400">Thời hạn: Vĩnh viễn (Kèm toàn bộ bản cập nhật)</span>
               </div>
               <div className="text-right">
-                <span className="text-base font-black text-blue-600 dark:text-blue-400">
+                <span className="text-lg font-black text-amber-300 font-tech">
                   1.750.000 đ
                 </span>
-                <span className="text-xs text-slate-400 line-through block">
+                <span className="text-xs text-slate-500 line-through block">
                   3.500.000 đ
                 </span>
               </div>
             </div>
 
-            <div className="flex flex-col items-center justify-center p-5 rounded-2xl border border-slate-200 dark:border-zinc-800 bg-slate-50/60 dark:bg-zinc-800/40">
-              <div className="bg-white p-3 rounded-2xl shadow-sm border border-slate-200">
-                <img
-                  src="https://api.vietqr.io/image/970422-0334729066-qj9Rj0t.jpg?accountName=HOANG%20CONG%20LUAN&amount=1750000&addInfo=VIP%20LENGLISH"
-                  alt="VietQR Chuyển Khoản"
-                  className="w-48 h-48 object-contain"
-                />
-              </div>
-              <div className="text-center mt-3 space-y-1">
-                <p className="text-xs font-bold text-foreground">
-                  Ngân hàng: <span className="text-blue-600 font-extrabold">MBBank</span>
-                </p>
-                <p className="text-xs font-bold text-foreground">
-                  Số tài khoản: <span className="text-blue-600 font-extrabold">0334729066</span>
-                </p>
-                <p className="text-xs font-bold text-foreground">
-                  Chủ tài khoản: <span className="font-extrabold">HOANG CONG LUAN</span>
-                </p>
-                <p className="text-xs text-slate-500">
-                  Nội dung CK: <strong className="text-blue-600">VIP [SĐT Của Bạn]</strong>
-                </p>
-              </div>
+            <div className="flex flex-col items-center justify-center p-5 rounded-2xl border border-slate-700 bg-white">
+              <img
+                src="https://api.vietqr.io/image/970422-0334729066-qj9Rj0t.jpg?accountName=HOANG%20CONG%20LUAN&amount=1750000&addInfo=VIP%20LENGLISH"
+                alt="VietQR Chuyển Khoản"
+                className="w-48 h-48 object-contain"
+              />
+            </div>
+
+            <div className="text-center space-y-1 p-3 rounded-xl bg-slate-900/60 border border-slate-800 text-xs">
+              <p className="font-bold text-slate-200">
+                Ngân hàng: <span className="text-cyan-400 font-extrabold">MBBank</span> | STK: <span className="text-cyan-400 font-extrabold">0334729066</span>
+              </p>
+              <p className="font-bold text-slate-200">
+                Chủ tài khoản: <span className="text-white font-extrabold">HOANG CONG LUAN</span>
+              </p>
+              <p className="text-slate-400">
+                Nội dung CK: <strong className="text-amber-300 font-mono">VIP [SĐT Của Bạn]</strong>
+              </p>
             </div>
 
             <div className="pt-2 text-center">
@@ -709,7 +727,7 @@ export const CourseShowcase = () => {
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => trackEvent("click_zalo", { source: "combo_payment_modal" })}
-                className="btn-3d btn-3d-green w-full py-2.5 text-xs font-black inline-flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full py-3 rounded-xl text-xs font-black inline-flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.4)] cursor-pointer"
               >
                 <span>Xác nhận chuyển khoản qua Zalo (0334729066)</span>
                 <ArrowRight className="w-3.5 h-3.5" />

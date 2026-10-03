@@ -1,12 +1,10 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import Logo from "@/components/Logo";
 import { getFriendlyErrorMessage } from "@/lib/errorHandler";
-import { Loader2 } from "lucide-react";
+import { Loader2, ArrowLeft, KeyRound } from "lucide-react";
 
 const ResetPassword = () => {
   const [password, setPassword] = useState("");
@@ -41,35 +39,93 @@ const ResetPassword = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4 relative overflow-hidden">
-      {/* Decorative elements */}
-      <div className="absolute top-20 left-20 w-32 h-32 rounded-full bg-[var(--duo-green)]/10 blur-2xl pointer-events-none" />
-      <div className="absolute bottom-20 right-20 w-40 h-40 rounded-full bg-[var(--duo-blue)]/10 blur-2xl pointer-events-none" />
-      
-      <div className="w-full max-w-md relative">
-        <div className="text-center mb-8 flex flex-col items-center">
-          <Link to="/" className="mb-4">
-            <Logo imgClassName="w-14 h-14" />
-          </Link>
-          <h1 className="text-2xl font-extrabold text-foreground">Đặt lại mật khẩu 🔑</h1>
-          <p className="text-sm text-muted-foreground mt-1 font-medium">Nhập mật khẩu mới của bạn</p>
+    <div className="min-h-screen w-full flex items-center justify-center bg-[#050914] text-slate-100 p-4 sm:p-6 relative overflow-hidden font-sans select-none">
+      {/* Subtle grid pattern */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b15_1px,transparent_1px),linear-gradient(to_bottom,#1e293b15_1px,transparent_1px)] bg-[size:3.5rem_3.5rem] pointer-events-none" />
+
+      {/* Ambient background light orbs matching homepage */}
+      <div className="absolute -top-28 -right-28 w-[450px] h-[450px] rounded-full bg-cyan-500/15 blur-[130px] pointer-events-none" />
+      <div className="absolute -bottom-28 -left-28 w-[500px] h-[500px] rounded-full bg-blue-600/15 blur-[140px] pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[550px] h-[550px] rounded-full bg-indigo-500/5 blur-[150px] pointer-events-none" />
+
+      {/* Back to Login Link */}
+      <Link
+        to="/login"
+        className="absolute top-6 left-6 z-20 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#081226]/80 hover:bg-[#0e1d3b] border border-cyan-500/30 text-xs font-semibold text-cyan-300 backdrop-blur-md shadow-[0_0_15px_rgba(6,182,212,0.15)] transition-all active:scale-95"
+      >
+        <ArrowLeft className="w-3.5 h-3.5" />
+        <span>Quay lại đăng nhập</span>
+      </Link>
+
+      {/* Central Glassmorphism Card */}
+      <div className="w-full max-w-[430px] rounded-[28px] bg-[#070e1c]/85 backdrop-blur-2xl border border-cyan-500/25 p-7 sm:p-9 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.8),0_0_40px_rgba(6,182,212,0.08)] relative z-10">
+        {/* Subtle top edge neon glow highlight */}
+        <div className="absolute inset-x-8 -top-px h-px bg-gradient-to-r from-transparent via-cyan-400/60 to-transparent" />
+
+        {/* Header */}
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/25 text-cyan-300 text-[11px] font-semibold tracking-wider uppercase mb-3">
+            <KeyRound className="w-3.5 h-3.5 text-cyan-400" />
+            Bảo Mật Tài Khoản
+          </div>
+          <h1 className="text-2xl sm:text-[28px] font-display font-extrabold text-white tracking-tight leading-snug">
+            Đặt Lại Mật Khẩu
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-400 font-medium mt-1">
+            Thiết lập mật khẩu mới cho tài khoản của bạn
+          </p>
         </div>
 
-        <div className="card-duo p-6 space-y-6 shadow-soft-md">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="password" className="font-bold text-xs uppercase tracking-wider text-muted-foreground">Mật khẩu mới</Label>
-              <Input id="password" type="password" placeholder="Tối thiểu 6 ký tự" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} className="h-11 rounded-xl border border-border/80 font-medium focus:border-primary transition-colors text-base" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword" className="font-bold text-xs uppercase tracking-wider text-muted-foreground">Xác nhận mật khẩu</Label>
-              <Input id="confirmPassword" type="password" placeholder="Nhập lại mật khẩu" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={6} className="h-11 rounded-xl border border-border/80 font-medium focus:border-primary transition-colors text-base" />
-            </div>
-            <button type="submit" className="btn-3d btn-3d-primary w-full py-3.5 mt-2 flex items-center justify-center gap-2 active:scale-95 duration-150 font-bold" disabled={loading}>
-              {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-              <span>{loading ? "Đang lưu mật khẩu..." : "LƯU MẬT KHẨU MỚI"}</span>
-            </button>
-          </form>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="password" className="text-xs font-semibold text-slate-300">
+              Mật khẩu mới
+            </Label>
+            <input
+              id="password"
+              type="password"
+              placeholder="Tối thiểu 6 ký tự"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={6}
+              className="w-full h-11 px-4 rounded-xl bg-[#030712]/80 border border-slate-700/80 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/20 text-white placeholder:text-slate-500 text-sm outline-none transition-all"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="confirmPassword" className="text-xs font-semibold text-slate-300">
+              Xác nhận mật khẩu
+            </Label>
+            <input
+              id="confirmPassword"
+              type="password"
+              placeholder="Nhập lại mật khẩu"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+              minLength={6}
+              className="w-full h-11 px-4 rounded-xl bg-[#030712]/80 border border-slate-700/80 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/20 text-white placeholder:text-slate-500 text-sm outline-none transition-all"
+            />
+          </div>
+
+          <button
+            type="submit"
+            className="w-full h-11 mt-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-sm shadow-[0_0_25px_rgba(6,182,212,0.35)] flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] transition-all disabled:opacity-70"
+            disabled={loading}
+          >
+            {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+            <span>{loading ? "Đang lưu mật khẩu..." : "LƯU MẬT KHẨU MỚI"}</span>
+          </button>
+        </form>
+
+        <div className="pt-4 text-center border-t border-slate-800/80 mt-6">
+          <p className="text-xs text-slate-400">
+            Quay về{" "}
+            <Link to="/login" className="text-cyan-400 font-bold hover:text-cyan-300 hover:underline">
+              Đăng nhập
+            </Link>
+          </p>
         </div>
       </div>
     </div>
