@@ -1,190 +1,81 @@
 import { VocabTopic } from './types';
-import { TOEIC_600_MASTER_PACK } from '@/data/toeic600Data';
+import { TOEIC_600_MASTER_PACK, TOEIC_THEMATIC_PACKS } from '@/data/toeic600Data';
 
+// Extract the 4 best thematic packs from TOEIC 600
+const bizOfficePack = TOEIC_THEMATIC_PACKS.find(p => p.id === 'toeic_biz_office') || {
+  id: 'toeic_biz_office',
+  name: 'TOEIC: Công Sở & Hợp Đồng',
+  icon: '🏢',
+  description: 'Hợp đồng, tiếp thị, bảo hành, hội nghị, công nghệ văn phòng và thư tín thương mại.',
+  words: []
+};
+
+const hrRecruitmentPack = TOEIC_THEMATIC_PACKS.find(p => p.id === 'toeic_hr_recruitment') || {
+  id: 'toeic_hr_recruitment',
+  name: 'TOEIC: Nhân Sự & Tuyển Dụng',
+  icon: '💼',
+  description: 'Ứng tuyển việc làm, phỏng vấn, lương bổng, thăng tiến và đãi ngộ nhân sự.',
+  words: []
+};
+
+const financeBankingPack = TOEIC_THEMATIC_PACKS.find(p => p.id === 'toeic_finance_banking') || {
+  id: 'toeic_finance_banking',
+  name: 'TOEIC: Tài Chính & Ngân Hàng',
+  icon: '📈',
+  description: 'Kế toán doanh nghiệp, đầu tư, ngân sách, hóa đơn thuế và báo cáo tài chính.',
+  words: []
+};
+
+const travelTransportPack = TOEIC_THEMATIC_PACKS.find(p => p.id === 'toeic_travel_transport') || {
+  id: 'toeic_travel_transport',
+  name: 'TOEIC: Du Lịch & Vận Tải',
+  icon: '✈️',
+  description: 'Hàng không, khách sạn, vé máy bay, lịch trình di chuyển và đón tiếp đối tác.',
+  words: []
+};
+
+const dailyLifePack: VocabTopic = {
+  id: 'daily',
+  name: 'Giao Tiếp & Đời Sống',
+  icon: '🗣️',
+  description: 'Từ vựng giao tiếp thực tế, phản xạ đàm thoại hàng ngày và sinh hoạt văn phòng.',
+  words: [
+    { id: 'd1', word: 'welcome', phonetic: '/ˈwel.kəm/', definition_vi: 'chào mừng' },
+    { id: 'd2', word: 'friend', phonetic: '/frend/', definition_vi: 'người bạn' },
+    { id: 'd3', word: 'family', phonetic: '/ˈfæm.əl.i/', definition_vi: 'gia đình' },
+    { id: 'd4', word: 'happy', phonetic: '/ˈhæp.i/', definition_vi: 'hạnh phúc' },
+    { id: 'd5', word: 'smile', phonetic: '/smaɪl/', definition_vi: 'nụ cười' },
+    { id: 'd6', word: 'morning', phonetic: '/ˈmɔː.nɪŋ/', definition_vi: 'buổi sáng' },
+    { id: 'd7', word: 'coffee', phonetic: '/ˈkɒf.i/', definition_vi: 'cà phê' },
+    { id: 'd8', word: 'breakfast', phonetic: '/ˈbrek.fəst/', definition_vi: 'bữa sáng' },
+    { id: 'd9', word: 'dinner', phonetic: '/ˈdɪn.ər/', definition_vi: 'bữa tối' },
+    { id: 'd10', word: 'delicious', phonetic: '/dɪˈlɪʃ.əs/', definition_vi: 'thơm ngon' },
+    { id: 'd11', word: 'weather', phonetic: '/ˈweð.ər/', definition_vi: 'thời tiết' },
+    { id: 'd12', word: 'sunshine', phonetic: '/ˈsʌn.ʃaɪn/', definition_vi: 'ánh nắng' },
+    { id: 'd13', word: 'beautiful', phonetic: '/ˈbjuː.tɪ.fəl/', definition_vi: 'xinh đẹp' },
+    { id: 'd14', word: 'weekend', phonetic: '/ˌwiːkˈend/', definition_vi: 'cuối tuần' },
+    { id: 'd15', word: 'listen', phonetic: '/ˈlɪs.ən/', definition_vi: 'lắng nghe' },
+    { id: 'd16', word: 'helpful', phonetic: '/ˈhelp.fəl/', definition_vi: 'hữu ích, chu đáo' },
+    { id: 'd17', word: 'together', phonetic: '/təˈɡeð.ər/', definition_vi: 'cùng nhau' },
+    { id: 'd18', word: 'journey', phonetic: '/ˈdʒɜː.ni/', definition_vi: 'hành trình' },
+    { id: 'd19', word: 'laugh', phonetic: '/lɑːf/', definition_vi: 'tiếng cười' },
+    { id: 'd20', word: 'promise', phonetic: '/ˈprɒm.ɪs/', definition_vi: 'lời hứa' },
+    { id: 'd21', word: 'support', phonetic: '/səˈpɔːt/', definition_vi: 'ủng hộ, giúp đỡ' },
+    { id: 'd22', word: 'comfort', phonetic: '/ˈkʌm.fət/', definition_vi: 'sự an ủi, tiện nghi' },
+    { id: 'd23', word: 'favorite', phonetic: '/ˈfeɪ.vər.ɪt/', definition_vi: 'yêu thích nhất' },
+    { id: 'd24', word: 'peaceful', phonetic: '/ˈpiːs.fəl/', definition_vi: 'thanh bình' },
+    { id: 'd25', word: 'grateful', phonetic: '/ˈɡreɪt.fəl/', definition_vi: 'biết ơn' }
+  ]
+};
+
+// Top 5 chuẩn bộ từ vựng then chốt phục vụ đúng mục tiêu luyện thi TOEIC & Giao tiếp
 export const DEFAULT_VOCAB_TOPICS: VocabTopic[] = [
   TOEIC_600_MASTER_PACK,
-  {
-    id: 'daily',
-    name: 'Giao tiếp hàng ngày',
-    icon: '🗣️',
-    description: 'Từ vựng thông dụng trong đời sống, chào hỏi và sinh hoạt quen thuộc.',
-    words: [
-      { id: 'd1', word: 'welcome', phonetic: '/ˈwel.kəm/', definition_vi: 'chào mừng' },
-      { id: 'd2', word: 'friend', phonetic: '/frend/', definition_vi: 'người bạn' },
-      { id: 'd3', word: 'family', phonetic: '/ˈfæm.əl.i/', definition_vi: 'gia đình' },
-      { id: 'd4', word: 'happy', phonetic: '/ˈhæp.i/', definition_vi: 'hạnh phúc' },
-      { id: 'd5', word: 'smile', phonetic: '/smaɪl/', definition_vi: 'nụ cười' },
-      { id: 'd6', word: 'morning', phonetic: '/ˈmɔː.nɪŋ/', definition_vi: 'buổi sáng' },
-      { id: 'd7', word: 'coffee', phonetic: '/ˈkɒf.i/', definition_vi: 'cà phê' },
-      { id: 'd8', word: 'breakfast', phonetic: '/ˈbrek.fəst/', definition_vi: 'bữa sáng' },
-      { id: 'd9', word: 'dinner', phonetic: '/ˈdɪn.ər/', definition_vi: 'bữa tối' },
-      { id: 'd10', word: 'delicious', phonetic: '/dɪˈlɪʃ.əs/', definition_vi: 'thơm ngon' },
-      { id: 'd11', word: 'weather', phonetic: '/ˈweð.ər/', definition_vi: 'thời tiết' },
-      { id: 'd12', word: 'sunshine', phonetic: '/ˈsʌn.ʃaɪn/', definition_vi: 'ánh nắng' },
-      { id: 'd13', word: 'beautiful', phonetic: '/ˈbjuː.tɪ.fəl/', definition_vi: 'xinh đẹp' },
-      { id: 'd14', word: 'weekend', phonetic: '/ˌwiːkˈend/', definition_vi: 'cuối tuần' },
-      { id: 'd15', word: 'listen', phonetic: '/ˈlɪs.ən/', definition_vi: 'lắng nghe' },
-      { id: 'd16', word: 'helpful', phonetic: '/ˈhelp.fəl/', definition_vi: 'hữu ích, chu đáo' },
-      { id: 'd17', word: 'together', phonetic: '/təˈɡeð.ər/', definition_vi: 'cùng nhau' },
-      { id: 'd18', word: 'journey', phonetic: '/ˈdʒɜː.ni/', definition_vi: 'hành trình' },
-      { id: 'd19', word: 'laugh', phonetic: '/lɑːf/', definition_vi: 'tiếng cười' },
-      { id: 'd20', word: 'promise', phonetic: '/ˈprɒm.ɪs/', definition_vi: 'lời hứa' },
-      { id: 'd21', word: 'support', phonetic: '/səˈpɔːt/', definition_vi: 'ủng hộ, giúp đỡ' },
-      { id: 'd22', word: 'comfort', phonetic: '/ˈkʌm.fət/', definition_vi: 'sự an ủi, tiện nghi' },
-      { id: 'd23', word: 'favorite', phonetic: '/ˈfeɪ.vər.ɪt/', definition_vi: 'yêu thích nhất' },
-      { id: 'd24', word: 'peaceful', phonetic: '/ˈpiːs.fəl/', definition_vi: 'thanh bình' },
-      { id: 'd25', word: 'grateful', phonetic: '/ˈɡreɪt.fəl/', definition_vi: 'biết ơn' }
-    ]
-  },
-  {
-    id: 'animals',
-    name: 'Động vật & Thiên nhiên',
-    icon: '🦁',
-    description: 'Thế giới muôn loài động vật hoang dã, biển cả và rừng xanh kỳ thú.',
-    words: [
-      { id: 'a1', word: 'lion', phonetic: '/ˈlaɪ.ən/', definition_vi: 'sư tử' },
-      { id: 'a2', word: 'tiger', phonetic: '/ˈtaɪ.ɡər/', definition_vi: 'con hổ' },
-      { id: 'a3', word: 'elephant', phonetic: '/ˈel.ɪ.fənt/', definition_vi: 'con voi' },
-      { id: 'a4', word: 'dolphin', phonetic: '/ˈdɒl.fɪn/', definition_vi: 'cá heo' },
-      { id: 'a5', word: 'eagle', phonetic: '/ˈiː.ɡəl/', definition_vi: 'chim đại bàng' },
-      { id: 'a6', word: 'penguin', phonetic: '/ˈpeŋ.ɡwɪn/', definition_vi: 'chim cánh cụt' },
-      { id: 'a7', word: 'cheetah', phonetic: '/ˈtʃiː.tə/', definition_vi: 'báo săn' },
-      { id: 'a8', word: 'butterfly', phonetic: '/ˈbʌt.ə.flaɪ/', definition_vi: 'bươm bướm' },
-      { id: 'a9', word: 'octopus', phonetic: '/ˈɒk.tə.pəs/', definition_vi: 'bạch tuộc' },
-      { id: 'a10', word: 'kangaroo', phonetic: '/ˌkæŋ.ɡərˈuː/', definition_vi: 'chuột túi' },
-      { id: 'a11', word: 'forest', phonetic: '/ˈfɒr.ɪst/', definition_vi: 'khu rừng' },
-      { id: 'a12', word: 'mountain', phonetic: '/ˈmaʊn.tɪn/', definition_vi: 'ngọn núi' },
-      { id: 'a13', word: 'ocean', phonetic: '/ˈəʊ.ʃən/', definition_vi: 'đại dương' },
-      { id: 'a14', word: 'waterfall', phonetic: '/ˈwɔː.tə.fɔːl/', definition_vi: 'thác nước' },
-      { id: 'a15', word: 'wildlife', phonetic: '/ˈwaɪld.laɪf/', definition_vi: 'động vật hoang dã' },
-      { id: 'a16', word: 'habitat', phonetic: '/ˈhæb.ɪ.tæt/', definition_vi: 'môi trường sống' },
-      { id: 'a17', word: 'creature', phonetic: '/ˈkriː.tʃər/', definition_vi: 'sinh vật' },
-      { id: 'a18', word: 'predator', phonetic: '/ˈpred.ə.tər/', definition_vi: 'loài săn mồi' },
-      { id: 'a19', word: 'protect', phonetic: '/prəˈtekt/', definition_vi: 'bảo vệ' },
-      { id: 'a20', word: 'feather', phonetic: '/ˈfeð.ər/', definition_vi: 'lông vũ' },
-      { id: 'a21', word: 'rainbow', phonetic: '/ˈreɪn.bəʊ/', definition_vi: 'cầu vồng' },
-      { id: 'a22', word: 'volcano', phonetic: '/vɒlˈkeɪ.nəʊ/', definition_vi: 'núi lửa' }
-    ]
-  },
-  {
-    id: 'technology',
-    name: 'Công nghệ & AI',
-    icon: '💻',
-    description: 'Kỷ nguyên số: Trí tuệ nhân tạo, lập trình, phần mềm và Internet.',
-    words: [
-      { id: 't1', word: 'computer', phonetic: '/kəmˈpjuː.tər/', definition_vi: 'máy vi tính' },
-      { id: 't2', word: 'software', phonetic: '/ˈsɒft.weər/', definition_vi: 'phần mềm' },
-      { id: 't3', word: 'hardware', phonetic: '/ˈhɑːd.weər/', definition_vi: 'phần cứng' },
-      { id: 't4', word: 'network', phonetic: '/ˈnet.wɜːk/', definition_vi: 'mạng lưới' },
-      { id: 't5', word: 'database', phonetic: '/ˈdeɪ.tə.beɪs/', definition_vi: 'cơ sở dữ liệu' },
-      { id: 't6', word: 'algorithm', phonetic: '/ˈæl.ɡə.rɪ.ðəm/', definition_vi: 'thuật toán' },
-      { id: 't7', word: 'internet', phonetic: '/ˈɪn.tə.net/', definition_vi: 'mạng internet' },
-      { id: 't8', word: 'security', phonetic: '/sɪˈkjʊə.rə.ti/', definition_vi: 'an ninh, bảo mật' },
-      { id: 't9', word: 'wireless', phonetic: '/ˈwaɪə.ləs/', definition_vi: 'không dây' },
-      { id: 't10', word: 'developer', phonetic: '/dɪˈvel.ə.pər/', definition_vi: 'nhà phát triển' },
-      { id: 't11', word: 'processor', phonetic: '/ˈprəʊ.ses.ər/', definition_vi: 'bộ vi xử lý' },
-      { id: 't12', word: 'artificial', phonetic: '/ˌɑː.tɪˈfɪʃ.əl/', definition_vi: 'nhân tạo' },
-      { id: 't13', word: 'intelligence', phonetic: '/ɪnˈtel.ɪ.dʒəns/', definition_vi: 'trí thông minh' },
-      { id: 't14', word: 'innovation', phonetic: '/ˌɪn.əˈveɪ.ʃən/', definition_vi: 'sự đổi mới sáng tạo' },
-      { id: 't15', word: 'interface', phonetic: '/ˈɪn.tə.feɪs/', definition_vi: 'giao diện' },
-      { id: 't16', word: 'automation', phonetic: '/ˌɔː.təˈmeɪ.ʃən/', definition_vi: 'sự tự động hóa' },
-      { id: 't17', word: 'digital', phonetic: '/ˈdɪdʒ.ɪ.təl/', definition_vi: 'kỹ thuật số' },
-      { id: 't18', word: 'cyberpunk', phonetic: '/ˈsaɪ.bə.pʌŋk/', definition_vi: 'thế giới công nghệ viễn tưởng' },
-      { id: 't19', word: 'satellite', phonetic: '/ˈsæt.əl.aɪt/', definition_vi: 'vệ tinh' },
-      { id: 't20', word: 'encryption', phonetic: '/ɪnˈkrɪp.ʃən/', definition_vi: 'sự mã hóa' },
-      { id: 't21', word: 'virtual', phonetic: '/ˈvɜː.tʃu.əl/', definition_vi: 'thực tế ảo' },
-      { id: 't22', word: 'battery', phonetic: '/ˈbæt.ər.i/', definition_vi: 'pin, ắc quy' }
-    ]
-  },
-  {
-    id: 'toeic',
-    name: 'TOEIC Thông Dụng',
-    icon: '📈',
-    description: 'Từ vựng văn phòng, ký kết hợp đồng, thông báo và đàm phán thương mại.',
-    words: [
-      { id: 'to1', word: 'contract', phonetic: '/ˈkɒn.trækt/', definition_vi: 'hợp đồng' },
-      { id: 'to2', word: 'schedule', phonetic: '/ˈʃedʒ.uːl/', definition_vi: 'lịch trình' },
-      { id: 'to3', word: 'meeting', phonetic: '/ˈmiː.tɪŋ/', definition_vi: 'cuộc họp' },
-      { id: 'to4', word: 'proposal', phonetic: '/prəˈpəʊ.zəl/', definition_vi: 'bản đề xuất' },
-      { id: 'to5', word: 'client', phonetic: '/ˈklaɪ.ənt/', definition_vi: 'khách hàng đối tác' },
-      { id: 'to6', word: 'discount', phonetic: '/ˈdɪs.kaʊnt/', definition_vi: 'chiết khấu, giảm giá' },
-      { id: 'to7', word: 'invoice', phonetic: '/ˈɪn.vɔɪs/', definition_vi: 'hóa đơn' },
-      { id: 'to8', word: 'budget', phonetic: '/ˈbʌdʒ.ɪt/', definition_vi: 'ngân sách' },
-      { id: 'to9', word: 'colleague', phonetic: '/ˈkɒl.iːɡ/', definition_vi: 'đồng nghiệp' },
-      { id: 'to10', word: 'manager', phonetic: '/ˈmæn.ɪ.dʒər/', definition_vi: 'người quản lý' },
-      { id: 'to11', word: 'announce', phonetic: '/əˈnaʊns/', definition_vi: 'thông báo' },
-      { id: 'to12', word: 'deliver', phonetic: '/dɪˈlɪv.ər/', definition_vi: 'giao hàng' },
-      { id: 'to13', word: 'receipt', phonetic: '/rɪˈsiːt/', definition_vi: 'biên lai' },
-      { id: 'to14', word: 'purchase', phonetic: '/ˈpɜː.tʃəs/', definition_vi: 'mua sắm' },
-      { id: 'to15', word: 'refund', phonetic: '/ˈriː.fʌnd/', definition_vi: 'hoàn tiền' },
-      { id: 'to16', word: 'warranty', phonetic: '/ˈwɒr.ən.ti/', definition_vi: 'giấy bảo hành' },
-      { id: 'to17', word: 'confirm', phonetic: '/kənˈfɜːm/', definition_vi: 'xác nhận' },
-      { id: 'to18', word: 'feedback', phonetic: '/ˈfiːd.bæk/', definition_vi: 'phản hồi' },
-      { id: 'to19', word: 'promote', phonetic: '/prəˈməʊt/', definition_vi: 'thăng chức, quảng bá' },
-      { id: 'to20', word: 'deadline', phonetic: '/ˈded.laɪn/', definition_vi: 'hạn chót' },
-      { id: 'to21', word: 'department', phonetic: '/dɪˈpɑːt.mənt/', definition_vi: 'phòng ban' },
-      { id: 'to22', word: 'facility', phonetic: '/fəˈsɪl.ə.ti/', definition_vi: 'cơ sở vật chất' },
-      { id: 'to23', word: 'maintain', phonetic: '/meɪnˈteɪn/', definition_vi: 'duy trì, bảo dưỡng' },
-      { id: 'to24', word: 'guarantee', phonetic: '/ˌɡær.ənˈtiː/', definition_vi: 'cam kết, bảo đảm' },
-      { id: 'to25', word: 'negotiate', phonetic: '/nəˈɡəʊ.ʃi.eɪt/', definition_vi: 'đàm phán' }
-    ]
-  },
-  {
-    id: 'ielts',
-    name: 'IELTS Cốt Lõi',
-    icon: '🎓',
-    description: 'Từ vựng học thuật đỉnh cao, nâng tầm diễn đạt bài thi Academic Band 7.0+.',
-    words: [
-      { id: 'ie1', word: 'phenomenon', phonetic: '/fəˈnɒm.ɪ.nən/', definition_vi: 'hiện tượng' },
-      { id: 'ie2', word: 'significant', phonetic: '/sɪɡˈnɪf.ɪ.kənt/', definition_vi: 'đáng kể, quan trọng' },
-      { id: 'ie3', word: 'consequence', phonetic: '/ˈkɒn.sɪ.kwəns/', definition_vi: 'hậu quả, hệ quả' },
-      { id: 'ie4', word: 'perspective', phonetic: '/pəˈspek.tɪv/', definition_vi: 'góc nhìn, quan điểm' },
-      { id: 'ie5', word: 'sustainable', phonetic: '/səˈsteɪ.nə.bəl/', definition_vi: 'bền vững' },
-      { id: 'ie6', word: 'hypothesis', phonetic: '/haɪˈpɒθ.ə.sɪs/', definition_vi: 'giả thuyết' },
-      { id: 'ie7', word: 'inevitable', phonetic: '/ɪnˈev.ɪ.tə.bəl/', definition_vi: 'không thể tránh khỏi' },
-      { id: 'ie8', word: 'demonstrate', phonetic: '/ˈdem.ən.streɪt/', definition_vi: 'chứng minh, biểu thị' },
-      { id: 'ie9', word: 'fundamental', phonetic: '/ˌfʌn.dəˈmen.təl/', definition_vi: 'căn bản, cốt lõi' },
-      { id: 'ie10', word: 'contribute', phonetic: '/kənˈtrɪb.juːt/', definition_vi: 'đóng góp' },
-      { id: 'ie11', word: 'comprehend', phonetic: '/ˌkɒm.prɪˈhend/', definition_vi: 'thấu hiểu toàn diện' },
-      { id: 'ie12', word: 'deteriorate', phonetic: '/dɪˈtɪə.ri.ə.reɪt/', definition_vi: 'xuống cấp, suy thoái' },
-      { id: 'ie13', word: 'predominant', phonetic: '/prɪˈdɒm.ɪ.nənt/', definition_vi: 'chiếm ưu thế' },
-      { id: 'ie14', word: 'ubiquitous', phonetic: '/juːˈbɪk.wɪ.təs/', definition_vi: 'phổ biến khắp nơi' },
-      { id: 'ie15', word: 'substantial', phonetic: '/səbˈstæn.ʃəl/', definition_vi: 'đáng kể, thực chất' },
-      { id: 'ie16', word: 'advocate', phonetic: '/ˈæd.və.keɪt/', definition_vi: 'ủng hộ, tán thành' },
-      { id: 'ie17', word: 'accelerate', phonetic: '/əkˈsel.ə.reɪt/', definition_vi: 'tăng tốc, thúc đẩy' },
-      { id: 'ie18', word: 'mitigate', phonetic: '/ˈmɪt.ɪ.ɡeɪt/', definition_vi: 'giảm nhẹ tác hại' },
-      { id: 'ie19', word: 'paramount', phonetic: '/ˈpær.ə.maʊnt/', definition_vi: 'tối quan trọng' },
-      { id: 'ie20', word: 'versatile', phonetic: '/ˈvɜː.sə.taɪl/', definition_vi: 'đa năng, linh hoạt' }
-    ]
-  },
-  {
-    id: 'travel',
-    name: 'Du lịch & Khám phá',
-    icon: '✈️',
-    description: 'Chuyến bay, khách sạn, sân bay và những địa danh khám phá kỳ thú.',
-    words: [
-      { id: 'tr1', word: 'airplane', phonetic: '/ˈeə.pleɪn/', definition_vi: 'máy bay' },
-      { id: 'tr2', word: 'airport', phonetic: '/ˈeə.pɔːt/', definition_vi: 'sân bay' },
-      { id: 'tr3', word: 'passport', phonetic: '/ˈpɑːs.pɔːt/', definition_vi: 'hộ chiếu' },
-      { id: 'tr4', word: 'luggage', phonetic: '/ˈlʌɡ.ɪdʒ/', definition_vi: 'hành lý' },
-      { id: 'tr5', word: 'ticket', phonetic: '/ˈtɪk.ɪt/', definition_vi: 'vé chuyến đi' },
-      { id: 'tr6', word: 'boarding', phonetic: '/ˈbɔː.dɪŋ/', definition_vi: 'lên máy bay' },
-      { id: 'tr7', word: 'hotel', phonetic: '/həʊˈtel/', definition_vi: 'khách sạn' },
-      { id: 'tr8', word: 'reservation', phonetic: '/ˌrez.əˈveɪ.ʃən/', definition_vi: 'sự đặt chỗ trước' },
-      { id: 'tr9', word: 'destination', phonetic: '/ˌdes.tɪˈneɪ.ʃən/', definition_vi: 'điểm đến' },
-      { id: 'tr10', word: 'adventure', phonetic: '/ədˈven.tʃər/', definition_vi: 'chuyến phiêu lưu' },
-      { id: 'tr11', word: 'souvenir', phonetic: '/ˌsuː.vənˈɪər/', definition_vi: 'quà lưu niệm' },
-      { id: 'tr12', word: 'tourist', phonetic: '/ˈtʊə.rɪst/', definition_vi: 'khách du lịch' },
-      { id: 'tr13', word: 'culture', phonetic: '/ˈkʌl.tʃər/', definition_vi: 'văn hóa' },
-      { id: 'tr14', word: 'explore', phonetic: '/ɪkˈsplɔːr/', definition_vi: 'khám phá' },
-      { id: 'tr15', word: 'scenery', phonetic: '/ˈsiː.nər.i/', definition_vi: 'phong cảnh tuyệt đẹp' },
-      { id: 'tr16', word: 'departure', phonetic: '/dɪˈpɑː.tʃər/', definition_vi: 'sự khởi hành' },
-      { id: 'tr17', word: 'arrival', phonetic: '/əˈraɪ.vəl/', definition_vi: 'sự cập bến, hạ cánh' },
-      { id: 'tr18', word: 'guidebook', phonetic: '/ˈɡaɪd.bʊk/', definition_vi: 'sách hướng dẫn' },
-      { id: 'tr19', word: 'island', phonetic: '/ˈaɪ.lənd/', definition_vi: 'hòn đảo' },
-      { id: 'tr20', word: 'paradise', phonetic: '/ˈpær.ə.daɪs/', definition_vi: 'thiên đường' }
-    ]
-  }
+  bizOfficePack,
+  hrRecruitmentPack,
+  financeBankingPack,
+  travelTransportPack,
+  dailyLifePack
 ];
 
 export const DIFFICULTY_CONFIG = {

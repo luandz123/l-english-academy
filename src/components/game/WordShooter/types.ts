@@ -2,7 +2,13 @@ export type SpecialWordType = 'none' | 'heart' | 'freeze' | 'bomb' | 'meteor' | 
 
 export type GameDifficulty = 'easy' | 'medium' | 'hard';
 
-export type GameMode = 'solo' | 'pvp-online' | 'pvp-bot';
+export type GameMode = 
+  | 'solo'        // 1. Đấu đơn (Luyện tập vượt wave cá nhân, săn kỷ lục)
+  | 'bot'         // 2. Đấu máy (Luyện phản xạ 60s với AI, không tính rank)
+  | 'casual'      // 3. Đấu thường (1v1 Giao hữu online với bạn bè, không tính rank)
+  | 'ranked'      // 4. Đấu hạng (1v1 Xếp hạng Liên Quân Mobile: CỘNG/TRỪ SAO)
+  | 'pvp-online'  // Tương thích cũ -> Đấu thường
+  | 'pvp-bot';    // Tương thích cũ -> Đấu máy
 
 export interface VocabWord {
   id: string | number;

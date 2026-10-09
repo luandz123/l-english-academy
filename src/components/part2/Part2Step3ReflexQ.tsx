@@ -1,23 +1,19 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Part2CoachQuestion } from '@/types/part2Coach';
 import { Button } from '@/components/ui/button';
 import {
-  Zap,
-  Play,
   RotateCcw,
   CheckCircle2,
   XCircle,
-  ArrowRight,
+  ChevronLeft,
+  ChevronRight,
   Eye,
-  Volume2,
-  Sparkles,
-  Clock
+  Clock,
+  Volume2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSound } from '@/hooks/useSound';
-
 import { soundAudioPlayer } from '@/services/soundAudioPlayer';
-import { Part2StepGuide } from './Part2StepGuide';
 
 interface Part2Step3ReflexQProps {
   questions: Part2CoachQuestion[];
@@ -29,6 +25,7 @@ export const Part2Step3ReflexQ: React.FC<Part2Step3ReflexQProps> = ({
   onCompleteStep,
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [timerSecondsLimit, setTimerSecondsLimit] = useState<number>(4); // Default 4s
   const [countdown, setCountdown] = useState<number | null>(null);
   const [isRevealed, setIsRevealed] = useState(false);
   const [reflexScores, setReflexScores] = useState<Record<number, boolean>>({});
@@ -37,24 +34,18 @@ export const Part2Step3ReflexQ: React.FC<Part2Step3ReflexQProps> = ({
 
   const currentQ = questions[currentIndex];
 
-  useEffect(() => {
-    // Reset state on question change
-    soundAudioPlayer.stop();
-    if (timerRef.current) clearInterval(timerRef.current);
-    setCountdown(null);
-    setIsRevealed(false);
-  }, [currentIndex]);
-
-  const startReflexDrill = async () => {
+  const startReflexDrill = useCallback(async () => {
     setIsRevealed(false);
     if (timerRef.current) clearInterval(timerRef.current);
     setCountdown(null);
 
-    // Play question audio cleanly using soundAudioPlayer
+    // Speak question audio
     await soundAudioPlayer.speakText(currentQ.questionText, 0.95);
 
-    // Immediately start 1.0s countdown right after question finishes
-    setCountdown(10); // 1.0 second = 10 tenths
+    // Start countdown
+    const initialTenths = timerSecondsLimit * 10;
+    setCountdown(initialTenths);
+
     timerRef.current = setInterval(() => {
       setCountdown((prev) => {
         if (prev === null || prev <= 1) {
@@ -64,7 +55,25 @@ export const Part2Step3ReflexQ: React.FC<Part2Step3ReflexQProps> = ({
         return prev - 1;
       });
     }, 100);
-  };
+  }, [currentQ, timerSecondsLimit]);
+
+  // Reset and auto-play when question changes
+  useEffect(() => {
+    soundAudioPlayer.stop();
+    if (timerRef.current) clearInterval(timerRef.current);
+    setCountdown(null);
+    setIsRevealed(false);
+
+    const timer = setTimeout(() => {
+      startReflexDrill();
+    }, 250);
+
+    return () => {
+      clearTimeout(timer);
+      if (timerRef.current) clearInterval(timerRef.current);
+      soundAudioPlayer.stop();
+    };
+  }, [currentIndex, startReflexDrill]);
 
   const handleReveal = () => {
     setIsRevealed(true);
@@ -81,214 +90,241 @@ export const Part2Step3ReflexQ: React.FC<Part2Step3ReflexQProps> = ({
     }
   };
 
-  const passedCount = Object.values(reflexScores).filter(Boolean).length;
+  const handlePrev = useCallback(() => {
+    if (currentIndex > 0) {
+      setCurrentIndex((prev) => prev - 1);
+    }
+  }, [currentIndex]);
+
+  const handleNext = useCallback(() => {
+    if (currentIndex < questions.length - 1) {
+      setCurrentIndex((prev) => prev + 1);
+    } else {
+      onCompleteStep();
+    }
+  }, [currentIndex, questions.length, onCompleteStep]);
+
+  // Global Keyboard Shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) return;
+      if (e.code === 'Space') {
+        e.preventDefault();
+        if (!isRevealed) {
+          handleReveal();
+        } else {
+          startReflexDrill();
+        }
+      } else if (e.key === 'r' || e.key === 'R') {
+        e.preventDefault();
+        startReflexDrill();
+      } else if (e.key === '1' && isRevealed) {
+        e.preventDefault();
+        handleSelfGrade(true);
+      } else if (e.key === '2' && isRevealed) {
+        e.preventDefault();
+        handleSelfGrade(false);
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        handlePrev();
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        handleNext();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handlePrev, handleNext, isRevealed, startReflexDrill]);
+
+  const totalTenths = timerSecondsLimit * 10;
+  const currentTenths = countdown !== null ? countdown : 0;
+  const progressPercent = countdown !== null ? (currentTenths / totalTenths) * 100 : 0;
 
   return (
-    <div className="space-y-6">
-      {/* Sleek Minimal Ribbon */}
-      <div className="flex items-center justify-between gap-3 bg-gradient-to-r from-amber-500/10 to-orange-500/10 dark:from-amber-950/40 dark:to-orange-950/40 border border-amber-200/80 dark:border-amber-800/60 px-4 py-2.5 rounded-2xl">
-        <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-amber-800 dark:text-amber-200 min-w-0">
+    <div className="space-y-4 max-w-4xl mx-auto">
+      {/* Sleek Ribbon */}
+      <div className="flex items-center justify-between gap-3 bg-card border border-border/70 px-4 py-2.5 rounded-2xl shadow-soft-xs">
+        <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-foreground min-w-0">
           <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0" />
-          <span className="font-black text-amber-600 dark:text-amber-400 shrink-0">B3: Phản xạ 1s</span>
-          <span className="text-muted-foreground truncate hidden sm:inline">• Nghe dứt câu hỏi ➔ 1s bật ngay nghĩa tiếng Việt</span>
+          <span className="font-black text-amber-600 dark:text-amber-400">B3: Phản xạ hỏi</span>
+          <span className="text-muted-foreground text-xs">• Bật nghĩa tức thì</span>
         </div>
-        <span className="text-xs font-black text-amber-700 dark:text-amber-300 shrink-0">
-          Đạt: {passedCount}/{questions.length} câu
-        </span>
-      </div>
 
-      {/* Interactive Step Guide */}
-      <Part2StepGuide
-        stepNumber={3}
-        stepTitle="Phản xạ 1s Bật Nghĩa"
-        goal="Nghe dứt câu ➔ 1s bật ngay nghĩa ra miệng"
-        actions={[
-          {
-            clickTarget: "1. Bấm 'Bắt đầu phản xạ 1s'",
-            expectedResult: "Audio phát câu hỏi, kết thúc sẽ đếm ngược 1s.",
-            tip: "Nói to nghĩa ra miệng ngay."
-          },
-          {
-            clickTarget: "2. Bấm 'Lật mở đáp án'",
-            expectedResult: "Xem nghĩa tiếng Việt chuẩn và mục tiêu câu hỏi.",
-          },
-          {
-            clickTarget: "3. Tự chấm 'Đạt' hoặc 'Chưa kịp'",
-            expectedResult: "Ghi nhận tiến độ phản xạ câu hỏi.",
-          }
-        ]}
-        nextStepName="Bước 4: Phản xạ Hướng Đáp"
-      />
+        {/* Timer selector */}
+        <div className="flex items-center gap-1.5 bg-muted/60 p-1 rounded-xl">
+          <Clock className="w-3.5 h-3.5 text-muted-foreground ml-1" />
+          {[3, 4, 5].map((sec) => (
+            <button
+              key={sec}
+              onClick={() => {
+                setTimerSecondsLimit(sec);
+                startReflexDrill();
+              }}
+              className={cn(
+                'px-2 py-0.5 rounded-lg text-xs font-bold transition-all cursor-pointer',
+                timerSecondsLimit === sec
+                  ? 'bg-card text-foreground shadow-xs font-black'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              {sec}s
+            </button>
+          ))}
+        </div>
+      </div>
 
       {/* Question Selector Tabs */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
         {questions.map((q, idx) => {
           const isSelected = idx === currentIndex;
-          const status = reflexScores[q.id];
+          const score = reflexScores[q.id];
           return (
             <button
               key={q.id}
               onClick={() => setCurrentIndex(idx)}
               className={cn(
-                'px-4 py-2.5 rounded-xl font-black text-xs sm:text-sm transition-all shrink-0 flex items-center gap-2 cursor-pointer border',
+                'px-3.5 py-1.5 rounded-xl font-black text-xs transition-all shrink-0 flex items-center gap-1.5 cursor-pointer border',
                 isSelected
-                  ? 'bg-amber-600 text-white border-amber-600 shadow-md shadow-amber-600/20'
-                  : status === true
-                  ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
-                  : status === false
-                  ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800'
-                  : 'bg-white dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 border-slate-200 dark:border-zinc-800 hover:bg-slate-50'
+                  ? 'bg-amber-500 text-white border-amber-500 shadow-md shadow-amber-500/20'
+                  : score === true
+                  ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
+                  : score === false
+                  ? 'bg-rose-500/10 text-rose-600 border-rose-500/20'
+                  : 'bg-card text-muted-foreground border-border hover:bg-accent'
               )}
             >
               <span>Câu {q.questionNumber || idx + 1}</span>
-              {status === true && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />}
+              {score === true && <CheckCircle2 className="w-3 h-3 text-emerald-500" />}
+              {score === false && <XCircle className="w-3 h-3 text-rose-500" />}
             </button>
           );
         })}
       </div>
 
-      {/* Main Reflex Drill Box */}
-      <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl p-5 sm:p-7 space-y-5 shadow-sm text-center">
-        {/* Top Trigger Button */}
-        <div>
-          <Button
-            size="lg"
-            onClick={startReflexDrill}
-            className="btn-3d bg-amber-500 hover:bg-amber-600 text-white font-black text-base px-8 py-5 rounded-2xl shadow-lg shadow-amber-500/20"
-          >
-            <Play className="w-5 h-5 mr-2" />
-            Bắt đầu phản xạ 1s (Câu {currentQ.questionNumber})
-          </Button>
+      {/* Main Reflex Drill Card */}
+      <div className="bg-card border border-border rounded-3xl p-6 sm:p-8 space-y-6 shadow-soft-sm text-center">
+        {/* Countdown & Timer Bar */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-center gap-2">
+            <span className={cn(
+              'text-4xl sm:text-5xl font-black font-mono tracking-tight',
+              countdown !== null && countdown <= 10 ? 'text-rose-500 animate-pulse' : 'text-amber-500'
+            )}>
+              {countdown !== null ? (countdown / 10).toFixed(1) : `${timerSecondsLimit}.0`}s
+            </span>
+          </div>
+
+          <div className="w-full bg-muted/60 h-2 rounded-full overflow-hidden">
+            <div
+              className={cn(
+                'h-full transition-all duration-100',
+                countdown !== null && countdown <= 10 ? 'bg-rose-500' : 'bg-amber-500'
+              )}
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
         </div>
 
-        {/* 1-Second Countdown Display */}
-        <div className="min-h-[100px] flex flex-col items-center justify-center">
-          {countdown !== null ? (
-            <div className="space-y-2 animate-in fade-in zoom-in-95">
-              <div
-                className={cn(
-                  'w-16 h-16 rounded-full flex items-center justify-center font-black text-xl border-4 transition-all shadow-xl',
-                  countdown > 3
-                    ? 'border-amber-500 bg-amber-50 text-amber-600 animate-pulse'
-                    : 'border-rose-500 bg-rose-50 text-rose-600 scale-110'
-                )}
-              >
-                {(countdown / 10).toFixed(1)}s
-              </div>
-              <div className="text-xs font-black text-amber-600 dark:text-amber-400 tracking-wide uppercase">
-                Bật nghĩa tiếng Việt ngay! 🗣️
-              </div>
-            </div>
-          ) : !isRevealed ? (
-            <div className="text-muted-foreground text-xs font-medium flex items-center gap-1.5">
-              <Clock className="w-3.5 h-3.5" />
-              <span>Bấm nút trên để nghe câu hỏi và phản xạ</span>
-            </div>
-          ) : null}
-        </div>
-
-        {/* Reveal Button */}
+        {/* Revealed Content or Prompt */}
         {!isRevealed ? (
-          <Button
-            variant="outline"
-            size="default"
-            onClick={handleReveal}
-            className="rounded-xl border font-bold text-xs px-5 py-2.5 border-amber-300 text-amber-800 dark:text-amber-300 hover:bg-amber-50"
-          >
-            <Eye className="w-3.5 h-3.5 mr-1.5" />
-            Lật mở đáp án
-          </Button>
-        ) : (
-          /* Revealed Card */
-          <div className="bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-2xl p-4 sm:p-5 space-y-4 text-left animate-in fade-in slide-in-from-bottom-2">
-            <div className="flex items-start justify-between gap-3">
-              <div className="space-y-0.5">
-                <span className="text-xs font-black uppercase text-amber-700 dark:text-amber-400 tracking-wider">
-                  Nghĩa tiếng Việt
-                </span>
-                <div className="text-lg sm:text-xl font-black text-foreground">
-                  {currentQ.reflexDirection1.targetMeaningVi}
-                </div>
-              </div>
-
+          <div className="py-6 space-y-4">
+            <p className="text-base sm:text-lg font-bold text-foreground">
+              Tự bật nhanh nghĩa tiếng Việt trong đầu...
+            </p>
+            <div className="flex items-center justify-center gap-3">
               <Button
-                size="sm"
-                variant="outline"
-                onClick={() => speakPrompt(currentQ.questionText)}
-                className="shrink-0 rounded-xl font-bold text-xs"
+                size="lg"
+                onClick={handleReveal}
+                className="h-12 px-6 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm shadow-md cursor-pointer"
               >
-                <Volume2 className="w-3.5 h-3.5 mr-1" />
+                <Eye className="w-4 h-4 mr-1.5" />
+                Xem nghĩa
+              </Button>
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={startReflexDrill}
+                className="h-12 px-5 rounded-2xl font-bold text-sm border-border cursor-pointer"
+              >
+                <RotateCcw className="w-4 h-4 mr-1.5" />
                 Nghe lại
               </Button>
             </div>
-
-            <div className="p-3 rounded-xl bg-white dark:bg-zinc-900 border border-amber-200/80 dark:border-amber-900 text-xs space-y-1">
-              <div className="font-bold text-amber-700 dark:text-amber-400 flex items-center gap-1">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Mục tiêu câu hỏi: {currentQ.reflexDirection1.questionIntent}</span>
+          </div>
+        ) : (
+          <div className="space-y-5 animate-in fade-in duration-200">
+            <div className="bg-muted/40 border border-border/80 rounded-2xl p-5 space-y-2 text-left">
+              <div className="text-sm sm:text-base font-black text-foreground">
+                "{currentQ.questionText}"
               </div>
-              <p className="text-muted-foreground italic text-xs">
-                {currentQ.reflexDirection1.quickTip}
-              </p>
+              <div className="text-base sm:text-lg font-bold text-amber-600 dark:text-amber-400">
+                👉 {currentQ.reflexDirection1.targetMeaningVi}
+              </div>
+              <div className="text-xs text-muted-foreground pt-1 border-t border-border/40">
+                Ý đồ: {currentQ.reflexDirection1.questionIntent}
+              </div>
             </div>
 
-            {/* Self Evaluation */}
-            <div className="pt-2 border-t border-amber-200/80 dark:border-amber-900 space-y-2">
-              <div className="grid grid-cols-2 gap-2.5">
-                <Button
-                  onClick={() => handleSelfGrade(true)}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold py-2.5 text-xs shadow-sm"
-                >
-                  <CheckCircle2 className="w-4 h-4 mr-1.5" />
-                  ✓ Kịp 1s (Đạt)
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => handleSelfGrade(false)}
-                  className="border-slate-300 dark:border-zinc-700 text-rose-600 dark:text-rose-400 rounded-xl font-bold py-2.5 text-xs hover:bg-rose-50"
-                >
-                  <XCircle className="w-4 h-4 mr-1.5" />
-                  ✗ Chưa kịp
-                </Button>
-              </div>
+            {/* Self Evaluation Buttons */}
+            <div className="flex items-center justify-center gap-3">
+              <Button
+                onClick={() => handleSelfGrade(true)}
+                className={cn(
+                  'h-11 px-5 rounded-xl font-bold text-xs cursor-pointer',
+                  reflexScores[currentQ.id] === true
+                    ? 'bg-emerald-600 text-white'
+                    : 'bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border border-emerald-500/30'
+                )}
+              >
+                <CheckCircle2 className="w-4 h-4 mr-1.5" />
+                Đạt
+              </Button>
+
+              <Button
+                onClick={() => handleSelfGrade(false)}
+                className={cn(
+                  'h-11 px-5 rounded-xl font-bold text-xs cursor-pointer',
+                  reflexScores[currentQ.id] === false
+                    ? 'bg-rose-600 text-white'
+                    : 'bg-rose-500/10 text-rose-600 hover:bg-rose-500/20 border border-rose-500/30'
+                )}
+              >
+                <XCircle className="w-4 h-4 mr-1.5" />
+                Chưa đạt
+              </Button>
+
+              <Button
+                variant="outline"
+                onClick={startReflexDrill}
+                className="h-11 px-4 rounded-xl font-bold text-xs border-border cursor-pointer"
+              >
+                <RotateCcw className="w-3.5 h-3.5 mr-1" />
+                Làm lại
+              </Button>
             </div>
           </div>
         )}
-      </div>
 
-      {/* Footer Navigation */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1">
-        <div className="flex items-center gap-2">
-          {currentIndex > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentIndex((prev) => prev - 1)}
-              className="rounded-xl font-bold text-xs"
-            >
-              ← Trước
-            </Button>
-          )}
+        {/* Navigation Row */}
+        <div className="flex items-center justify-between pt-4 border-t border-border/60">
+          <Button
+            variant="ghost"
+            onClick={handlePrev}
+            disabled={currentIndex === 0}
+            className="h-9 px-3 rounded-xl font-bold text-xs cursor-pointer"
+          >
+            <ChevronLeft className="w-4 h-4 mr-1" />
+            Trước
+          </Button>
 
-          {currentIndex < questions.length - 1 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentIndex((prev) => prev + 1)}
-              className="rounded-xl font-bold text-xs"
-            >
-              Kế tiếp →
-            </Button>
-          )}
+          <Button
+            onClick={handleNext}
+            className="h-9 px-4 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs cursor-pointer"
+          >
+            {currentIndex === questions.length - 1 ? 'Xong B3' : 'Tiếp'}
+            <ChevronRight className="w-4 h-4 ml-1" />
+          </Button>
         </div>
-
-        <Button
-          size="default"
-          onClick={onCompleteStep}
-          className="w-full sm:w-auto bg-purple-600 hover:bg-purple-700 text-white font-black rounded-xl px-5 py-2.5 text-xs sm:text-sm shadow-md shadow-purple-600/20"
-        >
-          <span>Tiếp tục: Phản xạ Chiều 2: Bật câu trả lời →</span>
-        </Button>
       </div>
     </div>
   );

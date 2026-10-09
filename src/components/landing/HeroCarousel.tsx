@@ -3,15 +3,15 @@ import { trackEvent } from "@/lib/analytics";
 import {
   Sparkles,
   ArrowRight,
-  CheckCircle2,
   Users,
-  Trophy,
 } from "lucide-react";
-import heroStudentImg from "@/assets/hero-student.webp";
-import iconFulltest from "@/assets/icons/icon-fulltest.webp";
-import iconDictation from "@/assets/icons/icon-dictation.webp";
-import iconFlame from "@/assets/icons/icon-flame.webp";
-import iconArcade from "@/assets/icons/icon-arcade.webp";
+import heroStudentImg from "@/assets/hero-student-new.webp";
+import iconFulltest from "@/assets/icons/icon-fulltest-3d.webp";
+import iconDictation from "@/assets/icons/icon-dictation-3d.webp";
+import iconFlame from "@/assets/icons/icon-flame-3d.webp";
+import iconArcade from "@/assets/icons/icon-arcade-3d.webp";
+import iconTrophy from "@/assets/icons/icon-trophy-3d.webp";
+import iconEtsSeal from "@/assets/icons/icon-ets-seal-3d.webp";
 
 export const HeroCarousel = () => {
   return (
@@ -52,41 +52,46 @@ export const HeroCarousel = () => {
             {/* Feature Pills */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
               <div className="flex items-center gap-2 p-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-slate-200">
-                <img src={iconFulltest} alt="" className="w-4 h-4 object-contain shrink-0" />
+                <img src={iconFulltest} alt="" className="w-5 h-5 object-contain shrink-0 drop-shadow-sm" />
                 <span className="truncate">Format ETS 2026</span>
               </div>
               <div className="flex items-center gap-2 p-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-slate-200">
-                <img src={iconDictation} alt="" className="w-4 h-4 object-contain shrink-0" />
+                <img src={iconDictation} alt="" className="w-5 h-5 object-contain shrink-0 drop-shadow-sm" />
                 <span className="truncate">Dictation 8 Bước</span>
               </div>
               <div className="flex items-center gap-2 p-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-slate-200">
-                <img src={iconArcade} alt="" className="w-4 h-4 object-contain shrink-0" />
+                <img src={iconArcade} alt="" className="w-5 h-5 object-contain shrink-0 drop-shadow-sm" />
                 <span className="truncate">Game Arcade</span>
               </div>
               <div className="flex items-center gap-2 p-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-slate-200">
-                <Users className="w-4 h-4 text-emerald-400 shrink-0" />
+                <Users className="w-5 h-5 text-emerald-400 shrink-0" />
                 <span className="truncate">Kèm 1-1 Zalo</span>
               </div>
             </div>
 
-            {/* Cặp Nút Hành Động (CTA) */}
+            {/* Cặp Nút Hành Động (CTA) - Chuẩn Von Restorff & Tỷ lệ đệm công thái học */}
             <div className="flex flex-wrap items-center gap-3.5 pt-2">
+              {/* Primary CTA độc bản: Bắt đầu thi thử ngay */}
               <a
                 href="#section-fulltest"
                 onClick={() => trackEvent("hero_click_fulltest", { location: "hero_cta" })}
-                className="py-3 px-6 sm:px-7 rounded-2xl font-black text-xs sm:text-sm text-slate-950 bg-gradient-to-r from-cyan-400 via-sky-400 to-blue-400 hover:from-cyan-300 hover:to-sky-300 shadow-[0_0_25px_rgba(6,182,212,0.5)] hover:shadow-[0_0_35px_rgba(6,182,212,0.8)] transition-all duration-200 transform hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2 cursor-pointer"
+                className="py-3.5 px-7 sm:px-8 rounded-2xl font-black text-xs sm:text-sm text-slate-950 bg-gradient-to-r from-cyan-400 via-sky-300 to-blue-400 hover:brightness-110 shadow-[0_0_25px_rgba(6,182,212,0.55)] hover:shadow-[0_0_35px_rgba(6,182,212,0.85)] transition-all duration-200 transform hover:-translate-y-0.5 active:scale-[0.97] flex items-center gap-2 cursor-pointer select-none"
               >
                 <span>Bắt đầu thi thử ngay</span>
-                <ArrowRight className="w-4 h-4" />
+                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-950/20 text-slate-950">
+                  Miễn phí
+                </span>
+                <ArrowRight className="w-4 h-4 ml-0.5" />
               </a>
 
+              {/* Secondary CTA: Ghost Outline Button thanh thoát, không tranh spotlight */}
               <a
                 href="#combos"
                 onClick={() => trackEvent("hero_click_combos", { location: "hero_cta" })}
-                className="py-3 px-6 sm:px-7 rounded-2xl font-black text-xs sm:text-sm text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/40 hover:border-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.2)] transition-all duration-200 transform hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2 cursor-pointer"
+                className="py-3.5 px-6 sm:px-7 rounded-2xl font-bold text-xs sm:text-sm text-slate-200 hover:text-white bg-white/5 hover:bg-white/10 border border-white/15 hover:border-white/30 backdrop-blur-md transition-all duration-200 transform hover:-translate-y-0.5 active:scale-[0.97] flex items-center gap-2 cursor-pointer select-none"
               >
                 <img src={iconFlame} alt="" className="w-4 h-4 object-contain inline-block" />
-                <span>Xem gói nâng cấp VIP</span>
+                <span>Xem gói VIP & Lộ trình</span>
               </a>
             </div>
           </div>
@@ -111,8 +116,8 @@ export const HeroCarousel = () => {
 
             {/* Floating Badge 1: Top-Left - Mục Tiêu 850+ */}
             <div className="absolute -top-3 -left-3 sm:-top-4 sm:-left-4 bg-[#0a162b]/90 border border-amber-400/50 rounded-2xl p-2.5 sm:p-3 shadow-[0_0_20px_rgba(245,158,11,0.3)] backdrop-blur-md flex items-center gap-2.5 animate-float pointer-events-none">
-              <div className="w-9 h-9 rounded-xl bg-amber-400/20 text-amber-300 flex items-center justify-center font-bold">
-                <Trophy className="w-5 h-5 text-amber-400" />
+              <div className="w-10 h-10 rounded-xl bg-amber-400/20 flex items-center justify-center">
+                <img src={iconTrophy} alt="" className="w-7 h-7 object-contain drop-shadow" />
               </div>
               <div className="text-left pr-1">
                 <div className="text-[11px] font-black text-amber-300 uppercase tracking-wider">Mục tiêu</div>
@@ -122,8 +127,8 @@ export const HeroCarousel = () => {
 
             {/* Floating Badge 2: Bottom-Right - Streak Gamification */}
             <div className="absolute -bottom-3 -right-2 sm:-bottom-4 sm:-right-3 bg-[#0a162b]/90 border border-cyan-400/50 rounded-2xl p-2.5 sm:p-3 shadow-[0_0_20px_rgba(6,182,212,0.35)] backdrop-blur-md flex items-center gap-2.5 animate-float-delayed pointer-events-none">
-              <div className="w-9 h-9 rounded-xl bg-cyan-400/20 text-cyan-300 flex items-center justify-center">
-                <img src={iconFlame} alt="" className="w-5 h-5 object-contain" />
+              <div className="w-10 h-10 rounded-xl bg-cyan-400/20 flex items-center justify-center">
+                <img src={iconFlame} alt="" className="w-7 h-7 object-contain drop-shadow" />
               </div>
               <div className="text-left pr-1">
                 <div className="text-[11px] font-black text-cyan-300 uppercase tracking-wider">Chuỗi ngày học</div>
@@ -132,9 +137,9 @@ export const HeroCarousel = () => {
             </div>
 
             {/* Floating Badge 3: Bottom-Left - Chuẩn ETS */}
-            <div className="absolute bottom-8 -left-4 sm:bottom-10 sm:-left-6 hidden sm:flex bg-[#0a162b]/90 border border-emerald-400/50 rounded-2xl p-2.5 shadow-[0_0_20px_rgba(16,185,129,0.3)] backdrop-blur-md items-center gap-2 pointer-events-none">
-              <div className="w-7 h-7 rounded-lg bg-emerald-400/20 text-emerald-300 flex items-center justify-center">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+            <div className="absolute bottom-8 -left-4 sm:bottom-10 sm:-left-6 hidden sm:flex bg-[#0a162b]/90 border border-emerald-400/50 rounded-2xl p-2.5 shadow-[0_0_20px_rgba(16,185,129,0.3)] backdrop-blur-md items-center gap-2.5 pointer-events-none">
+              <div className="w-8 h-8 rounded-lg bg-emerald-400/20 flex items-center justify-center">
+                <img src={iconEtsSeal} alt="" className="w-6 h-6 object-contain drop-shadow" />
               </div>
               <span className="text-xs font-black text-emerald-300 font-tech">Chuẩn ETS 100%</span>
             </div>

@@ -13,8 +13,11 @@ import {
 } from '@/components/game/WordShooter/types';
 import { DEFAULT_VOCAB_TOPICS } from '@/components/game/WordShooter/defaultVocabPacks';
 import { getCachedVocabPacks } from '@/services/vocabPacksService';
-import { Maximize2, Minimize2, ArrowLeft } from 'lucide-react';
+import { Maximize2, Minimize2, ArrowLeft, HelpCircle, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { WordShooterTutorialModal } from '@/components/game/WordShooter/WordShooterTutorialModal';
+import { WordShooterLeaderboardModal } from '@/components/game/WordShooter/WordShooterLeaderboardModal';
+import { MatchedRankedOpponent } from '@/services/wordShooterRankService';
 
 type GameState = 'lobby' | 'playing' | 'result';
 
@@ -28,18 +31,23 @@ export default function WordShooterGame() {
   const [gameMode, setGameMode] = useState<GameMode>('solo');
   const [roomId, setRoomId] = useState<string | undefined>(undefined);
   const [isHost, setIsHost] = useState<boolean>(false);
+  const [matchedOpponent, setMatchedOpponent] = useState<MatchedRankedOpponent | undefined>(undefined);
 
   // Result stats
   const [finalStats, setFinalStats] = useState<GameStats | null>(null);
+  const [pvpResultData, setPvpResultData] = useState<any>(null);
   const [isVictory, setIsVictory] = useState<boolean>(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  const [isTutorialOpen, setIsTutorialOpen] = useState<boolean>(false);
+  const [isLeaderboardOpen, setIsLeaderboardOpen] = useState<boolean>(false);
 
   // Read ?room= query param on mount
   useEffect(() => {
     const roomFromUrl = searchParams.get('room');
     if (roomFromUrl) {
-      setRoomId(roomFromUrl.toUpperCase());
-      setGameMode('pvp-online');
+      const code = roomFromUrl.toUpperCase();
+      setRoomId(code);
+      setGameMode(code.startsWith('R-') ? 'ranked' : 'casual');
       setIsHost(false);
     }
   }, [searchParams]);
@@ -51,19 +59,22 @@ export default function WordShooterGame() {
     mode: GameMode;
     roomId?: string;
     isHost?: boolean;
+    matchedOpponent?: MatchedRankedOpponent;
   }) => {
     setSelectedTopic(config.topic);
     setDifficulty(config.difficulty);
     setGameMode(config.mode);
     setRoomId(config.roomId);
     setIsHost(config.isHost ?? false);
+    setMatchedOpponent(config.matchedOpponent);
     setGameState('playing');
   };
 
   // Game over handler
-  const handleGameOver = (stats: GameStats, victory: boolean) => {
+  const handleGameOver = (stats: GameStats, victory: boolean, pvpData?: any) => {
     setFinalStats(stats);
     setIsVictory(victory);
+    setPvpResultData(pvpData);
     setGameState('result');
   };
 
@@ -130,14 +141,33 @@ export default function WordShooterGame() {
           </Button>
 
           <span className="text-xs font-black text-slate-500 uppercase tracking-wider hidden sm:inline">
-            Phi Cơ Diệt Từ Vựng 2.0
+            Phi Cơ Diệt Từ Vựng 2.0 • Rank Liên Quân
           </span>
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Leaderboard Button */}
+          <button
+            onClick={() => setIsLeaderboardOpen(true)}
+            className="p-2 rounded-xl text-amber-300 hover:text-white bg-amber-950/60 hover:bg-amber-900/60 border border-amber-500/40 transition-colors flex items-center gap-1.5 text-xs font-bold cursor-pointer"
+            title="Xem bảng xếp hạng người chơi"
+          >
+            <Trophy className="w-4 h-4 text-amber-400" />
+            <span className="hidden sm:inline">Bảng Xếp Hạng</span>
+          </button>
+
+          <button
+            onClick={() => setIsTutorialOpen(true)}
+            className="p-2 rounded-xl text-cyan-300 hover:text-white bg-cyan-950/60 hover:bg-cyan-900/60 border border-cyan-500/40 transition-colors flex items-center gap-1.5 text-xs font-bold cursor-pointer"
+            title="Xem hướng dẫn chơi game"
+          >
+            <HelpCircle className="w-4 h-4 text-cyan-400" />
+            <span className="hidden sm:inline">Hướng dẫn</span>
+          </button>
+
           <button
             onClick={toggleFullscreen}
-            className="p-2 rounded-xl text-slate-400 hover:text-white bg-slate-900/60 border border-slate-800 transition-colors"
+            className="p-2 rounded-xl text-slate-400 hover:text-white bg-slate-900/60 border border-slate-800 transition-colors cursor-pointer"
             title={isFullscreen ? 'Thu nhỏ' : 'Toàn màn hình'}
           >
             {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
@@ -158,6 +188,7 @@ export default function WordShooterGame() {
             mode={gameMode}
             roomId={roomId}
             isHost={isHost}
+            matchedOpponent={matchedOpponent}
             onGameOver={handleGameOver}
             onExit={handleBackToLobby}
           />
@@ -170,13 +201,35 @@ export default function WordShooterGame() {
             difficulty={difficulty}
             isVictory={isVictory}
             isPvP={gameMode !== 'solo'}
-            opponentName={gameMode === 'pvp-bot' ? 'AI Ace Pilot' : 'Đối thủ'}
+            opponentName={
+              gameMode === 'bot' || gameMode === 'pvp-bot'
+                ? 'AI Pilot'
+                : gameMode === 'ranked'
+                ? matchedOpponent
+                  ? `[${matchedOpponent.tierNameVi} ${matchedOpponent.divisionRoman}] ${matchedOpponent.name}`.trim()
+                  : 'Đối Thủ Xếp Hạng'
+                : 'Bạn Đấu Giao Hữu'
+            }
+            pvpResult={pvpResultData}
+            onOpenLeaderboard={() => setIsLeaderboardOpen(true)}
             onPlayAgain={handlePlayAgain}
             onPracticeMissedWords={handlePracticeMissedWords}
             onBackToLobby={handleBackToLobby}
           />
         )}
       </div>
+
+      {/* Leaderboard Modal */}
+      <WordShooterLeaderboardModal
+        isOpen={isLeaderboardOpen}
+        onClose={() => setIsLeaderboardOpen(false)}
+      />
+
+      {/* Tutorial Modal */}
+      <WordShooterTutorialModal
+        isOpen={isTutorialOpen}
+        onClose={() => setIsTutorialOpen(false)}
+      />
     </div>
   );
 

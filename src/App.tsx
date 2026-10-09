@@ -56,6 +56,32 @@ const CourseDetailRedirect = () => {
   return <Navigate to={`/courses/${cId}/learn`} replace />;
 };
 
+const FullTestDirectRedirect = () => {
+  const { testId } = useParams();
+  const tId = Number(testId);
+
+  const { data: test, isLoading } = useQuery({
+    queryKey: ["fulltest-direct-redirect", tId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("full_tests")
+        .select("course_id")
+        .eq("id", tId)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !isNaN(tId) && tId > 0,
+  });
+
+  if (isNaN(tId)) return <Navigate to="/fulltests" replace />;
+  if (isLoading) return null;
+
+  if (test?.course_id) {
+    return <Navigate to={`/courses/${test.course_id}/fulltest/${tId}`} replace />;
+  }
+  return <Navigate to="/fulltests" replace />;
+};
+
 // Lazy-loaded pages with automatic recovery from stale chunks (deploy updates)
 const Index = lazyWithRetry(() => import("./pages/Index"));
 const NotFound = lazyWithRetry(() => import("./pages/NotFound"));
@@ -64,6 +90,7 @@ const Register = lazyWithRetry(() => import("./pages/Register"));
 const ForgotPassword = lazyWithRetry(() => import("./pages/ForgotPassword"));
 const ResetPassword = lazyWithRetry(() => import("./pages/ResetPassword"));
 const AuthCallback = lazyWithRetry(() => import("./pages/AuthCallback"));
+const DashboardPage = lazyWithRetry(() => import("./pages/DashboardPage"));
 const LearnPage = lazyWithRetry(() => import("./pages/LearnPage"));
 const QuizPage = lazyWithRetry(() => import("./pages/QuizPage"));
 const QuizResult = lazyWithRetry(() => import("./pages/QuizResult"));
@@ -73,6 +100,7 @@ const Part2CoachPage = lazyWithRetry(() => import("./pages/Part2CoachPage"));
 const FullTestsPage = lazyWithRetry(() => import("./pages/FullTestsPage"));
 const ListeningPage = lazyWithRetry(() => import("./pages/ListeningPage"));
 const LibraryPage = lazyWithRetry(() => import("./pages/LibraryPage"));
+const MyCoursesPage = lazyWithRetry(() => import("./pages/MyCoursesPage"));
 const FullTestList = lazyWithRetry(() => import("./pages/FullTestList"));
 const FullTestExam = lazyWithRetry(() => import("./pages/FullTestExam"));
 const FullTestResult = lazyWithRetry(() => import("./pages/FullTestResult"));
@@ -144,7 +172,7 @@ const App = () => (
                 <Route path="/auth/callback" element={<AuthCallback />} />
 
                 {/* Student (protected) */}
-                <Route path="/dashboard" element={<Navigate to="/profile" replace />} />
+                <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
                 <Route path="/courses" element={<CoursesRedirect />} />
                 <Route path="/courses/:courseId" element={<CourseDetailRedirect />} />
                 <Route path="/courses/:courseId/learn" element={<ProtectedRoute><LearnPage /></ProtectedRoute>} />
@@ -162,8 +190,10 @@ const App = () => (
                 <Route path="/courses/:courseId/fulltest/:testId/result" element={<ProtectedRoute><FullTestResult /></ProtectedRoute>} />
                 <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                 <Route path="/fulltests" element={<ProtectedRoute><FullTestsPage /></ProtectedRoute>} />
+                <Route path="/fulltests/:testId" element={<ProtectedRoute><FullTestDirectRedirect /></ProtectedRoute>} />
                 <Route path="/listening" element={<ProtectedRoute><ListeningPage /></ProtectedRoute>} />
                 <Route path="/library" element={<ProtectedRoute><LibraryPage /></ProtectedRoute>} />
+                <Route path="/my-courses" element={<ProtectedRoute><MyCoursesPage /></ProtectedRoute>} />
                 <Route path="/games" element={<GamesHub />} />
                 <Route path="/games/word-shooter" element={<WordShooterGame />} />
                 <Route path="/games/word-defense" element={<WordDefenseGame />} />

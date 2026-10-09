@@ -9,13 +9,16 @@ export const VOCAB_PACKS_STORAGE_KEY = 'game_vocab_packs';
 export const VOCAB_PACKS_UPDATED_EVENT = 'vocab-packs-updated';
 
 /**
- * Ensure 600 TOEIC pack is always present
+ * Ensure 5 core TOEIC packs are always present
  */
 export function ensureToeicPacksIncluded(packs: VocabTopic[]): VocabTopic[] {
-  if (!packs.some((p) => p.id === 'toeic_600_master')) {
-    return [TOEIC_600_MASTER_PACK, ...packs];
+  const result = [...packs];
+  for (const defaultPack of DEFAULT_VOCAB_TOPICS) {
+    if (!result.some((p) => p.id === defaultPack.id)) {
+      result.push(defaultPack);
+    }
   }
-  return packs;
+  return result;
 }
 
 /**

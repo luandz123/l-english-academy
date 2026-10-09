@@ -49,6 +49,7 @@ export interface GamificationState {
   streak: number;
   lastActiveDate: string; // YYYY-MM-DD
   claimedQuestsDate: string; // YYYY-MM-DD
+  lastChestDate?: string; // YYYY-MM-DD
   questProgress: {
     dictation: number;
     vocab: number;
@@ -76,21 +77,21 @@ export const getLevelInfo = (xp: number) => {
   const currentLevelXp = xp % 100;
   const xpToNextLevel = 100 - currentLevelXp;
   
-  let title = "Tân Thủ TOEIC";
-  let color = "text-blue-600 bg-blue-50 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400";
+  let title = "Tập Sự TOEIC 🎯";
+  let color = "text-indigo-400 bg-indigo-500/15 border-indigo-500/30";
   
   if (level >= 10) {
     title = "Huyền Thoại TOEIC 👑";
-    color = "text-purple-600 bg-purple-50 border-purple-300 dark:bg-purple-950/40 dark:text-purple-400";
+    color = "text-purple-400 bg-purple-500/15 border-purple-500/30";
   } else if (level >= 7) {
     title = "Bậc Thầy TOEIC 🌟";
-    color = "text-amber-600 bg-amber-50 border-amber-300 dark:bg-amber-950/40 dark:text-amber-400";
+    color = "text-amber-400 bg-amber-500/15 border-amber-500/30";
   } else if (level >= 4) {
     title = "Chiến Binh TOEIC ⚔️";
-    color = "text-emerald-600 bg-emerald-50 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-400";
-  } else if (level >= 2) {
+    color = "text-emerald-400 bg-emerald-500/15 border-emerald-500/30";
+  } else {
     title = "Tập Sự TOEIC 🎯";
-    color = "text-indigo-600 bg-indigo-50 border-indigo-300 dark:bg-indigo-950/40 dark:text-indigo-400";
+    color = "text-indigo-400 bg-indigo-500/15 border-indigo-500/30";
   }
 
   return {
@@ -103,12 +104,21 @@ export const getLevelInfo = (xp: number) => {
   };
 };
 
-const getTodayString = () => new Date().toISOString().split("T")[0];
+export const getTodayString = () => {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
 
-const getYesterdayString = () => {
+export const getYesterdayString = () => {
   const d = new Date();
   d.setDate(d.getDate() - 1);
-  return d.toISOString().split("T")[0];
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 };
 
 
@@ -305,19 +315,27 @@ export const useGamification = () => {
   }, [checkInStreak]);
 
   // Claim Quest
-  const claimQuest = useCallback((questId: string, xpReward: number) => {
+  const claimQuest = useCallback((questId: string, xpReward?: number) => {
     if (state.claimedQuestIds.includes(questId)) return;
+
+    const defaultRewardMap: Record<string, number> = {
+      quest_streak: 10,
+      quest_practice: 20,
+      quest_dictation: 20,
+      quest_vocab: 20,
+    };
+    const reward = xpReward ?? defaultRewardMap[questId] ?? 20;
 
     setState(prev => ({
       ...prev,
-      xp: prev.xp + xpReward,
+      xp: prev.xp + reward,
       claimedQuestIds: [...prev.claimedQuestIds, questId],
     }));
 
     try { playSound?.("correct"); } catch { /* ignore audio error */ }
 
     toast({
-      title: `🎁 ĐÃ NHẬN +${xpReward} XP THƯỞNG!`,
+      title: `🎁 ĐÃ NHẬN +${reward} XP THƯỞNG!`,
       description: "Nhiệm vụ hoàn thành xuất sắc!",
     });
   }, [state.claimedQuestIds, playSound]);
@@ -340,8 +358,19 @@ export const useGamification = () => {
     });
   }, [state.claimedBadgeIds, playSound]);
 
-  // Open Mystery Chest reward
-  const openChestReward = useCallback((): ChestReward => {
+  // Open Mystery Chest reward (strictly 1 time per day)
+  const openChestReward = useCallback((): ChestReward | null => {
+    const today = getTodayString();
+    const lastDate = state.lastChestDate || (typeof window !== "undefined" ? localStorage.getItem("lenglish_last_chest_date") : null);
+
+    if (lastDate === today) {
+      toast({
+        title: "🎁 Bạn đã mở rương hôm nay rồi!",
+        description: "Mỗi ngày chỉ được mở 1 lần. Hãy quay lại vào ngày mai nhé!",
+      });
+      return null;
+    }
+
     const rewards: ChestReward[] = [
       { type: "xp", amount: 100, title: "🎁 Rương Báu Hoàng Gia!", description: "+100 XP Thưởng Bất Ngờ!", icon: "Gift" },
       { type: "shield", amount: 1, title: "🛡️ Thẻ Bảo Vệ Streak!", description: "Bảo vệ chuỗi 1 ngày khi bận!", icon: "ShieldCheck" },
@@ -356,6 +385,7 @@ export const useGamification = () => {
       setState(prev => ({
         ...prev,
         streakShields: (prev.streakShields || 0) + 1,
+        lastChestDate: today,
       }));
       toast({
         title: "🛡️ NHẬN 1 THẺ BẢO VỆ STREAK!",
@@ -363,40 +393,53 @@ export const useGamification = () => {
       });
     }
 
+    setState(prev => ({
+      ...prev,
+      lastChestDate: today,
+    }));
+
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("lenglish_last_chest_date", today);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
     return chosen;
-  }, [addXp]);
+  }, [addXp, state.lastChestDate]);
 
   // Computed Quests
   const quests: Quest[] = [
     {
-      id: "quest_dictation",
-      title: "Chiến Binh Chép Chính Tả 🎧",
-      description: "Hoàn thành 5 câu luyện nghe Dictation",
+      id: "quest_streak",
+      title: "Đăng nhập hàng ngày (+10 XP)",
+      description: "Đăng nhập vào bàn học và duy trì chuỗi học tập",
+      icon: "Flame",
+      current: 1,
+      target: 1,
+      xpReward: 10,
+      claimed: state.claimedQuestIds.includes("quest_streak"),
+    },
+    {
+      id: "quest_practice",
+      title: "Làm 1 bài luyện nghe hoặc đề thi (+20 XP)",
+      description: "Hoàn thành 1 bài nghe chép chính tả hoặc đề thi",
       icon: "Headphones",
-      current: state.questProgress.dictation,
-      target: 5,
-      xpReward: 50,
-      claimed: state.claimedQuestIds.includes("quest_dictation"),
+      current: Math.min(1, state.questProgress.dictation),
+      target: 1,
+      xpReward: 20,
+      claimed: state.claimedQuestIds.includes("quest_practice") || state.claimedQuestIds.includes("quest_dictation"),
     },
     {
       id: "quest_vocab",
-      title: "Bậc Thầy Từ Vựng 📚",
-      description: "Luyện 5 từ vựng trong kho Flashcard",
+      title: "Học 10 từ vựng TOEIC (+20 XP)",
+      description: "Học 10 từ vựng trong kho từ vựng hoặc mini-game",
       icon: "Star",
-      current: state.questProgress.vocab,
-      target: 5,
-      xpReward: 30,
-      claimed: state.claimedQuestIds.includes("quest_vocab"),
-    },
-    {
-      id: "quest_streak",
-      title: "Giữ Vững Ngọn Lửa 🔥",
-      description: "Đăng nhập và hoàn thành 1 bài học bất kỳ hôm nay",
-      icon: "Flame",
-      current: state.questProgress.streakDone ? 1 : 0,
-      target: 1,
+      current: Math.min(10, state.questProgress.vocab),
+      target: 10,
       xpReward: 20,
-      claimed: state.claimedQuestIds.includes("quest_streak"),
+      claimed: state.claimedQuestIds.includes("quest_vocab"),
     },
   ];
 

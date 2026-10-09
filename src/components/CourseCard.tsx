@@ -3,9 +3,9 @@ import { Link } from "react-router-dom";
 import { Users, ArrowRight, Video, Headphones, FileCheck2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { trackEvent } from "@/lib/analytics";
-import iconFulltest from "@/assets/icons/icon-fulltest.webp";
-import iconDictation from "@/assets/icons/icon-dictation.webp";
-import iconVideo from "@/assets/icons/icon-video.webp";
+import iconFulltest from "@/assets/icons/icon-fulltest-3d.webp";
+import iconDictation from "@/assets/icons/icon-dictation-3d.webp";
+import iconVideo from "@/assets/icons/icon-video-3d.webp";
 
 export interface CourseRow {
   id: number;

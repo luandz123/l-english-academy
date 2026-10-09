@@ -10,7 +10,6 @@ import { Part2Step2Chunks } from '@/components/part2/Part2Step2Chunks';
 import { Part2Step3ReflexQ } from '@/components/part2/Part2Step3ReflexQ';
 import { Part2Step4ReflexA } from '@/components/part2/Part2Step4ReflexA';
 import { Part2Step5Shadowing } from '@/components/part2/Part2Step5Shadowing';
-import { Part2Step6TrapHunter } from '@/components/part2/Part2Step6TrapHunter';
 import { Part2Step7ExamMode } from '@/components/part2/Part2Step7ExamMode';
 import { Part2Step8LoopPlayer } from '@/components/part2/Part2Step8LoopPlayer';
 import { Part2ClusterSelector } from '@/components/part2/Part2ClusterSelector';
@@ -50,7 +49,7 @@ const Part2CoachPage: React.FC = () => {
   });
 
   const getClusterProgressKey = (userId: string | undefined, cId: string) =>
-    `lenglish_part2_progress_v1_${userId || 'guest'}_${cId}`;
+    `lenglish_part2_progress_v2_${userId || 'guest'}_${cId}`;
 
   const loadClusterProgress = (userId: string | undefined, cId: string) => {
     try {
@@ -59,7 +58,7 @@ const Part2CoachPage: React.FC = () => {
       const parsed = JSON.parse(raw);
       return {
         completedSteps: Array.isArray(parsed.completedSteps) ? (parsed.completedSteps as Part2StepId[]) : [],
-        currentStep: (parsed.currentStep >= 1 && parsed.currentStep <= 8 ? parsed.currentStep : 1) as Part2StepId,
+        currentStep: (parsed.currentStep >= 1 && parsed.currentStep <= 7 ? parsed.currentStep : 1) as Part2StepId,
         hasReceivedClusterXp: !!parsed.hasReceivedClusterXp,
       };
     } catch {
@@ -88,7 +87,7 @@ const Part2CoachPage: React.FC = () => {
   };
 
   const stepParam = parseInt(searchParams.get('step') || '1', 10);
-  const initialStep = (stepParam >= 1 && stepParam <= 8 ? stepParam : 1) as Part2StepId;
+  const initialStep = (stepParam >= 1 && stepParam <= 7 ? stepParam : 1) as Part2StepId;
 
   const [currentStep, setCurrentStep] = useState<Part2StepId>(initialStep);
   const [completedSteps, setCompletedSteps] = useState<Set<Part2StepId>>(new Set());
@@ -110,7 +109,6 @@ const Part2CoachPage: React.FC = () => {
     if (stepInUrl >= 1 && stepInUrl <= PART2_STEPS_META.length) {
       targetStep = stepInUrl as Part2StepId;
     } else if (saved?.completedSteps && saved.completedSteps.length > 0) {
-      // Khi vào một cụm đã có tiến độ mà URL không có ?step=, mở thẳng ở bước gợi ý (bước nhỏ nhất chưa hoàn thành)
       targetStep = suggestedStep;
     } else {
       targetStep = saved?.currentStep || 1;
@@ -131,7 +129,7 @@ const Part2CoachPage: React.FC = () => {
   // Sync step from URL searchParams
   useEffect(() => {
     const s = parseInt(searchParams.get('step') || '1', 10);
-    if (s >= 1 && s <= 8 && s !== currentStep) {
+    if (s >= 1 && s <= 7 && s !== currentStep) {
       setCurrentStep(s as Part2StepId);
     }
   }, [searchParams]);
@@ -196,19 +194,19 @@ const Part2CoachPage: React.FC = () => {
     const nextCompleted = new Set([...completedSteps, stepId]);
     setCompletedSteps(nextCompleted);
 
-    const nextStep = (stepId < 8 ? stepId + 1 : stepId) as Part2StepId;
+    const nextStep = (stepId < 7 ? stepId + 1 : stepId) as Part2StepId;
     if (activeCluster?.id) {
       saveClusterProgress(user?.id, activeCluster.id, Array.from(nextCompleted), nextStep);
     }
 
-    if (stepId < 8) {
+    if (stepId < 7) {
       handleStepSelect(nextStep);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
   const handleFinishAll = () => {
-    const nextCompleted = new Set([...completedSteps, 8 as Part2StepId]);
+    const nextCompleted = new Set([...completedSteps, 7 as Part2StepId]);
     setCompletedSteps(nextCompleted);
     if (activeCluster?.id) {
       const existing = loadClusterProgress(user?.id, activeCluster.id);
@@ -216,7 +214,7 @@ const Part2CoachPage: React.FC = () => {
       if (!alreadyClaimed) {
         addXp(XP_REWARDS.PART2_CLUSTER_COMPLETE, "Hoàn thành cụm Phản Xạ!");
       }
-      saveClusterProgress(user?.id, activeCluster.id, Array.from(nextCompleted), 8, true);
+      saveClusterProgress(user?.id, activeCluster.id, Array.from(nextCompleted), 7, true);
     }
     setIsClusterModalOpen(true);
   };
@@ -316,26 +314,37 @@ const Part2CoachPage: React.FC = () => {
               )}
 
               {currentStep === 6 && (
-                <Part2Step6TrapHunter
+                <Part2Step7ExamMode
                   questions={activeCluster.questions}
+                  step1Diagnostics={step1Diagnostics}
                   onCompleteStep={() => handleStepComplete(6)}
                 />
               )}
 
               {currentStep === 7 && (
-                <Part2Step7ExamMode
-                  questions={activeCluster.questions}
-                  step1Diagnostics={step1Diagnostics}
-                  onCompleteStep={() => handleStepComplete(7)}
-                />
-              )}
-
-              {currentStep === 8 && (
                 <Part2Step8LoopPlayer
                   questions={activeCluster.questions}
                   onFinishAllSteps={handleFinishAll}
                 />
               )}
+            </div>
+
+            {/* Global Minimal Shortcut Indicator Bar (Phong cách Bàn học) */}
+            <div className="flex items-center justify-center gap-3 py-2 text-[11px] text-muted-foreground/80 font-medium">
+              <span className="inline-flex items-center gap-1">
+                <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border text-[10px] font-mono">Space</kbd>
+                Phát / Dừng
+              </span>
+              <span>•</span>
+              <span className="inline-flex items-center gap-1">
+                <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border text-[10px] font-mono">R</kbd>
+                Nghe lại
+              </span>
+              <span>•</span>
+              <span className="inline-flex items-center gap-1">
+                <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border text-[10px] font-mono">← / →</kbd>
+                Đổi câu
+              </span>
             </div>
 
             {/* Cluster Selection Modal */}

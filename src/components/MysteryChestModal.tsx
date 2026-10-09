@@ -7,14 +7,21 @@ import { useSound } from "@/hooks/useSound";
 interface MysteryChestModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onRewardClaimed?: (reward: ChestReward) => void;
 }
 
-export const MysteryChestModal: React.FC<MysteryChestModalProps> = ({ isOpen, onClose }) => {
+export const MysteryChestModal: React.FC<MysteryChestModalProps> = ({ isOpen, onClose, onRewardClaimed }) => {
   const { openChestReward } = useGamification();
   const { playSound } = useSound();
   const [selectedChest, setSelectedChest] = useState<number | null>(null);
   const [reward, setReward] = useState<ChestReward | null>(null);
   const [isOpening, setIsOpening] = useState(false);
+
+  const todayStr = (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  })();
+  const isAlreadyClaimedToday = typeof window !== "undefined" && localStorage.getItem("lenglish_last_chest_date") === todayStr;
 
   // Reset local state whenever modal closes or opens
   useEffect(() => {
@@ -28,7 +35,7 @@ export const MysteryChestModal: React.FC<MysteryChestModalProps> = ({ isOpen, on
   if (!isOpen) return null;
 
   const handleOpenChest = (index: number) => {
-    if (selectedChest !== null || isOpening || reward !== null) return;
+    if (selectedChest !== null || isOpening || reward !== null || isAlreadyClaimedToday) return;
 
     setSelectedChest(index);
     setIsOpening(true);
@@ -37,8 +44,18 @@ export const MysteryChestModal: React.FC<MysteryChestModalProps> = ({ isOpen, on
 
     setTimeout(() => {
       const res = openChestReward();
+      if (!res) {
+        setIsOpening(false);
+        return;
+      }
+      try {
+        localStorage.setItem("lenglish_last_chest_date", todayStr);
+      } catch (e) {
+        console.error(e);
+      }
       setReward(res);
       setIsOpening(false);
+      onRewardClaimed?.(res);
     }, 900);
   };
 
@@ -51,13 +68,33 @@ export const MysteryChestModal: React.FC<MysteryChestModalProps> = ({ isOpen, on
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-300">
-      <div className="bg-card border-4 border-amber-400/50 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl text-center space-y-6 relative overflow-hidden">
+      <div className="bg-[#070e1c] border-2 border-amber-400/50 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl text-center space-y-6 relative overflow-hidden text-slate-100">
         
         {/* Decorative sparkles background */}
         <div className="absolute top-0 right-0 w-32 h-32 bg-amber-400/10 rounded-full blur-2xl pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-32 h-32 bg-primary/10 rounded-full blur-2xl pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-2xl pointer-events-none" />
 
-        {!reward ? (
+        {isAlreadyClaimedToday && !reward ? (
+          <div className="space-y-5 py-4">
+            <div className="w-20 h-20 rounded-full bg-amber-500/15 border-2 border-amber-500/40 flex items-center justify-center mx-auto text-amber-400">
+              <CheckCircle2 className="w-10 h-10 text-emerald-400" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-xl sm:text-2xl font-black text-white">
+                Bạn Đã Mở Rương Hôm Nay Rồi! 🎁
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-400 max-w-sm mx-auto leading-relaxed">
+                Mỗi ngày bạn chỉ có thể mở rương 1 lần. Hãy quay trở lại vào ngày mai (sau 00:00) để nhận thêm quà may mắn nhé!
+              </p>
+            </div>
+            <Button
+              onClick={handleClose}
+              className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs cursor-pointer border border-slate-700"
+            >
+              Đã hiểu, quay lại bàn học
+            </Button>
+          </div>
+        ) : !reward ? (
           <div className="space-y-6">
             <div className="space-y-2">
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400/20 text-amber-700 dark:text-amber-300 text-xs font-black border border-amber-400/30">

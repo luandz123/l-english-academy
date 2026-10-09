@@ -21,7 +21,11 @@ import {
   Database,
   Loader2,
   CheckCircle2,
-  Radio
+  Radio,
+  HelpCircle,
+  Trophy,
+  Star,
+  Crown
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,6 +41,14 @@ import {
 import { VocabTopic, GameDifficulty, GameMode, VocabWord } from './types';
 import { DEFAULT_VOCAB_TOPICS, DIFFICULTY_CONFIG } from './defaultVocabPacks';
 import { getVocabPacks, getCachedVocabPacks, VOCAB_PACKS_UPDATED_EVENT } from '@/services/vocabPacksService';
+import { WordShooterTutorialModal, TUTORIAL_STORAGE_KEY } from './WordShooterTutorialModal';
+import { WordShooterLeaderboardModal } from './WordShooterLeaderboardModal';
+import { 
+  getPlayerRank, 
+  formatRankInfo, 
+  generateFairRankedOpponent, 
+  MatchedRankedOpponent 
+} from '@/services/wordShooterRankService';
 import { gameSound } from './gameSound';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -50,6 +62,7 @@ interface WordShooterLobbyProps {
     mode: GameMode;
     roomId?: string;
     isHost?: boolean;
+    matchedOpponent?: MatchedRankedOpponent;
   }) => void;
 }
 
@@ -58,10 +71,31 @@ const CUSTOM_VOCAB_STORAGE_KEY = 'word_shooter_custom_packs';
 export const WordShooterLobby: React.FC<WordShooterLobbyProps> = ({ onStartGame, initialRoomId }) => {
   const { toast } = useToast();
   const [adminPacks, setAdminPacks] = useState<VocabTopic[]>(() => getCachedVocabPacks());
-  const [selectedTopicId, setSelectedTopicId] = useState<string>('daily');
+  const [selectedTopicId, setSelectedTopicId] = useState<string>(() => (getCachedVocabPacks()[0]?.id || 'toeic_600_master'));
   const [difficulty, setDifficulty] = useState<GameDifficulty>('medium');
   const [gameMode, setGameMode] = useState<GameMode>('solo');
   const [isMuted, setIsMuted] = useState(false);
+  const [isTutorialOpen, setIsTutorialOpen] = useState(false);
+  const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
+  const [playerRank, setPlayerRank] = useState(() => getPlayerRank());
+  const currentRankInfo = formatRankInfo(playerRank);
+
+  // Refresh rank when window gains focus
+  useEffect(() => {
+    const handleFocus = () => {
+      setPlayerRank(getPlayerRank());
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, []);
+
+  // Check if first-time player to auto-open tutorial
+  useEffect(() => {
+    const hasSeen = localStorage.getItem(TUTORIAL_STORAGE_KEY);
+    if (!hasSeen) {
+      setIsTutorialOpen(true);
+    }
+  }, []);
 
   // Custom topics state
   const [customTopics, setCustomTopics] = useState<VocabTopic[]>([]);
@@ -75,6 +109,7 @@ export const WordShooterLobby: React.FC<WordShooterLobbyProps> = ({ onStartGame,
 
   // PvP Room State & Real-time Waiting Room
   const [isPvPModalOpen, setIsPvPModalOpen] = useState(false);
+  const [pvpModalMode, setPvpModalMode] = useState<'casual' | 'ranked'>('casual');
   const [roomCode, setRoomCode] = useState('');
   const [inputRoomCode, setInputRoomCode] = useState('');
   const [isHost, setIsHost] = useState(false);
@@ -85,10 +120,23 @@ export const WordShooterLobby: React.FC<WordShooterLobbyProps> = ({ onStartGame,
   const pvpLobbyChannelRef = React.useRef<any>(null);
   const lobbyBcRef = React.useRef<BroadcastChannel | null>(null);
 
-  // Clean up lobby channel on unmount
+  // Ranked Fair Matchmaking Modal State
+  const [isRankMatchModalOpen, setIsRankMatchModalOpen] = useState(false);
+  const [matchSearchingTimer, setMatchSearchingTimer] = useState(0);
+  const [matchState, setMatchState] = useState<'searching' | 'found'>('searching');
+  const [matchedRankOpponent, setMatchedRankOpponent] = useState<MatchedRankedOpponent | null>(null);
+  const [matchCountdown, setMatchCountdown] = useState(3);
+  const searchIntervalRef = React.useRef<any>(null);
+  const matchFoundTimeoutRef = React.useRef<any>(null);
+  const countdownIntervalRef = React.useRef<any>(null);
+
+  // Clean up lobby channel & matchmaking timers on unmount
   useEffect(() => {
     return () => {
       cleanupLobbyChannel();
+      if (searchIntervalRef.current) clearInterval(searchIntervalRef.current);
+      if (matchFoundTimeoutRef.current) clearTimeout(matchFoundTimeoutRef.current);
+      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
     };
   }, []);
 
@@ -98,10 +146,13 @@ export const WordShooterLobby: React.FC<WordShooterLobbyProps> = ({ onStartGame,
   // Auto-open PvP modal if joined via link with room ID
   useEffect(() => {
     if (initialRoomId) {
-      setInputRoomCode(initialRoomId.toUpperCase());
+      const code = initialRoomId.toUpperCase();
+      setInputRoomCode(code);
       setIsHost(false);
       setIsPvPModalOpen(true);
-      setGameMode('pvp-online');
+      const isRank = code.startsWith('R-');
+      setPvpModalMode(isRank ? 'ranked' : 'casual');
+      setGameMode(isRank ? 'ranked' : 'casual');
     }
   }, [initialRoomId]);
 
@@ -283,7 +334,7 @@ export const WordShooterLobby: React.FC<WordShooterLobbyProps> = ({ onStartGame,
     onStartGame({
       topic: currentTopic,
       difficulty,
-      mode: 'solo',
+      mode: 'solo', // KHÔNG TÍNH RANK!
     });
   };
 
@@ -292,8 +343,87 @@ export const WordShooterLobby: React.FC<WordShooterLobbyProps> = ({ onStartGame,
     onStartGame({
       topic: currentTopic,
       difficulty,
-      mode: 'pvp-bot',
+      mode: 'bot', // KHÔNG TÍNH RANK!
     });
+  };
+
+  const handleStartRankMatchmaking = () => {
+    // Clear any active timers
+    if (searchIntervalRef.current) clearInterval(searchIntervalRef.current);
+    if (matchFoundTimeoutRef.current) clearTimeout(matchFoundTimeoutRef.current);
+    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+
+    setIsRankMatchModalOpen(true);
+    setMatchState('searching');
+    setMatchSearchingTimer(0);
+    setMatchCountdown(3);
+    setMatchedRankOpponent(null);
+
+    gameSound.playReadySound();
+
+    // Elapsed timer (00:01, 00:02...)
+    searchIntervalRef.current = setInterval(() => {
+      setMatchSearchingTimer((prev) => prev + 1);
+    }, 1000);
+
+    // Simulate fair matchmaking (1.8s - 2.5s)
+    const searchDuration = 1800 + Math.floor(Math.random() * 700);
+    matchFoundTimeoutRef.current = setTimeout(() => {
+      if (searchIntervalRef.current) clearInterval(searchIntervalRef.current);
+
+      // Generate strictly fair opponent (chênh lệch rank <= 1 bậc)
+      const opponent = generateFairRankedOpponent(playerRank);
+      setMatchedRankOpponent(opponent);
+      setMatchState('found');
+      gameSound.playLevelUpSound();
+
+      let count = 3;
+      setMatchCountdown(3);
+      countdownIntervalRef.current = setInterval(() => {
+        count -= 1;
+        setMatchCountdown(count);
+        gameSound.playLaserSound();
+
+        if (count <= 0) {
+          clearInterval(countdownIntervalRef.current);
+          setIsRankMatchModalOpen(false);
+          gameSound.playMatchStartSound();
+          onStartGame({
+            topic: currentTopic,
+            difficulty,
+            mode: 'ranked',
+            matchedOpponent: opponent,
+          });
+        }
+      }, 1000);
+    }, searchDuration);
+  };
+
+  const handleInstantRankStart = (opp: MatchedRankedOpponent) => {
+    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+    setIsRankMatchModalOpen(false);
+    gameSound.playMatchStartSound();
+    onStartGame({
+      topic: currentTopic,
+      difficulty,
+      mode: 'ranked',
+      matchedOpponent: opp,
+    });
+  };
+
+  const handleCancelRankMatchmaking = () => {
+    if (searchIntervalRef.current) clearInterval(searchIntervalRef.current);
+    if (matchFoundTimeoutRef.current) clearTimeout(matchFoundTimeoutRef.current);
+    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+    setIsRankMatchModalOpen(false);
+    setMatchState('searching');
+    setMatchedRankOpponent(null);
+  };
+
+  const formatMatchTimer = (sec: number) => {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
   const cleanupLobbyChannel = () => {
@@ -309,9 +439,11 @@ export const WordShooterLobby: React.FC<WordShooterLobbyProps> = ({ onStartGame,
     }
   };
 
-  const handleCreateRoom = () => {
+  const handleCreateRoom = (roomType: 'casual' | 'ranked' = 'casual') => {
     cleanupLobbyChannel();
-    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+    setPvpModalMode(roomType);
+    const prefix = roomType === 'ranked' ? 'R-' : '';
+    const code = prefix + Math.random().toString(36).substring(2, 7).toUpperCase();
     setRoomCode(code);
     setIsHost(true);
     setIsOpponentJoined(false);
@@ -377,6 +509,8 @@ export const WordShooterLobby: React.FC<WordShooterLobbyProps> = ({ onStartGame,
       toast({ title: 'Mã phòng không hợp lệ', description: 'Vui lòng nhập mã phòng gồm 4 - 8 ký tự.' });
       return;
     }
+    const isRank = code.startsWith('R-') || pvpModalMode === 'ranked';
+    setPvpModalMode(isRank ? 'ranked' : 'casual');
     cleanupLobbyChannel();
     setRoomCode(code);
     setIsHost(false);
@@ -396,10 +530,11 @@ export const WordShooterLobby: React.FC<WordShooterLobbyProps> = ({ onStartGame,
           gameSound.playMatchStartSound();
           cleanupLobbyChannel();
           setIsPvPModalOpen(false);
+          const isRankedMatch = payload?.isRanked ?? isRank;
           onStartGame({
             topic: payload?.topic || currentTopic,
             difficulty: payload?.difficulty || difficulty,
-            mode: 'pvp-online',
+            mode: isRankedMatch ? 'ranked' : 'casual',
             roomId: code,
             isHost: false,
           });
@@ -461,6 +596,7 @@ export const WordShooterLobby: React.FC<WordShooterLobbyProps> = ({ onStartGame,
     const startPayload = {
       topic: currentTopic,
       difficulty,
+      isRanked: pvpModalMode === 'ranked',
       countdown: 3,
     };
 
@@ -494,7 +630,7 @@ export const WordShooterLobby: React.FC<WordShooterLobbyProps> = ({ onStartGame,
         onStartGame({
           topic: currentTopic,
           difficulty,
-          mode: 'pvp-online',
+          mode: pvpModalMode === 'ranked' ? 'ranked' : 'casual',
           roomId: roomCode,
           isHost: true,
         });
@@ -551,21 +687,72 @@ export const WordShooterLobby: React.FC<WordShooterLobbyProps> = ({ onStartGame,
             </p>
           </div>
 
-          {/* Sound Mute & Quick Stats */}
-          <div className="flex items-center gap-3 self-center md:self-start">
-            <button
-              onClick={handleToggleMute}
-              className={cn(
-                "p-3 rounded-2xl border transition-all duration-200 flex items-center gap-2 text-xs font-bold shadow-md",
-                isMuted 
-                  ? "bg-slate-800/80 border-slate-700 text-slate-400" 
-                  : "bg-blue-600/20 border-blue-500/40 text-cyan-300 hover:bg-blue-600/30"
-              )}
-              title={isMuted ? "Bật âm thanh" : "Tắt âm thanh"}
+          {/* Rank Badge & Action Controls */}
+          <div className="flex flex-col sm:flex-row items-center gap-2.5 self-center md:self-start">
+            {/* Liên Quân Rank Card Badge */}
+            <div 
+              onClick={() => setIsLeaderboardOpen(true)}
+              className="px-3.5 py-2.5 rounded-2xl border border-amber-500/40 bg-gradient-to-r from-amber-950/60 to-purple-950/60 hover:from-amber-900/60 hover:to-purple-900/60 transition-all duration-200 flex items-center gap-2.5 text-xs shadow-lg cursor-pointer active:scale-95 group"
+              title="Nhấn để xem Bảng Xếp Hạng Cao Thủ"
             >
-              {isMuted ? <VolumeX className="w-5 h-5 text-rose-400" /> : <Volume2 className="w-5 h-5 text-cyan-400" />}
-              <span>{isMuted ? "Đã tắt âm" : "Âm thanh Bật"}</span>
-            </button>
+              <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-400 flex items-center justify-center text-lg shrink-0">
+                {currentRankInfo.icon}
+              </div>
+              <div className="text-left">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-black text-amber-300 group-hover:text-amber-200">
+                    {currentRankInfo.tierNameVi} {currentRankInfo.divisionRoman}
+                  </span>
+                  <div className="flex items-center gap-0.5 text-amber-400">
+                    {playerRank.tier === 'master' || playerRank.tier === 'grandmaster' ? (
+                      <span className="text-[11px] font-black">⭐ x{playerRank.stars}</span>
+                    ) : (
+                      Array.from({ length: currentRankInfo.maxStars }).map((_, idx) => (
+                        <Star 
+                          key={idx} 
+                          className={cn(
+                            "w-2.5 h-2.5", 
+                            idx < currentRankInfo.stars ? "fill-amber-400 text-amber-400" : "text-slate-600 opacity-40"
+                          )} 
+                        />
+                      ))
+                    )}
+                  </div>
+                </div>
+                <p className="text-[10px] text-amber-200/70 font-bold flex items-center gap-1">
+                  <Trophy className="w-2.5 h-2.5 text-amber-400" />
+                  Bảng Xếp Hạng
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  gameSound.playLaserSound();
+                  setIsTutorialOpen(true);
+                }}
+                className="p-3 rounded-2xl border border-cyan-500/40 bg-cyan-950/60 hover:bg-cyan-900/60 text-cyan-300 transition-all duration-200 flex items-center gap-1.5 text-xs font-bold shadow-md cursor-pointer active:scale-95"
+                title="Xem hướng dẫn cách chơi game"
+              >
+                <HelpCircle className="w-4 h-4 text-cyan-400" />
+                <span className="hidden sm:inline">Hướng dẫn</span>
+              </button>
+
+              <button
+                onClick={handleToggleMute}
+                className={cn(
+                  "p-3 rounded-2xl border transition-all duration-200 flex items-center gap-1.5 text-xs font-bold shadow-md",
+                  isMuted 
+                    ? "bg-slate-800/80 border-slate-700 text-slate-400" 
+                    : "bg-blue-600/20 border-blue-500/40 text-cyan-300 hover:bg-blue-600/30"
+                )}
+                title={isMuted ? "Bật âm thanh" : "Tắt âm thanh"}
+              >
+                {isMuted ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4 text-cyan-400" />}
+                <span>{isMuted ? "Tắt" : "Bật"}</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -818,26 +1005,31 @@ export const WordShooterLobby: React.FC<WordShooterLobbyProps> = ({ onStartGame,
             <div className="space-y-1">
               <h2 className="text-lg font-black text-white flex items-center gap-2">
                 <Gamepad2 className="w-5 h-5 text-cyan-400" />
-                3. Chọn Chế Độ Chơi
+                3. Chọn Chế Độ Chơi (4 Chế Độ)
               </h2>
               <p className="text-xs text-slate-400">
-                Chiến dịch đơn hoặc thi đấu đối kháng trực tuyến gay cấn.
+                Luyện tập hoặc thi đấu • <strong className="text-amber-300">Chỉ có Đấu Hạng mới tính rank!</strong>
               </p>
             </div>
 
             {/* Mode 1: Solo Arcade */}
-            <div className="space-y-3">
+            <div className="space-y-2">
               <button
                 onClick={handleStartSolo}
-                className="w-full group p-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 border border-blue-400/30 text-white transition-all duration-120 shadow-lg hover:shadow-blue-500/25 flex items-center justify-between text-left active:scale-[0.98]"
+                className="w-full group p-3.5 rounded-2xl bg-gradient-to-r from-blue-700 to-indigo-700 hover:from-blue-600 hover:to-indigo-600 border border-blue-400/30 text-white transition-all duration-120 shadow-md hover:shadow-blue-500/25 flex items-center justify-between text-left active:scale-[0.98] cursor-pointer"
               >
-                <div className="flex items-center gap-3.5">
-                  <div className="w-11 h-11 rounded-xl bg-white/10 flex items-center justify-center font-bold text-xl shrink-0 group-hover:scale-105 transition-transform">
-                    <Rocket className="w-6 h-6 text-cyan-300" />
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center font-bold text-xl shrink-0 group-hover:scale-105 transition-transform">
+                    <Rocket className="w-5 h-5 text-cyan-300" />
                   </div>
                   <div>
-                    <h3 className="text-base font-black tracking-wide">Chơi Đơn (Solo Mode)</h3>
-                    <p className="text-xs text-blue-100/80">Luyện gõ từ vựng & phản xạ tốc độ</p>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-black tracking-wide">1. Đấu Đơn (Chiến Dịch)</h3>
+                      <span className="px-2 py-0.5 rounded-full bg-blue-950 border border-blue-400/40 text-blue-200 text-[10px] font-bold">
+                        Không tính rank
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-blue-100/80">3 Mạng • Vượt Wave • Powerup • Săn kỷ lục</p>
                   </div>
                 </div>
                 <ChevronRight className="w-5 h-5 text-white/70 group-hover:translate-x-1 transition-transform" />
@@ -845,51 +1037,121 @@ export const WordShooterLobby: React.FC<WordShooterLobbyProps> = ({ onStartGame,
             </div>
 
             {/* Mode 2: PvP vs AI Bot */}
-            <div className="space-y-3 pt-2 border-t border-slate-800">
+            <div className="space-y-2 pt-1 border-t border-slate-800">
               <button
                 onClick={handleStartBotBattle}
-                className="w-full group p-4 rounded-2xl bg-gradient-to-r from-purple-700 to-indigo-800 hover:from-purple-600 hover:to-indigo-700 border border-purple-400/30 text-white transition-all duration-120 shadow-lg hover:shadow-purple-500/25 flex items-center justify-between text-left active:scale-[0.98]"
+                className="w-full group p-3.5 rounded-2xl bg-gradient-to-r from-purple-800 to-indigo-900 hover:from-purple-700 hover:to-indigo-800 border border-purple-400/30 text-white transition-all duration-120 shadow-md hover:shadow-purple-500/25 flex items-center justify-between text-left active:scale-[0.98] cursor-pointer"
               >
-                <div className="flex items-center gap-3.5">
-                  <div className="w-11 h-11 rounded-xl bg-white/10 flex items-center justify-center font-bold text-xl shrink-0 group-hover:scale-105 transition-transform">
-                    <Bot className="w-6 h-6 text-purple-300" />
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center font-bold text-xl shrink-0 group-hover:scale-105 transition-transform">
+                    <Bot className="w-5 h-5 text-purple-300" />
                   </div>
                   <div>
-                    <h3 className="text-base font-black tracking-wide">Đấu Với Máy (AI Pilot)</h3>
-                    <p className="text-xs text-purple-200/80">Thách đấu PvP tức thì không cần chờ bạn</p>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-black tracking-wide">2. Đấu Máy (vs AI Pilot)</h3>
+                      <span className="px-2 py-0.5 rounded-full bg-purple-950 border border-purple-400/40 text-purple-200 text-[10px] font-bold">
+                        Luyện tập 60s
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-purple-200/80">Chung màn hình • Không tính rank • Luyện phản xạ gõ</p>
                   </div>
                 </div>
                 <ChevronRight className="w-5 h-5 text-white/70 group-hover:translate-x-1 transition-transform" />
               </button>
             </div>
 
-            {/* Mode 3: Online 2-Player PvP */}
-            <div className="space-y-3 pt-2 border-t border-slate-800">
-              <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center font-bold">
-                    <Users className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-black text-white">Đấu Online 2 Người (Realtime)</h3>
-                    <p className="text-xs text-slate-400">Bắn nhanh thả bom sang màn hình đối thủ</p>
+            {/* Mode 3: Online 2-Player Casual PvP */}
+            <div className="space-y-2 pt-1 border-t border-slate-800">
+              <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center font-bold shrink-0">
+                      <Users className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <h3 className="text-sm font-black text-white">3. Đấu Thường (Giao Hữu)</h3>
+                        <span className="px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 text-[10px] font-bold">
+                          Không tính rank
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-400">1v1 cùng bạn bè qua mã phòng hoặc link mời</p>
+                    </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 pt-1">
+                <div className="grid grid-cols-2 gap-2 pt-0.5">
                   <Button
-                    onClick={handleCreateRoom}
-                    className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs py-2.5 rounded-xl shadow-md active:scale-95 duration-120"
+                    onClick={() => handleCreateRoom('casual')}
+                    className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs py-2 rounded-xl shadow-md active:scale-95 duration-120 cursor-pointer"
                   >
-                    Tạo phòng mới
+                    Tạo phòng thường
                   </Button>
 
                   <Button
-                    onClick={() => setIsPvPModalOpen(true)}
+                    onClick={() => {
+                      setPvpModalMode('casual');
+                      setIsPvPModalOpen(true);
+                    }}
                     variant="outline"
-                    className="bg-slate-900 border-slate-700 text-slate-200 hover:bg-slate-800 text-xs font-bold py-2.5 rounded-xl active:scale-95 duration-120"
+                    className="bg-slate-900 border-slate-700 text-slate-200 hover:bg-slate-800 text-xs font-bold py-2 rounded-xl active:scale-95 duration-120 cursor-pointer"
                   >
-                    Vào phòng có sẵn
+                    Nhập mã phòng
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Mode 4: Đấu Hạng (Ranked 1v1 Liên Quân Mobile) - DUY NHẤT TÍNH RANK */}
+            <div className="space-y-2.5 pt-2 border-t-2 border-amber-500/40">
+              <div className="relative overflow-hidden rounded-2xl border-2 border-amber-500/60 bg-gradient-to-br from-amber-950/40 via-slate-950 to-yellow-950/30 p-4 shadow-[0_0_25px_rgba(245,158,11,0.2)] space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-yellow-500 text-slate-950 flex items-center justify-center font-bold text-xl shadow-md shrink-0">
+                      👑
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <h3 className="text-sm font-black text-amber-300 uppercase tracking-wide">
+                          4. Đấu Hạng (Rank)
+                        </h3>
+                        <span className="px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 font-black text-[10px] animate-pulse">
+                          +1 ⭐ RANK
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-amber-200/80">
+                        Chế độ DUY NHẤT tính rank: Thắng +1 ⭐, Thua -1 ⭐
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Player Current Rank Badge */}
+                  <div className="text-right shrink-0">
+                    <div className="text-xs font-black text-amber-400">
+                      {currentRankInfo.tierNameVi} {currentRankInfo.divisionRoman}
+                    </div>
+                    <div className="text-[10px] text-slate-400">
+                      {playerRank.stars} sao
+                    </div>
+                  </div>
+                </div>
+
+                {/* Fairness and No Custom Room Notice */}
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-950/50 border border-amber-500/30 text-[11px] text-amber-200">
+                  <Shield className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span>
+                    <strong>Cơ chế ghép trận:</strong> Tự động tìm đối thủ có bậc rank tương đương (chênh lệch ≤ 1 bậc). Chế độ đấu hạng <strong>không hỗ trợ tạo phòng riêng</strong> để chống gian lận điểm rank.
+                  </span>
+                </div>
+
+                {/* Matchmaking Action Button */}
+                <div className="pt-1">
+                  <Button
+                    onClick={handleStartRankMatchmaking}
+                    className="w-full bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black text-xs sm:text-sm py-3 rounded-xl shadow-[0_0_25px_rgba(245,158,11,0.4)] active:scale-[0.98] transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <Zap className="w-4 h-4 fill-slate-950 text-slate-950" />
+                    <span>GHÉP TRẬN ĐẤU HẠNG NGAY</span>
                   </Button>
                 </div>
               </div>
@@ -977,19 +1239,21 @@ export const WordShooterLobby: React.FC<WordShooterLobbyProps> = ({ onStartGame,
               {startCountdown !== null
                 ? 'Đếm Ngược Xuất Kích!'
                 : isHost
-                ? 'Phòng Đấu Trực Tuyến (Host)'
+                ? pvpModalMode === 'ranked'
+                  ? '👑 Phòng Đấu Hạng (Ranked 1v1)'
+                  : '⚔️ Phòng Đấu Thường (Casual 1v1)'
                 : isGuestWaiting
-                ? 'Phòng Chờ Khai Hỏa'
+                ? pvpModalMode === 'ranked'
+                  ? '👑 Phòng Chờ Đấu Hạng (Ranked)'
+                  : '⚔️ Phòng Chờ Giao Hữu (Casual)'
                 : 'Tham Gia Phòng Đấu PvP'}
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-400">
               {startCountdown !== null
-                ? 'Hai bên đang đồng bộ buồng lái...'
-                : isHost 
-                ? 'Chờ đối thủ kết nối và bấm Bắt đầu khi cả hai đã sẵn sàng.' 
-                : isGuestWaiting
-                ? 'Bạn đã vào phòng thành công. Trận đấu sẽ tự động bắt đầu khi chủ phòng khai hỏa.'
-                : 'Nhập mã phòng bạn bè đã gửi để vào trận chiến.'}
+                ? 'Hai bên đang đồng bộ buồng lái xuất kích...'
+                : pvpModalMode === 'ranked'
+                ? '⭐ Trận Đấu Xếp Hạng: Thắng nhận +1 sao, Thua bị -1 sao (Bảo hộ bậc Đồng). Chỉ có đấu hạng mới tính rank!'
+                : '⚔️ Trận Đấu Giao Hữu: Vui vẻ rèn luyện phản xạ và tốc độ gõ từ vựng (Không tính điểm rank).'}
             </DialogDescription>
           </DialogHeader>
 
@@ -1177,6 +1441,176 @@ export const WordShooterLobby: React.FC<WordShooterLobbyProps> = ({ onStartGame,
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Ranked Fair Matchmaking Modal Dialog (Cơ chế ghép rank cân bằng ±1 bậc, không tạo phòng) */}
+      <Dialog 
+        open={isRankMatchModalOpen} 
+        onOpenChange={(open) => {
+          if (!open && matchState === 'searching') {
+            handleCancelRankMatchmaking();
+          }
+        }}
+      >
+        <DialogContent 
+          onPointerDownOutside={(e) => {
+            if (matchState === 'found') e.preventDefault();
+          }}
+          onEscapeKeyDown={(e) => {
+            if (matchState === 'found') e.preventDefault();
+          }}
+          className="max-w-md sm:max-w-lg bg-gradient-to-b from-slate-950 via-slate-900 to-amber-950/40 border-2 border-amber-500/50 text-white overflow-hidden shadow-[0_0_50px_rgba(245,158,11,0.25)] p-5 sm:p-6"
+        >
+          <DialogHeader className="text-center space-y-1">
+            <div className="mx-auto w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-yellow-400 text-slate-950 flex items-center justify-center font-bold text-2xl shadow-lg shadow-amber-500/30">
+              👑
+            </div>
+            <DialogTitle className="text-xl font-black text-amber-300 tracking-wide uppercase">
+              {matchState === 'searching' ? 'Hệ Thống Đang Tìm Trận Đấu Hạng...' : 'ĐÃ TÌM THẤY ĐỐI THỦ!'}
+            </DialogTitle>
+            <DialogDescription className="text-xs text-amber-200/80">
+              {matchState === 'searching'
+                ? 'Đang ghép đối thủ có trình độ tương đương (chênh lệch rank ≤ 1 phân hạng)'
+                : 'Chuẩn bị buồng lái chiến đấu! Trận đấu bắt đầu ngay sau đếm ngược.'}
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Cards: Player VS Opponent */}
+          <div className="py-3 sm:py-4">
+            <div className="grid grid-cols-5 gap-2 items-center">
+              {/* Player Card (2 cols) */}
+              <div className="col-span-2 p-3 rounded-2xl bg-slate-950/80 border border-amber-500/40 text-center space-y-1.5 relative overflow-hidden">
+                <div className="w-12 h-12 rounded-full bg-amber-500/20 border-2 border-amber-400 mx-auto flex items-center justify-center text-2xl shadow-md">
+                  👨‍✈️
+                </div>
+                <div>
+                  <h4 className="text-xs font-black text-white truncate">Bạn (Pilot)</h4>
+                  <div className="text-[11px] font-bold text-amber-400">
+                    {currentRankInfo.icon} {currentRankInfo.tierNameVi} {currentRankInfo.divisionRoman}
+                  </div>
+                  <div className="text-[10px] text-slate-400 flex items-center justify-center gap-1 mt-0.5">
+                    <span>{playerRank.stars} ⭐</span>
+                    <span>•</span>
+                    <span>{playerRank.totalMatches > 0 ? Math.round((playerRank.wins / playerRank.totalMatches) * 100) : 50}% Thắng</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* VS Badge (1 col) */}
+              <div className="col-span-1 flex flex-col items-center justify-center space-y-1">
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-amber-500 to-yellow-500 text-slate-950 font-black text-xs flex items-center justify-center shadow-lg shadow-amber-500/40">
+                  VS
+                </div>
+                {matchState === 'searching' ? (
+                  <span className="text-[10px] font-mono text-amber-300 font-bold animate-pulse">
+                    {formatMatchTimer(matchSearchingTimer)}
+                  </span>
+                ) : (
+                  <span className="text-xs font-mono font-black text-emerald-400 animate-bounce">
+                    Ready!
+                  </span>
+                )}
+              </div>
+
+              {/* Opponent Card (2 cols) */}
+              <div className="col-span-2 p-3 rounded-2xl bg-slate-950/80 border border-slate-800 text-center space-y-1.5 relative overflow-hidden">
+                {matchState === 'searching' ? (
+                  <>
+                    <div className="w-12 h-12 rounded-full bg-slate-900 border-2 border-dashed border-amber-500/50 mx-auto flex items-center justify-center text-xl animate-spin">
+                      🧭
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-400 animate-pulse">Đang quét...</h4>
+                      <div className="text-[10px] text-amber-400/80">
+                        {currentRankInfo.tierNameVi} ±1 bậc
+                      </div>
+                      <div className="text-[9px] text-slate-500 mt-0.5">
+                        Thuật toán cân bằng
+                      </div>
+                    </div>
+                  </>
+                ) : matchedRankOpponent ? (
+                  <>
+                    <div className="w-12 h-12 rounded-full bg-red-950/40 border-2 border-red-500/60 mx-auto flex items-center justify-center text-2xl shadow-md animate-bounce">
+                      {matchedRankOpponent.avatar}
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-black text-white truncate">{matchedRankOpponent.name}</h4>
+                      <div className="text-[11px] font-bold text-amber-400">
+                        {matchedRankOpponent.icon} {matchedRankOpponent.tierNameVi} {matchedRankOpponent.divisionRoman}
+                      </div>
+                      <div className="text-[10px] text-slate-400 flex items-center justify-center gap-1 mt-0.5">
+                        <span>{matchedRankOpponent.stars} ⭐</span>
+                        <span>•</span>
+                        <span>{matchedRankOpponent.winRate}% Thắng</span>
+                      </div>
+                    </div>
+                  </>
+                ) : null}
+              </div>
+            </div>
+
+            {/* Rank Parity Match Banner */}
+            {matchState === 'found' && matchedRankOpponent && (
+              <div className="mt-4 p-2.5 rounded-xl bg-emerald-950/60 border border-emerald-500/40 text-center">
+                <div className="text-xs font-bold text-emerald-300 flex items-center justify-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>{matchedRankOpponent.rankDeltaText}</span>
+                </div>
+                <div className="text-[10px] text-emerald-400/80 mt-0.5">
+                  Tốc độ phản xạ đối thủ đã được đồng bộ chính xác theo bậc rank
+                </div>
+              </div>
+            )}
+
+            {/* Countdown / Search state bar */}
+            {matchState === 'found' ? (
+              <div className="mt-4 text-center space-y-1">
+                <div className="text-3xl font-black text-amber-400 font-mono animate-pulse">
+                  {matchCountdown}
+                </div>
+                <p className="text-xs text-slate-300 font-medium">Xuất kích vào buồng lái...</p>
+              </div>
+            ) : (
+              <div className="mt-4 flex items-center justify-center gap-2 text-xs text-slate-400">
+                <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+                <span>Đang quét các phi công trực tuyến cùng bậc rank...</span>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="sm:justify-center gap-2">
+            {matchState === 'searching' ? (
+              <Button
+                variant="outline"
+                onClick={handleCancelRankMatchmaking}
+                className="w-full sm:w-auto border-slate-700 bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-bold py-2 rounded-xl cursor-pointer"
+              >
+                Hủy Tìm Trận
+              </Button>
+            ) : matchedRankOpponent ? (
+              <Button
+                onClick={() => handleInstantRankStart(matchedRankOpponent)}
+                className="w-full sm:w-auto bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black text-xs py-2.5 px-6 rounded-xl shadow-[0_0_20px_rgba(245,158,11,0.5)] active:scale-95 duration-120 cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <Zap className="w-3.5 h-3.5 fill-slate-950 text-slate-950" />
+                Vào Trận Ngay ({matchCountdown}s)
+              </Button>
+            ) : null}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Tutorial Onboarding Modal */}
+      <WordShooterTutorialModal
+        isOpen={isTutorialOpen}
+        onClose={() => setIsTutorialOpen(false)}
+      />
+
+      {/* Leaderboard Modal */}
+      <WordShooterLeaderboardModal
+        isOpen={isLeaderboardOpen}
+        onClose={() => setIsLeaderboardOpen(false)}
+      />
     </div>
   );
 };

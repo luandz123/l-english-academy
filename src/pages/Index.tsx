@@ -5,6 +5,7 @@ import HeroCarousel from "@/components/landing/HeroCarousel";
 import CourseShowcase from "@/components/landing/CourseShowcase";
 import Footer from "@/components/landing/Footer";
 import ZaloContactWidget from "@/components/landing/ZaloContactWidget";
+import MobileStickyCta from "@/components/landing/MobileStickyCta";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -62,6 +63,9 @@ const Index = () => {
 
       {/* 4. Floating Zalo Support Widget */}
       <ZaloContactWidget />
+
+      {/* 5. Sticky Bottom Action Bar for Mobile Thumb Zone */}
+      <MobileStickyCta />
     </div>
   );
 };

@@ -1,28 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Part2CoachQuestion } from '@/types/part2Coach';
 import { Button } from '@/components/ui/button';
 import {
   Volume2,
-  Sparkles,
-  Layers,
-  ArrowRight,
-  CheckCircle2,
-  Check,
-  RotateCcw,
-  BookOpen
+  ChevronLeft,
+  ChevronRight,
+  Check
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
 import { soundAudioPlayer } from '@/services/soundAudioPlayer';
-
-import { Part2StepGuide } from './Part2StepGuide';
 
 interface Part2Step2ChunksProps {
   questions: Part2CoachQuestion[];
   onCompleteStep: () => void;
 }
 
-// Helper to speak chunk text using soundAudioPlayer
 const speakChunk = (text: string) => {
   soundAudioPlayer.speakText(text, 0.9);
 };
@@ -36,6 +28,15 @@ export const Part2Step2Chunks: React.FC<Part2Step2ChunksProps> = ({
   const [vocabRepeats, setVocabRepeats] = useState<Record<string, number>>({});
 
   const currentQ = questions[currentIndex];
+
+  // Auto-play question stem when changing question
+  useEffect(() => {
+    if (!currentQ) return;
+    const timer = setTimeout(() => {
+      speakChunk(currentQ.questionStem.text);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [currentIndex, currentQ]);
 
   const handleRepeatStem = () => {
     speakChunk(currentQ.questionStem.text);
@@ -54,37 +55,55 @@ export const Part2Step2Chunks: React.FC<Part2Step2ChunksProps> = ({
     });
   };
 
-  return (
-    <div className="space-y-6">
-      {/* Sleek Minimal Ribbon */}
-      <div className="flex items-center justify-between gap-3 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 dark:from-indigo-950/40 dark:to-purple-950/40 border border-indigo-200/80 dark:border-indigo-800/60 px-4 py-2.5 rounded-2xl">
-        <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-indigo-800 dark:text-indigo-200 min-w-0">
-          <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse shrink-0" />
-          <span className="font-black text-indigo-600 dark:text-indigo-400 shrink-0">B2: Cụm từ (Chunks)</span>
-          <span className="text-muted-foreground truncate hidden sm:inline">• Bóc tách từ để hỏi & từ vựng nòng cốt</span>
-        </div>
-        <span className="text-xs font-bold text-muted-foreground shrink-0">Câu {currentIndex + 1}/{questions.length}</span>
-      </div>
+  const handlePrev = useCallback(() => {
+    if (currentIndex > 0) {
+      setCurrentIndex((prev) => prev - 1);
+    }
+  }, [currentIndex]);
 
-      <Part2StepGuide
-        stepNumber={2}
-        stepTitle="Cụm từ chức năng"
-        goal="Đọc to 3 lần từ để hỏi và từ vựng chủ đề"
-        actions={[
-          {
-            clickTarget: "Nghe từ để hỏi 🔊",
-            expectedResult: "Audio phát âm mẫu từ để hỏi.",
-          },
-          {
-            clickTarget: "Đọc to theo 3 lần",
-            expectedResult: "Luyện cơ hàm phản xạ dạng câu hỏi.",
-          },
-          {
-            clickTarget: "Nghe từ vựng chủ đề",
-            expectedResult: "Nghe phát âm chuẩn các cụm từ vựng.",
-          }
-        ]}
-      />
+  const handleNext = useCallback(() => {
+    if (currentIndex < questions.length - 1) {
+      setCurrentIndex((prev) => prev + 1);
+    } else {
+      onCompleteStep();
+    }
+  }, [currentIndex, questions.length, onCompleteStep]);
+
+  // Global Keyboard Shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) return;
+      if (e.code === 'Space') {
+        e.preventDefault();
+        speakChunk(currentQ.questionText);
+      } else if (e.key === 'r' || e.key === 'R') {
+        e.preventDefault();
+        handleRepeatStem();
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        handlePrev();
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        handleNext();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handlePrev, handleNext, currentQ]);
+
+  return (
+    <div className="space-y-4 max-w-4xl mx-auto">
+      {/* Sleek Minimal Ribbon */}
+      <div className="flex items-center justify-between gap-3 bg-card border border-border/70 px-4 py-2.5 rounded-2xl shadow-soft-xs">
+        <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-foreground min-w-0">
+          <span className="w-2 h-2 rounded-full bg-purple-600 animate-pulse shrink-0" />
+          <span className="font-black text-purple-600 dark:text-purple-400">B2: Cụm từ</span>
+          <span className="text-muted-foreground text-xs">• Từ để hỏi & từ vựng</span>
+        </div>
+        <span className="text-xs font-black text-muted-foreground">
+          Câu {currentIndex + 1}/{questions.length}
+        </span>
+      </div>
 
       {/* Question Selector Tabs */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
@@ -98,7 +117,7 @@ export const Part2Step2Chunks: React.FC<Part2Step2ChunksProps> = ({
                 'px-3.5 py-1.5 rounded-xl font-black text-xs transition-all shrink-0 flex items-center gap-1.5 cursor-pointer border',
                 isSelected
                   ? 'bg-purple-600 text-white border-purple-600 shadow-md shadow-purple-600/20'
-                  : 'bg-white dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 border-slate-200 dark:border-zinc-800 hover:bg-slate-50'
+                  : 'bg-card text-muted-foreground border-border hover:bg-accent'
               )}
             >
               <span>Câu {q.questionNumber || idx + 1}</span>
@@ -107,16 +126,13 @@ export const Part2Step2Chunks: React.FC<Part2Step2ChunksProps> = ({
         })}
       </div>
 
-      {/* Full Question Context Bar */}
-      <div className="bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800/60 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="space-y-1">
-          <div className="text-xs font-black uppercase tracking-wider text-purple-700 dark:text-purple-300">
-            Câu hỏi gốc (Câu {currentQ.questionNumber})
-          </div>
-          <div className="text-base sm:text-lg font-black text-foreground">
+      {/* Question Context Bar */}
+      <div className="bg-card border border-border/80 rounded-2xl p-4 flex items-center justify-between gap-3 shadow-soft-xs">
+        <div className="min-w-0">
+          <div className="text-sm sm:text-base font-black text-foreground truncate">
             {currentQ.questionText}
           </div>
-          <div className="text-xs sm:text-sm text-muted-foreground font-medium">
+          <div className="text-xs text-muted-foreground truncate">
             {currentQ.questionTranslation}
           </div>
         </div>
@@ -125,104 +141,75 @@ export const Part2Step2Chunks: React.FC<Part2Step2ChunksProps> = ({
           variant="outline"
           size="sm"
           onClick={() => speakChunk(currentQ.questionText)}
-          className="self-start sm:self-auto rounded-xl font-bold border-purple-300 text-purple-700 dark:text-purple-300 hover:bg-purple-100"
+          className="rounded-xl font-bold text-xs shrink-0 cursor-pointer"
         >
-          <Volume2 className="w-4 h-4 mr-1.5" />
-          Phát âm cả câu
+          <Volume2 className="w-3.5 h-3.5 mr-1" />
+          Nghe cả câu
         </Button>
       </div>
 
-      {/* 2 Core Columns: Group 1 (Stem) & Group 2 (Vocab/Collocations) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        {/* CARD 1: TỪ ĐỂ HỎI & TRỢ ĐỘNG TỪ */}
-        <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl p-6 space-y-5 shadow-sm">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-zinc-800">
-            <div className="flex items-center gap-2">
-              <span className="w-7 h-7 rounded-lg bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400 flex items-center justify-center font-black text-xs">
-                A
-              </span>
-              <h3 className="font-black text-foreground text-sm uppercase tracking-wider">
-                Nhóm 1: Từ để hỏi &amp; Trợ động từ
-              </h3>
-            </div>
-            <span className="px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 text-xs font-extrabold border border-blue-200 dark:border-blue-800">
+      {/* 2 Chunks Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Card 1: Question Stem */}
+        <div className="bg-card border border-border rounded-2xl p-5 space-y-4 shadow-soft-xs">
+          <div className="flex items-center justify-between pb-2 border-b border-border/60">
+            <span className="text-xs font-black uppercase text-foreground">
+              Từ để hỏi
+            </span>
+            <span className="px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-600 text-[11px] font-bold">
               {currentQ.questionStem.label}
             </span>
           </div>
 
-          {/* Stem Highlight Box */}
-          <div className="bg-blue-50/60 dark:bg-blue-950/30 border border-blue-200/80 dark:border-blue-900/60 rounded-2xl p-5 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="text-2xl sm:text-3xl font-black text-blue-700 dark:text-blue-300 tracking-tight">
-                {currentQ.questionStem.text}
-              </div>
-              <Button
-                size="sm"
-                onClick={handleRepeatStem}
-                className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm"
-              >
-                <Volume2 className="w-4 h-4 mr-1" />
-                Nghe đọc
-              </Button>
-            </div>
-
-            <p className="text-xs sm:text-sm text-slate-700 dark:text-zinc-300 font-medium leading-relaxed">
-              💡 <strong>Mẹo vàng TOEIC:</strong> {currentQ.questionStem.tip}
-            </p>
+          <div className="bg-muted/40 rounded-xl p-4 flex items-center justify-between gap-3">
+            <span className="text-2xl font-black text-purple-600 dark:text-purple-400">
+              {currentQ.questionStem.text}
+            </span>
+            <Button
+              size="sm"
+              onClick={handleRepeatStem}
+              className="bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold shrink-0 cursor-pointer"
+            >
+              <Volume2 className="w-3.5 h-3.5 mr-1" />
+              Nghe
+            </Button>
           </div>
 
-          {/* Repeat aloud interactive counter */}
-          <div className="bg-slate-50 dark:bg-zinc-950/60 rounded-2xl p-4 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-black uppercase text-foreground">
-                Đọc to 3 lần để tai &amp; miệng quen xạ:
-              </span>
-              <span className="text-xs font-black text-blue-600 dark:text-blue-400">
-                {(stemRepeats[currentQ.id] || 0)} / 3 lần
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              {[1, 2, 3].map((num) => {
-                const isPassed = (stemRepeats[currentQ.id] || 0) >= num;
-                return (
-                  <button
-                    key={num}
-                    onClick={handleRepeatStem}
-                    className={cn(
-                      'flex-1 py-2 rounded-xl font-black text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer border',
-                      isPassed
-                        ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
-                        : 'bg-white dark:bg-zinc-900 border-slate-200 dark:border-zinc-700 text-slate-500 hover:bg-slate-100'
-                    )}
-                  >
-                    {isPassed ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : null}
-                    <span>Lần {num}</span>
-                  </button>
-                );
-              })}
-            </div>
+          {/* Repeat Counter (1-3) */}
+          <div className="flex items-center gap-2">
+            {[1, 2, 3].map((num) => {
+              const isPassed = (stemRepeats[currentQ.id] || 0) >= num;
+              return (
+                <button
+                  key={num}
+                  onClick={handleRepeatStem}
+                  className={cn(
+                    'flex-1 py-1.5 rounded-xl font-black text-xs transition-all flex items-center justify-center gap-1 cursor-pointer border',
+                    isPassed
+                      ? 'bg-purple-600 text-white border-purple-600'
+                      : 'bg-card border-border text-muted-foreground hover:bg-accent'
+                  )}
+                >
+                  {isPassed && <Check className="w-3 h-3 stroke-[3]" />}
+                  <span>Lần {num}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        {/* CARD 2: TỪ VỰNG CHỦ ĐỀ & COLLOCATIONS */}
-        <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl p-6 space-y-5 shadow-sm">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-zinc-800">
-            <div className="flex items-center gap-2">
-              <span className="w-7 h-7 rounded-lg bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-black text-xs">
-                B
-              </span>
-              <h3 className="font-black text-foreground text-sm uppercase tracking-wider">
-                Nhóm 2: Từ vựng &amp; Collocations
-              </h3>
-            </div>
+        {/* Card 2: Keywords / Vocab */}
+        <div className="bg-card border border-border rounded-2xl p-5 space-y-3 shadow-soft-xs">
+          <div className="flex items-center justify-between pb-2 border-b border-border/60">
+            <span className="text-xs font-black uppercase text-foreground">
+              Từ vựng nòng cốt
+            </span>
             <span className="text-xs text-muted-foreground font-bold">
-              {currentQ.keywordsAndCollocations.length} cụm quan trọng
+              {currentQ.keywordsAndCollocations.length} từ
             </span>
           </div>
 
-          {/* Vocab Items List */}
-          <div className="space-y-3">
+          <div className="space-y-2">
             {currentQ.keywordsAndCollocations.map((vocab) => {
               const key = `${currentQ.id}-${vocab.term}`;
               const count = vocabRepeats[key] || 0;
@@ -230,35 +217,27 @@ export const Part2Step2Chunks: React.FC<Part2Step2ChunksProps> = ({
               return (
                 <div
                   key={vocab.term}
-                  className="bg-slate-50 dark:bg-zinc-950/60 border border-slate-200/80 dark:border-zinc-800/80 rounded-2xl p-4 space-y-2 hover:border-emerald-300 transition-colors"
+                  className="bg-muted/40 rounded-xl p-3 flex items-center justify-between gap-2"
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-base font-black text-foreground">{vocab.term}</span>
-                        <span className="text-xs text-muted-foreground font-mono">{vocab.phonetic}</span>
-                      </div>
-                      <div className="text-xs sm:text-sm font-bold text-emerald-600 dark:text-emerald-400">
-                        {vocab.meaningVi}
-                      </div>
+                  <div className="min-w-0">
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="text-sm font-black text-foreground truncate">{vocab.term}</span>
+                      <span className="text-[11px] text-muted-foreground font-mono">{vocab.phonetic}</span>
                     </div>
-
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleRepeatVocab(vocab.term)}
-                      className="rounded-xl shrink-0 font-bold border-emerald-300 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100/50"
-                    >
-                      <Volume2 className="w-3.5 h-3.5 mr-1" />
-                      Đọc ({count}/3)
-                    </Button>
+                    <div className="text-xs text-purple-600 dark:text-purple-400 font-bold truncate">
+                      {vocab.meaningVi}
+                    </div>
                   </div>
 
-                  {vocab.example && (
-                    <div className="text-xs text-muted-foreground italic bg-white dark:bg-zinc-900 px-3 py-1.5 rounded-lg border border-slate-100 dark:border-zinc-800">
-                      VD: &ldquo;{vocab.example}&rdquo;
-                    </div>
-                  )}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleRepeatVocab(vocab.term)}
+                    className="rounded-xl text-xs font-bold shrink-0 cursor-pointer"
+                  >
+                    <Volume2 className="w-3 h-3 mr-1" />
+                    Nghe {count > 0 && `(${count})`}
+                  </Button>
                 </div>
               );
             })}
@@ -266,38 +245,24 @@ export const Part2Step2Chunks: React.FC<Part2Step2ChunksProps> = ({
         </div>
       </div>
 
-      {/* Footer Navigation */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1">
-        <div className="flex items-center gap-2">
-          {currentIndex > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentIndex((prev) => prev - 1)}
-              className="rounded-xl font-bold text-xs"
-            >
-              ← Trước
-            </Button>
-          )}
-
-          {currentIndex < questions.length - 1 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentIndex((prev) => prev + 1)}
-              className="rounded-xl font-bold text-xs"
-            >
-              Kế tiếp →
-            </Button>
-          )}
-        </div>
+      {/* Navigation Row */}
+      <div className="flex items-center justify-between pt-4 border-t border-border/60">
+        <Button
+          variant="ghost"
+          onClick={handlePrev}
+          disabled={currentIndex === 0}
+          className="h-9 px-3 rounded-xl font-bold text-xs cursor-pointer"
+        >
+          <ChevronLeft className="w-4 h-4 mr-1" />
+          Trước
+        </Button>
 
         <Button
-          size="default"
-          onClick={onCompleteStep}
-          className="w-full sm:w-auto bg-purple-600 hover:bg-purple-700 text-white font-black rounded-xl px-5 py-2.5 text-xs sm:text-sm shadow-md shadow-purple-600/20"
+          onClick={handleNext}
+          className="h-9 px-4 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs cursor-pointer"
         >
-          <span>Tiếp tục: Phản xạ Chiều 1: Nghe hiểu tức thì →</span>
+          {currentIndex === questions.length - 1 ? 'Xong B2' : 'Tiếp'}
+          <ChevronRight className="w-4 h-4 ml-1" />
         </Button>
       </div>
     </div>

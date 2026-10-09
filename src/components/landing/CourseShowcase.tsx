@@ -36,15 +36,20 @@ import {
 
 import { CourseCard, CourseRow } from "@/components/CourseCard";
 import { trackEvent } from "@/lib/analytics";
-import iconFulltest from "@/assets/icons/icon-fulltest.webp";
-import iconDictation from "@/assets/icons/icon-dictation.webp";
+import iconFulltest from "@/assets/icons/icon-fulltest-3d.webp";
+import iconDictation from "@/assets/icons/icon-dictation-3d.webp";
 import iconReflex from "@/assets/icons/icon-reflex.webp";
-import iconArcade from "@/assets/icons/icon-arcade.webp";
-import iconVideo from "@/assets/icons/icon-video.webp";
-import iconFlame from "@/assets/icons/icon-flame.webp";
-import iconGift from "@/assets/icons/icon-gift.webp";
+import iconArcade from "@/assets/icons/icon-arcade-3d.webp";
+import iconVideo from "@/assets/icons/icon-video-3d.webp";
+import iconFlame from "@/assets/icons/icon-flame-3d.webp";
+import iconGift from "@/assets/icons/icon-gift-3d.webp";
 import iconShield from "@/assets/icons/icon-shield.webp";
 import iconGradcap from "@/assets/icons/icon-gradcap.webp";
+import iconWordDefense from "@/assets/icons/icon-word-defense.webp";
+import iconWordShooter from "@/assets/icons/icon-word-shooter.webp";
+import iconVocabPacks from "@/assets/icons/icon-vocab-packs.webp";
+import iconEtsSeal from "@/assets/icons/icon-ets-seal-3d.webp";
+import iconVipCrown from "@/assets/icons/icon-vip-crown-3d.webp";
 
 export const CourseShowcase = () => {
   const [modalOpen, setModalOpen] = useState(false);
@@ -408,8 +413,8 @@ export const CourseShowcase = () => {
           <div className="group rounded-2xl border border-emerald-500/30 bg-[#071329]/90 hover:border-emerald-400/60 p-6 flex flex-col justify-between space-y-5 transition-all duration-300 shadow-[0_4px_25px_rgba(0,0,0,0.5)] hover:shadow-[0_0_30px_rgba(16,185,129,0.3)]">
             <div className="space-y-3.5">
               <div className="flex items-center justify-between">
-                <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-2xl shadow-xs group-hover:scale-110 transition-transform">
-                  🌻
+                <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 p-1 flex items-center justify-center shadow-lg shadow-emerald-500/20 group-hover:scale-110 transition-transform shrink-0">
+                  <img src={iconWordDefense} alt="Word Defense" className="w-full h-full object-contain drop-shadow" />
                 </div>
                 <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
                   MỚI • PVZ STYLE
@@ -442,8 +447,8 @@ export const CourseShowcase = () => {
           <div className="group rounded-2xl border border-cyan-500/30 bg-[#071329]/90 hover:border-cyan-400/60 p-6 flex flex-col justify-between space-y-5 transition-all duration-300 shadow-[0_4px_25px_rgba(0,0,0,0.5)] hover:shadow-[0_0_30px_rgba(6,182,212,0.3)]">
             <div className="space-y-3.5">
               <div className="flex items-center justify-between">
-                <div className="w-12 h-12 rounded-2xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-2xl shadow-xs group-hover:scale-110 transition-transform">
-                  🚀
+                <div className="w-14 h-14 rounded-2xl bg-cyan-500/20 border border-cyan-500/40 p-1 flex items-center justify-center shadow-lg shadow-cyan-500/20 group-hover:scale-110 transition-transform shrink-0">
+                  <img src={iconWordShooter} alt="Word Shooter" className="w-full h-full object-contain drop-shadow" />
                 </div>
                 <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
                   HOT • NÂNG CẤP 2.0
@@ -476,8 +481,8 @@ export const CourseShowcase = () => {
           <div className="group rounded-2xl border border-purple-500/30 bg-[#071329]/90 hover:border-purple-400/60 p-6 flex flex-col justify-between space-y-5 transition-all duration-300 shadow-[0_4px_25px_rgba(0,0,0,0.5)] hover:shadow-[0_0_30px_rgba(168,85,247,0.3)]">
             <div className="space-y-3.5">
               <div className="flex items-center justify-between">
-                <div className="w-12 h-12 rounded-2xl bg-purple-500/20 border border-purple-500/40 flex items-center justify-center text-2xl shadow-xs group-hover:scale-110 transition-transform">
-                  📚
+                <div className="w-14 h-14 rounded-2xl bg-purple-500/20 border border-purple-500/40 p-1 flex items-center justify-center shadow-lg shadow-purple-500/20 group-hover:scale-110 transition-transform shrink-0">
+                  <img src={iconVocabPacks} alt="Vocab Packs" className="w-full h-full object-contain drop-shadow" />
                 </div>
                 <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-purple-500/20 text-purple-300 border border-purple-500/40">
                   TÙY CHỌN BỘ TỪ
@@ -524,7 +529,7 @@ export const CourseShowcase = () => {
           <div className="lg:col-span-7 space-y-6">
             <div className="space-y-3">
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/40 text-xs font-black uppercase tracking-wider backdrop-blur-xs">
-                <img src={iconFlame} alt="" className="w-4 h-4 object-contain inline-block" />
+                <img src={iconVipCrown} alt="" className="w-5 h-5 object-contain inline-block" />
                 <span>GÓI VIP TOÀN DIỆN TOEIC · ƯU ĐÃI ĐỢT 1 TIẾT KIỆM 50%</span>
               </div>
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-white font-display tracking-wide leading-tight">
@@ -606,7 +611,7 @@ export const CourseShowcase = () => {
                 }}
                 className="w-full py-3.5 rounded-2xl text-sm sm:text-base font-black text-slate-950 bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 shadow-[0_0_25px_rgba(245,158,11,0.5)] hover:shadow-[0_0_35px_rgba(245,158,11,0.7)] flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95 cursor-pointer"
               >
-                <img src={iconFlame} alt="" className="w-5 h-5 object-contain inline-block" />
+                <img src={iconVipCrown} alt="" className="w-5 h-5 object-contain inline-block" />
                 <span>MUA GÓI VIP TRỌN GÓI</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
@@ -625,8 +630,8 @@ export const CourseShowcase = () => {
       {/* ========================================================================= */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="p-4 rounded-2xl bg-[#081226]/80 border border-slate-800 flex items-center gap-3 shadow-xs">
-          <div className="w-10 h-10 rounded-xl bg-emerald-500/15 p-1 flex items-center justify-center border border-emerald-500/30 shrink-0">
-            <img src={iconFulltest} alt="" className="w-7 h-7 object-contain" />
+          <div className="w-12 h-12 rounded-xl bg-emerald-500/15 p-1.5 flex items-center justify-center border border-emerald-500/30 shrink-0">
+            <img src={iconEtsSeal} alt="" className="w-full h-full object-contain drop-shadow" />
           </div>
           <div>
             <h4 className="text-xs font-black text-white font-tech">Bộ Đề Chuẩn ETS</h4>
@@ -635,8 +640,8 @@ export const CourseShowcase = () => {
         </div>
 
         <div className="p-4 rounded-2xl bg-[#081226]/80 border border-slate-800 flex items-center gap-3 shadow-xs">
-          <div className="w-10 h-10 rounded-xl bg-amber-500/15 p-1 flex items-center justify-center border border-amber-500/30 shrink-0">
-            <img src={iconArcade} alt="" className="w-7 h-7 object-contain" />
+          <div className="w-12 h-12 rounded-xl bg-amber-500/15 p-1.5 flex items-center justify-center border border-amber-500/30 shrink-0">
+            <img src={iconArcade} alt="" className="w-full h-full object-contain drop-shadow" />
           </div>
           <div>
             <h4 className="text-xs font-black text-white font-tech">Game Từ Vựng Tùy Chọn</h4>
@@ -645,8 +650,8 @@ export const CourseShowcase = () => {
         </div>
 
         <div className="p-4 rounded-2xl bg-[#081226]/80 border border-slate-800 flex items-center gap-3 shadow-xs">
-          <div className="w-10 h-10 rounded-xl bg-purple-500/15 p-1 flex items-center justify-center border border-purple-500/30 shrink-0">
-            <img src={iconDictation} alt="" className="w-7 h-7 object-contain" />
+          <div className="w-12 h-12 rounded-xl bg-purple-500/15 p-1.5 flex items-center justify-center border border-purple-500/30 shrink-0">
+            <img src={iconDictation} alt="" className="w-full h-full object-contain drop-shadow" />
           </div>
           <div>
             <h4 className="text-xs font-black text-white font-tech">Dictation Đột Phá</h4>
@@ -655,8 +660,8 @@ export const CourseShowcase = () => {
         </div>
 
         <div className="p-4 rounded-2xl bg-[#081226]/80 border border-slate-800 flex items-center gap-3 shadow-xs">
-          <div className="w-10 h-10 rounded-xl bg-blue-500/15 p-1 flex items-center justify-center border border-blue-500/30 shrink-0">
-            <img src={iconShield} alt="" className="w-7 h-7 object-contain" />
+          <div className="w-12 h-12 rounded-xl bg-blue-500/15 p-1.5 flex items-center justify-center border border-blue-500/30 shrink-0">
+            <img src={iconShield} alt="" className="w-full h-full object-contain drop-shadow" />
           </div>
           <div>
             <h4 className="text-xs font-black text-white font-tech">Đồng Hành 1-1</h4>

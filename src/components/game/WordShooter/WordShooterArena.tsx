@@ -19,8 +19,10 @@ import {
   EyeOff,
   Crown,
   Smartphone,
-  Info
+  Info,
+  HelpCircle
 } from 'lucide-react';
+import { WordShooterTutorialModal } from './WordShooterTutorialModal';
 import { 
   GameWord, 
   VocabTopic, 
@@ -38,8 +40,8 @@ import {
 } from './types';
 import { DIFFICULTY_CONFIG } from './defaultVocabPacks';
 import { gameSound } from './gameSound';
-import { WordShooterPvPView } from './WordShooterPvPView';
 import { supabase } from '@/integrations/supabase/client';
+import { processRankMatchResult, MatchedRankedOpponent } from '@/services/wordShooterRankService';
 import { cn } from '@/lib/utils';
 
 interface WordShooterArenaProps {
@@ -48,7 +50,16 @@ interface WordShooterArenaProps {
   mode: GameMode;
   roomId?: string;
   isHost?: boolean;
-  onGameOver: (stats: GameStats, isVictory: boolean) => void;
+  matchedOpponent?: MatchedRankedOpponent;
+  onGameOver: (
+    stats: GameStats, 
+    isVictory: boolean, 
+    pvpResult?: {
+      playerKills: number;
+      opponentKills: number;
+      rankResult?: any;
+    }
+  ) => void;
   onExit: () => void;
 }
 
@@ -70,8 +81,11 @@ const VN_ACCENT_MAP: Record<string, string> = {
 };
 
 const normalizeChar = (c: string): string => {
+  if (!c) return '';
   const lower = c.toLowerCase();
-  return VN_ACCENT_MAP[lower] || lower;
+  const stripped = lower.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  if (stripped === 'đ') return 'd';
+  return VN_ACCENT_MAP[lower] || stripped || lower;
 };
 
 export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
@@ -80,18 +94,19 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
   mode,
   roomId,
   isHost = false,
+  matchedOpponent,
   onGameOver,
   onExit,
 }) => {
   const diffConfig = DIFFICULTY_CONFIG[difficulty];
-  const isPvP = mode === 'pvp-online' || mode === 'pvp-bot';
+  const isRanked = mode === 'ranked';
+  const isPvP = mode === 'ranked' || mode === 'casual' || mode === 'bot' || mode === 'pvp-online' || mode === 'pvp-bot';
+  const isOnlinePvP = (mode === 'pvp-online' || mode === 'casual' || mode === 'ranked') && !!roomId;
+  const isBotMatch = mode === 'bot' || mode === 'pvp-bot' || (!roomId && (mode === 'casual' || mode === 'ranked'));
 
-  // Core Game Play States
+  // Core Game Play States (activeWordsRef is authoritative single-source-of-truth)
   const [activeWords, setActiveWords] = useState<GameWord[]>([]);
   const activeWordsRef = useRef<GameWord[]>([]);
-  useEffect(() => {
-    activeWordsRef.current = activeWords;
-  }, [activeWords]);
 
   const [lives, setLives] = useState<number>(isPvP ? 3 : diffConfig.maxLives);
   const livesRef = useRef<number>(isPvP ? 3 : diffConfig.maxLives);
@@ -173,22 +188,35 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
     wordsReviewed: new Map(),
   });
 
-  // Current Targeted Word
+  // Current Targeted Word (authoritative synchronously in targetedInstanceIdRef)
   const [targetedInstanceId, setTargetedInstanceId] = useState<string | null>(null);
   const targetedInstanceIdRef = useRef<string | null>(null);
-  useEffect(() => { targetedInstanceIdRef.current = targetedInstanceId; }, [targetedInstanceId]);
+  const [isTutorialOpen, setIsTutorialOpen] = useState<boolean>(false);
+  const lastKeyTimeRef = useRef<{ key: string; time: number }>({ key: '', time: 0 });
 
   // PvP State
-  const [opponent, setOpponent] = useState<OpponentState>({
-    name: mode === 'pvp-bot' ? 'AI Ace Pilot' : 'Đối Thủ',
-    lives: 3,
-    score: 0,
-    combo: 0,
-    activeWordCount: 0,
-    isEliminated: false,
-    wpm: 0,
-    accuracy: 100,
-    waveReached: 1,
+  const [opponent, setOpponent] = useState<OpponentState>(() => {
+    let defaultName = 'Đối Thủ';
+    if (mode === 'bot' || mode === 'pvp-bot') {
+      defaultName = 'AI Pilot (Tập Luyện)';
+    } else if (mode === 'ranked') {
+      defaultName = matchedOpponent
+        ? `[${matchedOpponent.tierNameVi} ${matchedOpponent.divisionRoman}] ${matchedOpponent.name}`
+        : (roomId ? 'Đối Thủ Xếp Hạng' : 'Challenger Rank');
+    } else if (mode === 'casual') {
+      defaultName = roomId ? 'Bạn Đấu Giao Hữu' : 'Đối Thủ Giao Hữu';
+    }
+    return {
+      name: defaultName,
+      lives: 3,
+      score: 0,
+      combo: 0,
+      activeWordCount: 0,
+      isEliminated: false,
+      wpm: 0,
+      accuracy: 100,
+      waveReached: 1,
+    };
   });
   const [attackNotice, setAttackNotice] = useState<string | null>(null);
   const [incomingAlert, setIncomingAlert] = useState<boolean>(false);
@@ -204,7 +232,16 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
   const [opponentLasers, setOpponentLasers] = useState<Array<{ id: string; startX: number; startY: number; targetX: number; targetY: number }>>([]);
   const [nemesisImpact, setNemesisImpact] = useState<boolean>(false);
 
-  const triggerOpponentShot = useCallback((startX = opponentJetXRef.current, targetX = jetXRef.current) => {
+  // 60-Second PvP Match Timer & Shared Battlefield Kills
+  const [matchTimer, setMatchTimer] = useState<number>(60);
+  const matchTimerRef = useRef<number>(60);
+  const [playerKills, setPlayerKills] = useState<number>(0);
+  const playerKillsRef = useRef<number>(0);
+  const [opponentKills, setOpponentKills] = useState<number>(0);
+  const opponentKillsRef = useRef<number>(0);
+  const [botTargetWordId, setBotTargetWordId] = useState<string | null>(null);
+
+  const triggerOpponentShot = useCallback((startX = opponentJetXRef.current, targetX = jetXRef.current, targetY = 88) => {
     setOpponentMuzzleFlash(true);
     setTimeout(() => setOpponentMuzzleFlash(false), 120);
 
@@ -216,12 +253,12 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
         startX,
         startY: 12,
         targetX,
-        targetY: 88,
+        targetY,
       },
     ]);
     setTimeout(() => {
       setOpponentLasers((prev) => prev.filter((l) => l.id !== shotId));
-    }, 150);
+    }, 160);
   }, []);
 
   // Canvas & DOM refs
@@ -230,9 +267,12 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
   const arenaContainerRef = useRef<HTMLDivElement | null>(null);
   const mobileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Auto focus mobile input on mount or interaction
+  // Auto focus mobile input only on touch devices to prevent desktop IME conflicts
   const focusInput = useCallback(() => {
-    mobileInputRef.current?.focus();
+    const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+    if (isTouch) {
+      mobileInputRef.current?.focus();
+    }
   }, []);
 
   // Trigger floating pop animation
@@ -348,6 +388,40 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
     }, 130);
   }, [jetX, isPvP]);
 
+  // Opponent Sniped Word on Shared Battlefield
+  const opponentDestroyWord = useCallback((word: GameWord) => {
+    if (word.isDestroyed) return;
+    word.isDestroyed = true;
+
+    // Trigger opponent laser from top jet to this word
+    triggerOpponentShot(opponentJetXRef.current, word.x, word.y);
+    spawnExplosionParticles(word.x, word.y, '#ec4899', 35);
+    gameSound.playExplosionSound();
+
+    opponentKillsRef.current += 1;
+    setOpponentKills((k) => k + 1);
+
+    // If player was targeting this exact word: Cancel player's target with alert!
+    if (targetedInstanceIdRef.current === word.instanceId) {
+      targetedInstanceIdRef.current = null;
+      setTargetedInstanceId(null);
+      setWaveNotice(`⚡ BỊ CƯỚP TỪ! ĐỐI THỦ VỪA BẮN HẠ "${word.word.toUpperCase()}"!`);
+      setTimeout(() => setWaveNotice(null), 2200);
+      gameSound.playMissLetterSound();
+    } else {
+      setComboCallout({
+        text: `ĐỐI THỦ HẠ "${word.word.toUpperCase()}"! 💥`,
+        color: 'text-rose-400',
+        id: Date.now(),
+      });
+    }
+
+    // Remove from active words
+    const nextWords = activeWordsRef.current.filter((w) => w.instanceId !== word.instanceId);
+    activeWordsRef.current = nextWords;
+    setActiveWords(nextWords);
+  }, [triggerOpponentShot, spawnExplosionParticles]);
+
   // PvP Attack Trigger
   const sendAttackToOpponent = useCallback((wordText: string) => {
     setAttackNotice(`⚡ PHẢN ĐÒN THẢ THIÊN THẠCH VÀO ${opponent.name}!`);
@@ -360,7 +434,7 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
       setAttackNotice(null);
     }, 2500);
 
-    if (mode === 'pvp-online' && roomId) {
+    if (isOnlinePvP) {
       const attackPayload = {
         senderId: 'player',
         attackWord: {
@@ -382,14 +456,14 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
           payload: attackPayload,
         });
       } catch {}
-    } else if (mode === 'pvp-bot') {
+    } else if (isBotMatch) {
       setOpponent((prev) => ({
         ...prev,
         combo: 0,
         score: Math.max(0, prev.score - 50),
       }));
     }
-  }, [mode, roomId, opponent.name]);
+  }, [isOnlinePvP, isBotMatch, opponent.name]);
 
   // Handle incoming attack
   const receiveIncomingAttack = useCallback((atkWord?: GameWord) => {
@@ -433,10 +507,11 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
   const spawnWord = useCallback(() => {
     if (isGameOverRef.current) return;
     const currentWords = activeWordsRef.current.filter((w) => !w.isDestroyed);
-    if (currentWords.length >= diffConfig.maxActiveWords || topic.words.length === 0) return;
+    const maxActive = isPvP ? 8 : diffConfig.maxActiveWords;
+    if (currentWords.length >= maxActive || topic.words.length === 0) return;
 
     // Check if we should spawn a BOSS Word (Wave >= 2 & interval)
-    const isBossDue = waveRef.current >= 2 && statsRef.current.hitCount > 0 && statsRef.current.hitCount % 12 === 0 && !currentWords.some(w => w.isBoss);
+    const isBossDue = !isPvP && waveRef.current >= 2 && statsRef.current.hitCount > 0 && statsRef.current.hitCount % 12 === 0 && !currentWords.some(w => w.isBoss);
 
     let chosen = topic.words[Math.floor(Math.random() * topic.words.length)];
     if (isBossDue) {
@@ -463,17 +538,19 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
     }
 
     // --- ANTI-OVERLAP CLEARANCE ALGORITHM ---
-    // 5 distinct primary lanes across horizontal span (18% to 82%), spaced 16% apart
-    const LANES = [18, 34, 50, 66, 82];
+    // In PvP (full screen width), use 6 lanes: [14, 28, 42, 56, 70, 84]
+    // In Solo, use 5 lanes: [18, 34, 50, 66, 82]
+    const LANES = isPvP ? [14, 28, 42, 56, 70, 84] : [18, 34, 50, 66, 82];
 
     // Filter available lanes:
-    // A lane is ONLY available if:
-    // 1. Any word in the same lane (|w.x - laneX| < 9) has already dropped well into the lower half (w.y >= 50)
-    // 2. Any word in an adjacent lane (|w.x - laneX| < 18) is not in the spawn drop zone (w.y >= 26)
     const availableLanes = LANES.filter((laneX) => {
-      const sameLaneConflict = currentWords.some((w) => Math.abs(w.x - laneX) < 9 && w.y < 50);
+      const sameLaneDist = isPvP ? 6 : 9;
+      const sameLaneY = isPvP ? 32 : 50;
+      const sameLaneConflict = currentWords.some((w) => Math.abs(w.x - laneX) < sameLaneDist && w.y < sameLaneY);
       if (sameLaneConflict) return false;
-      const adjacentConflict = currentWords.some((w) => Math.abs(w.x - laneX) < 18 && w.y < 26);
+      const adjacentDist = isPvP ? 12 : 18;
+      const adjacentY = isPvP ? 18 : 26;
+      const adjacentConflict = currentWords.some((w) => Math.abs(w.x - laneX) < adjacentDist && w.y < adjacentY);
       if (adjacentConflict) return false;
       return true;
     });
@@ -522,11 +599,9 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
       isBoss: isBossDue,
     };
 
-    setActiveWords((prev) => {
-      const next = [...prev, newGameWord];
-      activeWordsRef.current = next;
-      return next;
-    });
+    const nextWords = [...activeWordsRef.current, newGameWord];
+    activeWordsRef.current = nextWords;
+    setActiveWords(nextWords);
 
     statsRef.current.wordsReviewed.set(newGameWord.word, {
       id: newGameWord.id,
@@ -544,7 +619,7 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
 
   // Dual-Transport PvP Dispatcher (Supabase Realtime + Local BroadcastChannel for 0ms cross-tab sync)
   const sendPvPMessage = useCallback((event: string, payload: any) => {
-    if (mode !== 'pvp-online') return;
+    if (!isOnlinePvP) return;
     try {
       pvpChannelRef.current?.send({
         type: 'broadcast',
@@ -559,9 +634,9 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
         payload,
       });
     } catch {}
-  }, [mode]);
+  }, [isOnlinePvP]);
 
-  // Centralized Game Over / Victory Trigger
+  // Centralized Game Over / Victory Trigger with Liên Quân Rank Star calculation
   const triggerGameOver = useCallback((isVictory: boolean) => {
     if (isGameOverRef.current) return;
     isGameOverRef.current = true;
@@ -583,12 +658,43 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
       waveReached: waveRef.current,
     };
 
+    let pvpResult: any = undefined;
+    if (isPvP) {
+      const isWinner = playerKillsRef.current > opponentKillsRef.current || 
+        (playerKillsRef.current === opponentKillsRef.current && statsRef.current.hitCount >= statsRef.current.missedCount);
+      isVictory = isWinner;
+
+      // CHỈ CÓ ĐẤU HẠNG MỚI TÍNH RANK!
+      let rankResult: any = undefined;
+      if (isRanked) {
+        rankResult = processRankMatchResult(isWinner);
+      } else {
+        const currentRank = getPlayerRank();
+        rankResult = {
+          previous: currentRank,
+          updated: currentRank,
+          starsChanged: 0,
+          promoted: false,
+          demoted: false,
+          isRanked: false,
+        };
+      }
+
+      pvpResult = {
+        playerKills: playerKillsRef.current,
+        opponentKills: opponentKillsRef.current,
+        isRanked,
+        mode,
+        rankResult,
+      };
+    }
+
     if (isVictory) {
       gameSound.playVictorySound();
     } else {
       gameSound.playGameOverSound();
       // If current player lost in PvP Online, broadcast defeat so opponent WINS!
-      if (mode === 'pvp-online' && roomId) {
+      if (isOnlinePvP) {
         const sendGameOver = () => {
           sendPvPMessage('game_over', { isEliminated: true, lives: 0 });
           sendPvPMessage('state_sync', {
@@ -602,8 +708,8 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
       }
     }
 
-    onGameOver(finalStats, isVictory);
-  }, [mode, onGameOver, roomId, sendPvPMessage]);
+    onGameOver(finalStats, isVictory, pvpResult);
+  }, [mode, onGameOver, roomId, sendPvPMessage, isPvP, isRanked, isOnlinePvP]);
 
   const triggerGameOverRef = useRef(triggerGameOver);
   useEffect(() => { triggerGameOverRef.current = triggerGameOver; }, [triggerGameOver]);
@@ -654,7 +760,7 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
 
   // PvP Realtime Supabase Broadcast Channel Setup
   useEffect(() => {
-    if (mode !== 'pvp-online' || !roomId) return;
+    if (!isOnlinePvP) return;
 
     const channel = supabase.channel(`arena-pvp-${roomId}`, {
       config: { broadcast: { self: false } },
@@ -711,11 +817,11 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
         localBcRef.current = null;
       }
     };
-  }, [mode, roomId, handlePvPEvent, sendPvPMessage]);
+  }, [isOnlinePvP, roomId, handlePvPEvent, sendPvPMessage]);
 
   // Periodic state synchronization to opponent in PvP Online
   useEffect(() => {
-    if (mode !== 'pvp-online' || !roomId || isPaused) return;
+    if (!isOnlinePvP || isPaused) return;
 
     const broadcastMyState = () => {
       if (isGameOverRef.current) return;
@@ -759,160 +865,163 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
 
     const syncTimer = setInterval(broadcastMyState, 200);
     return () => clearInterval(syncTimer);
-  }, [mode, roomId, isPaused, sendPvPMessage]);
+  }, [isOnlinePvP, roomId, isPaused, sendPvPMessage]);
 
-  // PvP AI Bot Simulation Loop — Difficulty-Scaled Intelligent AI
+  // Shared Battlefield PvP Bot AI — Human-like, fair & fun opponent!
   useEffect(() => {
-    if (mode !== 'pvp-bot' || isPaused) return;
+    if (!isBotMatch || isPaused) return;
 
-    // Difficulty-scaled AI parameters
-    const botConfig = {
-      easy: { wpm: 20, accuracy: 60, comboChance: 0.3, attackChance: 0.2, missChance: 0.08, tickMs: 2200 },
-      medium: { wpm: 35, accuracy: 80, comboChance: 0.55, attackChance: 0.4, missChance: 0.04, tickMs: 1600 },
-      hard: { wpm: 50, accuracy: 95, comboChance: 0.75, attackChance: 0.65, missChance: 0.015, tickMs: 1200 },
-    };
-    const cfg = botConfig[difficulty];
+    // Human-like typing delay per letter (realistic typing speed scaled with rank / difficulty)
+    const baseLetterDelay = mode === 'ranked' && matchedOpponent
+      ? matchedOpponent.botDelayMs
+      : difficulty === 'easy' ? 560 : difficulty === 'medium' ? 440 : 360;
 
-    // Bot simulated words pool — rotate through topic words
-    let botWordIdx = 0;
-    let botElapsed = 0;
-    const botSimWordSlots: Array<{ x: number; y: number; word: string; lettersTyped: number; isTargeted: boolean; specialType?: SpecialWordType }> = [];
-
-    // Initialize bot's simulated arena
-    const initBotWords = () => {
-      botSimWordSlots.length = 0;
-      const count = Math.min(diffConfig.maxActiveWords, 4);
-      for (let i = 0; i < count; i++) {
-        const w = topic.words[(botWordIdx + i) % topic.words.length];
-        botSimWordSlots.push({
-          x: 18 + (i * 16) % 64,
-          y: 15 + Math.random() * 50,
-          word: w?.word || 'focus',
-          lettersTyped: 0,
-          isTargeted: i === 0,
-        });
-      }
-      botWordIdx += count;
-    };
-    initBotWords();
+    let botTargetId: string | null = null;
+    let botTypedCount = 0;
+    let isThinking = false;
+    let thinkTimeout: ReturnType<typeof setTimeout> | null = null;
 
     const botInterval = setInterval(() => {
-      if (isGameOverRef.current) return;
-      botElapsed += cfg.tickMs / 1000;
+      if (isGameOverRef.current || isPausedRef.current || isThinking) return;
 
-      setOpponent((prev) => {
-        // Bot "types" a word: simulate letter-by-letter progress
-        const charScore = Math.floor(Math.random() * 15 + 10) * diffConfig.scoreMultiplier;
-        const nextScore = prev.score + charScore;
-        
-        // Combo logic: natural rhythm (burst -> pause -> burst)
-        const comboRoll = Math.random();
-        let nextCombo = prev.combo;
-        if (comboRoll < cfg.comboChance) {
-          nextCombo = prev.combo + 1;
-        } else if (comboRoll > 0.9) {
-          nextCombo = 0; // occasional miss resets combo
-        }
+      const currentWords = activeWordsRef.current.filter((w) => !w.isDestroyed);
+      if (currentWords.length === 0) {
+        botTargetId = null;
+        botTypedCount = 0;
+        setBotTargetWordId(null);
+        return;
+      }
 
-        // Attack on combo 3
-        if (nextCombo >= 3 && Math.random() < cfg.attackChance) {
-          receiveIncomingAttackRef.current();
-          return {
-            ...prev,
-            score: nextScore,
-            combo: 0,
-            wpm: cfg.wpm + Math.floor(Math.random() * 8 - 4),
-            accuracy: Math.min(100, cfg.accuracy + Math.floor(Math.random() * 6 - 3)),
-          };
-        }
+      // 1. Check if current target is still active and valid
+      let targetWord = currentWords.find((w) => w.instanceId === botTargetId && !w.isDestroyed);
 
-        // Life loss (rare)
-        let nextLives = prev.lives;
-        if (Math.random() < cfg.missChance) {
-          nextLives -= 1;
-          nextCombo = 0;
-          if (nextLives <= 0) {
-            setTimeout(() => triggerGameOverRef.current(true), 250);
-            return { ...prev, lives: 0, isEliminated: true, combo: 0 };
-          }
-        }
+      // If player starts typing this word, bot yields immediately so it won't steal from player!
+      if (targetWord && targetWord.instanceId === targetedInstanceIdRef.current) {
+        targetWord = undefined;
+        botTargetId = null;
+        botTypedCount = 0;
+        setBotTargetWordId(null);
+      }
 
-        // Rotate current typing word
-        const currentIdx = botWordIdx % topic.words.length;
-        const currentTypingWord = topic.words[currentIdx]?.word || 'focus';
+      // 2. If no target, pick a new one with a human "reaction/thinking pause"
+      if (!targetWord) {
+        // Exclude the word the player is currently typing!
+        const playerTarget = targetedInstanceIdRef.current;
+        const availableWords = currentWords.filter((w) => w.instanceId !== playerTarget);
+        const pool = availableWords.length > 0 ? availableWords : currentWords;
 
-        return {
-          ...prev,
-          score: nextScore,
-          combo: nextCombo,
-          lives: nextLives,
-          currentWordText: currentTypingWord,
-          wpm: cfg.wpm + Math.floor(Math.random() * 8 - 4),
-          accuracy: Math.min(100, cfg.accuracy + Math.floor(Math.random() * 6 - 3)),
-          waveReached: Math.max(prev.waveReached || 1, Math.floor(botElapsed / 30) + 1),
-        };
-      });
+        // Prefer words around the upper-middle area (not right at bottom)
+        pool.sort((a, b) => b.y - a.y);
+        const chosen = pool[0];
 
-      // Advance bot simulated words (shift positions down, replace completed)
-      botSimWordSlots.forEach((sw, idx) => {
-        sw.y = Math.min(85, sw.y + 3 + Math.random() * 4);
-        if (sw.isTargeted) {
-          sw.lettersTyped = Math.min(sw.word.length, sw.lettersTyped + Math.ceil(Math.random() * 2));
-        }
-      });
+        if (chosen) {
+          botTargetId = chosen.instanceId;
+          botTypedCount = 0;
+          setBotTargetWordId(chosen.instanceId);
 
-      // Remove completed or fallen words, add new
-      for (let i = botSimWordSlots.length - 1; i >= 0; i--) {
-        const sw = botSimWordSlots[i];
-        if (sw.lettersTyped >= sw.word.length || sw.y >= 85) {
-          botWordIdx++;
-          const newWord = topic.words[botWordIdx % topic.words.length];
-          botSimWordSlots[i] = {
-            x: 14 + Math.random() * 72,
-            y: 8 + Math.random() * 15,
-            word: newWord?.word || 'target',
-            lettersTyped: 0,
-            isTargeted: false,
-          };
+          // Human reaction delay: 1.2s - 1.8s to "spot and aim" before firing
+          isThinking = true;
+          const reactionTime = difficulty === 'easy' ? 1800 : difficulty === 'medium' ? 1300 : 900;
+          
+          // Steer jet towards chosen word during reaction time
+          setOpponentJetX((prev) => prev + (chosen.x - prev) * 0.4);
+
+          thinkTimeout = setTimeout(() => {
+            isThinking = false;
+          }, reactionTime);
+          return;
         }
       }
 
-      // Set first non-completed word as targeted
-      const firstActive = botSimWordSlots.find(sw => sw.lettersTyped < sw.word.length);
-      botSimWordSlots.forEach(sw => { sw.isTargeted = sw === firstActive; });
+      if (!targetWord) return;
 
-      setOpponentSimWords([...botSimWordSlots]);
+      // 3. Steer opponent jet towards targetWord.x smoothly
+      setOpponentJetX((prev) => prev + (targetWord.x - prev) * 0.35);
 
-      // Bot jet smooth movement & occasional firing
-      setOpponentJetX((prev) => {
-        const targetWord = botSimWordSlots.find(sw => sw.isTargeted);
-        const target = targetWord ? targetWord.x : 50;
-        return prev + (target - prev) * 0.25;
-      });
-      setOpponentJetAngle((Math.random() - 0.5) * 15);
-      if (Math.random() > 0.5) {
-        triggerOpponentShot(opponentJetXRef.current, jetXRef.current);
+      // 4. Advance bot's typed letters with occasional hesitation (human-like)
+      const hasHesitation = Math.random() < 0.22; // 22% hesitation chance
+      if (hasHesitation) {
+        // Mimic brief typo or hesitation
+        return;
       }
-    }, cfg.tickMs);
 
-    return () => clearInterval(botInterval);
-  }, [mode, isPaused, difficulty, topic.words, diffConfig, triggerOpponentShot]);
+      botTypedCount += 1;
 
-  // Spawn interval timer (strictly controlled interval)
+      // Update opponent HUD display with bot's typing progress
+      const lockedWord = targetWord.word;
+      setOpponent((prev) => ({
+        ...prev,
+        currentWordText: `${lockedWord.slice(0, botTypedCount)}... (${botTypedCount}/${lockedWord.length})`,
+      }));
+
+      // Fire visual laser beam from opponent jet towards targetWord
+      triggerOpponentShot(opponentJetXRef.current, targetWord.x, targetWord.y);
+
+      // 5. If bot completed typing the word:
+      if (botTypedCount >= targetWord.word.length) {
+        opponentDestroyWord(targetWord);
+        botTargetId = null;
+        botTypedCount = 0;
+        setBotTargetWordId(null);
+
+        // Pause after destroying a word (1.2s - 1.8s thinking pause before targeting next word)
+        isThinking = true;
+        const cooldown = difficulty === 'easy' ? 1700 : difficulty === 'medium' ? 1200 : 800;
+        thinkTimeout = setTimeout(() => {
+          isThinking = false;
+        }, cooldown);
+      }
+    }, baseLetterDelay);
+
+    return () => {
+      clearInterval(botInterval);
+      if (thinkTimeout) clearTimeout(thinkTimeout);
+    };
+  }, [mode, isPaused, difficulty, triggerOpponentShot, opponentDestroyWord]);
+
+  // 60-Second PvP Match Countdown Timer
+  useEffect(() => {
+    if (!isPvP) return;
+
+    const timer = setInterval(() => {
+      if (isPausedRef.current || isGameOverRef.current) return;
+
+      matchTimerRef.current -= 1;
+      setMatchTimer(matchTimerRef.current);
+
+      if (matchTimerRef.current === 10) {
+        gameSound.playMissLetterSound();
+      }
+
+      if (matchTimerRef.current <= 0) {
+        clearInterval(timer);
+        const isWinner = playerKillsRef.current > opponentKillsRef.current || 
+          (playerKillsRef.current === opponentKillsRef.current && statsRef.current.hitCount >= statsRef.current.missedCount);
+        triggerGameOverRef.current(isWinner);
+      }
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [isPvP]);
+
+  // Spawn interval timer (strictly controlled interval, boosted in PvP)
   useEffect(() => {
     if (isPaused) return;
     spawnWord();
-    const timeout = setTimeout(() => {
-      spawnWord();
-    }, 1200);
+    if (isPvP) {
+      setTimeout(() => spawnWord(), 400);
+      setTimeout(() => spawnWord(), 800);
+    } else {
+      setTimeout(() => spawnWord(), 1200);
+    }
+    const intervalMs = isPvP ? 1300 : diffConfig.spawnInterval;
     const timer = setInterval(() => {
       spawnWord();
-    }, diffConfig.spawnInterval);
+    }, intervalMs);
     return () => {
-      clearTimeout(timeout);
       clearInterval(timer);
     };
-  }, [isPaused, diffConfig.spawnInterval, spawnWord]);
+  }, [isPaused, diffConfig.spawnInterval, spawnWord, isPvP]);
 
   // Freeze effect countdown timer
   useEffect(() => {
@@ -951,114 +1060,115 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
       lastTime = currentTime;
 
       if (!isPausedRef.current) {
-        setActiveWords((prevWords) => {
-          const updated: GameWord[] = [];
-          let lostLife = false;
-          let shieldAbsorbed = false;
+        const sourceWords = activeWordsRef.current;
+        const updated: GameWord[] = [];
+        let lostLife = false;
+        let shieldAbsorbed = false;
 
-          prevWords.forEach((word) => {
-            if (word.isDestroyed) return;
+        sourceWords.forEach((word) => {
+          if (word.isDestroyed) return;
 
-            // Speed calculation with Freeze & Slow-Mo factors
-            const speedModifier = freezeTimerRef.current > 0 ? 0 : slowMoTimerRef.current > 0 ? 0.38 : 1.0;
-            const effectiveSpeed = word.speed * speedModifier;
-            const nextY = word.y + effectiveSpeed * delta * 8.5;
+          // Speed calculation with Freeze & Slow-Mo factors
+          const speedModifier = freezeTimerRef.current > 0 ? 0 : slowMoTimerRef.current > 0 ? 0.38 : 1.0;
+          const effectiveSpeed = word.speed * speedModifier;
+          const nextY = word.y + effectiveSpeed * delta * 8.5;
 
-            // Check Danger Line Hit (> 90%)
-            if (nextY >= 90) {
-              if (hasShieldRef.current) {
-                // Shield absorbs fatal impact!
-                shieldAbsorbed = true;
-                setHasShield(false);
-                gameSound.playShieldBreakSound();
-                spawnExplosionParticles(word.x, 90, '#38bdf8', 32);
-                addFloatingPop('SHIELD BLOCK', null, 'Khiên đã cản phá!', word.x, 82, 'shield');
-              } else {
-                lostLife = true;
-                statsRef.current.missedCount += 1;
-                statsRef.current.wordsReviewed.set(word.word, {
-                  id: word.id,
-                  word: word.word,
-                  phonetic: word.phonetic,
-                  definition_vi: word.definition_vi,
-                  audioUrl: word.audioUrl,
-                  hit: false,
-                  specialType: word.specialType,
-                });
-                spawnExplosionParticles(word.x, 90, '#f43f5e', 22);
-                gameSound.playMissLetterSound();
-              }
+          // Check Danger Line Hit (> 90%)
+          if (nextY >= 90) {
+            if (isPvP) {
+              // In PvP, no lives lost! Words that reach bottom simply dissolve neutrally
+              statsRef.current.missedCount += 1;
+              spawnExplosionParticles(word.x, 90, '#94a3b8', 12);
+            } else if (hasShieldRef.current) {
+              // Shield absorbs fatal impact!
+              shieldAbsorbed = true;
+              setHasShield(false);
+              gameSound.playShieldBreakSound();
+              spawnExplosionParticles(word.x, 90, '#38bdf8', 32);
+              addFloatingPop('SHIELD BLOCK', null, 'Khiên đã cản phá!', word.x, 82, 'shield');
             } else {
-              updated.push({
-                ...word,
-                y: nextY,
-                isFrozen: freezeTimerRef.current > 0,
+              lostLife = true;
+              statsRef.current.missedCount += 1;
+              statsRef.current.wordsReviewed.set(word.word, {
+                id: word.id,
+                word: word.word,
+                phonetic: word.phonetic,
+                definition_vi: word.definition_vi,
+                audioUrl: word.audioUrl,
+                hit: false,
+                specialType: word.specialType,
               });
+              spawnExplosionParticles(word.x, 90, '#f43f5e', 22);
+              gameSound.playMissLetterSound();
             }
-          });
 
-          // REAL-TIME HARD ANTI-OVERLAP COLLISION & NO-OVERTAKE PHYSICS
-          // Prevents words from ever covering or penetrating each other
-          for (let i = 0; i < updated.length; i++) {
-            for (let j = i + 1; j < updated.length; j++) {
-              const w1 = updated[i];
-              const w2 = updated[j];
-              const dx = Math.abs(w1.x - w2.x);
-              const dy = Math.abs(w1.y - w2.y);
-
-              // Minimum separation thresholds (in percentage)
-              const MIN_X = 16.0; 
-              const MIN_Y = 10.5;
-
-              if (dx < MIN_X && dy < MIN_Y) {
-                const wUpper = w1.y <= w2.y ? w1 : w2;
-                const wLower = w1.y <= w2.y ? w2 : w1;
-
-                // 1. HARD VERTICAL SEPARATION: Upper word can NEVER penetrate into lower word
-                wUpper.y = Math.min(wUpper.y, Math.max(0, wLower.y - MIN_Y));
-
-                // 2. SPEED GOVERNOR (Anti-Overtake): Upper word cannot move faster than lower word
-                wUpper.speed = Math.min(wUpper.speed, wLower.speed * 0.9);
-
-                // 3. HORIZONTAL SEPARATION: Nudge apart to distinct lanes
-                const overlapX = MIN_X - dx;
-                const push = Math.max(0.35, overlapX * 0.35);
-
-                if (w1.x <= w2.x) {
-                  w1.x = Math.max(14, w1.x - push);
-                  w2.x = Math.min(86, w2.x + push);
-                } else {
-                  w1.x = Math.min(86, w1.x + push);
-                  w2.x = Math.max(14, w2.x - push);
-                }
-              }
+            if (word.instanceId === targetedInstanceIdRef.current) {
+              targetedInstanceIdRef.current = null;
+              setTargetedInstanceId(null);
             }
-          }
-
-          activeWordsRef.current = updated;
-
-          if (shieldAbsorbed) {
-            setScreenShake(true);
-            setTimeout(() => setScreenShake(false), 300);
-          }
-
-          if (lostLife) {
-            setCombo(0);
-            setScreenShake(true);
-            setTimeout(() => setScreenShake(false), 400);
-
-            setLives((prev) => {
-              const newLives = prev - 1;
-              livesRef.current = newLives;
-              if (newLives <= 0) {
-                triggerGameOverRef.current(false);
-              }
-              return newLives;
+          } else {
+            updated.push({
+              ...word,
+              y: nextY,
+              isFrozen: freezeTimerRef.current > 0,
             });
           }
-
-          return updated;
         });
+
+        // REAL-TIME HARD ANTI-OVERLAP COLLISION & NO-OVERTAKE PHYSICS
+        for (let i = 0; i < updated.length; i++) {
+          for (let j = i + 1; j < updated.length; j++) {
+            const w1 = updated[i];
+            const w2 = updated[j];
+            const dx = Math.abs(w1.x - w2.x);
+            const dy = Math.abs(w1.y - w2.y);
+
+            const MIN_X = 16.0; 
+            const MIN_Y = 10.5;
+
+            if (dx < MIN_X && dy < MIN_Y) {
+              const wUpper = w1.y <= w2.y ? w1 : w2;
+              const wLower = w1.y <= w2.y ? w2 : w1;
+
+              wUpper.y = Math.min(wUpper.y, Math.max(0, wLower.y - MIN_Y));
+              wUpper.speed = Math.min(wUpper.speed, wLower.speed * 0.9);
+
+              const overlapX = MIN_X - dx;
+              const push = Math.max(0.35, overlapX * 0.35);
+
+              if (w1.x <= w2.x) {
+                w1.x = Math.max(14, w1.x - push);
+                w2.x = Math.min(86, w2.x + push);
+              } else {
+                w1.x = Math.min(86, w1.x + push);
+                w2.x = Math.max(14, w2.x - push);
+              }
+            }
+          }
+        }
+
+        activeWordsRef.current = updated;
+        setActiveWords(updated);
+
+        if (shieldAbsorbed) {
+          setScreenShake(true);
+          setTimeout(() => setScreenShake(false), 300);
+        }
+
+        if (lostLife) {
+          setCombo(0);
+          setScreenShake(true);
+          setTimeout(() => setScreenShake(false), 400);
+
+          setLives((prev) => {
+            const newLives = prev - 1;
+            livesRef.current = newLives;
+            if (newLives <= 0) {
+              triggerGameOverRef.current(false);
+            }
+            return newLives;
+          });
+        }
 
         // Jet follow target orientation
         const currentTargetId = targetedInstanceIdRef.current;
@@ -1117,109 +1227,172 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
     };
   }, [isPaused, spawnExplosionParticles, addFloatingPop]);
 
-  // UNIFIED CHARACTER PROCESSOR (Supports Desktop & Mobile Input + Vietnamese IME normalization)
+  // UNIFIED CHARACTER PROCESSOR (Supports Desktop & Mobile Input + Vietnamese IME normalization + Auto-Punctuation Advance)
   const processCharInput = useCallback((rawKey: string) => {
+    if (!rawKey) return;
+
+    // Deduplicate identical events arriving within 18ms (e.g. keydown + mobile input onInput)
+    const now = performance.now();
+    const lowerRaw = rawKey.toLowerCase();
+    if (lastKeyTimeRef.current.key === lowerRaw && (now - lastKeyTimeRef.current.time) < 18) {
+      return;
+    }
+    lastKeyTimeRef.current = { key: lowerRaw, time: now };
+
     const currentTargetId = targetedInstanceIdRef.current;
 
-    // 1. Check Cancel / Retarget Keys (Backspace, Escape, Delete)
-    if (rawKey === 'Backspace' || rawKey === 'Escape' || rawKey === 'Delete') {
+    // 1. Escape or Delete: Explicitly cancel current target
+    if (rawKey === 'Escape' || rawKey === 'Delete') {
       if (currentTargetId) {
+        const nextWords = activeWordsRef.current.map((w) =>
+          w.instanceId === currentTargetId ? { ...w, isTargeted: false, lettersTyped: 0 } : w
+        );
+        activeWordsRef.current = nextWords;
+        setActiveWords(nextWords);
+        targetedInstanceIdRef.current = null;
         setTargetedInstanceId(null);
-        setActiveWords((prev) => {
-          const next = prev.map((w) => (w.instanceId === currentTargetId ? { ...w, isTargeted: false, lettersTyped: 0 } : w));
-          activeWordsRef.current = next;
-          return next;
-        });
         gameSound.playRetargetSound();
       }
       return;
     }
 
-    // Space key cancels current target UNLESS current target is expecting a space!
+    // 2. Space key handling (Graceful handling for compound words & phrasal verbs)
     if (rawKey === ' ') {
-      let isTargetExpectingSpace = false;
       if (currentTargetId) {
         const currentTarget = activeWordsRef.current.find((w) => w.instanceId === currentTargetId && !w.isDestroyed);
-        if (currentTarget && currentTarget.word[currentTarget.lettersTyped] === ' ') {
-          isTargetExpectingSpace = true;
+        if (currentTarget) {
+          // If the word expects a space at current position
+          if (currentTarget.word[currentTarget.lettersTyped] === ' ') {
+            let nextTyped = currentTarget.lettersTyped + 1;
+            while (nextTyped < currentTarget.word.length && /[^a-zA-Z0-9]/.test(currentTarget.word[nextTyped])) {
+              nextTyped += 1;
+            }
+            currentTarget.lettersTyped = nextTyped;
+            if (nextTyped >= currentTarget.word.length) {
+              destroyWord(currentTarget);
+            } else {
+              const nextWords = activeWordsRef.current.map((w) =>
+                w.instanceId === currentTargetId ? { ...w, lettersTyped: nextTyped } : w
+              );
+              activeWordsRef.current = nextWords;
+              setActiveWords(nextWords);
+            }
+            return;
+          }
+          // If space was already auto-skipped (e.g. "abide by" -> after typing 'e', cursor jumped to 'b')
+          // Simply ignore the space gracefully so typing "by" continues seamlessly without cancelling target!
+          if (currentTarget.lettersTyped > 0 && currentTarget.word[currentTarget.lettersTyped - 1] === ' ') {
+            return;
+          }
+          // Only if target is at 0 letters typed, allow Space to switch/clear target
+          if (currentTarget.lettersTyped === 0) {
+            currentTarget.isTargeted = false;
+            targetedInstanceIdRef.current = null;
+            setTargetedInstanceId(null);
+            const nextWords = activeWordsRef.current.map((w) =>
+              w.instanceId === currentTargetId ? { ...w, isTargeted: false, lettersTyped: 0 } : w
+            );
+            activeWordsRef.current = nextWords;
+            setActiveWords(nextWords);
+            gameSound.playRetargetSound();
+          }
         }
       }
-
-      if (!isTargetExpectingSpace) {
-        if (currentTargetId) {
-          setTargetedInstanceId(null);
-          setActiveWords((prev) => {
-            const next = prev.map((w) => (w.instanceId === currentTargetId ? { ...w, isTargeted: false, lettersTyped: 0 } : w));
-            activeWordsRef.current = next;
-            return next;
-          });
-          gameSound.playRetargetSound();
-        }
-        return;
-      }
+      return;
     }
 
-    // 2. Normalize key via Vietnamese Accent Map
-    const key = rawKey === ' ' ? ' ' : normalizeChar(rawKey);
-    if (!/^[a-z0-9 -]$/.test(key)) return;
+    // 3. Character normalization for English & Vietnamese IME
+    const key = normalizeChar(rawKey);
+    if (!key || key.length !== 1 || !/^[a-z0-9]$/i.test(key)) return;
 
     statsRef.current.totalKeystrokes += 1;
 
-    // 3. If currently targeted word exists:
+    // 4. If currently targeted word exists:
     if (currentTargetId) {
       const currentTarget = activeWordsRef.current.find((w) => w.instanceId === currentTargetId && !w.isDestroyed);
       if (currentTarget) {
-        const expectedChar = currentTarget.word[currentTarget.lettersTyped]?.toLowerCase();
-        if (key === expectedChar) {
+        // Auto-advance past any non-alphanumeric chars (spaces, hyphens, etc.) preceding the next expected char
+        let currentIdx = currentTarget.lettersTyped;
+        while (currentIdx < currentTarget.word.length && /[^a-zA-Z0-9]/.test(currentTarget.word[currentIdx])) {
+          currentIdx += 1;
+        }
+        currentTarget.lettersTyped = currentIdx;
+
+        const expectedChar = currentTarget.word[currentIdx]?.toLowerCase();
+        if (key.toLowerCase() === expectedChar) {
           statsRef.current.correctKeystrokes += 1;
-          const nextLettersTyped = currentTarget.lettersTyped + 1;
+          let nextLettersTyped = currentIdx + 1;
+
+          // Auto-advance over any trailing spaces or hyphens (e.g. "abide by" -> after 'e', auto-skip ' ')
+          while (
+            nextLettersTyped < currentTarget.word.length &&
+            /[^a-zA-Z0-9]/.test(currentTarget.word[nextLettersTyped])
+          ) {
+            nextLettersTyped += 1;
+          }
+
+          currentTarget.lettersTyped = nextLettersTyped; // Synchronously update ref!
           fireDualLaser(currentTarget.x, currentTarget.y);
           gameSound.playHitLetterSound();
 
           if (nextLettersTyped >= currentTarget.word.length) {
             destroyWord(currentTarget);
           } else {
-            setActiveWords((prev) => {
-              const next = prev.map((w) => (w.instanceId === currentTarget.instanceId ? { ...w, lettersTyped: nextLettersTyped } : w));
-              activeWordsRef.current = next;
-              return next;
-            });
+            const nextWords = activeWordsRef.current.map((w) =>
+              w.instanceId === currentTarget.instanceId ? { ...w, lettersTyped: nextLettersTyped } : w
+            );
+            activeWordsRef.current = nextWords;
+            setActiveWords(nextWords);
           }
           return;
         } else {
-          // Miss on current target
+          // Miss on current target - combo reset but keep progress intact
           gameSound.playMissLetterSound();
           setCombo(0);
           return;
         }
+      } else {
+        targetedInstanceIdRef.current = null;
+        setTargetedInstanceId(null);
       }
     }
 
-    // 4. No target yet: Find lowest word starting with this key
+    // 5. No target yet: Find lowest word starting with this key
     const matchingCandidates = activeWordsRef.current
-      .filter((w) => !w.isDestroyed && w.word[0]?.toLowerCase() === key)
+      .filter((w) => !w.isDestroyed && w.word[0]?.toLowerCase() === key.toLowerCase())
       .sort((a, b) => b.y - a.y);
 
     if (matchingCandidates.length > 0) {
       const bestTarget = matchingCandidates[0];
       statsRef.current.correctKeystrokes += 1;
+
+      targetedInstanceIdRef.current = bestTarget.instanceId;
       setTargetedInstanceId(bestTarget.instanceId);
+
       fireDualLaser(bestTarget.x, bestTarget.y);
       gameSound.playHitLetterSound();
 
-      const nextLettersTyped = 1;
+      let nextLettersTyped = 1;
+      while (
+        nextLettersTyped < bestTarget.word.length &&
+        /[^a-zA-Z0-9]/.test(bestTarget.word[nextLettersTyped])
+      ) {
+        nextLettersTyped += 1;
+      }
+
+      bestTarget.lettersTyped = nextLettersTyped;
+      bestTarget.isTargeted = true;
+
       if (nextLettersTyped >= bestTarget.word.length) {
         destroyWord(bestTarget);
       } else {
-        setActiveWords((prev) => {
-          const next = prev.map((w) =>
-            w.instanceId === bestTarget.instanceId
-              ? { ...w, isTargeted: true, lettersTyped: nextLettersTyped }
-              : { ...w, isTargeted: false }
-          );
-          activeWordsRef.current = next;
-          return next;
-        });
+        const nextWords = activeWordsRef.current.map((w) =>
+          w.instanceId === bestTarget.instanceId
+            ? { ...w, isTargeted: true, lettersTyped: nextLettersTyped }
+            : { ...w, isTargeted: false }
+        );
+        activeWordsRef.current = nextWords;
+        setActiveWords(nextWords);
       }
     } else {
       gameSound.playMissLetterSound();
@@ -1227,20 +1400,47 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
     }
   }, [fireDualLaser]);
 
-  // Handle Desktop Keyboard Input
+  // Handle Desktop Keyboard Input with physical e.code immunity to Vietnamese IME / Telex
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.altKey || e.metaKey || e.key === 'Tab') return;
 
-      if (e.key === 'Backspace' || e.key === 'Escape' || e.key === ' ') {
+      // Escape or Delete: Cancel current target
+      if (e.key === 'Escape' || e.code === 'Escape' || e.key === 'Delete' || e.code === 'Delete') {
         e.preventDefault();
-        processCharInput(e.key);
+        processCharInput('Escape');
         return;
       }
 
-      if (e.key.length === 1) {
+      // Space key
+      if (e.key === ' ' || e.code === 'Space') {
         e.preventDefault();
-        processCharInput(e.key);
+        processCharInput(' ');
+        return;
+      }
+
+      // Backspace: Prevent default and DO NOT rewind typed letters!
+      // This completely neutralizes Unikey / EVKey synthetic backspaces that were corrupting words mid-typing
+      if (e.key === 'Backspace' || e.code === 'Backspace') {
+        e.preventDefault();
+        return;
+      }
+
+      // Determine letter to process:
+      // Priority 1: Physical e.code starting with 'Key' (KeyA -> 'a', KeyS -> 's', KeyE -> 'e', KeyR -> 'r', etc.)
+      // This is 100% immune to Unikey / EVKey / Telex / VNI accent transformations!
+      let charToProcess: string | null = null;
+      if (e.code && e.code.startsWith('Key')) {
+        charToProcess = e.code.slice(3).toLowerCase();
+      } else if (e.code && e.code.startsWith('Digit')) {
+        charToProcess = e.code.slice(5);
+      } else if (e.key && e.key.length === 1) {
+        charToProcess = normalizeChar(e.key);
+      }
+
+      if (charToProcess && /^[a-z0-9]$/i.test(charToProcess)) {
+        e.preventDefault();
+        processCharInput(charToProcess);
       }
     };
 
@@ -1378,17 +1578,28 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
       return;
     }
 
-    // 6. PvP Attack Mechanic
-    if (isPvP && (word.word.length >= 7 || newCombo % 3 === 0)) {
-      sendAttackToOpponent(word.word);
+    // 6. PvP Shared Battlefield Kill Tracking
+    if (isPvP) {
+      playerKillsRef.current += 1;
+      setPlayerKills((k) => k + 1);
+      setComboCallout({
+        text: `+1 KILL! BẠN HẠ "${word.word.toUpperCase()}"! 🎯`,
+        color: 'text-cyan-300',
+        id: Date.now(),
+      });
+      sendPvPMessage('word_sniped', {
+        instanceId: word.instanceId,
+        word: word.word,
+        kills: playerKillsRef.current,
+      });
     }
 
-    setActiveWords((prev) => {
-      const next = prev.filter((w) => w.instanceId !== word.instanceId);
-      activeWordsRef.current = next;
-      return next;
-    });
+    word.isDestroyed = true;
+    targetedInstanceIdRef.current = null;
     setTargetedInstanceId(null);
+    const nextWords = activeWordsRef.current.filter((w) => w.instanceId !== word.instanceId);
+    activeWordsRef.current = nextWords;
+    setActiveWords(nextWords);
   };
 
   const handleToggleMute = () => {
@@ -1409,6 +1620,8 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
     ? Math.round((statsRef.current.correctKeystrokes / statsRef.current.totalKeystrokes) * 100) 
     : 100;
 
+  const targetedWord = activeWords.find((w) => w.instanceId === targetedInstanceId);
+
   return (
     <div 
       ref={arenaContainerRef}
@@ -1427,12 +1640,13 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
         spellCheck={false}
         autoComplete="off"
         className="opacity-0 absolute pointer-events-none w-0 h-0 -top-96"
-        onChange={(e) => {
-          const val = e.target.value;
+        onInput={(e) => {
+          const target = e.currentTarget;
+          const val = target.value;
           if (val && val.length > 0) {
             const lastChar = val[val.length - 1];
             processCharInput(lastChar);
-            e.target.value = '';
+            target.value = '';
           }
         }}
       />
@@ -1502,114 +1716,213 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
         </div>
       )}
 
-      {/* Main Game Arena */}
-      <div className={cn("relative h-full flex flex-col justify-between p-3 md:p-6 transition-all", isPvP ? "w-full lg:w-[58%]" : "w-full")}>
+      {/* Main Game Arena (Full screen unified arena for both players in 1v1) */}
+      <div className="relative h-full flex flex-col justify-between p-3 md:p-6 transition-all w-full">
         {/* Top HUD Status Bar */}
-        <div className="relative z-30 flex items-center justify-between gap-2 p-2.5 md:p-3 rounded-2xl bg-slate-900/80 border border-slate-800 backdrop-blur-md shadow-lg">
-          {/* Health & Shield Indicator */}
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5 bg-slate-950/70 px-2.5 py-1.5 rounded-xl border border-slate-800">
-              {Array.from({ length: isPvP ? 3 : diffConfig.maxLives }).map((_, i) => (
-                <Heart
-                  key={i}
-                  className={cn(
-                    "w-4 md:w-5 h-4 md:h-5 transition-all duration-300",
-                    i < lives
-                      ? "fill-rose-500 text-rose-500 drop-shadow-[0_0_10px_rgba(244,63,94,0.7)] scale-100"
-                      : "text-slate-700 scale-90"
+        <div className="relative z-30 flex items-center justify-between gap-2 p-2.5 md:p-3 rounded-2xl bg-slate-900/90 border border-slate-800 backdrop-blur-md shadow-lg">
+          {isPvP ? (
+            /* PvP 1v1 HUD: Kills Comparison + Countdown Timer */
+            <div className="flex items-center justify-between w-full">
+              {/* Left: Player Kills */}
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-cyan-950/80 border border-cyan-500/60 shadow-[0_0_15px_rgba(6,182,212,0.3)]">
+                  <div className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse" />
+                  <span className="text-xs font-black text-cyan-300 uppercase tracking-wider">BẠN</span>
+                  <div className="h-4 w-px bg-cyan-800" />
+                  <span className="text-base sm:text-xl font-mono font-black text-cyan-200">
+                    🎯 {playerKills}
+                  </span>
+                  <span className="text-[10px] text-cyan-400 font-bold hidden sm:inline">KILLS</span>
+                </div>
+                {combo > 1 && (
+                  <div className="hidden sm:flex px-2 py-1 rounded-xl bg-gradient-to-r from-amber-500 to-rose-600 text-white font-black text-xs items-center gap-1 shadow-md animate-bounce">
+                    <Flame className="w-3 h-3 text-yellow-300" />
+                    {combo}x
+                  </div>
+                )}
+              </div>
+
+              {/* Center: Match Countdown Timer */}
+              <div className="flex flex-col items-center">
+                <div className={cn(
+                  "flex items-center gap-1.5 px-3 sm:px-5 py-1 rounded-2xl border font-mono font-black shadow-lg transition-all",
+                  matchTimer <= 10
+                    ? "bg-rose-950/95 border-rose-500 text-rose-300 animate-pulse scale-105 shadow-[0_0_20px_rgba(244,63,94,0.6)]"
+                    : "bg-slate-950/80 border-amber-500/50 text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.25)]"
+                )}>
+                  <span className="text-sm">⏱️</span>
+                  <span className="text-lg sm:text-2xl font-black tracking-widest">
+                    00:{matchTimer < 10 ? `0${matchTimer}` : matchTimer}
+                  </span>
+                </div>
+                <span className="text-[9px] sm:text-[10px] uppercase font-black tracking-widest mt-0.5">
+                  {mode === 'ranked' ? (
+                    <span className="text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]">👑 ĐẤU HẠNG (+1 ⭐ / -1 ⭐)</span>
+                  ) : mode === 'bot' || mode === 'pvp-bot' ? (
+                    <span className="text-purple-300">🤖 ĐẤU MÁY (TẬP PHẢN XẠ)</span>
+                  ) : mode === 'casual' ? (
+                    <span className="text-cyan-300">⚔️ ĐẤU THƯỜNG (GIAO HỮU)</span>
+                  ) : (
+                    <span className="text-slate-400">GIÀNH TỪ VỰNG 1V1</span>
                   )}
-                />
-              ))}
-            </div>
-
-            {hasShield && (
-              <div className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-cyan-950/90 border border-cyan-400 text-cyan-300 text-xs font-black animate-pulse shadow-[0_0_12px_rgba(6,182,212,0.5)]">
-                <Shield className="w-3.5 h-3.5 fill-cyan-400" />
-                <span className="hidden sm:inline">KHIÊN ACTIVE</span>
+                </span>
               </div>
-            )}
 
-            {/* Wave Badge */}
-            <div className="px-2.5 py-1 rounded-xl bg-indigo-950/80 border border-indigo-500/60 text-indigo-300 text-xs font-black">
-              WAVE {wave}
-            </div>
-          </div>
+              {/* Right: Opponent Kills & Quick Settings */}
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-rose-950/80 border border-rose-500/60 shadow-[0_0_15px_rgba(244,63,94,0.3)]">
+                  <span className="text-[10px] text-rose-400 font-bold hidden sm:inline">KILLS</span>
+                  <span className="text-base sm:text-xl font-mono font-black text-rose-200">
+                    🎯 {opponentKills}
+                  </span>
+                  <div className="h-4 w-px bg-rose-800" />
+                  <span className="text-xs font-black text-rose-300 uppercase tracking-wider truncate max-w-[60px] sm:max-w-[120px]">
+                    {opponent.name}
+                  </span>
+                  <div className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping" />
+                </div>
 
-          {/* Score Counter */}
-          <div className="flex flex-col items-center">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Điểm Số</span>
-            <span className="text-xl md:text-2xl font-black text-amber-300 tracking-wider font-mono">
-              {score.toLocaleString()}
-            </span>
-          </div>
-
-          {/* Controls, Hint Toggle & Action Buttons */}
-          <div className="flex items-center gap-1.5 md:gap-2">
-            {combo > 1 && (
-              <div className="px-2.5 py-1 rounded-xl bg-gradient-to-r from-amber-500 to-rose-600 text-white font-black text-xs flex items-center gap-1 shadow-md animate-bounce">
-                <Flame className="w-3.5 h-3.5 text-yellow-300" />
-                {combo}x
+                {/* Sound & Controls */}
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleToggleMute(); }}
+                    className="p-1.5 sm:p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors"
+                    title={isMuted ? "Bật âm thanh" : "Tắt âm thanh"}
+                  >
+                    {isMuted ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4 text-cyan-400" />}
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setIsTutorialOpen(true); }}
+                    className="p-1.5 sm:p-2 rounded-xl bg-cyan-950/60 hover:bg-cyan-900/60 text-cyan-300 border border-cyan-500/40 transition-colors"
+                    title="Xem hướng dẫn chơi game"
+                  >
+                    <HelpCircle className="w-4 h-4 text-cyan-400" />
+                  </button>
+                </div>
               </div>
-            )}
+            </div>
+          ) : (
+            /* Solo Mode HUD */
+            <>
+              {/* Health & Shield Indicator */}
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 bg-slate-950/70 px-2.5 py-1.5 rounded-xl border border-slate-800">
+                  {Array.from({ length: diffConfig.maxLives }).map((_, i) => (
+                    <Heart
+                      key={i}
+                      className={cn(
+                        "w-4 md:w-5 h-4 md:h-5 transition-all duration-300",
+                        i < lives
+                          ? "fill-rose-500 text-rose-500 drop-shadow-[0_0_10px_rgba(244,63,94,0.7)] scale-100"
+                          : "text-slate-700 scale-90"
+                      )}
+                    />
+                  ))}
+                </div>
 
-            {/* Toggle Meaning Hint */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowMeaningHint(!showMeaningHint);
-              }}
-              className={cn(
-                "p-2 rounded-xl border transition-colors",
-                showMeaningHint
-                  ? "bg-cyan-950/80 border-cyan-500 text-cyan-300"
-                  : "bg-slate-800 border-slate-700 text-slate-400"
-              )}
-              title={showMeaningHint ? "Tắt gợi ý nghĩa tiếng Việt" : "Bật gợi ý nghĩa tiếng Việt"}
-            >
-              {showMeaningHint ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-            </button>
+                {hasShield && (
+                  <div className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-cyan-950/90 border border-cyan-400 text-cyan-300 text-xs font-black animate-pulse shadow-[0_0_12px_rgba(6,182,212,0.5)]">
+                    <Shield className="w-3.5 h-3.5 fill-cyan-400" />
+                    <span className="hidden sm:inline">KHIÊN ACTIVE</span>
+                  </div>
+                )}
 
-            {/* Toggle Procedural Cyber BGM */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleToggleBgm();
-              }}
-              className={cn(
-                "p-2 rounded-xl border transition-colors",
-                isBgmOn
-                  ? "bg-purple-950/80 border-purple-500 text-purple-300"
-                  : "bg-slate-800 border-slate-700 text-slate-400"
-              )}
-              title={isBgmOn ? "Tắt nhạc nền Arcade" : "Bật nhạc nền Arcade Synthwave"}
-            >
-              <Music className={cn("w-4 h-4", isBgmOn && "animate-pulse text-purple-400")} />
-            </button>
+                {/* Wave Badge */}
+                <div className="px-2.5 py-1 rounded-xl bg-indigo-950/80 border border-indigo-500/60 text-indigo-300 text-xs font-black">
+                  WAVE {wave}
+                </div>
+              </div>
 
-            {/* Toggle SFX Mute */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleToggleMute();
-              }}
-              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors"
-              title={isMuted ? "Bật âm thanh" : "Tắt âm thanh"}
-            >
-              {isMuted ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4 text-cyan-400" />}
-            </button>
+              {/* Score Counter */}
+              <div className="flex flex-col items-center">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Điểm Số</span>
+                <span className="text-xl md:text-2xl font-black text-amber-300 tracking-wider font-mono">
+                  {score.toLocaleString()}
+                </span>
+              </div>
 
-            {/* Pause Button */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsPaused(!isPaused);
-              }}
-              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors"
-              title={isPaused ? "Tiếp tục" : "Tạm dừng"}
-            >
-              {isPaused ? <Play className="w-4 h-4 text-emerald-400" /> : <Pause className="w-4 h-4" />}
-            </button>
-          </div>
+              {/* Controls, Hint Toggle & Action Buttons */}
+              <div className="flex items-center gap-1.5 md:gap-2">
+                {combo > 1 && (
+                  <div className="px-2.5 py-1 rounded-xl bg-gradient-to-r from-amber-500 to-rose-600 text-white font-black text-xs flex items-center gap-1 shadow-md animate-bounce">
+                    <Flame className="w-3.5 h-3.5 text-yellow-300" />
+                    {combo}x
+                  </div>
+                )}
+
+                {/* Toggle Meaning Hint */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowMeaningHint(!showMeaningHint);
+                  }}
+                  className={cn(
+                    "p-2 rounded-xl border transition-colors",
+                    showMeaningHint
+                      ? "bg-cyan-950/80 border-cyan-500 text-cyan-300"
+                      : "bg-slate-800 border-slate-700 text-slate-400"
+                  )}
+                  title={showMeaningHint ? "Tắt gợi ý nghĩa tiếng Việt" : "Bật gợi ý nghĩa tiếng Việt"}
+                >
+                  {showMeaningHint ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                </button>
+
+                {/* Toggle Procedural Cyber BGM */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleToggleBgm();
+                  }}
+                  className={cn(
+                    "p-2 rounded-xl border transition-colors",
+                    isBgmOn
+                      ? "bg-purple-950/80 border-purple-500 text-purple-300"
+                      : "bg-slate-800 border-slate-700 text-slate-400"
+                  )}
+                  title={isBgmOn ? "Tắt nhạc nền Arcade" : "Bật nhạc nền Arcade Synthwave"}
+                >
+                  <Music className={cn("w-4 h-4", isBgmOn && "animate-pulse text-purple-400")} />
+                </button>
+
+                {/* Toggle SFX Mute */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleToggleMute();
+                  }}
+                  className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors"
+                  title={isMuted ? "Bật âm thanh" : "Tắt âm thanh"}
+                >
+                  {isMuted ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4 text-cyan-400" />}
+                </button>
+
+                {/* Tutorial / Help Button */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsPaused(true);
+                    setIsTutorialOpen(true);
+                  }}
+                  className="p-2 rounded-xl bg-cyan-950/60 hover:bg-cyan-900/60 text-cyan-300 border border-cyan-500/40 transition-colors"
+                  title="Xem hướng dẫn chơi game"
+                >
+                  <HelpCircle className="w-4 h-4 text-cyan-400" />
+                </button>
+
+                {/* Pause Button */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsPaused(!isPaused);
+                  }}
+                  className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors"
+                  title={isPaused ? "Tiếp tục" : "Tạm dừng"}
+                >
+                  {isPaused ? <Play className="w-4 h-4 text-emerald-400" /> : <Pause className="w-4 h-4" />}
+                </button>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Falling Words Arena Field */}
@@ -1628,19 +1941,10 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
 
                 <div className="h-3 w-px bg-slate-800" />
 
-                {/* Opponent 3 Lives */}
-                <div className="flex items-center gap-1">
-                  {[1, 2, 3].map((heartIdx) => (
-                    <Heart
-                      key={heartIdx}
-                      className={cn(
-                        "w-3 sm:w-3.5 h-3 sm:h-3.5 transition-all duration-300",
-                        heartIdx <= opponent.lives
-                          ? "text-rose-500 fill-rose-500 filter drop-shadow-[0_0_6px_#f43f5e]"
-                          : "text-slate-700"
-                      )}
-                    />
-                  ))}
+                {/* Opponent Kills Counter */}
+                <div className="flex items-center gap-1 text-xs font-mono font-bold text-rose-300">
+                  <span>🎯 KILLS:</span>
+                  <span className="text-white font-black">{opponentKills}</span>
                 </div>
 
                 <div className="h-3 w-px bg-slate-800" />
@@ -1756,8 +2060,8 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
                 onClick={(e) => {
                   e.stopPropagation();
                   focusInput();
-                  // Pronounce and prioritize this word
                   gameSound.speakWord(item.word, item.audioUrl);
+                  targetedInstanceIdRef.current = item.instanceId;
                   setTargetedInstanceId(item.instanceId);
                 }}
                 className={cn(
@@ -1789,10 +2093,19 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
                       ? "bg-rose-950/90 border-rose-500 shadow-[0_0_25px_rgba(244,63,94,0.7)]"
                       : isTargeted
                       ? "bg-blue-950/90 border-cyan-400 shadow-[0_0_25px_rgba(6,182,212,0.5)] ring-2 ring-cyan-400/60"
+                      : botTargetWordId === item.instanceId
+                      ? "bg-rose-950/80 border-rose-500/80 shadow-[0_0_20px_rgba(244,63,94,0.35)] ring-1 ring-rose-500/50"
                       : "bg-slate-900/80 border-slate-700/80 hover:border-slate-600"
                   )}
                 >
                   <div className="flex items-center gap-1.5">
+                    {/* Bot Aim Indicator Badge */}
+                    {botTargetWordId === item.instanceId && !isTargeted && (
+                      <span className="text-[9px] font-black text-rose-300 bg-rose-950/90 px-1.5 py-0.5 rounded border border-rose-500/40 animate-pulse">
+                        🤖 AI AIM
+                      </span>
+                    )}
+
                     {/* Special Item Icons */}
                     {item.isBoss && <span className="text-sm animate-bounce" title="Boss Word">👑</span>}
                     {item.specialType === 'heart' && <span className="text-sm animate-bounce" title="+1 Mạng">💖</span>}
@@ -1806,17 +2119,16 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
                     <div className="font-mono text-sm md:text-base font-black tracking-wider flex items-center">
                       {wordStr.split('').map((char, charIdx) => {
                         const isTyped = charIdx < lettersTyped;
-                        const isNext = charIdx === lettersTyped;
 
                         return (
                           <span
                             key={charIdx}
                             className={cn(
-                              "transition-colors duration-100",
+                              "transition-colors duration-75",
                               isTyped
-                                ? "text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.8)]"
-                                : isNext && isTargeted
-                                ? "text-cyan-300 underline underline-offset-4 decoration-2 decoration-cyan-400 animate-pulse"
+                                ? "text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.8)] font-black"
+                                : isTargeted
+                                ? "text-white"
                                 : "text-slate-200"
                             )}
                           >
@@ -1918,21 +2230,52 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
             </div>
           </div>
         </div>
+
+        {/* Bottom Live Target & Typing Helper HUD */}
+        <div className="relative z-30 flex items-center justify-between gap-3 p-2.5 rounded-2xl bg-slate-900/90 border border-slate-800 backdrop-blur-md shadow-2xl mt-1 select-none">
+          <div className="flex items-center gap-2 overflow-hidden min-w-0">
+            <div className="w-7 h-7 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold text-xs shrink-0">
+              🎯
+            </div>
+            {targetedWord ? (
+              <div className="flex items-center gap-2 truncate">
+                <span className="text-xs text-slate-400 hidden sm:inline">Mục tiêu:</span>
+                <span className="font-mono text-sm md:text-base font-black tracking-wider">
+                  <span className="text-emerald-400 font-black">{targetedWord.word.slice(0, targetedWord.lettersTyped)}</span>
+                  <span className="text-slate-300">{targetedWord.word.slice(targetedWord.lettersTyped)}</span>
+                </span>
+                {targetedWord.definition_vi && (
+                  <span className="text-xs text-cyan-200/70 truncate hidden md:inline">({targetedWord.definition_vi})</span>
+                )}
+              </div>
+            ) : (
+              <span className="text-xs text-slate-400 animate-pulse truncate">
+                Gõ chữ cái đầu của từ để khóa laser...
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 text-[11px] text-slate-400 shrink-0">
+            <span className="hidden sm:inline">Phím tắt:</span>
+            <kbd className="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 font-mono text-[10px] text-slate-300">Space</kbd>
+            <span className="hidden sm:inline">đổi từ</span>
+            <span className="text-slate-600">•</span>
+            <kbd className="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 font-mono text-[10px] text-slate-300">ESC</kbd>
+            <span className="hidden sm:inline">dừng</span>
+          </div>
+        </div>
       </div>
 
-      {/* Right Side PvP View — Enhanced Mirror Arena */}
-      {isPvP && (
-        <div className="hidden lg:flex w-[42%] h-full p-3 border-l border-slate-800/80 bg-slate-950/80">
-          <WordShooterPvPView
-            opponent={opponent}
-            isBot={mode === 'pvp-bot'}
-            playerCombo={combo}
-            attackNotification={attackNotice}
-            incomingAttackWarning={incomingAlert}
-            opponentWords={opponentSimWords}
-          />
-        </div>
-      )}
+
+
+      {/* Tutorial Modal */}
+      <WordShooterTutorialModal
+        isOpen={isTutorialOpen}
+        onClose={() => {
+          setIsTutorialOpen(false);
+          setIsPaused(false);
+        }}
+      />
     </div>
   );
 };

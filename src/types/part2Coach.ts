@@ -103,7 +103,7 @@ export interface Part2Cluster {
   questions: Part2CoachQuestion[];
 }
 
-export type Part2StepId = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
+export type Part2StepId = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
 export interface Part2StepMeta {
   id: Part2StepId;

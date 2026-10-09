@@ -23,12 +23,12 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import Logo from "@/components/Logo";
-import iconFulltest from "@/assets/icons/icon-fulltest.webp";
-import iconDictation from "@/assets/icons/icon-dictation.webp";
+import iconFulltest from "@/assets/icons/icon-fulltest-3d.webp";
+import iconDictation from "@/assets/icons/icon-dictation-3d.webp";
 import iconReflex from "@/assets/icons/icon-reflex.webp";
-import iconArcade from "@/assets/icons/icon-arcade.webp";
-import iconVideo from "@/assets/icons/icon-video.webp";
-import iconFlame from "@/assets/icons/icon-flame.webp";
+import iconArcade from "@/assets/icons/icon-arcade-3d.webp";
+import iconVideo from "@/assets/icons/icon-video-3d.webp";
+import iconFlame from "@/assets/icons/icon-vip-crown-3d.webp";
 import iconGradcap from "@/assets/icons/icon-gradcap.webp";
 import {
   DropdownMenu,
@@ -190,9 +190,9 @@ const Navbar = ({ onOpenSidebar }: NavbarProps) => {
           {/* User state */}
           {user ? (
             <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
-              {/* NÚT VÀO BÀN HỌC - REDIRECT VÀO KHO KHÓA HỌC (/library) */}
+              {/* NÚT VÀO BÀN HỌC - REDIRECT VÀO BÀN HỌC TỔNG QUAN (/dashboard) */}
               <Link
-                to="/library"
+                to="/dashboard"
                 className="flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold text-white bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-500 shadow-md shadow-blue-500/20 hover:shadow-blue-500/30 transition-all duration-200 transform hover:-translate-y-0.5 active:translate-y-0 shrink-0"
               >
                 <img src={iconGradcap} alt="" className="w-5 h-5 object-contain shrink-0 drop-shadow-xs" />
@@ -399,12 +399,12 @@ const Navbar = ({ onOpenSidebar }: NavbarProps) => {
             {user ? (
               <div className="space-y-2">
                 <Link
-                  to="/library"
+                  to="/dashboard"
                   onClick={() => setMobileMenuOpen(false)}
                   className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-xs text-white bg-gradient-to-r from-blue-600 to-indigo-600 shadow-sm"
                 >
                   <img src={iconGradcap} alt="" className="w-5 h-5 object-contain" />
-                  <span>Vào Bàn Học (Kho Khóa Học)</span>
+                  <span>Vào Bàn Học (Tổng Quan)</span>
                 </Link>
 
                 <div className="flex items-center justify-between pt-1">

@@ -1,6 +1,7 @@
 import Logo from "@/components/Logo";
 import { Link } from "react-router-dom";
 import { Phone, Mail, Clock, MessageCircle, ArrowRight, ShieldCheck, Heart } from "lucide-react";
+import zaloSvg from "@/assets/icons/zalo-official.svg";
 
 const SOCIAL_LINKS = {
   tiktok: "https://www.tiktok.com/@YOUR_TIKTOK",
@@ -75,9 +76,9 @@ const Footer = () => {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Zalo"
-                  className="px-3 h-9 rounded-xl bg-blue-600 hover:bg-blue-500 border border-blue-500 flex items-center justify-center transition-all hover:scale-105 text-white font-black text-xs shadow-[0_0_15px_rgba(59,130,246,0.3)]"
+                  className="w-9 h-9 rounded-xl bg-blue-600 hover:bg-blue-500 border border-blue-400/40 flex items-center justify-center transition-all hover:scale-110 text-white shadow-[0_0_15px_rgba(59,130,246,0.4)] p-1.5"
                 >
-                  <span>Zalo</span>
+                  <img src={zaloSvg} alt="Zalo" className="w-full h-full object-contain" />
                 </a>
               </div>
             </div>

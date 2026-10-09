@@ -15,12 +15,14 @@ import {
   Search,
   Filter,
   Flame,
-  ShieldCheck,
-  Compass,
-  Play
+  Play,
+  RotateCcw
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
+import iconReflex from '@/assets/icons/icon-reflex.webp';
+import iconDictation from '@/assets/icons/icon-dictation-3d.webp';
+import iconFulltest from '@/assets/icons/icon-fulltest-3d.webp';
 
 interface Part2HubViewProps {
   onSelectCluster: (cluster: Part2Cluster) => void;
@@ -54,8 +56,11 @@ export const Part2HubView: React.FC<Part2HubViewProps> = ({ onSelectCluster }) =
   const getClusterProgress = (clusterId: string) => {
     try {
       const totalSteps = PART2_STEPS_META.length;
-      const key = `lenglish_part2_progress_v1_${user?.id || 'guest'}_${clusterId}`;
+      const key = `lenglish_part2_progress_v2_${user?.id || 'guest'}_${clusterId}`;
       let raw = localStorage.getItem(key);
+      if (!raw) {
+        raw = localStorage.getItem(`lenglish_part2_progress_v1_${user?.id || 'guest'}_${clusterId}`);
+      }
       if (!raw) {
         raw = localStorage.getItem(`lenglish_part2_cluster_${clusterId}_${user?.id || 'guest'}`);
       }
@@ -79,11 +84,9 @@ export const Part2HubView: React.FC<Part2HubViewProps> = ({ onSelectCluster }) =
   };
 
   const filteredClusters = PART2_CLUSTERS.filter((cluster) => {
-    // Filter by source
     if (activeSourceTab === 'fulltest' && cluster.sourceType !== 'fulltest') return false;
     if (activeSourceTab === 'dictation' && cluster.sourceType !== 'dictation') return false;
 
-    // Filter by stem type
     if (selectedStemType !== 'all') {
       const hasStemType = cluster.questions.some(
         (q) => q.questionStem.type === selectedStemType
@@ -91,7 +94,6 @@ export const Part2HubView: React.FC<Part2HubViewProps> = ({ onSelectCluster }) =
       if (!hasStemType) return false;
     }
 
-    // Filter by search
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       const matchTitle = cluster.title.toLowerCase().includes(q);
@@ -108,61 +110,71 @@ export const Part2HubView: React.FC<Part2HubViewProps> = ({ onSelectCluster }) =
     return true;
   });
 
+  // Calculate overall stats
+  const totalQuestions = PART2_CLUSTERS.reduce((acc, c) => acc + c.questions.length, 0);
+  const finishedClustersCount = PART2_CLUSTERS.filter((c) => getClusterProgress(c.id).isFinished).length;
+
   return (
-    <div className="space-y-8 pb-16">
-      {/* Hero Section */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-900 text-white p-6 sm:p-10 shadow-xl border border-indigo-700/30">
-        <div className="absolute top-0 right-0 -mt-10 -mr-10 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-1/3 -mb-10 w-80 h-80 bg-blue-500/20 rounded-full blur-3xl pointer-events-none" />
+    <div className="space-y-6 pb-16 font-sans">
+      {/* 1. Hero Showcase Banner - Đồng điệu với Trang Chủ */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-purple-950/90 via-[#09122a]/95 to-slate-900 border border-purple-500/30 p-6 sm:p-7 text-white shadow-[0_10px_35px_rgba(0,0,0,0.4)] backdrop-blur-md">
+        <div className="absolute top-0 right-0 -mt-8 -mr-8 w-80 h-80 bg-purple-600/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-1/3 -mb-8 w-64 h-64 bg-indigo-600/15 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="relative z-10 space-y-6 max-w-4xl">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-black uppercase tracking-wider text-amber-300">
-            <Zap className="w-4 h-4 fill-amber-300 text-amber-300" />
-            <span>Chế độ Huấn Luyện Độc Quyền</span>
-          </div>
+        <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
+          {/* Left Title & Summary */}
+          <div className="space-y-2.5 max-w-2xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/20 text-purple-200 text-xs font-black uppercase tracking-wider backdrop-blur-xs border border-purple-400/30">
+              <img src={iconReflex} alt="" className="w-4 h-4 object-contain inline-block" />
+              <span>Quy trình 7 bước Part 2</span>
+            </div>
 
-          <div className="space-y-3">
-            <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight">
-              Huấn Luyện Phản Xạ 8 Bước <br className="hidden sm:block" />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-purple-200 to-sky-300">
-                TOEIC Part 2 (Hỏi &amp; Đáp)
-              </span>
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-white font-display tracking-tight leading-snug">
+              Huấn Luyện Phản Xạ Nghe <span className="text-purple-400">TOEIC Part 2</span>
             </h1>
-            <p className="text-slate-200 text-sm sm:text-base leading-relaxed max-w-2xl font-medium">
-              Không chỉ là làm đề trắc nghiệm thông thường! Hệ thống bẻ nhỏ câu hỏi theo <strong>Functional Chunks</strong>, ép não bộ <strong>bật nghĩa trong 1 giây</strong>, phản xạ câu gián tiếp, nhại giọng <strong>Shadowing nối âm</strong>, bóc trần cạm bẫy, <strong>thi thực chiến áp lực 5s</strong> và ngấm thụ động vô thức.
+
+            <p className="text-slate-300 text-xs sm:text-sm font-medium leading-relaxed">
+              Bẻ nhỏ Functional Chunks • Phản xạ Hỏi &amp; Đáp • Shadowing 2 lượt chuẩn xác • Luyện đề tự do kiểu Full Test.
             </p>
           </div>
 
-          {/* Quick Audio Tester Bar */}
-          <div className="p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-purple-500/30 flex items-center justify-center shrink-0">
-                <Volume2 className="w-5 h-5 text-purple-200" />
-              </div>
-              <div className="text-xs sm:text-sm">
-                <p className="font-bold text-white">Kiểm tra loa &amp; âm thanh bài luyện</p>
-                <p className="text-white/70 text-xs">
-                  {audioTestSuccess
-                    ? '✅ Âm thanh hoạt động bình thường! Chúc bạn học tốt.'
-                    : 'Bấm nghe thử một câu ngắn để kiểm tra âm lượng thiết bị.'}
-                </p>
-              </div>
+          {/* Right Stats & Audio Tester */}
+          <div className="flex flex-col sm:flex-row md:flex-col items-stretch sm:items-center md:items-end gap-2.5 shrink-0 w-full sm:w-auto">
+            {/* Quick Stats Pill */}
+            <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/15 px-3 py-1.5 rounded-xl text-xs font-bold text-white/90">
+              <span className="text-purple-300">{PART2_CLUSTERS.length} cụm</span>
+              <span>•</span>
+              <span className="text-amber-300">{totalQuestions} câu</span>
+              <span>•</span>
+              <span className="text-emerald-400">{finishedClustersCount} xong</span>
             </div>
 
+            {/* Compact Audio Tester Button */}
             <Button
+              size="sm"
               onClick={handleTestAudio}
               disabled={isPlayingAudioTest}
-              className="rounded-xl font-bold bg-amber-400 hover:bg-amber-300 text-slate-950 shrink-0 shadow-md"
+              className={cn(
+                'rounded-xl font-bold text-xs shadow-xs transition-all cursor-pointer h-9 px-3.5',
+                audioTestSuccess
+                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                  : 'bg-white/15 hover:bg-white/25 text-white border border-white/20 backdrop-blur-md'
+              )}
             >
               {isPlayingAudioTest ? (
                 <>
-                  <span className="w-2 h-2 rounded-full bg-slate-900 animate-ping mr-2" />
-                  Đang phát âm thanh...
+                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping mr-1.5" />
+                  Đang phát...
+                </>
+              ) : audioTestSuccess ? (
+                <>
+                  <CheckCircle2 className="w-3.5 h-3.5 mr-1 text-white" />
+                  Loa tốt
                 </>
               ) : (
                 <>
-                  <Play className="w-4 h-4 mr-1.5 fill-slate-950" />
-                  Nghe Thử Âm Thanh
+                  <Volume2 className="w-3.5 h-3.5 mr-1 text-purple-300" />
+                  Nghe thử loa
                 </>
               )}
             </Button>
@@ -170,59 +182,54 @@ export const Part2HubView: React.FC<Part2HubViewProps> = ({ onSelectCluster }) =
         </div>
       </div>
 
-      {/* 8-Step Method Infographic Grid */}
-      <div className="bg-card border border-border rounded-3xl p-5 sm:p-7 space-y-4 shadow-sm">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div>
-            <h3 className="text-base sm:text-lg font-black text-foreground flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-purple-600" />
-              Quy trình 8 Bước Huấn Luyện Phản Xạ Chuẩn Khoa Học
-            </h3>
-            <p className="text-xs sm:text-sm text-muted-foreground font-medium">
-              Mỗi cụm câu hỏi bạn sẽ lần lượt trải qua 8 bước hoàn chỉnh để khắc sâu phản xạ vào tiềm thức
-            </p>
-          </div>
+      {/* 2. Compact 7-Step Workflow Strip (Gọn gàng thay vì box to tướng) */}
+      <div className="bg-card/80 backdrop-blur-sm border border-border/70 rounded-2xl p-3 sm:px-4 sm:py-3 shadow-soft-xs space-y-2">
+        <div className="flex items-center justify-between text-xs">
+          <span className="font-extrabold text-foreground flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+            Lộ trình 7 bước huấn luyện
+          </span>
+          <span className="text-muted-foreground text-[11px] hidden sm:inline">
+            Tự động theo từng câu
+          </span>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5 pt-2">
+        {/* 7-Step Badges Row */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-1.5 text-xs">
           {PART2_STEPS_META.map((step) => (
             <div
               key={step.id}
-              className="p-3 rounded-2xl border border-border/80 bg-slate-50/50 dark:bg-zinc-900/50 space-y-1.5 flex flex-col justify-between"
+              className="px-2 py-1.5 rounded-xl border border-border/60 bg-muted/30 flex items-center gap-1.5 min-w-0"
+              title={`${step.name} - ${step.subtitle}`}
             >
-              <div>
-                <span className="text-xs font-black uppercase tracking-wider text-purple-600 dark:text-purple-400">
-                  Bước {step.id}
-                </span>
-                <p className="text-xs font-black text-foreground leading-snug line-clamp-2">
-                  {step.name}
-                </p>
-              </div>
-              <p className="text-xs text-muted-foreground line-clamp-2 font-medium">
-                {step.subtitle}
-              </p>
+              <span className="w-4 h-4 rounded-md bg-purple-600/15 text-purple-700 dark:text-purple-300 flex items-center justify-center font-black text-[10px] shrink-0">
+                {step.id}
+              </span>
+              <span className="font-bold text-foreground truncate text-[11px]">
+                {step.shortName}
+              </span>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Source Selector Tabs & Filters */}
-      <div className="space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* 3. Toolbar: Source Tabs, Filter & Search (Gọn gàng trong 1 hàng trên desktop) */}
+      <div className="space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           {/* Main Source Tabs */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1">
+          <div className="flex items-center gap-1.5 p-1 bg-muted/60 rounded-2xl overflow-x-auto scrollbar-none">
             <button
               onClick={() => setActiveSourceTab('all')}
               className={cn(
-                'px-4 py-2.5 rounded-2xl font-black text-xs sm:text-sm transition-all shrink-0 cursor-pointer border flex items-center gap-2',
+                'px-3 py-1.5 rounded-xl font-bold text-xs transition-all shrink-0 cursor-pointer flex items-center gap-1.5',
                 activeSourceTab === 'all'
-                  ? 'bg-purple-600 text-white border-purple-600 shadow-md shadow-purple-600/20'
-                  : 'bg-card text-muted-foreground border-border hover:bg-muted'
+                  ? 'bg-card text-foreground shadow-xs font-black'
+                  : 'text-muted-foreground hover:text-foreground'
               )}
             >
-              <Layers className="w-4 h-4" />
-              <span>Tất Cả Cụm Đề</span>
-              <span className="px-1.5 py-0.5 rounded-full text-xs bg-white/20">
+              <Layers className="w-3.5 h-3.5" />
+              <span>Tất cả</span>
+              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-muted font-mono">
                 {PART2_CLUSTERS.length}
               </span>
             </button>
@@ -230,15 +237,15 @@ export const Part2HubView: React.FC<Part2HubViewProps> = ({ onSelectCluster }) =
             <button
               onClick={() => setActiveSourceTab('fulltest')}
               className={cn(
-                'px-4 py-2.5 rounded-2xl font-black text-xs sm:text-sm transition-all shrink-0 cursor-pointer border flex items-center gap-2',
+                'px-3 py-1.5 rounded-xl font-bold text-xs transition-all shrink-0 cursor-pointer flex items-center gap-1.5',
                 activeSourceTab === 'fulltest'
-                  ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-600/20'
-                  : 'bg-card text-muted-foreground border-border hover:bg-muted'
+                  ? 'bg-card text-indigo-600 dark:text-indigo-400 shadow-xs font-black'
+                  : 'text-muted-foreground hover:text-foreground'
               )}
             >
-              <FileCheck2 className="w-4 h-4" />
-              <span>Đề Thi Fulltest Thật (ETS)</span>
-              <span className="px-1.5 py-0.5 rounded-full text-xs bg-white/20">
+              <FileCheck2 className="w-3.5 h-3.5 text-indigo-500" />
+              <span>Đề ETS</span>
+              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-muted font-mono">
                 {fulltestCount}
               </span>
             </button>
@@ -246,56 +253,56 @@ export const Part2HubView: React.FC<Part2HubViewProps> = ({ onSelectCluster }) =
             <button
               onClick={() => setActiveSourceTab('dictation')}
               className={cn(
-                'px-4 py-2.5 rounded-2xl font-black text-xs sm:text-sm transition-all shrink-0 cursor-pointer border flex items-center gap-2',
+                'px-3 py-1.5 rounded-xl font-bold text-xs transition-all shrink-0 cursor-pointer flex items-center gap-1.5',
                 activeSourceTab === 'dictation'
-                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-600/20'
-                  : 'bg-card text-muted-foreground border-border hover:bg-muted'
+                  ? 'bg-card text-emerald-600 dark:text-emerald-400 shadow-xs font-black'
+                  : 'text-muted-foreground hover:text-foreground'
               )}
             >
-              <Headphones className="w-4 h-4" />
-              <span>Luyện Nghe Điền Từ (Dictation)</span>
-              <span className="px-1.5 py-0.5 rounded-full text-xs bg-white/20">
+              <Headphones className="w-3.5 h-3.5 text-emerald-500" />
+              <span>Dictation</span>
+              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-muted font-mono">
                 {dictationCount}
               </span>
             </button>
           </div>
 
-          {/* Search Input */}
-          <div className="relative min-w-[260px] md:max-w-xs">
-            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          {/* Search Box */}
+          <div className="relative w-full sm:w-64 shrink-0">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Tìm theo từ khóa, đề thi, câu hỏi..."
+              placeholder="Tìm cụm đề, câu hỏi..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 rounded-xl text-xs sm:text-sm border border-border bg-card focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full pl-8 pr-3 py-1.5 rounded-xl text-xs border border-border bg-card focus:outline-none focus:ring-2 focus:ring-purple-500/50"
             />
           </div>
         </div>
 
-        {/* Question Type Filter Pills */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none text-xs">
-          <span className="text-muted-foreground font-bold shrink-0 flex items-center gap-1">
-            <Filter className="w-3.5 h-3.5" />
-            Dạng câu:
+        {/* Stem Type Filter Horizontal Pills */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-xs">
+          <span className="text-muted-foreground font-bold shrink-0 flex items-center gap-1 text-[11px] mr-1">
+            <Filter className="w-3 h-3" />
+            Dạng:
           </span>
           {[
-            { id: 'all', label: 'Tất cả dạng' },
-            { id: 'wh-question', label: 'Wh- Questions (Where/When/Who/Why)' },
-            { id: 'yes-no', label: 'Yes/No Questions' },
-            { id: 'request-offer', label: 'Đề nghị & Yêu cầu (Can/Could/Will)' },
-            { id: 'choice-or', label: 'Lựa chọn (Would you like... Or)' },
-            { id: 'tag-question', label: 'Câu hỏi đuôi (...right?)' },
-            { id: 'statement', label: 'Câu trần thuật (Statement)' },
+            { id: 'all', label: 'Tất cả' },
+            { id: 'wh-question', label: 'Wh- Questions' },
+            { id: 'yes-no', label: 'Yes/No' },
+            { id: 'request-offer', label: 'Yêu cầu (Can/Could)' },
+            { id: 'choice-or', label: 'Lựa chọn (Or)' },
+            { id: 'tag-question', label: 'Câu hỏi đuôi' },
+            { id: 'statement', label: 'Trần thuật' },
           ].map((type) => (
             <button
               key={type.id}
               onClick={() => setSelectedStemType(type.id)}
               className={cn(
-                'px-3 py-1.5 rounded-xl font-bold shrink-0 transition-all cursor-pointer border',
+                'px-2.5 py-1 rounded-lg font-bold shrink-0 transition-all cursor-pointer text-[11px]',
                 selectedStemType === type.id
-                  ? 'bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-800'
-                  : 'bg-card text-muted-foreground border-border hover:bg-muted'
+                  ? 'bg-purple-600 text-white shadow-xs'
+                  : 'bg-muted/40 text-muted-foreground hover:text-foreground hover:bg-muted'
               )}
             >
               {type.label}
@@ -304,46 +311,48 @@ export const Part2HubView: React.FC<Part2HubViewProps> = ({ onSelectCluster }) =
         </div>
       </div>
 
-      {/* Clusters Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      {/* 4. Clusters Grid - Chuẩn phong cách CourseCard của Trang Chủ */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredClusters.length === 0 ? (
-          <div className="col-span-full py-16 text-center bg-card border border-border rounded-3xl p-8 space-y-3">
-            <Layers className="w-12 h-12 text-muted-foreground/40 mx-auto" />
-            <h4 className="text-lg font-black text-foreground">Không tìm thấy cụm bài phù hợp</h4>
-            <p className="text-sm text-muted-foreground max-w-md mx-auto">
-              Thử xóa bớt bộ lọc hoặc gõ từ khóa tìm kiếm khác để khám phá các cụm câu hỏi Part 2.
+          <div className="col-span-full py-12 text-center bg-card border border-border rounded-2xl p-6 space-y-2.5 shadow-soft-xs">
+            <Layers className="w-10 h-10 text-muted-foreground/30 mx-auto" />
+            <h4 className="text-sm font-black text-foreground">Không tìm thấy cụm bài</h4>
+            <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+              Thử xóa bớt bộ lọc hoặc gõ từ khóa khác để tìm kiếm.
             </p>
             <Button
               variant="outline"
+              size="sm"
               onClick={() => {
                 setActiveSourceTab('all');
                 setSearchQuery('');
                 setSelectedStemType('all');
               }}
-              className="rounded-xl font-bold"
+              className="rounded-xl text-xs font-bold cursor-pointer"
             >
-              Xóa toàn bộ bộ lọc
+              Xóa bộ lọc
             </Button>
           </div>
         ) : (
           filteredClusters.map((cluster) => {
             const isFulltest = cluster.sourceType === 'fulltest';
             const progress = getClusterProgress(cluster.id);
+
             return (
               <div
                 key={cluster.id}
                 onClick={() => onSelectCluster(cluster)}
-                className="group p-5 sm:p-6 rounded-3xl border-2 border-border/80 bg-card hover:border-purple-500 hover:shadow-xl hover:shadow-purple-500/10 transition-all duration-200 flex flex-col justify-between space-y-4 cursor-pointer relative overflow-hidden"
+                className="group p-4 sm:p-5 rounded-2xl border border-border/70 bg-card hover:border-purple-500/60 hover:shadow-lg hover:shadow-purple-500/10 transition-all duration-200 flex flex-col justify-between space-y-3.5 cursor-pointer relative overflow-hidden active:scale-[0.99]"
               >
-                {/* Top Badge Info */}
-                <div className="space-y-2.5">
-                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                {/* Header Row: Badge nguồn + Trạng thái */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-2">
                     <span
                       className={cn(
-                        'text-xs font-black uppercase px-2.5 py-1 rounded-lg border tracking-wider',
+                        'text-[10px] font-black uppercase px-2 py-0.5 rounded-md border tracking-wider',
                         isFulltest
-                          ? 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-400'
-                          : 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-400'
+                          ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20'
+                          : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
                       )}
                     >
                       {cluster.testSource}
@@ -351,68 +360,91 @@ export const Part2HubView: React.FC<Part2HubViewProps> = ({ onSelectCluster }) =
 
                     <div className="flex items-center gap-1.5">
                       {progress.isFinished ? (
-                        <span className="inline-flex items-center gap-1 text-xs font-black text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Hoàn thành ✓
+                        <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                          <CheckCircle2 className="w-3 h-3" /> Đã xong
                         </span>
                       ) : progress.completedCount > 0 ? (
-                        <span className="inline-flex items-center gap-1 text-xs font-black text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 px-2 py-0.5 rounded-full border border-amber-200 dark:border-amber-800">
-                          <Flame className="w-3.5 h-3.5" /> Đã học {progress.completedCount}/{PART2_STEPS_META.length} bước
+                        <span className="inline-flex items-center gap-1 text-[10px] font-black text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+                          <Flame className="w-3 h-3" /> {progress.completedCount}/{PART2_STEPS_META.length}
                         </span>
-                      ) : null}
-
-                      <span className="text-xs font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                        {cluster.difficulty}
-                      </span>
+                      ) : (
+                        <span className="text-[10px] font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                          {cluster.difficulty}
+                        </span>
+                      )}
                     </div>
                   </div>
 
-                  <h3 className="text-base sm:text-lg font-black text-foreground group-hover:text-purple-600 transition-colors line-clamp-2">
+                  {/* Title & Description */}
+                  <h3 className="text-sm sm:text-base font-extrabold text-foreground group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors line-clamp-1">
                     {cluster.title}
                   </h3>
 
-                  <p className="text-xs sm:text-sm text-muted-foreground font-medium line-clamp-2 leading-relaxed">
+                  <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
                     {cluster.description}
                   </p>
 
-                  {/* Progress Bar Indicator */}
-                  <div className="w-full bg-slate-100 dark:bg-zinc-800 h-1.5 rounded-full overflow-hidden mt-2">
+                  {/* Progress Line */}
+                  <div className="w-full bg-muted/60 h-1 rounded-full overflow-hidden mt-1.5">
                     <div
                       className={cn(
-                        "h-full rounded-full transition-all duration-300",
-                        progress.isFinished ? "bg-emerald-500" : "bg-purple-600"
+                        'h-full rounded-full transition-all duration-300',
+                        progress.isFinished
+                          ? 'bg-emerald-500'
+                          : 'bg-gradient-to-r from-purple-600 to-indigo-600'
                       )}
-                      style={{ width: `${Math.max(progress.completedCount > 0 ? 8 : 0, Math.round((progress.completedCount / PART2_STEPS_META.length) * 100))}%` }}
+                      style={{
+                        width: `${Math.max(
+                          progress.completedCount > 0 ? 10 : 0,
+                          Math.round((progress.completedCount / PART2_STEPS_META.length) * 100)
+                        )}%`,
+                      }}
                     />
                   </div>
                 </div>
 
                 {/* Question Stem Badges Preview */}
-                <div className="space-y-3 pt-2 border-t border-border/60">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    {cluster.questions.map((q) => (
+                <div className="space-y-2.5 pt-2 border-t border-border/60">
+                  <div className="flex items-center gap-1 flex-wrap">
+                    {cluster.questions.slice(0, 4).map((q) => (
                       <span
                         key={q.id}
-                        className="text-xs font-bold px-2 py-0.5 rounded-md bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200/60 dark:border-purple-800/60"
-                        title={q.questionText}
+                        className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-purple-500/10 text-purple-600 dark:text-purple-300 border border-purple-500/15"
                       >
-                        {q.questionStem.text.slice(0, 16)}
+                        {q.questionStem.text.slice(0, 14)}
                       </span>
                     ))}
+                    {cluster.questions.length > 4 && (
+                      <span className="text-[10px] font-bold text-muted-foreground">
+                        +{cluster.questions.length - 4}
+                      </span>
+                    )}
                   </div>
 
+                  {/* Action Footer */}
                   <div className="flex items-center justify-between pt-1">
                     <span className="text-xs font-bold text-muted-foreground flex items-center gap-1">
-                      <Headphones className="w-3.5 h-3.5 text-purple-600" />
-                      {cluster.questions.length} câu hỏi
+                      <Headphones className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                      {cluster.questions.length} câu
                     </span>
 
-                    <span className="text-xs font-black text-purple-600 dark:text-purple-400 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                      {progress.isFinished
-                        ? 'Ôn tập lại'
-                        : progress.completedCount > 0
-                        ? 'Tiếp tục'
-                        : `Vào ${PART2_STEPS_META.length} bước`}
-                      <ArrowRight className="w-3.5 h-3.5" />
+                    <span className="text-xs font-black text-purple-600 dark:text-purple-400 flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
+                      {progress.isFinished ? (
+                        <>
+                          <span>Luyện lại</span>
+                          <RotateCcw className="w-3 h-3" />
+                        </>
+                      ) : progress.completedCount > 0 ? (
+                        <>
+                          <span>Tiếp tục</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </>
+                      ) : (
+                        <>
+                          <span>Vào học</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </>
+                      )}
                     </span>
                   </div>
                 </div>

@@ -1,33 +1,63 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Part2CoachQuestion } from '@/types/part2Coach';
 import { Button } from '@/components/ui/button';
 import {
   Mic,
   MicOff,
   Volume2,
-  Play,
-  Pause,
   RotateCcw,
-  Sparkles,
-  ArrowRight,
-  Eye,
-  EyeOff,
   CheckCircle2,
-  Repeat,
-  Radio,
-  Award,
-  Check,
+  ChevronLeft,
+  ChevronRight,
+  Sparkles,
   AlertCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { soundAudioPlayer } from '@/services/soundAudioPlayer';
 import { useSound } from '@/hooks/useSound';
 
-import { Part2StepGuide } from './Part2StepGuide';
-
 interface Part2Step5ShadowingProps {
   questions: Part2CoachQuestion[];
   onCompleteStep: () => void;
+}
+
+// Precise word matching algorithm
+function calculateWordAccuracy(target: string, spoken: string): {
+  score: number;
+  wordStatuses: Array<{ word: string; matched: boolean }>;
+} {
+  const cleanTarget = target.toLowerCase().replace(/[^a-z0-9\s]/g, '');
+  const targetWords = cleanTarget.split(/\s+/).filter(Boolean);
+
+  const cleanSpoken = spoken.toLowerCase().replace(/[^a-z0-9\s]/g, '');
+  const spokenWords = cleanSpoken.split(/\s+/).filter(Boolean);
+
+  if (targetWords.length === 0) return { score: 100, wordStatuses: [] };
+  if (spokenWords.length === 0) {
+    return {
+      score: 0,
+      wordStatuses: targetWords.map((w) => ({ word: w, matched: false })),
+    };
+  }
+
+  // Count matched occurrences
+  const spokenPool = [...spokenWords];
+  let matchCount = 0;
+  const wordStatuses = targetWords.map((tw) => {
+    const idx = spokenPool.findIndex((sw) => sw === tw || (tw.length > 3 && sw.includes(tw)));
+    if (idx !== -1) {
+      spokenPool.splice(idx, 1);
+      matchCount += 1;
+      return { word: tw, matched: true };
+    }
+    return { word: tw, matched: false };
+  });
+
+  const rawPercent = Math.round((matchCount / targetWords.length) * 100);
+  return {
+    score: Math.min(100, Math.max(0, rawPercent)),
+    wordStatuses,
+  };
 }
 
 export const Part2Step5Shadowing: React.FC<Part2Step5ShadowingProps> = ({
@@ -35,51 +65,49 @@ export const Part2Step5Shadowing: React.FC<Part2Step5ShadowingProps> = ({
   onCompleteStep,
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [shadowingRound, setShadowingRound] = useState<1 | 2>(1); // 1 = có script, 2 = ẩn script
-  const [isPlayingNative, setIsPlayingNative] = useState(false);
-  const [repeatCount, setRepeatCount] = useState<Record<number, number>>({});
-  const isLoopActive = useRef(false);
-  const { playSound } = useSound();
-
-  // Voice Recording & Speech Recognition states
+  const [subTurn, setSubTurn] = useState<'question' | 'answer'>('question');
   const [isRecording, setIsRecording] = useState(false);
-  const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [spokenTranscript, setSpokenTranscript] = useState('');
   const [userAudioUrl, setUserAudioUrl] = useState<string | null>(null);
-  const [isPlayingUserAudio, setIsPlayingUserAudio] = useState(false);
-  const [evalResult, setEvalResult] = useState<{
-    score: number;
-    feedback: string;
-    matchedWords: string[];
-  } | null>(null);
-  const [isPeekOpen, setIsPeekOpen] = useState(false);
   const [micError, setMicError] = useState<string | null>(null);
+  const [scores, setScores] = useState<Record<string, number>>({});
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const recognitionRef = useRef<any>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const userAudioPlayerRef = useRef<HTMLAudioElement | null>(null);
+  const { playSound } = useSound();
 
   const currentQ = questions[currentIndex];
+  const targetText = subTurn === 'question' ? currentQ.questionText : currentQ.correctChoice.text;
+  const targetKey = `${currentQ.id}-${subTurn}`;
 
-  // Reset states on question change
+  const speakCurrentTarget = useCallback(() => {
+    soundAudioPlayer.speakText(targetText, 0.9);
+  }, [targetText]);
+
+  // Clean and auto-play when question or sub-turn changes
   useEffect(() => {
-    isLoopActive.current = false;
-    setIsPlayingNative(false);
     soundAudioPlayer.stop();
     stopRecording(false);
     setUserAudioUrl(null);
     setSpokenTranscript('');
-    setEvalResult(null);
-    setIsPeekOpen(false);
     setMicError(null);
-  }, [currentIndex]);
+
+    const timer = setTimeout(() => {
+      speakCurrentTarget();
+    }, 250);
+
+    return () => {
+      clearTimeout(timer);
+      soundAudioPlayer.stop();
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [currentIndex, subTurn, speakCurrentTarget]);
 
   // Clean up on unmount
   useEffect(() => {
     return () => {
-      isLoopActive.current = false;
       soundAudioPlayer.stop();
       if (timerRef.current) clearInterval(timerRef.current);
       if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
@@ -93,48 +121,14 @@ export const Part2Step5Shadowing: React.FC<Part2Step5ShadowingProps> = ({
     };
   }, []);
 
-  // Play Native Pair Audio (Question -> pause 1.2s -> Answer)
-  const handlePlayNativePair = async () => {
-    if (isPlayingNative) {
-      isLoopActive.current = false;
-      setIsPlayingNative(false);
-      soundAudioPlayer.stop();
-      return;
-    }
-
-    isLoopActive.current = true;
-    setIsPlayingNative(true);
-
-    const items = [
-      { text: currentQ.questionText, pauseAfterMs: 1200 },
-      { text: currentQ.correctChoice.text, pauseAfterMs: 400 },
-    ];
-
-    await soundAudioPlayer.speakSequence(items, {
-      rate: 0.9,
-      shouldContinue: () => isLoopActive.current,
-    });
-
-    setIsPlayingNative(false);
-    isLoopActive.current = false;
-
-    // Increment repeat count
-    setRepeatCount((prev) => {
-      const cur = prev[currentQ.id] || 0;
-      return { ...prev, [currentQ.id]: Math.min(5, cur + 1) };
-    });
-  };
-
-  // Start Voice Recording & Speech Recognition
   const startRecording = async () => {
     soundAudioPlayer.stop();
     setMicError(null);
     setSpokenTranscript('');
-    setEvalResult(null);
     setUserAudioUrl(null);
     audioChunksRef.current = [];
 
-    // 1. Setup MediaRecorder for audio recording
+    // 1. Audio MediaRecorder
     try {
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -142,33 +136,26 @@ export const Part2Step5Shadowing: React.FC<Part2Step5ShadowingProps> = ({
         mediaRecorderRef.current = mediaRecorder;
 
         mediaRecorder.ondataavailable = (event) => {
-          if (event.data.size > 0) {
-            audioChunksRef.current.push(event.data);
-          }
+          if (event.data.size > 0) audioChunksRef.current.push(event.data);
         };
 
         mediaRecorder.onstop = () => {
           const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-          const url = URL.createObjectURL(audioBlob);
-          setUserAudioUrl(url);
-
-          // Stop all stream tracks to release microphone
+          setUserAudioUrl(URL.createObjectURL(audioBlob));
           stream.getTracks().forEach((track) => track.stop());
         };
 
         mediaRecorder.start();
       }
-    } catch (err: any) {
-      console.warn('Microphone permission or access error:', err);
-      setMicError('Không thể mở micro. Vui lòng cho phép quyền truy cập Micro trên trình duyệt để thu âm.');
+    } catch (err) {
+      setMicError('Vui lòng bật quyền Micro để luyện nói.');
     }
 
-    // 2. Setup SpeechRecognition for real-time speech-to-text
+    // 2. SpeechRecognition
     const SpeechRecognition =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
-    let recognizedTextAccumulator = '';
-
+    let recognizedText = '';
     if (SpeechRecognition) {
       try {
         const recognition = new SpeechRecognition();
@@ -178,527 +165,328 @@ export const Part2Step5Shadowing: React.FC<Part2Step5ShadowingProps> = ({
         recognitionRef.current = recognition;
 
         recognition.onresult = (event: any) => {
-          let current = '';
-          for (let i = 0; i < event.results.length; ++i) {
-            current += event.results[i][0].transcript + ' ';
+          let curr = '';
+          for (let i = 0; i < event.results.length; i++) {
+            curr += event.results[i][0].transcript + ' ';
           }
-          recognizedTextAccumulator = current.trim();
-          setSpokenTranscript(recognizedTextAccumulator);
-        };
-
-        recognition.onerror = (e: any) => {
-          console.warn('Speech recognition notice:', e.error);
+          recognizedText = curr.trim();
+          setSpokenTranscript(recognizedText);
         };
 
         recognition.start();
       } catch (e) {
-        console.warn('Cannot start SpeechRecognition:', e);
+        console.warn('SpeechRecognition error:', e);
       }
     }
 
-    // 3. Start timer
     setIsRecording(true);
-    setRecordingSeconds(0);
     if (timerRef.current) clearInterval(timerRef.current);
-    timerRef.current = setInterval(() => {
-      setRecordingSeconds((prev) => {
-        if (prev >= 12) {
-          // Auto stop after 12s
-          stopRecording(true);
-          return 12;
-        }
-        return prev + 1;
-      });
-    }, 1000);
+    timerRef.current = setTimeout(() => {
+      stopRecording(true);
+    }, 10000); // 10s auto stop
   };
 
-  // Stop Recording & Evaluate
-  const stopRecording = (shouldEvaluate: boolean = true) => {
+  const stopRecording = (evaluate = true) => {
     setIsRecording(false);
     if (timerRef.current) {
-      clearInterval(timerRef.current);
+      clearTimeout(timerRef.current);
       timerRef.current = null;
     }
 
-    // Stop MediaRecorder
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
       try {
         mediaRecorderRef.current.stop();
       } catch (e) {}
     }
 
-    // Stop SpeechRecognition
     if (recognitionRef.current) {
       try {
         recognitionRef.current.stop();
       } catch (e) {}
     }
 
-    if (shouldEvaluate) {
-      evaluateSpokenSpeech();
+    if (evaluate) {
+      setTimeout(() => {
+        setSpokenTranscript((latest) => {
+          const { score } = calculateWordAccuracy(targetText, latest);
+          setScores((prev) => ({ ...prev, [targetKey]: score }));
+          if (score >= 60) {
+            playSound('correct');
+          } else {
+            playSound('incorrect');
+          }
+          return latest;
+        });
+      }, 300);
     }
   };
 
-  // Compare spoken words with target sentence
-  const evaluateSpokenSpeech = () => {
-    const targetFull = `${currentQ.questionText} ${currentQ.correctChoice.text}`
-      .toLowerCase()
-      .replace(/[^a-z0-9\s]/g, '');
-    const targetWords = Array.from(new Set(targetFull.split(/\s+/).filter((w) => w.length > 2)));
-
-    const spokenClean = spokenTranscript
-      .toLowerCase()
-      .replace(/[^a-z0-9\s]/g, '');
-    const spokenWords = spokenClean.split(/\s+/).filter(Boolean);
-
-    const matched = targetWords.filter((tw) => spokenWords.includes(tw));
-    const ratio = targetWords.length > 0 ? matched.length / targetWords.length : 0.5;
-
-    let score = Math.round(ratio * 100);
-    // Give generous score if learner attempted to speak
-    if (spokenWords.length >= 3 && score < 60) score = Math.min(85, score + 40);
-    if (score < 40 && spokenWords.length > 0) score = 55;
-    if (score === 0 && spokenWords.length === 0) score = 70; // Fallback if SpeechRecognition was silent
-
-    let feedback = 'Xuất sắc! Ngữ điệu và phát âm rất tự nhiên chuẩn người bản xứ!';
-    if (score < 60) {
-      feedback = 'Khá tốt! Hãy nhại lại thêm một lần nữa để bắt kịp tốc độ nối âm nhé.';
-    } else if (score < 80) {
-      feedback = 'Tốt lắm! Âm sắc và ngữ điệu bắt đầu thấm sâu vào phản xạ rồi!';
+  const toggleRecording = () => {
+    if (isRecording) {
+      stopRecording(true);
+    } else {
+      startRecording();
     }
-
-    playSound('correct');
-    setEvalResult({ score, feedback, matchedWords: matched });
-
-    // Increment repeat count
-    setRepeatCount((prev) => {
-      const cur = prev[currentQ.id] || 0;
-      return { ...prev, [currentQ.id]: Math.min(5, cur + 1) };
-    });
   };
 
-  // Play User's recorded voice
-  const handlePlayUserVoice = () => {
-    if (!userAudioUrl) return;
-    if (userAudioPlayerRef.current) {
-      userAudioPlayerRef.current.pause();
+  const currentScore = scores[targetKey];
+  const { wordStatuses } = calculateWordAccuracy(targetText, spokenTranscript);
+
+  const isQDone = (scores[`${currentQ.id}-question`] || 0) >= 60;
+  const isADone = (scores[`${currentQ.id}-answer`] || 0) >= 60;
+  const isBothDone = isQDone && isADone;
+
+  const handlePrev = useCallback(() => {
+    if (subTurn === 'answer') {
+      setSubTurn('question');
+    } else if (currentIndex > 0) {
+      setCurrentIndex((prev) => prev - 1);
+      setSubTurn('answer');
     }
-    const audio = new Audio(userAudioUrl);
-    userAudioPlayerRef.current = audio;
-    setIsPlayingUserAudio(true);
-    audio.onended = () => setIsPlayingUserAudio(false);
-    audio.onerror = () => setIsPlayingUserAudio(false);
-    audio.play().catch(() => setIsPlayingUserAudio(false));
-  };
+  }, [subTurn, currentIndex]);
 
-  const handleManualIncrement = () => {
-    playSound('correct');
-    setRepeatCount((prev) => {
-      const cur = prev[currentQ.id] || 0;
-      return { ...prev, [currentQ.id]: Math.min(5, cur + 1) };
-    });
-  };
+  const handleNext = useCallback(() => {
+    if (subTurn === 'question') {
+      setSubTurn('answer');
+    } else if (currentIndex < questions.length - 1) {
+      setCurrentIndex((prev) => prev + 1);
+      setSubTurn('question');
+    } else {
+      onCompleteStep();
+    }
+  }, [subTurn, currentIndex, questions.length, onCompleteStep]);
 
-  const handlePeekScript = () => {
-    setIsPeekOpen(true);
-    setTimeout(() => {
-      setIsPeekOpen(false);
-    }, 3500);
-  };
-
-  const currentRepeats = repeatCount[currentQ.id] || 0;
+  // Global Keyboard Shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) return;
+      if (e.code === 'Space') {
+        e.preventDefault();
+        speakCurrentTarget();
+      } else if (e.key === 'm' || e.key === 'M') {
+        e.preventDefault();
+        toggleRecording();
+      } else if (e.key === 'r' || e.key === 'R') {
+        e.preventDefault();
+        speakCurrentTarget();
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        handlePrev();
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        handleNext();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handlePrev, handleNext, isRecording, speakCurrentTarget]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 max-w-4xl mx-auto">
       {/* Sleek Minimal Ribbon */}
-      <div className="flex items-center justify-between gap-3 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 dark:from-emerald-950/40 dark:to-teal-950/40 border border-emerald-200/80 dark:border-emerald-800/60 px-4 py-2.5 rounded-2xl">
-        <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-emerald-800 dark:text-emerald-200 min-w-0">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-          <span className="font-black text-emerald-600 dark:text-emerald-400 shrink-0">B5: Shadowing Cặp Đúng</span>
-          <span className="text-muted-foreground truncate hidden sm:inline">• Nối âm, nuốt âm & nhại ngữ điệu</span>
+      <div className="flex items-center justify-between gap-3 bg-card border border-border/70 px-4 py-2.5 rounded-2xl shadow-soft-xs">
+        <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-foreground min-w-0">
+          <span className="w-2 h-2 rounded-full bg-violet-600 animate-pulse shrink-0" />
+          <span className="font-black text-violet-600 dark:text-violet-400">B5: Shadowing</span>
+          <span className="text-muted-foreground text-xs">• Luyện giọng 2 lượt</span>
         </div>
-        <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300 shrink-0">
-          Đã lặp: {currentRepeats}/3 lần
+        <span className="text-xs font-black text-muted-foreground">
+          Câu {currentIndex + 1}/{questions.length}
         </span>
       </div>
-
-      {/* Interactive Step Guide */}
-      <Part2StepGuide
-        stepNumber={5}
-        stepTitle="Shadowing Cặp Đúng"
-        goal="Nhại giọng cặp Đúng 3–5 lần"
-        actions={[
-          {
-            clickTarget: "1. Bấm ▶ nghe cặp bản xứ",
-            expectedResult: "Audio phát câu hỏi & đáp án kèm nối âm.",
-          },
-          {
-            clickTarget: "2. Thu âm nhại giọng",
-            expectedResult: "AI chấm điểm phát âm & ngữ điệu.",
-          },
-          {
-            clickTarget: "3. Thử ẩn script",
-            expectedResult: "Nhại lại theo phản xạ âm thanh.",
-          }
-        ]}
-        nextStepName="Bước 6: Bóc Mẽ Cạm Bẫy"
-      />
 
       {/* Question Selector Tabs */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
         {questions.map((q, idx) => {
           const isSelected = idx === currentIndex;
-          const count = repeatCount[q.id] || 0;
+          const qPass = (scores[`${q.id}-question`] || 0) >= 60;
+          const aPass = (scores[`${q.id}-answer`] || 0) >= 60;
+          const allPass = qPass && aPass;
+
           return (
             <button
               key={q.id}
-              onClick={() => setCurrentIndex(idx)}
+              onClick={() => {
+                setCurrentIndex(idx);
+                setSubTurn('question');
+              }}
               className={cn(
-                'px-4 py-2.5 rounded-xl font-black text-xs sm:text-sm transition-all shrink-0 flex items-center gap-2 cursor-pointer border',
+                'px-3.5 py-1.5 rounded-xl font-black text-xs transition-all shrink-0 flex items-center gap-1.5 cursor-pointer border',
                 isSelected
-                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-600/20'
-                  : 'bg-white dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 border-slate-200 dark:border-zinc-800 hover:bg-slate-50'
+                  ? 'bg-violet-600 text-white border-violet-600 shadow-md shadow-violet-600/20'
+                  : allPass
+                  ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
+                  : 'bg-card text-muted-foreground border-border hover:bg-accent'
               )}
             >
               <span>Câu {q.questionNumber || idx + 1}</span>
-              {count >= 3 && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />}
+              {allPass && <CheckCircle2 className="w-3 h-3 text-emerald-500" />}
             </button>
           );
         })}
       </div>
 
-      {/* Round 1 vs Round 2 Mode Toggle */}
-      <div className="flex items-center justify-center">
-        <div className="inline-flex p-1 bg-slate-100 dark:bg-zinc-800 rounded-xl border border-slate-200 dark:border-zinc-700">
-          <button
-            onClick={() => setShadowingRound(1)}
-            className={cn(
-              'px-4 py-1.5 rounded-lg font-bold text-xs sm:text-sm transition-all flex items-center gap-1.5 cursor-pointer',
-              shadowingRound === 1
-                ? 'bg-white dark:bg-zinc-900 text-emerald-700 dark:text-emerald-300 shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
-            )}
-          >
-            <Eye className="w-3.5 h-3.5" />
-            <span>Vòng 1: Có script &amp; nối âm</span>
-          </button>
+      {/* Sub-turn Splitter (Lượt 1: Hỏi vs Lượt 2: Đáp) */}
+      <div className="grid grid-cols-2 gap-3 p-1 bg-muted/60 rounded-2xl">
+        <button
+          onClick={() => setSubTurn('question')}
+          className={cn(
+            'py-2 px-3 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer',
+            subTurn === 'question'
+              ? 'bg-card text-foreground shadow-xs font-black'
+              : 'text-muted-foreground hover:text-foreground'
+          )}
+        >
+          <span>1. Câu hỏi</span>
+          {isQDone && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />}
+          {scores[`${currentQ.id}-question`] !== undefined && (
+            <span className="text-[11px] font-mono">({scores[`${currentQ.id}-question`]}%)</span>
+          )}
+        </button>
 
-          <button
-            onClick={() => setShadowingRound(2)}
-            className={cn(
-              'px-4 py-1.5 rounded-lg font-bold text-xs sm:text-sm transition-all flex items-center gap-1.5 cursor-pointer',
-              shadowingRound === 2
-                ? 'bg-white dark:bg-zinc-900 text-emerald-700 dark:text-emerald-300 shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
-            )}
-          >
-            <EyeOff className="w-3.5 h-3.5" />
-            <span>Vòng 2: Ẩn script nhại giọng</span>
-          </button>
-        </div>
+        <button
+          onClick={() => setSubTurn('answer')}
+          className={cn(
+            'py-2 px-3 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer',
+            subTurn === 'answer'
+              ? 'bg-card text-foreground shadow-xs font-black'
+              : 'text-muted-foreground hover:text-foreground'
+          )}
+        >
+          <span>2. Đáp án</span>
+          {isADone && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />}
+          {scores[`${currentQ.id}-answer`] !== undefined && (
+            <span className="text-[11px] font-mono">({scores[`${currentQ.id}-answer`]}%)</span>
+          )}
+        </button>
       </div>
 
-      {/* Main Shadowing Stage Card */}
-      <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-sm">
-        {/* Play Pair Audio Center Control */}
-        <div className="bg-slate-50 dark:bg-zinc-950/60 border border-slate-200/80 dark:border-zinc-800/80 rounded-2xl p-6 text-center space-y-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 text-xs font-black">
-            <Repeat className="w-3.5 h-3.5" />
-            <span>Đã lặp lại: {currentRepeats} / 3 lần tối thiểu</span>
+      {/* Main Shadowing Card */}
+      <div className="bg-card border border-border rounded-3xl p-6 sm:p-8 space-y-6 shadow-soft-sm text-center">
+        {/* Target sentence display */}
+        <div className="bg-muted/40 border border-border/80 rounded-2xl p-5 space-y-2 text-left">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-black uppercase text-violet-600 dark:text-violet-400">
+              {subTurn === 'question' ? 'Mẫu câu hỏi bản xứ' : `Đáp án (${currentQ.correctChoice.letter})`}
+            </span>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={speakCurrentTarget}
+              className="rounded-xl text-xs font-bold cursor-pointer"
+            >
+              <Volume2 className="w-3.5 h-3.5 mr-1" />
+              Nghe mẫu
+            </Button>
           </div>
 
-          <div className="flex items-center justify-center gap-4">
+          <div className="text-lg sm:text-xl font-black text-foreground">
+            "{targetText}"
+          </div>
+
+          <div className="text-xs text-muted-foreground">
+            {subTurn === 'question' ? currentQ.questionTranslation : currentQ.correctChoice.translation}
+          </div>
+        </div>
+
+        {/* Recording Action Area */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-center gap-3">
             <Button
               size="lg"
-              onClick={handlePlayNativePair}
+              onClick={toggleRecording}
               className={cn(
-                'w-16 h-16 rounded-full text-white shadow-lg transition-transform hover:scale-105 active:scale-95',
-                isPlayingNative
-                  ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/30 animate-pulse'
-                  : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/30'
+                'h-14 px-7 rounded-2xl text-white font-bold text-sm shadow-md transition-transform active:scale-95 cursor-pointer',
+                isRecording
+                  ? 'bg-rose-500 hover:bg-rose-600 animate-pulse'
+                  : 'bg-violet-600 hover:bg-violet-700'
               )}
-              title="Phát cặp câu bản xứ"
             >
-              {isPlayingNative ? <Pause className="w-7 h-7" /> : <Play className="w-7 h-7 ml-1" />}
+              {isRecording ? <MicOff className="w-5 h-5 mr-2" /> : <Mic className="w-5 h-5 mr-2" />}
+              {isRecording ? 'Dừng thu' : 'Thu âm'}
             </Button>
-          </div>
 
-          <p className="text-xs sm:text-sm text-muted-foreground font-medium">
-            {isPlayingNative
-              ? '🔊 Đang phát giọng bản xứ: [Câu hỏi] ➔ nghỉ 1.2s ➔ [Đáp án đúng]...'
-              : 'Bấm nút Play để nghe mẫu người bản xứ nói cặp Hỏi – Đáp!'}
-          </p>
-        </div>
-
-        {/* Display Pair Content */}
-        {shadowingRound === 1 ? (
-          /* ROUND 1: FULL SCRIPT WITH CONNECTED SPEECH NOTES */
-          <div className="space-y-5 animate-in fade-in">
-            {/* Question Box */}
-            <div className="p-5 rounded-2xl bg-slate-50 dark:bg-zinc-950/60 border border-slate-200 dark:border-zinc-800 space-y-1.5">
-              <span className="text-xs font-black uppercase text-muted-foreground tracking-wider">
-                Câu hỏi (Question):
-              </span>
-              <div className="text-lg sm:text-xl font-black text-foreground">
-                {currentQ.questionText}
-              </div>
-              <div className="text-xs sm:text-sm text-muted-foreground">
-                {currentQ.questionTranslation}
-              </div>
-            </div>
-
-            {/* Correct Choice Box */}
-            <div className="p-5 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/30 border-2 border-emerald-300 dark:border-emerald-800 space-y-1.5">
-              <div className="flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center font-black text-xs">
-                  {currentQ.correctChoice.letter}
-                </span>
-                <span className="text-xs font-black uppercase text-emerald-700 dark:text-emerald-400 tracking-wider">
-                  Đáp án đúng (Correct Response):
-                </span>
-              </div>
-              <div className="text-lg sm:text-xl font-black text-foreground">
-                {currentQ.correctChoice.text}
-              </div>
-              <div className="text-xs sm:text-sm text-emerald-800 dark:text-emerald-300 font-medium">
-                {currentQ.correctChoice.translation}
-              </div>
-            </div>
-
-            {/* Connected Speech Badges */}
-            {currentQ.correctChoice.connectedSpeechNotes && currentQ.correctChoice.connectedSpeechNotes.length > 0 && (
-              <div className="space-y-3 pt-2">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-emerald-600" />
-                  <span className="text-xs font-black uppercase tracking-wider text-foreground">
-                    Ghi chú nối âm &amp; nuốt âm của người bản xứ:
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {currentQ.correctChoice.connectedSpeechNotes.map((note, idx) => (
-                    <div
-                      key={idx}
-                      className="p-3.5 rounded-xl bg-white dark:bg-zinc-900 border border-emerald-200 dark:border-emerald-800/60 space-y-1"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-black text-sm text-foreground">{note.segment}</span>
-                        <span className="text-xs font-mono font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950 px-2 py-0.5 rounded-md">
-                          {note.phoneticSpelling}
-                        </span>
-                      </div>
-                      <p className="text-xs text-muted-foreground">{note.explanation}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
+            {userAudioUrl && (
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={() => {
+                  const audio = new Audio(userAudioUrl);
+                  audio.play();
+                }}
+                className="h-14 px-5 rounded-2xl font-bold text-sm border-border cursor-pointer"
+              >
+                <Volume2 className="w-4 h-4 mr-1.5" />
+                Nghe lại
+              </Button>
             )}
           </div>
-        ) : (
-          /* ROUND 2 & 3: INTERACTIVE SHADOWING STUDIO (MICROPHONE & SPEAKING LAB) */
-          <div className="space-y-6 animate-in fade-in">
-            {/* The Main Shadowing Speaking Box */}
-            <div className="p-6 sm:p-8 rounded-3xl bg-zinc-900 text-white text-center space-y-5 border-2 border-emerald-500/30 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
-              <div className="space-y-2">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-black uppercase tracking-wider">
-                  <Radio className="w-3.5 h-3.5 animate-pulse text-emerald-400" />
-                  <span>Phòng Luyện Nói Shadowing Tương Tác</span>
-                </div>
-                <h3 className="text-lg sm:text-2xl font-black text-white">
-                  ĐÃ ẨN SCRIPT! HÃY MỞ MICRO VÀ NÓI NHẠI THEO TAI NGHE
-                </h3>
-                <p className="text-xs sm:text-sm text-zinc-300 max-w-lg mx-auto leading-relaxed">
-                  Không nhìn chữ. Bấm micro dưới đây để thu âm giọng nói của bạn, máy sẽ nhận diện và chấm độ khớp với câu gốc!
-                </p>
-              </div>
-
-              {/* Big Interactive Microphone Button */}
-              <div className="flex flex-col items-center justify-center gap-3 py-2">
-                <button
-                  onClick={isRecording ? () => stopRecording(true) : startRecording}
-                  className={cn(
-                    'w-24 h-24 rounded-full flex flex-col items-center justify-center transition-all cursor-pointer select-none relative group active:scale-95 shadow-xl',
-                    isRecording
-                      ? 'bg-rose-600 text-white shadow-rose-600/40 ring-8 ring-rose-600/20 animate-pulse'
-                      : 'bg-emerald-500 hover:bg-emerald-400 text-zinc-950 shadow-emerald-500/40 hover:scale-105'
-                  )}
-                  title={isRecording ? 'Bấm để dừng nói và chấm điểm' : 'Bấm để bắt đầu nói nhại lại'}
-                >
-                  {isRecording ? (
-                    <>
-                      <MicOff className="w-9 h-9" />
-                      <span className="text-xs font-black uppercase tracking-wider mt-1">
-                        Dừng lại
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <Mic className="w-9 h-9" />
-                      <span className="text-xs font-black uppercase tracking-wider mt-1">
-                        Bấm Nói
-                      </span>
-                    </>
-                  )}
-                </button>
-
-                {/* Status indicator */}
-                <div className="text-xs font-bold">
-                  {isRecording ? (
-                    <span className="text-rose-400 flex items-center gap-1.5 animate-pulse">
-                      <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
-                      Đang lắng nghe giọng bạn ({recordingSeconds}s)... Hãy nói to rõ ràng!
-                    </span>
-                  ) : (
-                    <span className="text-zinc-400">
-                      Bấm vào nút Micro tròn ở trên để bắt đầu nói nhại lại
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Real-time Spoken Transcript Display */}
-              {spokenTranscript && (
-                <div className="p-4 rounded-2xl bg-zinc-800/80 border border-zinc-700/80 max-w-xl mx-auto space-y-1 text-left">
-                  <span className="text-xs font-black uppercase tracking-wider text-emerald-400">
-                    Máy nghe được từ giọng bạn:
-                  </span>
-                  <p className="text-sm sm:text-base font-bold text-white italic">
-                    "{spokenTranscript}"
-                  </p>
-                </div>
-              )}
-
-              {/* Evaluation Result Card (When evaluated) */}
-              {evalResult && (
-                <div className="p-5 rounded-2xl bg-emerald-950/60 border border-emerald-500/50 max-w-xl mx-auto space-y-3 animate-in zoom-in-95">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2">
-                      <Award className="w-6 h-6 text-amber-400" />
-                      <span className="font-black text-white text-base">
-                        Độ chính xác: {evalResult.score}%
-                      </span>
-                    </div>
-                    <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-black">
-                      +1 Lần luyện tập
-                    </span>
-                  </div>
-
-                  <p className="text-xs sm:text-sm text-emerald-200 text-left font-medium">
-                    {evalResult.feedback}
-                  </p>
-
-                  {/* Audio Playback Controls */}
-                  <div className="flex items-center gap-2 pt-1 flex-wrap">
-                    {userAudioUrl && (
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={handlePlayUserVoice}
-                        disabled={isPlayingUserAudio}
-                        className="rounded-xl text-xs font-bold bg-white text-zinc-950 hover:bg-slate-100"
-                      >
-                        <Volume2 className="w-3.5 h-3.5 mr-1 text-purple-600" />
-                        {isPlayingUserAudio ? 'Đang phát...' : 'Nghe lại giọng bạn'}
-                      </Button>
-                    )}
-
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={handlePlayNativePair}
-                      className="rounded-xl text-xs font-bold border-zinc-700 text-zinc-200 hover:bg-zinc-800"
-                    >
-                      <Play className="w-3 h-3 mr-1" />
-                      Nghe lại giọng bản xứ
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {/* Microphone Error Alert (if permission denied) */}
-              {micError && (
-                <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs text-left flex items-start gap-2 max-w-lg mx-auto">
-                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                  <p>{micError}</p>
-                </div>
-              )}
-
-              {/* Action Buttons: Peek Script & Manual Self-check */}
-              <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handlePeekScript}
-                  className="rounded-xl text-xs font-bold text-zinc-400 hover:text-white hover:bg-zinc-800"
-                >
-                  <Eye className="w-3.5 h-3.5 mr-1" />
-                  {isPeekOpen ? 'Đang mở hé script (3s)...' : 'Hé mở script (3s)'}
-                </Button>
-
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleManualIncrement}
-                  className="rounded-xl text-xs font-bold text-emerald-400 hover:text-emerald-300 hover:bg-emerald-950/40"
-                >
-                  <Check className="w-3.5 h-3.5 mr-1" />
-                  Tôi đã nhại xong bằng miệng (+1 lần)
-                </Button>
-              </div>
-
-              {/* Peek Script Box (Temporarily visible for 3.5s) */}
-              {isPeekOpen && (
-                <div className="p-4 rounded-2xl bg-zinc-800 border border-emerald-500/60 max-w-lg mx-auto text-left space-y-2 animate-in fade-in">
-                  <div>
-                    <span className="text-xs font-black uppercase text-muted-foreground">Câu hỏi:</span>
-                    <p className="text-sm font-bold text-white">{currentQ.questionText}</p>
-                  </div>
-                  <div>
-                    <span className="text-xs font-black uppercase text-emerald-400">Đáp án ({currentQ.correctChoice.letter}):</span>
-                    <p className="text-sm font-bold text-emerald-300">{currentQ.correctChoice.text}</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Footer Navigation */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1">
-        <div className="flex items-center gap-2">
-          {currentIndex > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentIndex((prev) => prev - 1)}
-              className="rounded-xl font-bold text-xs"
-            >
-              ← Trước
-            </Button>
-          )}
-
-          {currentIndex < questions.length - 1 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentIndex((prev) => prev + 1)}
-              className="rounded-xl font-bold text-xs"
-            >
-              Kế tiếp →
-            </Button>
+          {micError && (
+            <p className="text-xs text-rose-500 flex items-center justify-center gap-1 font-bold">
+              <AlertCircle className="w-3.5 h-3.5" /> {micError}
+            </p>
           )}
         </div>
 
-        <Button
-          size="default"
-          onClick={onCompleteStep}
-          className="w-full sm:w-auto bg-purple-600 hover:bg-purple-700 text-white font-black rounded-xl px-5 py-2.5 text-xs sm:text-sm shadow-md shadow-purple-600/20"
-        >
-          <span>Tiếp tục: Bóc mẽ cạm bẫy →</span>
-        </Button>
+        {/* Word Match & Accuracy Result Display */}
+        {spokenTranscript && (
+          <div className="bg-muted/30 border border-border/80 rounded-2xl p-5 space-y-3 text-left animate-in fade-in">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-muted-foreground">Bạn đã nói:</span>
+              {currentScore !== undefined && (
+                <span className={cn(
+                  'text-sm font-black',
+                  currentScore >= 80 ? 'text-emerald-500' : currentScore >= 60 ? 'text-amber-500' : 'text-rose-500'
+                )}>
+                  Độ chính xác: {currentScore}%
+                </span>
+              )}
+            </div>
+
+            {/* Word by word highlight */}
+            <div className="flex flex-wrap gap-1.5 text-sm sm:text-base font-bold">
+              {wordStatuses.map((ws, i) => (
+                <span
+                  key={i}
+                  className={cn(
+                    'px-2 py-0.5 rounded-md text-xs sm:text-sm font-mono transition-colors',
+                    ws.matched
+                      ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-black'
+                      : 'bg-rose-500/15 text-rose-700 dark:text-rose-400 line-through'
+                  )}
+                >
+                  {ws.word}
+                </span>
+              ))}
+            </div>
+
+            <p className="text-xs text-muted-foreground italic">
+              Nhận diện: "{spokenTranscript}"
+            </p>
+          </div>
+        )}
+
+        {/* Navigation Row */}
+        <div className="flex items-center justify-between pt-4 border-t border-border/60">
+          <Button
+            variant="ghost"
+            onClick={handlePrev}
+            disabled={currentIndex === 0 && subTurn === 'question'}
+            className="h-9 px-3 rounded-xl font-bold text-xs cursor-pointer"
+          >
+            <ChevronLeft className="w-4 h-4 mr-1" />
+            Trước
+          </Button>
+
+          <Button
+            onClick={handleNext}
+            className="h-9 px-4 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs cursor-pointer"
+          >
+            {currentIndex === questions.length - 1 && subTurn === 'answer' ? 'Xong B5' : 'Tiếp'}
+            <ChevronRight className="w-4 h-4 ml-1" />
+          </Button>
+        </div>
       </div>
     </div>
   );

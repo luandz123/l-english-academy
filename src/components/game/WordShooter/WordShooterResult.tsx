@@ -16,13 +16,17 @@ import {
   Award,
   Crown,
   Swords,
-  Users
+  Users,
+  Star,
+  ShieldAlert,
+  ShieldCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { GameStats, WordReviewItem, VocabTopic, GameDifficulty } from './types';
 import { gameSound } from './gameSound';
 import { cn } from '@/lib/utils';
+import { formatRankInfo, PlayerRankData, getPlayerRank } from '@/services/wordShooterRankService';
 
 interface WordShooterResultProps {
   stats: GameStats;
@@ -40,6 +44,20 @@ interface WordShooterResultProps {
     missedCount?: number;
     waveReached?: number;
   };
+  pvpResult?: {
+    playerKills: number;
+    opponentKills: number;
+    isRanked?: boolean;
+    mode?: string;
+    rankResult?: {
+      previous: PlayerRankData;
+      updated: PlayerRankData;
+      starsChanged: number;
+      promoted: boolean;
+      demoted: boolean;
+    };
+  };
+  onOpenLeaderboard?: () => void;
   onPlayAgain: () => void;
   onPracticeMissedWords?: (words: WordReviewItem[]) => void;
   onBackToLobby: () => void;
@@ -53,6 +71,8 @@ export const WordShooterResult: React.FC<WordShooterResultProps> = ({
   isPvP = false,
   opponentName,
   opponentStats,
+  pvpResult,
+  onOpenLeaderboard,
   onPlayAgain,
   onPracticeMissedWords,
   onBackToLobby,
@@ -62,6 +82,10 @@ export const WordShooterResult: React.FC<WordShooterResultProps> = ({
   const [playingWordId, setPlayingWordId] = useState<string | number | null>(null);
 
   const [isNewRecord, setIsNewRecord] = useState(false);
+
+  // Current rank data
+  const currentRankData = pvpResult?.rankResult?.updated || getPlayerRank();
+  const currentRankInfo = formatRankInfo(currentRankData);
 
   // Save Record to LocalStorage
   useEffect(() => {
@@ -151,10 +175,18 @@ export const WordShooterResult: React.FC<WordShooterResultProps> = ({
                 ? "bg-amber-500/15 border-amber-400/50 text-amber-300 shadow-[0_0_20px_rgba(245,158,11,0.3)]"
                 : "bg-rose-500/10 border-rose-500/40 text-rose-400"
             )}>
-              {isVictory ? (
-                <><Crown className="w-5 h-5 text-amber-400 animate-bounce" /> CHIẾN THẮNG!</>
+              {pvpResult?.isRanked ? (
+                isVictory ? (
+                  <><Crown className="w-5 h-5 text-amber-400 animate-bounce" /> THẮNG ĐẤU HẠNG (+1 ⭐)</>
+                ) : (
+                  <><Swords className="w-5 h-5 text-rose-400" /> THUA ĐẤU HẠNG (-1 ⭐)</>
+                )
               ) : (
-                <><Swords className="w-5 h-5 text-rose-400" /> THUA CUỘC</>
+                isVictory ? (
+                  <><Crown className="w-5 h-5 text-emerald-400 animate-bounce" /> THẮNG GIAO HỮU / ĐẤU MÁY</>
+                ) : (
+                  <><Swords className="w-5 h-5 text-rose-400" /> THUA GIAO HỮU / ĐẤU MÁY</>
+                )
               )}
             </div>
           )}
@@ -191,6 +223,190 @@ export const WordShooterResult: React.FC<WordShooterResultProps> = ({
             Chủ đề: <span className="font-bold text-cyan-300">{topic.name}</span> • Cấp độ: <span className="font-bold text-amber-300 uppercase">{difficulty}</span>
           </p>
         </div>
+
+        {/* Liên Quân Mobile Rank Progression Card (Chỉ hiện khi ĐẤU HẠNG) */}
+        {isPvP && pvpResult?.isRanked && (
+          <div className="relative overflow-hidden rounded-3xl border-2 border-amber-500/40 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 p-5 md:p-6 shadow-[0_0_35px_rgba(245,158,11,0.25)] max-w-3xl mx-auto space-y-4 text-left">
+            {/* Header: Tier + Star Change Result */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500/20 via-yellow-500/10 to-purple-500/20 border-2 border-amber-400 flex items-center justify-center text-3xl shadow-lg shrink-0">
+                  {currentRankInfo.icon}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xl md:text-2xl font-black text-amber-300 tracking-wide">
+                      {currentRankInfo.tierNameVi} {currentRankInfo.divisionRoman}
+                    </span>
+                    {pvpResult?.rankResult?.promoted && (
+                      <span className="px-2.5 py-0.5 rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 text-xs font-black uppercase animate-bounce shadow-md">
+                        🎉 THĂNG HẠNG!
+                      </span>
+                    )}
+                    {pvpResult?.rankResult?.demoted && (
+                      <span className="px-2.5 py-0.5 rounded-full bg-rose-600 text-white text-xs font-black uppercase">
+                        GIÁNG HẠNG
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Hạng Liên Quân Mobile • {currentRankData.totalMatches} trận ({currentRankData.wins} thắng - Tỉ lệ {currentRankData.totalMatches > 0 ? Math.round((currentRankData.wins / currentRankData.totalMatches) * 100) : 100}%)
+                  </p>
+                </div>
+              </div>
+
+              {/* Star Change Pill */}
+              <div className="flex flex-col items-center sm:items-end gap-1 shrink-0">
+                {isVictory ? (
+                  <div className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-500/20 border-2 border-emerald-400 text-emerald-300 font-black text-sm md:text-base shadow-[0_0_15px_rgba(16,185,129,0.4)] animate-bounce">
+                    <Star className="w-5 h-5 fill-amber-400 text-amber-300" />
+                    <span>+1 SAO (THẮNG)</span>
+                  </div>
+                ) : pvpResult?.rankResult?.starsChanged === 0 ? (
+                  <div className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-cyan-950/80 border border-cyan-400/80 text-cyan-300 font-bold text-xs">
+                    <ShieldCheck className="w-4 h-4 text-cyan-400" />
+                    <span>BẢO HỘ TÂN THỦ (0 SAO)</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-rose-500/20 border-2 border-rose-500 text-rose-300 font-black text-sm md:text-base">
+                    <Star className="w-5 h-5 text-rose-400 opacity-50" />
+                    <span>-1 SAO (THUA)</span>
+                  </div>
+                )}
+                {currentRankData.winStreak > 1 && (
+                  <span className="text-xs font-black text-amber-400 flex items-center gap-1">
+                    <Flame className="w-3.5 h-3.5 fill-amber-400 text-amber-400 animate-pulse" />
+                    Chuỗi {currentRankData.winStreak} trận thắng!
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Stars Row */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  Số sao hiện tại:
+                </span>
+                {currentRankData.tier === 'master' || currentRankData.tier === 'grandmaster' ? (
+                  <div className="flex items-center gap-1.5 font-black text-amber-300 text-lg">
+                    <Star className="w-6 h-6 fill-amber-400 text-amber-300 drop-shadow-[0_0_8px_rgba(245,158,11,0.8)]" />
+                    <span>x{currentRankData.stars} sao</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5">
+                    {Array.from({ length: currentRankInfo.maxStars }).map((_, starIdx) => {
+                      const hasStar = starIdx < currentRankInfo.stars;
+                      return (
+                        <Star
+                          key={starIdx}
+                          className={cn(
+                            "w-6 h-6 transition-all duration-300",
+                            hasStar
+                              ? "fill-amber-400 text-amber-300 drop-shadow-[0_0_10px_rgba(245,158,11,0.8)] scale-110"
+                              : "text-slate-700 opacity-40 scale-90"
+                          )}
+                        />
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {onOpenLeaderboard && (
+                <button
+                  onClick={onOpenLeaderboard}
+                  className="px-4 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 to-yellow-500/20 hover:from-amber-500/30 hover:to-yellow-500/30 border border-amber-400/60 text-amber-300 font-black text-xs flex items-center gap-1.5 transition-all active:scale-95 shadow-md cursor-pointer"
+                >
+                  <Trophy className="w-4 h-4 text-amber-400" />
+                  Bảng Xếp Hạng Cao Thủ
+                </button>
+              )}
+            </div>
+
+            {/* PvP Kills Comparison Badge */}
+            {pvpResult && (
+              <div className="flex items-center justify-between p-3 rounded-xl bg-slate-900/70 border border-slate-800">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-black text-cyan-400 uppercase">Bạn:</span>
+                  <span className="text-base font-black text-white font-mono">🎯 {pvpResult.playerKills} từ</span>
+                </div>
+                <div className="text-xs font-black text-slate-400 uppercase tracking-widest text-center px-2">
+                  {pvpResult.playerKills > pvpResult.opponentKills ? (
+                    <span className="text-emerald-400 font-black">+ {pvpResult.playerKills - pvpResult.opponentKills} từ thắng thế!</span>
+                  ) : pvpResult.playerKills < pvpResult.opponentKills ? (
+                    <span className="text-rose-400 font-black">- {pvpResult.opponentKills - pvpResult.playerKills} từ hụt lại</span>
+                  ) : (
+                    <span className="text-amber-400 font-black">Hòa tỉ số kills</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-black text-rose-400 uppercase">{opponentName || 'Đối thủ'}:</span>
+                  <span className="text-base font-black text-white font-mono">🎯 {pvpResult.opponentKills} từ</span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Casual PvP / Bot Practice Match Summary (Không tính rank) */}
+        {isPvP && !pvpResult?.isRanked && (
+          <div className="relative overflow-hidden rounded-3xl border border-slate-700 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 p-5 md:p-6 shadow-xl max-w-3xl mx-auto space-y-4 text-left">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-2xl shrink-0">
+                  ⚔️
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-lg md:text-xl font-black text-white tracking-wide">
+                      Trận Đấu Giao Hữu / Đấu Máy
+                    </span>
+                    <span className="px-2.5 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-cyan-300 text-xs font-bold uppercase">
+                      Không Tính Rank
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Rèn luyện kỹ năng gõ và tốc độ phản xạ • Điểm rank Liên Quân Mobile được bảo lưu nguyên vẹn
+                  </p>
+                </div>
+              </div>
+
+              {onOpenLeaderboard && (
+                <button
+                  onClick={onOpenLeaderboard}
+                  className="px-4 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 to-yellow-500/20 hover:from-amber-500/30 hover:to-yellow-500/30 border border-amber-400/60 text-amber-300 font-black text-xs flex items-center gap-1.5 transition-all active:scale-95 shadow-md cursor-pointer"
+                >
+                  <Trophy className="w-4 h-4 text-amber-400" />
+                  Bảng Xếp Hạng
+                </button>
+              )}
+            </div>
+
+            {/* Kills Comparison Row */}
+            {pvpResult && (
+              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800 flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-black text-cyan-400 uppercase">Bạn:</span>
+                  <span className="text-base font-black text-white font-mono">🎯 {pvpResult.playerKills} từ</span>
+                </div>
+                <div className="text-xs font-black text-slate-400 uppercase tracking-widest text-center px-2">
+                  {pvpResult.playerKills > pvpResult.opponentKills ? (
+                    <span className="text-emerald-400 font-black">+ {pvpResult.playerKills - pvpResult.opponentKills} từ thắng thế!</span>
+                  ) : pvpResult.playerKills < pvpResult.opponentKills ? (
+                    <span className="text-rose-400 font-black">- {pvpResult.opponentKills - pvpResult.playerKills} từ hụt lại</span>
+                  ) : (
+                    <span className="text-amber-400 font-black">Hòa tỉ số kills</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-black text-rose-400 uppercase">{opponentName || 'Đối thủ'}:</span>
+                  <span className="text-base font-black text-white font-mono">🎯 {pvpResult.opponentKills} từ</span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* 5 Core Performance Stats */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4 max-w-4xl mx-auto pt-2">

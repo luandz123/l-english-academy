@@ -7,24 +7,13 @@ import {
   Pause,
   SkipForward,
   SkipBack,
-  RotateCcw,
-  Volume2,
-  CheckCircle2,
   Trophy,
   Sparkles,
-  Eye,
-  EyeOff,
-  Flame,
-  Award,
-  Headphones,
-  Compass
+  Headphones
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSound } from '@/hooks/useSound';
 import { soundAudioPlayer } from '@/services/soundAudioPlayer';
-import { Part2StepGuide } from './Part2StepGuide';
-import { PART2_STEPS_META } from '@/data/part2CoachData';
-import { XP_REWARDS } from '@/hooks/useGamification';
 
 export interface Part2Step8LoopPlayerProps {
   questions: Part2CoachQuestion[];
@@ -35,7 +24,6 @@ export const Part2Step8LoopPlayer: React.FC<Part2Step8LoopPlayerProps> = ({
   questions,
   onFinishAllSteps,
 }) => {
-  const totalSteps = PART2_STEPS_META.length;
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [playingPhase, setPlayingPhase] = useState<'question' | 'pause' | 'answer'>('question');
@@ -82,10 +70,10 @@ export const Part2Step8LoopPlayer: React.FC<Part2Step8LoopPlayerProps> = ({
       if (!isLoopRunning.current) break;
 
       // 4. Pause before next question
-      await new Promise((r) => setTimeout(r, 1500 / playbackSpeed));
+      await new Promise((r) => setTimeout(r, 1200 / playbackSpeed));
       if (!isLoopRunning.current) break;
 
-      // Advance to next or loop
+      // Advance
       if (idx === questions.length - 1) {
         idx = 0;
         setLoopCount((prev) => prev + 1);
@@ -132,275 +120,227 @@ export const Part2Step8LoopPlayer: React.FC<Part2Step8LoopPlayerProps> = ({
     setShowCelebration(true);
   };
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) return;
+      if (e.code === 'Space') {
+        e.preventDefault();
+        handleTogglePlay();
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        handlePrev();
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        handleNext();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isPlaying, currentIdx]);
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 max-w-4xl mx-auto">
       {/* Sleek Minimal Ribbon */}
-      <div className="flex items-center justify-between gap-3 bg-gradient-to-r from-violet-500/10 to-indigo-500/10 dark:from-violet-950/40 dark:to-indigo-950/40 border border-violet-200/80 dark:border-violet-800/60 px-4 py-2.5 rounded-2xl">
-        <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-violet-800 dark:text-violet-200 min-w-0">
-          <span className="w-2 h-2 rounded-full bg-violet-500 animate-pulse shrink-0" />
-          <span className="font-black text-violet-600 dark:text-violet-400 shrink-0">B8: Nghe liên tục (Loop)</span>
-          <span className="text-muted-foreground truncate hidden sm:inline">• Tự động phát lặp [Câu hỏi ➔ Đáp án đúng]</span>
+      <div className="flex items-center justify-between gap-3 bg-card border border-border/70 px-4 py-2.5 rounded-2xl shadow-soft-xs">
+        <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-foreground min-w-0">
+          <span className="w-2 h-2 rounded-full bg-violet-600 animate-pulse shrink-0" />
+          <span className="font-black text-violet-600 dark:text-violet-400">B7: Nghe ngấm</span>
+          <span className="text-muted-foreground text-xs">• Lặp vô thức</span>
         </div>
-        <span className="text-xs font-bold text-violet-700 dark:text-violet-300 shrink-0">
-          {isPlaying ? 'Đang phát...' : 'Tạm dừng'}
+        <span className="text-xs font-black text-muted-foreground">
+          Đã lặp: {loopCount} vòng
         </span>
       </div>
 
-      {/* Interactive Step Guide */}
-      <Part2StepGuide
-        stepNumber={8}
-        stepTitle="Nghe thụ động vòng lặp"
-        goal="Bật audio tự động lặp ngấm âm điệu"
-        actions={[
-          {
-            clickTarget: "1. Bấm nút Play (▶)",
-            expectedResult: "Trình phát tự động chạy toàn bộ các câu.",
-          },
-          {
-            clickTarget: "2. Chọn tốc độ (0.8x - 1.4x)",
-            expectedResult: "Thay đổi tốc độ đọc.",
-          },
-          {
-            clickTarget: "3. Chọn phụ đề hoặc ẩn",
-            expectedResult: "Nghe chay để luyện phản xạ vô thức.",
-          }
-        ]}
-      />
-
-      {/* Main Music Player Card */}
-      <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-sm">
-        {/* Top Controls: Speed & Subtitles */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-100 dark:border-zinc-800">
-          {/* Subtitle Mode */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-black uppercase text-muted-foreground">Phụ đề:</span>
-            <div className="inline-flex p-1 bg-slate-100 dark:bg-zinc-800 rounded-xl">
-              <button
-                type="button"
-                onClick={() => setSubtitleMode('both')}
-                className={cn(
-                  'px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer',
-                  subtitleMode === 'both' ? 'bg-white dark:bg-zinc-900 text-foreground shadow-sm' : 'text-muted-foreground'
-                )}
-                title="Hiện cả tiếng Anh và dịch tiếng Việt"
-              >
-                Song ngữ
-              </button>
-              <button
-                type="button"
-                onClick={() => setSubtitleMode('en_only')}
-                className={cn(
-                  'px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer',
-                  subtitleMode === 'en_only' ? 'bg-white dark:bg-zinc-900 text-foreground shadow-sm' : 'text-muted-foreground'
-                )}
-                title="Chỉ hiện phụ đề tiếng Anh"
-              >
-                Chỉ Tiếng Anh
-              </button>
-              <button
-                type="button"
-                onClick={() => setSubtitleMode('hidden')}
-                className={cn(
-                  'px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer',
-                  subtitleMode === 'hidden' ? 'bg-white dark:bg-zinc-900 text-foreground shadow-sm' : 'text-muted-foreground'
-                )}
-                title="Ẩn hoàn toàn chữ, chỉ nghe thụ động"
-              >
-                Ẩn (Nghe thụ động)
-              </button>
-            </div>
-          </div>
-
-          {/* Speed Selector */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-black uppercase text-muted-foreground">Tốc độ:</span>
-            <div className="inline-flex p-1 bg-slate-100 dark:bg-zinc-800 rounded-xl">
-              {[0.8, 1.0, 1.2, 1.4].map((speed) => (
-                <button
-                  key={speed}
-                  type="button"
-                  onClick={() => setPlaybackSpeed(speed)}
-                  className={cn(
-                    'px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer',
-                    playbackSpeed === speed ? 'bg-purple-600 text-white shadow-sm' : 'text-muted-foreground hover:text-foreground'
-                  )}
-                  title={`Phát ở tốc độ ${speed}x`}
-                >
-                  {speed}x
-                </button>
-              ))}
-            </div>
-          </div>
+      {/* Main Loop Player Card */}
+      <div className="bg-card border border-border rounded-3xl p-6 sm:p-8 space-y-6 shadow-soft-sm text-center">
+        {/* Animated Visualizer */}
+        <div className="flex items-center justify-center gap-1.5 h-12">
+          {[40, 75, 100, 60, 35, 90, 50, 95, 65, 30].map((h, i) => (
+            <div
+              key={i}
+              className={cn(
+                'w-1.5 rounded-full transition-all duration-300',
+                isPlaying ? 'bg-violet-600 dark:bg-violet-400 animate-pulse' : 'bg-muted-foreground/20'
+              )}
+              style={{
+                height: isPlaying ? `${h}px` : '8px',
+                animationDelay: `${i * 120}ms`
+              }}
+            />
+          ))}
         </div>
 
-        {/* Current Active Subtitle Display Stage */}
-        <div className="min-h-[220px] bg-slate-50 dark:bg-zinc-950/60 rounded-3xl p-6 sm:p-8 flex flex-col justify-center items-center text-center space-y-4 border border-slate-200/80 dark:border-zinc-800">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 text-xs font-black">
-            <span>Câu {currentQ.questionNumber} ({currentIdx + 1}/{questions.length})</span>
-            {loopCount > 0 && <span>• Vòng lặp #{loopCount + 1}</span>}
-          </div>
-
-          {subtitleMode !== 'hidden' ? (
-            <div className="space-y-4 max-w-xl">
-              {/* Question line */}
-              <div
-                className={cn(
-                  'transition-all duration-300',
-                  playingPhase === 'question' ? 'scale-105 font-black text-purple-700 dark:text-purple-300' : 'text-foreground font-bold opacity-80'
-                )}
-              >
-                <div className="text-lg sm:text-2xl leading-relaxed">
-                  &ldquo;{currentQ.questionText}&rdquo;
-                </div>
-                {subtitleMode === 'both' && (
-                  <div className="text-xs sm:text-sm text-muted-foreground mt-1">
-                    {currentQ.questionTranslation}
-                  </div>
-                )}
-              </div>
-
-              {/* Arrow divider */}
-              <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-zinc-800 text-slate-500 mx-auto flex items-center justify-center font-black text-xs">
-                ➔
-              </div>
-
-              {/* Answer line */}
-              <div
-                className={cn(
-                  'transition-all duration-300',
-                  playingPhase === 'answer' ? 'scale-105 font-black text-emerald-600 dark:text-emerald-400' : 'text-foreground font-bold opacity-80'
-                )}
-              >
-                <div className="text-lg sm:text-2xl leading-relaxed">
-                  ({currentQ.correctChoice.letter}) &ldquo;{currentQ.correctChoice.text}&rdquo;
-                </div>
-                {subtitleMode === 'both' && (
-                  <div className="text-xs sm:text-sm text-emerald-700/80 dark:text-emerald-400/80 mt-1">
-                    {currentQ.correctChoice.translation}
-                  </div>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-3 py-6 text-center">
-              <Headphones className="w-12 h-12 text-purple-600 dark:text-purple-400 mx-auto animate-bounce" />
-              <div className="text-base font-bold text-foreground">
-                Đang ở chế độ Ẩn chữ (Nghe thụ động vô thức)
-              </div>
-              <p className="text-xs text-muted-foreground max-w-sm">
-                Nhắm mắt lại và để não bộ tự động bắt âm thanh và ngữ điệu tự nhiên của người bản xứ.
-              </p>
-            </div>
-          )}
+        {/* Phase Pill */}
+        <div className="min-h-7 flex items-center justify-center">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-violet-500/10 text-violet-600 dark:text-violet-300 text-xs font-bold border border-violet-500/20">
+            <Headphones className="w-3.5 h-3.5" />
+            {isPlaying ? (
+              playingPhase === 'question'
+                ? `Đang đọc Câu ${currentQ.questionNumber || currentIdx + 1}`
+                : playingPhase === 'pause'
+                ? 'Nghỉ 1s...'
+                : 'Đang đọc Đáp án chuẩn'
+            ) : (
+              'Bấm Phát để chạy vòng lặp'
+            )}
+          </span>
         </div>
 
-        {/* Media Player Control Bar */}
-        <div className="flex items-center justify-center gap-4 sm:gap-6 pt-2">
-          {/* Prev */}
+        {/* Subtitles Display Box */}
+        {subtitleMode !== 'hidden' && (
+          <div className="bg-muted/40 border border-border/80 rounded-2xl p-5 space-y-3 text-left max-w-xl mx-auto">
+            <div>
+              <div className="text-xs font-black uppercase text-violet-600 dark:text-violet-400">
+                Câu hỏi {currentQ.questionNumber || currentIdx + 1}:
+              </div>
+              <div className="text-base sm:text-lg font-black text-foreground">
+                "{currentQ.questionText}"
+              </div>
+              {subtitleMode === 'both' && (
+                <div className="text-xs text-muted-foreground">
+                  {currentQ.questionTranslation}
+                </div>
+              )}
+            </div>
+
+            <div className="pt-2 border-t border-border/60">
+              <div className="text-xs font-black uppercase text-emerald-600 dark:text-emerald-400">
+                Đáp án chuẩn ({currentQ.correctChoice.letter}):
+              </div>
+              <div className="text-base sm:text-lg font-black text-foreground">
+                "{currentQ.correctChoice.text}"
+              </div>
+              {subtitleMode === 'both' && (
+                <div className="text-xs text-muted-foreground">
+                  {currentQ.correctChoice.translation}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Center Control Buttons */}
+        <div className="flex items-center justify-center gap-3">
           <Button
             variant="outline"
             size="icon"
             onClick={handlePrev}
-            className="w-12 h-12 rounded-full border-slate-300 dark:border-zinc-700 hover:scale-105 transition-transform"
-            title="Câu trước"
+            className="w-12 h-12 rounded-2xl border-border cursor-pointer"
           >
-            <SkipBack className="w-5 h-5 text-slate-700 dark:text-zinc-300" />
+            <SkipBack className="w-5 h-5" />
           </Button>
 
-          {/* Big Play/Pause Toggle */}
           <Button
             size="lg"
             onClick={handleTogglePlay}
             className={cn(
-              'w-20 h-20 rounded-full text-white shadow-2xl transition-all duration-300 transform hover:scale-105 active:scale-95 cursor-pointer',
-              isPlaying
-                ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/30 ring-4 ring-amber-500/20'
-                : 'bg-purple-600 hover:bg-purple-700 shadow-purple-600/30 ring-4 ring-purple-600/20'
+              'h-12 px-7 rounded-2xl text-white font-bold text-sm shadow-md transition-transform active:scale-95 cursor-pointer',
+              isPlaying ? 'bg-amber-500 hover:bg-amber-600' : 'bg-violet-600 hover:bg-violet-700'
             )}
-            title={isPlaying ? 'Bấm để tạm dừng phát' : 'Bấm để phát liên tục vòng lặp'}
           >
-            {isPlaying ? (
-              <Pause className="w-9 h-9" />
-            ) : (
-              <Play className="w-9 h-9 ml-1 fill-white" />
-            )}
+            {isPlaying ? <Pause className="w-5 h-5 mr-1.5" /> : <Play className="w-5 h-5 ml-0.5 mr-1.5" />}
+            {isPlaying ? 'Tạm dừng' : 'Phát'}
           </Button>
 
-          {/* Next */}
           <Button
             variant="outline"
             size="icon"
             onClick={handleNext}
-            className="w-12 h-12 rounded-full border-slate-300 dark:border-zinc-700 hover:scale-105 transition-transform"
-            title="Câu kế tiếp"
+            className="w-12 h-12 rounded-2xl border-border cursor-pointer"
           >
-            <SkipForward className="w-5 h-5 text-slate-700 dark:text-zinc-300" />
+            <SkipForward className="w-5 h-5" />
           </Button>
         </div>
 
-        <p className="text-center text-xs text-muted-foreground font-medium">
-          {isPlaying
-            ? 'Đang phát vòng lặp tự động liên tục... Bạn có thể để audio chạy nền khi làm việc khác.'
-            : 'Nhấn nút Play tròn lớn ở trên để bắt đầu nghe thụ động'}
-        </p>
+        {/* Settings Bar: Speed & Subtitles */}
+        <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+          {/* Speed Pills */}
+          <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-xl">
+            {[0.8, 1.0, 1.2].map((spd) => (
+              <button
+                key={spd}
+                onClick={() => setPlaybackSpeed(spd)}
+                className={cn(
+                  'px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer',
+                  playbackSpeed === spd
+                    ? 'bg-card text-foreground shadow-xs font-black'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                {spd}x
+              </button>
+            ))}
+          </div>
+
+          {/* Subtitle Mode Pills */}
+          <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-xl">
+            {(['both', 'en_only', 'hidden'] as const).map((mode) => (
+              <button
+                key={mode}
+                onClick={() => setSubtitleMode(mode)}
+                className={cn(
+                  'px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer',
+                  subtitleMode === mode
+                    ? 'bg-card text-foreground shadow-xs font-black'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                {mode === 'both' ? 'Cả hai' : mode === 'en_only' ? 'Tiếng Anh' : 'Ẩn'}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Completion Action */}
+        <div className="pt-4 border-t border-border/60">
+          <Button
+            size="lg"
+            onClick={handleFinish}
+            className="h-11 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md cursor-pointer"
+          >
+            <Trophy className="w-4 h-4 mr-1.5" />
+            Hoàn thành
+          </Button>
+        </div>
       </div>
 
-      {/* Completion Button */}
-      <div className="flex justify-end pt-2">
-        <Button
-          size="lg"
-          onClick={handleFinish}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-2xl px-8 py-6 text-base shadow-xl shadow-emerald-600/25 cursor-pointer"
-        >
-          <Trophy className="w-5 h-5 mr-2 text-yellow-300" />
-          <span>Hoàn thành cụm này</span>
-        </Button>
-      </div>
-
-      {/* Celebration Modal */}
+      {/* Celebration Modal / Banner */}
       {showCelebration && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl p-6 sm:p-8 max-w-lg w-full space-y-6 text-center shadow-2xl animate-in zoom-in-95">
-            <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-amber-400 to-yellow-300 text-amber-900 flex items-center justify-center mx-auto shadow-lg shadow-amber-400/30">
-              <Trophy className="w-10 h-10" />
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-card border border-border rounded-3xl p-6 sm:p-8 max-w-md w-full space-y-5 text-center shadow-2xl animate-in zoom-in-95">
+            <div className="w-16 h-16 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center mx-auto">
+              <Trophy className="w-8 h-8" />
             </div>
 
-            <div className="space-y-2">
-              <h3 className="text-2xl sm:text-3xl font-black text-foreground">
-                XUẤT SẮC HOÀN THÀNH! 🎉
+            <div className="space-y-1">
+              <h3 className="text-xl font-black text-foreground">
+                Xuất sắc!
               </h3>
-              <p className="text-sm text-muted-foreground font-medium">
-                Bạn đã hoàn thành trọn vẹn <strong>Quy trình {totalSteps} Bước Luyện Nghe Phản Xạ Part 2</strong> cho cụm {questions.length} câu hỏi!
+              <p className="text-xs text-muted-foreground">
+                Bạn đã hoàn thành trọn vẹn 7 bước luyện phản xạ!
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 p-4 rounded-2xl bg-slate-50 dark:bg-zinc-950/60 border border-slate-200 dark:border-zinc-800 text-left">
-              <div className="space-y-1">
-                <span className="text-xs font-black uppercase text-muted-foreground">Kỹ năng đạt được:</span>
-                <div className="text-sm font-bold text-foreground flex items-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                  <span>Phản xạ 1s, Bóc bẫy &amp; Thực chiến</span>
-                </div>
-              </div>
-              <div className="space-y-1">
-                <span className="text-xs font-black uppercase text-muted-foreground">Điểm thưởng:</span>
-                <div className="text-sm font-black text-purple-600 dark:text-purple-400 flex items-center gap-1.5">
-                  <Sparkles className="w-4 h-4 text-amber-400" />
-                  <span>+{XP_REWARDS.PART2_CLUSTER_COMPLETE} XP Phản Xạ</span>
-                </div>
-              </div>
+            <div className="flex items-center justify-center gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setShowCelebration(false)}
+                className="rounded-xl text-xs font-bold"
+              >
+                Đóng
+              </Button>
+              <Button
+                onClick={() => {
+                  setShowCelebration(false);
+                  onFinishAllSteps();
+                }}
+                className="rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold"
+              >
+                Đổi cụm khác
+              </Button>
             </div>
-
-            <Button
-              size="lg"
-              onClick={() => {
-                setShowCelebration(false);
-                onFinishAllSteps();
-              }}
-              className="w-full bg-purple-600 hover:bg-purple-700 text-white font-black rounded-2xl py-6 shadow-lg shadow-purple-600/30 text-base cursor-pointer"
-            >
-              Tiếp tục luyện Cụm khác ➔
-            </Button>
           </div>
         </div>
       )}
