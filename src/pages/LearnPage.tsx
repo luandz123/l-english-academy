@@ -323,12 +323,12 @@ const LearnPage = () => {
   }, [currentIndex, allLessons, activePractice, completionMutation]);
 
   if (isLoading) {
-    return <div className="min-h-screen bg-background flex items-center justify-center"><Loader2 className="w-12 h-12 animate-spin text-[var(--duo-blue)]" /></div>;
+    return <div className="min-h-screen bg-[#050914] text-slate-100 flex items-center justify-center"><Loader2 className="w-12 h-12 animate-spin text-cyan-400" /></div>;
   }
 
   if (isModulesError || isCourseError) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#050914] text-slate-100 flex items-center justify-center p-4">
         <ErrorState
           onRetry={() => {
             refetchModules();
@@ -340,7 +340,7 @@ const LearnPage = () => {
   }
 
   if (!currentLesson) {
-    return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground font-extrabold text-xl">🦉 Khóa học chưa có nội dung.</p></div>;
+    return <div className="min-h-screen bg-[#050914] text-slate-100 flex items-center justify-center"><p className="text-muted-foreground font-extrabold text-xl">🦉 Khóa học chưa có nội dung.</p></div>;
   }
 
   const isVideoLesson = (!currentLesson.lesson_type || currentLesson.lesson_type === "video") && currentLesson.video_url;
@@ -368,16 +368,23 @@ const LearnPage = () => {
   };
 
   return (
-    <div className="min-h-screen lg:h-screen lg:overflow-hidden relative bg-background">
+    <div className="min-h-screen lg:h-screen lg:overflow-hidden relative bg-[#050914] text-slate-100">
+      {/* Ambient background glows matching homepage */}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        <div className="absolute -top-40 left-1/4 w-[600px] h-[400px] bg-cyan-500/10 blur-[140px] rounded-full" />
+        <div className="absolute top-1/3 -right-40 w-[500px] h-[500px] bg-blue-600/10 blur-[150px] rounded-full" />
+        <div className="absolute -bottom-40 left-1/3 w-[600px] h-[400px] bg-indigo-600/8 blur-[160px] rounded-full" />
+      </div>
+
       <div className="relative z-10 flex flex-col lg:flex-row h-full">
         {/* Main content */}
-        <div className="flex-1 min-w-0 flex flex-col h-full overflow-hidden bg-background">
+        <div className="flex-1 min-w-0 flex flex-col h-full overflow-hidden bg-transparent">
           {/* Top Header */}
-          <div className="h-16 px-4 lg:px-6 border-b-2 border-border bg-card flex items-center justify-between gap-4 shrink-0">
+          <div className="h-16 px-4 lg:px-6 border-b border-cyan-500/20 bg-[#070e1c]/90 backdrop-blur-xl flex items-center justify-between gap-4 shrink-0">
             <div className="flex items-center gap-3 min-w-0">
               <Button
                 variant="ghost"
-                className="flex items-center gap-1.5 px-2.5 py-1.5 hover:bg-muted rounded-xl shrink-0 text-muted-foreground hover:text-foreground font-bold"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 hover:bg-slate-800/60 rounded-xl shrink-0 text-slate-300 hover:text-white font-bold"
                 onClick={() => setShowExitConfirm(true)}
                 title="Thoát bài học"
                 aria-label="Thoát bài học"
@@ -385,12 +392,12 @@ const LearnPage = () => {
                 <ChevronLeft className="w-5 h-5" />
                 <span className="hidden sm:inline text-xs font-bold">Thoát</span>
               </Button>
-              <div className="w-px h-6 bg-border shrink-0" />
+              <div className="w-px h-6 bg-slate-800 shrink-0" />
               <div className="flex flex-col min-w-0">
-                <span className="text-xs sm:text-xs font-bold text-muted-foreground uppercase tracking-wider truncate">
+                <span className="text-xs sm:text-xs font-bold text-slate-400 uppercase tracking-wider truncate">
                   Bài {currentIndex + 1} / {allLessons.length}
                 </span>
-                <h1 className="text-sm sm:text-base font-extrabold text-foreground truncate max-w-[150px] sm:max-w-[300px] md:max-w-[450px] lg:max-w-[600px]" title={currentLesson.title}>
+                <h1 className="text-sm sm:text-base font-extrabold text-white truncate max-w-[150px] sm:max-w-[300px] md:max-w-[450px] lg:max-w-[600px]" title={currentLesson.title}>
                   {currentLesson.title}
                 </h1>
               </div>
@@ -407,7 +414,7 @@ const LearnPage = () => {
           </div>
 
           {/* Scrollable Content Container */}
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 bg-background">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 bg-transparent">
             {/* YouTube/PDF Player */}
             {(isVideoLesson || isPdfLesson) && (
               <div className="overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-800/80 bg-slate-900 max-w-4xl mx-auto w-full shadow-soft-md">
@@ -628,7 +635,7 @@ const LearnPage = () => {
           </div>
 
           {/* Sticky Bottom Navigation Bar */}
-          <div className="h-16 px-4 sm:px-6 border-t-2 border-border bg-card flex items-center justify-between shrink-0">
+          <div className="h-16 px-4 sm:px-6 border-t border-slate-800/80 bg-[#070e1c]/90 backdrop-blur-xl flex items-center justify-between shrink-0">
             <Button
               variant="outline"
               className="btn-3d btn-3d-white text-xs sm:text-sm font-extrabold h-9 px-3 sm:px-4"
@@ -669,20 +676,20 @@ const LearnPage = () => {
             >
               <span className="hidden sm:inline">Bài tiếp theo</span>
               <span className="sm:hidden">Tiếp</span>
-              <ChevronRight className="w-4 h-4 ml-0.5 sm:ml-1" />
+              <ChevronRight className="w-4 h-4 ml-0.5 sm:mr-1" />
             </Button>
           </div>
         </div>
 
-        {/* Sidebar (B1: Conditionally collapsed with smooth transition properties) */}
+        {/* Sidebar */}
         <div className={cn(
-          "w-full lg:w-[350px] lg:border-l-2 border-border bg-card flex flex-col lg:h-full transition-all duration-300",
+          "w-full lg:w-[350px] lg:border-l border-slate-800/80 bg-[#070e1c]/90 backdrop-blur-xl flex flex-col lg:h-full transition-all duration-300",
           sidebarCollapsed ? "lg:w-0 lg:opacity-0 lg:overflow-hidden lg:border-l-0" : "lg:w-[350px]"
         )}>
-          <div className="h-16 px-6 border-b flex items-center bg-card sticky top-0 z-10 justify-between shrink-0">
+          <div className="h-16 px-6 border-b border-slate-800/80 flex items-center bg-[#070e1c]/90 sticky top-0 z-10 justify-between shrink-0">
             <h2 className="text-sm sm:text-base font-extrabold text-foreground flex items-center gap-2">📋 Nội dung khóa học</h2>
           </div>
-          <div className="p-6 pt-2 border-b shrink-0 bg-card/50">
+          <div className="p-6 pt-2 border-b border-slate-800/80 shrink-0 bg-[#070e1c]/50">
             <div className="flex items-center justify-between text-sm font-bold text-muted-foreground mb-2">
               <span>{completedCount}/{totalLessons} bài</span>
               <span className="text-[var(--duo-correct)]">{progressPct}%</span>
@@ -779,24 +786,24 @@ const LearnPage = () => {
 
       {/* Practice popup panel */}
         {activePractice && practiceQuestions.length > 0 && (
-          <div className="fixed inset-0 z-50 bg-background/80 flex items-center justify-center p-4 backdrop-blur-md lg:items-stretch lg:justify-end">
-            <div className="w-full max-w-xl lg:max-w-md lg:h-full lg:rounded-none max-h-[90vh] lg:max-h-screen flex flex-col p-0 overflow-hidden bg-card rounded-2xl border border-border/70 shadow-soft-2xl">
-              <div className="sticky top-0 bg-card border-b border-border/60 p-5 flex items-center justify-between z-10 shadow-soft-xs">
-                <h3 className="text-xl font-bold text-primary flex items-center gap-2">📝 {activePractice.title || "Luyện tập nhanh"}</h3>
-                <Button size="icon" variant="ghost" className="hover:bg-muted rounded-full" onClick={() => setActivePractice(null)}><X className="w-6 h-6 text-muted-foreground" /></Button>
+          <div className="fixed inset-0 z-50 bg-[#050914]/80 flex items-center justify-center p-4 backdrop-blur-md lg:items-stretch lg:justify-end">
+            <div className="w-full max-w-xl lg:max-w-md lg:h-full lg:rounded-none max-h-[90vh] lg:max-h-screen flex flex-col p-0 overflow-hidden bg-[#070e1c] rounded-2xl border border-cyan-500/20 shadow-soft-2xl">
+              <div className="sticky top-0 bg-[#070e1c] border-b border-slate-800 p-5 flex items-center justify-between z-10 shadow-soft-xs">
+                <h3 className="text-xl font-bold text-cyan-400 flex items-center gap-2">📝 {activePractice.title || "Luyện tập nhanh"}</h3>
+                <Button size="icon" variant="ghost" className="hover:bg-slate-800 rounded-full" onClick={() => setActivePractice(null)}><X className="w-6 h-6 text-slate-400 hover:text-white" /></Button>
               </div>
-              <div className="p-6 overflow-y-auto flex-1 bg-muted/10">
+              <div className="p-6 overflow-y-auto flex-1 bg-[#050914]/50">
                 {!practiceSubmitted ? (
                   <div className="space-y-6">
                     <div className="flex items-center gap-3">
-                      <div className="h-2.5 flex-1 bg-muted rounded-full overflow-hidden">
-                        <div className="h-full bg-primary rounded-full transition-all duration-300" style={{ width: `${((practiceCurrentQ) / practiceQuestions.length) * 100}%` }} />
+                      <div className="h-2.5 flex-1 bg-slate-800 rounded-full overflow-hidden">
+                        <div className="h-full bg-cyan-500 rounded-full transition-all duration-300" style={{ width: `${((practiceCurrentQ) / practiceQuestions.length) * 100}%` }} />
                       </div>
-                      <span className="text-sm font-bold text-primary">{practiceCurrentQ + 1}/{practiceQuestions.length}</span>
+                      <span className="text-sm font-bold text-cyan-400">{practiceCurrentQ + 1}/{practiceQuestions.length}</span>
                     </div>
 
                     {practiceQuestions[practiceCurrentQ]?.image_url && (
-                      <div className="w-full flex justify-center bg-muted/20 rounded-2xl overflow-hidden p-1 border border-border/50 shadow-soft-xs">
+                      <div className="w-full flex justify-center bg-slate-900/60 rounded-2xl overflow-hidden p-1 border border-slate-800 shadow-soft-xs">
                         <img src={practiceQuestions[practiceCurrentQ].image_url} alt="" className="max-w-full h-auto rounded-xl object-contain image-safe" />
                       </div>
                     )}
@@ -809,11 +816,11 @@ const LearnPage = () => {
                     <div className="space-y-3">
                       {practiceQuestions[practiceCurrentQ]?.answers.map((a: any, i: number) => (
                         <button key={a.id} onClick={() => setPracticeAnswers(prev => ({ ...prev, [practiceCurrentQ]: a.id }))}
-                          className={cn("w-full text-left p-4 rounded-2xl border-2 text-base font-bold transition-all flex items-center gap-4 bg-card",
-                            practiceAnswers[practiceCurrentQ] === a.id ? "border-[var(--duo-blue)] bg-[var(--duo-blue)]/5 text-[var(--duo-blue)] shadow-[0_4px_0_var(--duo-blue)] -translate-y-1" : "border-border hover:bg-muted/50 hover:border-border shadow-[0_4px_0_transparent]"
+                          className={cn("w-full text-left p-4 rounded-2xl border-2 text-base font-bold transition-all flex items-center gap-4 bg-slate-900/80",
+                            practiceAnswers[practiceCurrentQ] === a.id ? "border-cyan-400 bg-cyan-500/10 text-cyan-300 shadow-[0_4px_0_rgba(6,182,212,0.4)] -translate-y-1" : "border-slate-800 hover:bg-slate-800/60 hover:border-slate-700 shadow-[0_4px_0_transparent]"
                           )}>
-                          <span className={cn("w-8 h-8 rounded-lg flex items-center justify-center text-sm border-2 shrink-0", practiceAnswers[practiceCurrentQ] === a.id ? "border-[var(--duo-blue)] bg-white" : "border-border bg-muted/50 text-muted-foreground")}>{String.fromCharCode(65 + i)}</span>
-                          <span>{a.answer_text}</span>
+                          <span className={cn("w-8 h-8 rounded-lg flex items-center justify-center text-sm border-2 shrink-0 font-bold", practiceAnswers[practiceCurrentQ] === a.id ? "border-cyan-400 bg-cyan-500 text-slate-950" : "border-slate-700 bg-slate-800 text-slate-400")}>{String.fromCharCode(65 + i)}</span>
+                          <span className="text-slate-100">{a.answer_text}</span>
                         </button>
                       ))}
                     </div>

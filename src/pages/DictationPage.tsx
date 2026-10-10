@@ -53,6 +53,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useSound } from "@/hooks/useSound";
 import { useTouchDrag, TouchDragGhost } from "@/hooks/useTouchDrag";
+import { formatAudioUrl } from "@/utils/audioUrl";
 
 // Web Speech API helper for clear TTS pronunciation
 const speakText = (text: string) => {
@@ -226,8 +227,10 @@ export const shuffleArray = <T,>(array: T[]): T[] => {
 // Helpers to get keywords and check if question has keywords
 export const getQuestionKeywords = (question: any, vocabWords: any[] = []): string[] => {
   let kw: string[] = [];
-  if (question?.dictation_keywords?.trim()) {
+  if (typeof question?.dictation_keywords === 'string' && question.dictation_keywords.trim()) {
     kw = question.dictation_keywords.split(',').map((k: string) => k.trim()).filter(Boolean);
+  } else if (Array.isArray(question?.dictation_keywords)) {
+    kw = question.dictation_keywords.map((k: any) => String(k).trim()).filter(Boolean);
   } else if (vocabWords && vocabWords.length > 0) {
     const questionVocab = vocabWords.filter((w: any) => w.question_id === question?.id);
     kw = questionVocab.map((w: any) => w.word?.trim()).filter(Boolean);
@@ -321,13 +324,15 @@ export const isQuestionValidForMode = (
 ): { isValid: boolean; reason?: string } => {
   if (!question) return { isValid: false, reason: "Câu hỏi không tồn tại" };
 
-  // Audio is mandatory for dictation
-  if (!question.audio_url || !question.audio_url.trim()) {
-    return { isValid: false, reason: "Thiếu file nghe audio" };
+  const effectiveAudio = formatAudioUrl(question.audio_url);
+  const hasQuestionText = Boolean(question.question_text?.trim() && question.question_text !== 'Audio dictation');
+  const hasTranscript = Boolean(question.transcript?.trim());
+
+  // Audio or text is mandatory for dictation
+  if (!effectiveAudio && !hasQuestionText && !hasTranscript) {
+    return { isValid: false, reason: "Thiếu file nghe audio và transcript" };
   }
 
-  const hasQuestionText = Boolean(question.question_text?.trim() && question.question_text !== 'Audio dictation');
-  
   // Valid answers must have actual text (not just single multiple-choice letters like A, B, C, D)
   const validAnswers = Array.isArray(question.answers) ? question.answers.filter((a: any) => {
     const txt = a.answer_text?.trim();
@@ -518,7 +523,7 @@ const DictationInput = ({
       const errorInfo = getFirstErrorWordInfo(value, fullExpected);
       playSound("incorrect");
       setShake(true);
-      setTimeout(() => setShake(false), 300);
+      setTimeout(() => setShake(false), 200);
       setMistakeCount(prev => prev + 1);
       if (errorInfo) {
         setErrorDetails({
@@ -557,8 +562,11 @@ const DictationInput = ({
   useEffect(() => {
     if (autoFocus && textareaRef.current && status !== "correct") {
       textareaRef.current.focus();
+      try {
+        textareaRef.current.scrollIntoView({ block: "center", behavior: "smooth" });
+      } catch {}
     }
-  }, [autoFocus]);
+  }, [autoFocus, status]);
 
   useEffect(() => {
     if (isFullMatch(value, fullExpected) && status !== "correct") {
@@ -571,11 +579,20 @@ const DictationInput = ({
     }
   }, [value, fullExpected, status, onCorrect, playSound]);
 
-  const containerClass = `w-full relative flex flex-col rounded-2xl border transition-all shadow-soft-sm ${
+  const handleFocus = () => {
+    if (textareaRef.current) {
+      try {
+        textareaRef.current.scrollIntoView({ block: "center", behavior: "smooth" });
+      } catch {}
+    }
+    onFocus?.();
+  };
+
+  const containerClass = `w-full relative flex flex-col rounded-2xl border transition-all duration-150 shadow-soft-sm ${
     status === "correct" 
-      ? "border-[var(--duo-correct)] bg-[var(--duo-correct)]/10 text-foreground animate-[dictation-correct_0.5s_ease-in-out]" 
+      ? "border-[#15803D]/60 bg-[#F0FDF4] dark:bg-emerald-950/30 text-foreground animate-dictation-correct" 
       : "border-border/80 bg-card focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20"
-  } ${shake ? "animate-[dictation-shake_0.3s_ease-in-out] border-[var(--duo-red)] bg-[var(--duo-red)]/5" : ""}`;
+  } ${shake ? "animate-dictation-shake border-red-300 dark:border-red-700 bg-red-50/50 dark:bg-red-950/20" : ""}`;
 
   return (
     <div className="w-full relative flex flex-col gap-2">
@@ -585,15 +602,15 @@ const DictationInput = ({
             ref={textareaRef}
             rows={1}
             value={value}
-            onFocus={onFocus}
+            onFocus={handleFocus}
             onChange={(e) => {
               setValue(e.target.value);
               if (showHint) setShowHint(false);
             }}
             onKeyDown={handleKeyDown}
             placeholder={placeholder || "Nghe và gõ lại cả câu (Enter để kiểm tra)..."}
-            className={`w-full resize-none text-base sm:text-lg border-none bg-transparent shadow-none focus:outline-none focus-visible:ring-0 leading-relaxed font-bold ${
-              status === "correct" ? "text-[var(--duo-correct)]" : "text-foreground"
+            className={`w-full resize-none text-base sm:text-lg border-none bg-transparent shadow-none focus:outline-none focus-visible:ring-0 leading-relaxed font-bold transition-colors duration-150 ${
+              status === "correct" ? "text-[#15803D] dark:text-emerald-300" : "text-foreground"
             }`}
             readOnly={status === "correct"}
           />
@@ -667,6 +684,9 @@ const KeywordDictationInput = ({
   useEffect(() => {
     if (autoFocus && inputRef.current && status !== "correct") {
       inputRef.current.focus();
+      try {
+        inputRef.current.scrollIntoView({ block: "center", behavior: "smooth" });
+      } catch {}
     }
   }, [autoFocus, status]);
 
@@ -677,6 +697,7 @@ const KeywordDictationInput = ({
     onCorrect();
   }, [expected, onCorrect, playSound]);
 
+  // Doherty threshold check: executed synchronously in < 5ms client-side
   const handleCheck = useCallback(() => {
     if (isFullMatch(value, expected)) {
       handleFillCorrect();
@@ -684,7 +705,8 @@ const KeywordDictationInput = ({
       playSound("incorrect");
       setStatus("error");
       setShake(true);
-      setTimeout(() => setShake(false), 300);
+      // 200ms shake animation duration
+      setTimeout(() => setShake(false), 200);
     }
   }, [value, expected, handleFillCorrect, playSound]);
 
@@ -699,11 +721,21 @@ const KeywordDictationInput = ({
     }
   };
 
-  const containerClass = `inline-block align-middle mx-1 sm:mx-1.5 min-w-[70px] transition-all relative ${
+  const handleFocus = () => {
+    if (status === "error") setStatus("typing");
+    if (inputRef.current) {
+      try {
+        inputRef.current.scrollIntoView({ block: "center", behavior: "smooth" });
+      } catch {}
+    }
+    onFocus?.();
+  };
+
+  const containerClass = `inline-block align-middle mx-1 sm:mx-1.5 min-w-[70px] transition-all duration-150 relative ${
     status === "correct" 
-      ? "animate-[dictation-correct_0.5s_ease-in-out]" 
+      ? "animate-dictation-correct" 
       : ""
-  } ${shake ? "animate-[dictation-shake_0.3s_ease-in-out]" : ""}`;
+  } ${shake ? "animate-dictation-shake" : ""}`;
 
   return (
     <div className={containerClass}>
@@ -711,61 +743,42 @@ const KeywordDictationInput = ({
         <Input
           ref={inputRef}
           value={value}
-          onFocus={() => {
-            if (status === "error") setStatus("typing");
-            onFocus?.();
-          }}
+          onFocus={handleFocus}
           onChange={(e) => {
             const val = e.target.value;
             setValue(val);
             if (status === "error") setStatus("typing");
             
+            // Client-side instant check (<50ms Doherty threshold)
             if (isFullMatch(val, expected)) {
               handleFillCorrect();
             }
           }}
           onKeyDown={handleKeyDown}
           placeholder="..."
-          className={`w-full text-center px-2 py-1 h-auto text-sm sm:text-base border shadow-soft-xs focus-visible:ring-0 ${
+          className={`w-full text-center px-2 py-1 h-auto text-sm sm:text-base border transition-colors duration-150 shadow-soft-xs focus-visible:ring-0 rounded-lg ${
             status === "correct" 
-              ? "font-bold text-[var(--duo-correct)] border-[var(--duo-correct)] bg-[var(--duo-correct)]/10 pr-6" 
+              ? "font-extrabold text-[#15803D] dark:text-emerald-300 border-[#15803D]/60 bg-[#F0FDF4] dark:bg-emerald-950/40 pr-6" 
               : status === "error"
-              ? "font-bold text-[var(--duo-red)] border-[var(--duo-red)] bg-[var(--duo-red)]/10 pr-6"
-              : "font-bold border-border/80 bg-card focus-visible:border-primary focus-visible:ring-primary/20 pr-6"
+              ? "font-extrabold text-red-500 dark:text-red-400 border-red-300 dark:border-red-700 bg-red-50/50 dark:bg-red-950/20 pr-6"
+              : "font-bold border-border/80 bg-card text-foreground focus-visible:border-primary focus-visible:ring-primary/20 pr-6"
           }`}
           readOnly={status === "correct"}
           style={{ width: `${Math.max(70, Math.max(expected.length, value.length) * 10 + 26)}px` }}
         />
         {status === "correct" && (
-          <CheckCircle className="w-3.5 h-3.5 text-[var(--duo-correct)] absolute right-2 top-1/2 -translate-y-1/2" />
+          <CheckCircle className="w-3.5 h-3.5 text-[#15803D] dark:text-emerald-400 absolute right-2 top-1/2 -translate-y-1/2" />
         )}
         {status === "error" && (
-          <>
-            <div className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-black text-[var(--duo-red)] select-none">
-              !
-            </div>
-            <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 z-50 pointer-events-auto">
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  e.preventDefault();
-                  handleFillCorrect();
-                }}
-                className="bg-card hover:bg-emerald-50 dark:hover:bg-emerald-950/40 border border-emerald-600 text-emerald-700 dark:text-emerald-300 text-xs font-extrabold px-2.5 py-1 rounded-lg shadow-soft-sm whitespace-nowrap animate-in fade-in slide-in-from-top-1 flex items-center gap-1.5 cursor-pointer transition-all duration-120 hover:scale-105 active:scale-95"
-                title="Bấm vào đây để điền đáp án đúng (hoặc bấm Enter)"
-              >
-                <span>{expected}</span>
-                <span className="text-xs text-muted-foreground font-semibold underline">Bấm để điền</span>
-              </button>
-            </div>
-          </>
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-black text-red-500 dark:text-red-400 select-none animate-pulse">
+            !
+          </div>
         )}
         {status !== "correct" && status !== "error" && (
           <button 
             type="button"
             onClick={handleCheck}
-            className="absolute right-1 top-1/2 -translate-y-1/2 w-5 h-5 bg-[var(--duo-blue)]/10 text-[var(--duo-blue)] rounded flex items-center justify-center opacity-100 hover:bg-[var(--duo-blue)] hover:text-white transition-colors"
+            className="absolute right-1 top-1/2 -translate-y-1/2 w-5 h-5 bg-[var(--duo-blue)]/10 text-[var(--duo-blue)] rounded flex items-center justify-center opacity-100 hover:bg-[var(--duo-blue)] hover:text-white transition-colors cursor-pointer"
             title="Kiểm tra (Enter)"
           >
             <ChevronRight className="w-3 h-3" />
@@ -843,6 +856,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
   const [dictationMode, setDictationMode] = useState<"drag" | "keyword" | "full">("drag");
   const isKeywordMode = dictationMode === "drag" || dictationMode === "keyword";
   const [isPlaying, setIsPlaying] = useState(false);
+  const [audioError, setAudioError] = useState(false);
   const [questionFilter, setQuestionFilter] = useState<"all" | "uncompleted">("all");
   const [reviewFilter, setReviewFilter] = useState<"all" | "correct" | "skipped">("all");
   const [correctKeywordsMap, setCorrectKeywordsMap] = useState<Record<number, Set<string>>>({});
@@ -907,10 +921,15 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
 
       if (questErr) throw questErr;
 
-      const sortedQuestions = (questions || []).map((q: any) => ({
-        ...q,
-        answers: (q.answers || []).sort((a: any, b: any) => a.display_order - b.display_order)
-      }));
+      const quizAudio = formatAudioUrl(quiz?.audio_url);
+      const sortedQuestions = (questions || []).map((q: any) => {
+        const questionAudio = formatAudioUrl(q.audio_url) || quizAudio || "";
+        return {
+          ...q,
+          audio_url: questionAudio,
+          answers: (q.answers || []).sort((a: any, b: any) => a.display_order - b.display_order)
+        };
+      });
 
       return { quiz, questions: sortedQuestions };
     }
@@ -1309,9 +1328,23 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
     }
   }, [currentQuestion?.id, handleKeywordCorrect]);
 
+  // Reset audio error on question change
   useEffect(() => {
-    if (!started || !autoPlayAudio || !audioRef.current || !currentQuestion?.audio_url) return;
+    setAudioError(false);
+  }, [currentIndex, currentQuestion?.id]);
 
+  useEffect(() => {
+    if (!started || !autoPlayAudio) return;
+
+    if (!currentQuestion?.audio_url || audioError) {
+      const textToSpeak = currentQuestion?.transcript || (currentQuestion?.question_text !== "Audio dictation" ? currentQuestion?.question_text : "") || "";
+      if (textToSpeak) {
+        speakText(textToSpeak);
+      }
+      return;
+    }
+
+    if (!audioRef.current) return;
     const audio = audioRef.current;
     audio.pause();
     audio.currentTime = 0;
@@ -1340,21 +1373,34 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
       if (!isCancelled && audio.paused) {
         tryPlay();
       }
-    }, 150);
+    }, 200);
 
     return () => {
       isCancelled = true;
       audio.removeEventListener("canplay", handleCanPlay);
       clearTimeout(timer);
     };
-  }, [currentIndex, autoPlayAudio, currentQuestion?.audio_url, started]);
+  }, [currentIndex, autoPlayAudio, currentQuestion?.audio_url, currentQuestion?.id, started, audioError]);
 
   const togglePlayPause = () => {
-    if (audioRef.current) {
+    if (audioRef.current && currentQuestion?.audio_url && !audioError) {
       if (audioRef.current.paused) {
-        audioRef.current.play();
+        audioRef.current.play().catch((err) => {
+          console.warn("Audio play error, falling back to TTS:", err);
+          setAudioError(true);
+          const textToSpeak = currentQuestion.transcript || (currentQuestion.question_text !== "Audio dictation" ? currentQuestion.question_text : "") || "";
+          if (textToSpeak) {
+            speakText(textToSpeak);
+          }
+        });
       } else {
         audioRef.current.pause();
+      }
+    } else {
+      // Fallback TTS when audio is missing or failed
+      const textToSpeak = currentQuestion?.transcript || (currentQuestion?.question_text !== "Audio dictation" ? currentQuestion?.question_text : "") || "";
+      if (textToSpeak) {
+        speakText(textToSpeak);
       }
     }
   };
@@ -1721,34 +1767,6 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
               <span>Cài đặt</span>
             </Button>
           </div>
-          
-          {/* Part 2 Reflex Coach Banner */}
-          {(quizData?.quiz?.title?.toLowerCase().includes("part 2") ||
-            quizData?.quiz?.title?.toLowerCase().includes("phần 2") ||
-            quizData?.quiz?.title?.toLowerCase().includes("hỏi đáp")) && (
-            <div className="bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 rounded-3xl p-5 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm border border-purple-400/30">
-              <div className="space-y-1">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 text-white text-xs font-black uppercase tracking-wider">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                  <span>Chế độ Luyện Phản Xạ Độc Quyền</span>
-                </div>
-                <h3 className="text-lg font-black tracking-tight text-white">
-                  Phương Pháp Luyện Nghe Phản Xạ 8 Bước Part 2
-                </h3>
-                <p className="text-xs sm:text-sm text-white/80 font-medium">
-                  Bẻ nhỏ Chunks • Phản xạ 1s • Shadowing nối âm • Bóc mẽ bẫy ETS • Nghe thực chiến • Nghe thụ động.
-                </p>
-              </div>
-              <Button
-                type="button"
-                onClick={() => navigate('/part2-coach')}
-                className="btn-3d bg-white hover:bg-slate-50 text-purple-700 font-black px-6 py-3 h-auto shrink-0 shadow-md rounded-2xl cursor-pointer"
-              >
-                <Zap className="w-4 h-4 mr-1.5 text-amber-500 fill-amber-500" />
-                <span>Vào Luyện 8 Bước ➔</span>
-              </Button>
-            </div>
-          )}
 
           <div className="bg-muted/20 border-2 rounded-2xl p-5 sm:p-6 space-y-5 max-h-[60vh] overflow-y-auto">
              
@@ -2512,7 +2530,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                       {q.audio_url && (
                         <div className="flex items-center gap-2">
                           <audio 
-                            src={q.audio_url} 
+                            src={formatAudioUrl(q.audio_url)} 
                             controls 
                             className="h-9 max-w-[220px] sm:max-w-[260px]"
                             onPlay={(e) => {
@@ -2664,7 +2682,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
 
   return (
     <LayoutWrapper isEmbedded={isEmbedded}>
-      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
+      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6 pb-24 md:pb-6">
         
         {/* Top Header Bar */}
         <div className="flex items-center justify-between bg-card p-4 sm:p-5 border border-border/70 rounded-2xl shadow-soft-sm">
@@ -2850,7 +2868,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
             </div>
 
             {/* Audio & Control Center Bar */}
-            {currentQuestion.audio_url && (
+            {(currentQuestion.audio_url || currentQuestion.transcript || (currentQuestion.question_text && currentQuestion.question_text !== "Audio dictation")) && (
               <div className="w-full bg-[var(--duo-blue)]/5 p-4 sm:p-5 rounded-2xl border-2 border-[var(--duo-blue)]/20 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
                 
                 {/* Audio Buttons + Controls */}
@@ -2858,41 +2876,76 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                   <button
                     type="button"
                     onClick={togglePlayPause}
-                    className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-[var(--duo-blue)] text-white flex items-center justify-center shadow-[0_3px_0_#1899D6] hover:brightness-110 active:translate-y-0.5 transition-all shrink-0"
+                    className="w-12 h-12 rounded-2xl bg-[var(--duo-blue)] text-white flex items-center justify-center shadow-[0_3px_0_#1899D6] hover:brightness-110 active:translate-y-0.5 transition-all shrink-0 cursor-pointer"
                     title="Phát / Tạm dừng (Ctrl hoặc Alt+Space)"
                   >
-                    {isPlaying ? <Pause className="w-5 h-5 sm:w-6 sm:h-6" /> : <Play className="w-5 h-5 sm:w-6 sm:h-6 ml-0.5" />}
+                    {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-0.5" />}
                   </button>
                   
                   {/* Rewind 5s */}
-                  <button
-                    type="button"
-                    onClick={() => seekRelative(-5)}
-                    className="h-10 px-2.5 bg-white border-2 rounded-xl text-xs font-black text-muted-foreground hover:text-foreground hover:bg-muted flex items-center gap-1 shadow-2xs shrink-0"
-                    title="Lùi 5 giây (Alt + ← hoặc Alt + [)"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" /> -5s
-                  </button>
+                  {currentQuestion.audio_url && !audioError && (
+                    <button
+                      type="button"
+                      onClick={() => seekRelative(-5)}
+                      className="h-10 px-2.5 bg-white border-2 rounded-xl text-xs font-black text-muted-foreground hover:text-foreground hover:bg-muted flex items-center gap-1 shadow-2xs shrink-0 cursor-pointer"
+                      title="Lùi 5 giây (Alt + ← hoặc Alt + [)"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" /> -5s
+                    </button>
+                  )}
 
                   {/* Forward 5s */}
-                  <button
-                    type="button"
-                    onClick={() => seekRelative(5)}
-                    className="h-10 px-2.5 bg-white border-2 rounded-xl text-xs font-black text-muted-foreground hover:text-foreground hover:bg-muted flex items-center gap-1 shadow-2xs shrink-0"
-                    title="Tua tới 5 giây (Alt + → hoặc Alt + ])"
-                  >
-                    <RotateCw className="w-3.5 h-3.5" /> +5s
-                  </button>
+                  {currentQuestion.audio_url && !audioError && (
+                    <button
+                      type="button"
+                      onClick={() => seekRelative(5)}
+                      className="h-10 px-2.5 bg-white border-2 rounded-xl text-xs font-black text-muted-foreground hover:text-foreground hover:bg-muted flex items-center gap-1 shadow-2xs shrink-0 cursor-pointer"
+                      title="Tua tới 5 giây (Alt + → hoặc Alt + ])"
+                    >
+                      <RotateCw className="w-3.5 h-3.5" /> +5s
+                    </button>
+                  )}
 
-                  {/* Audio native player */}
-                  <audio
-                    ref={audioRef}
-                    src={currentQuestion.audio_url}
-                    controls
-                    className="flex-1 h-9 rounded-full min-w-[140px]"
-                    onPlay={() => setIsPlaying(true)}
-                    onPause={() => setIsPlaying(false)}
-                  />
+                  {/* Audio native player or TTS Fallback */}
+                  {currentQuestion.audio_url && !audioError ? (
+                    <audio
+                      ref={audioRef}
+                      src={currentQuestion.audio_url}
+                      controls
+                      className="flex-1 h-9 rounded-full min-w-[140px]"
+                      onPlay={() => {
+                        setIsPlaying(true);
+                        const audios = document.getElementsByTagName('audio');
+                        for (let i = 0; i < audios.length; i++) {
+                          if (audios[i] !== audioRef.current) {
+                            audios[i].pause();
+                          }
+                        }
+                      }}
+                      onPause={() => setIsPlaying(false)}
+                      onError={() => {
+                        console.warn("Audio failed to load, switching to TTS fallback");
+                        setAudioError(true);
+                      }}
+                    />
+                  ) : (
+                    <div className="flex-1 flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-200 text-xs font-semibold">
+                      <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
+                      <span className="truncate">
+                        {audioError ? "Audio không phản hồi - Đang dùng AI TTS" : "Phát qua giọng đọc AI TTS"}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const textToSpeak = currentQuestion.transcript || (currentQuestion.question_text !== "Audio dictation" ? currentQuestion.question_text : "") || "";
+                          if (textToSpeak) speakText(textToSpeak);
+                        }}
+                        className="ml-auto underline font-bold shrink-0 hover:text-amber-950 dark:hover:text-amber-100 cursor-pointer"
+                      >
+                        Phát lại
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* AutoPlay Toggle */}
@@ -3150,6 +3203,44 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
       </div>
       <MysteryChestModal isOpen={showChestModal} onClose={() => setShowChestModal(false)} />
       <ComboCounter combo={combo} />
+
+      {/* Mobile Accessory Bar: Fixed above virtual keyboard, thumb-reachable */}
+      {currentQuestion && (
+        <div className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-background/95 backdrop-blur-md border-t border-border/80 px-3 py-2 shadow-lg flex items-center justify-between gap-3 safe-bottom">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              if (audioRef.current && currentQuestion?.audio_url && !audioError) {
+                audioRef.current.currentTime = 0;
+                audioRef.current.play().catch(() => {
+                  const textToSpeak = currentQuestion.transcript || (currentQuestion.question_text !== "Audio dictation" ? currentQuestion.question_text : "") || "";
+                  if (textToSpeak) speakText(textToSpeak);
+                });
+              } else {
+                const textToSpeak = currentQuestion.transcript || (currentQuestion.question_text !== "Audio dictation" ? currentQuestion.question_text : "") || "";
+                if (textToSpeak) speakText(textToSpeak);
+              }
+            }}
+            className="h-12 min-w-[48px] px-3.5 rounded-xl font-black text-xs flex items-center gap-1.5 border-border shadow-soft-xs active:scale-95 cursor-pointer"
+          >
+            <RotateCcw className="w-4 h-4 text-[var(--duo-blue)]" />
+            <span>Phát lại ⏪</span>
+          </Button>
+
+          <span className="text-[11px] font-bold text-muted-foreground px-2 py-1 rounded-lg bg-muted/60">
+            Câu {activeQuestionIndices.indexOf(currentIndex) + 1}/{activeQuestionIndices.length}
+          </span>
+
+          <Button
+            type="button"
+            onClick={() => handleNext(isCurrentDone)}
+            className="h-12 min-w-[48px] px-4 rounded-xl font-black text-xs flex items-center gap-1.5 bg-primary text-primary-foreground shadow-soft-xs active:scale-95 cursor-pointer"
+          >
+            <span>{isCurrentDone ? "Tiếp tục ⏩" : "Bỏ qua ⏩"}</span>
+          </Button>
+        </div>
+      )}
     </LayoutWrapper>
   );
 };

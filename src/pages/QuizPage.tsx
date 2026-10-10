@@ -1,22 +1,26 @@
 import StudentLayout from "@/components/StudentLayout";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Clock, ChevronLeft, ChevronRight, LayoutGrid, CheckCircle, Bookmark, BookmarkCheck, AlertCircle, AlertTriangle, RotateCcw } from "lucide-react";
 import { useSound } from "@/hooks/useSound";
 import { useGamification, XP_REWARDS } from "@/hooks/useGamification";
 import ErrorState from "@/components/ErrorState";
+import { StickyPartAudioPlayer } from "@/components/audio/StickyPartAudioPlayer";
+import { formatAudioUrl } from "@/utils/audioUrl";
 
 const QuizPage = () => {
   const { courseId, quizId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { toast } = useToast();
   const { addXp } = useGamification();
   const qid = Number(quizId);
 
@@ -29,6 +33,7 @@ const QuizPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const [elapsedTime, setElapsedTime] = useState(0);
   const [currentGroupIdx, setCurrentGroupIdx] = useState(0);
   const { playSound } = useSound();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -37,6 +42,7 @@ const QuizPage = () => {
   const [savedDraftInfo, setSavedDraftInfo] = useState<{
     answeredCount: number;
     timeLeft: number | null;
+    elapsedTime?: number;
     savedAt: number;
   } | null>(null);
 
@@ -45,9 +51,11 @@ const QuizPage = () => {
   const answersRef = useRef(answers);
   const flaggedRef = useRef(flagged);
   const timeLeftRef = useRef(timeLeft);
+  const elapsedTimeRef = useRef(elapsedTime);
   useEffect(() => { answersRef.current = answers; }, [answers]);
   useEffect(() => { flaggedRef.current = flagged; }, [flagged]);
   useEffect(() => { timeLeftRef.current = timeLeft; }, [timeLeft]);
+  useEffect(() => { elapsedTimeRef.current = elapsedTime; }, [elapsedTime]);
 
   // Restore draft on mount with 24h expiry
   useEffect(() => {
@@ -60,19 +68,26 @@ const QuizPage = () => {
           localStorage.removeItem(DRAFT_KEY);
           setSavedDraftInfo(null);
           setShowDraftDialog(false);
+          setStarted(true);
           return;
         }
         if (parsed && parsed.answers && Object.keys(parsed.answers).length > 0) {
           setSavedDraftInfo({
             answeredCount: Object.keys(parsed.answers).length,
             timeLeft: parsed.timeLeft ?? null,
+            elapsedTime: parsed.elapsedTime || 0,
             savedAt: parsed.savedAt || Date.now(),
           });
           setShowDraftDialog(true);
+        } else {
+          setStarted(true);
         }
+      } else {
+        setStarted(true);
       }
     } catch (e) {
       console.error("Failed to parse quiz draft", e);
+      setStarted(true);
     }
   }, [DRAFT_KEY]);
 
@@ -84,6 +99,7 @@ const QuizPage = () => {
       if (parsed.answers) setAnswers(parsed.answers);
       if (parsed.flagged) setFlagged(new Set(parsed.flagged));
       if (parsed.timeLeft !== undefined && parsed.timeLeft !== null) setTimeLeft(parsed.timeLeft);
+      if (parsed.elapsedTime !== undefined) setElapsedTime(parsed.elapsedTime);
       setStarted(true);
       setShowDraftDialog(false);
       toast({
@@ -92,6 +108,7 @@ const QuizPage = () => {
       });
     } catch (e) {
       console.error("Failed to restore quiz draft", e);
+      setStarted(true);
     }
   };
 
@@ -99,6 +116,7 @@ const QuizPage = () => {
     localStorage.removeItem(DRAFT_KEY);
     setSavedDraftInfo(null);
     setShowDraftDialog(false);
+    setStarted(true);
     toast({
       title: "Đã xóa bài làm dở",
       description: "Bạn có thể bắt đầu bài làm mới.",
@@ -115,6 +133,7 @@ const QuizPage = () => {
           answers,
           flagged: Array.from(flagged),
           timeLeft,
+          elapsedTime: elapsedTimeRef.current,
           started: true,
           savedAt: Date.now(),
         }));
@@ -127,7 +146,7 @@ const QuizPage = () => {
 
   // Periodic autosave every 15s for clock
   useEffect(() => {
-    if (!started || submitting || timeLeftRef.current === null || Object.keys(answersRef.current).length === 0) return;
+    if (!started || submitting || Object.keys(answersRef.current).length === 0) return;
     const interval = setInterval(() => {
       try {
         localStorage.setItem(DRAFT_KEY, JSON.stringify({
@@ -135,6 +154,7 @@ const QuizPage = () => {
           answers: answersRef.current,
           flagged: Array.from(flaggedRef.current),
           timeLeft: timeLeftRef.current,
+          elapsedTime: elapsedTimeRef.current,
           started: true,
           savedAt: Date.now(),
         }));
@@ -186,6 +206,9 @@ const QuizPage = () => {
     queryFn: async () => {
       const { data, error } = await supabase.from("quizzes").select("*").eq("id", qid).single();
       if (error) throw error;
+      if (data) {
+        data.audio_url = formatAudioUrl(data.audio_url);
+      }
       return data;
     },
   });
@@ -201,26 +224,60 @@ const QuizPage = () => {
       if (error) throw error;
       return (data || []).map((q: any) => ({
         ...q,
+        audio_url: formatAudioUrl(q.audio_url),
         answers: (q.answers || []).sort((a: any, b: any) => a.display_order - b.display_order),
       }));
     },
   });
 
-  useEffect(() => {
-    if (started && quiz?.time_limit_seconds && timeLeft === null) {
-      setTimeLeft(quiz.time_limit_seconds);
-    }
-  }, [started, quiz, timeLeft]);
+  // Total countdown duration:
+  // If set on quiz: use quiz.time_limit_seconds.
+  // Otherwise, default to standard TOEIC: 60s per question, minimum 10 minutes (600s).
+  const totalLimitSeconds = (quiz?.time_limit_seconds && quiz.time_limit_seconds > 0)
+    ? quiz.time_limit_seconds
+    : Math.max(600, (questions && questions.length > 0 ? questions.length : 10) * 60);
 
+  // Initialize countdown if timeLeft is null
   useEffect(() => {
-    if (started && timeLeft !== null && timeLeft > 0 && !showConfirm) {
-      const timerId = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
-      return () => clearTimeout(timerId);
-    } else if (started && timeLeft === 0 && !submitting) {
-      // Auto submit when time runs out
-      submit();
+    if (started && timeLeft === null && totalLimitSeconds > 0) {
+      setTimeLeft(totalLimitSeconds);
     }
-  }, [started, timeLeft, showConfirm, submitting]);
+  }, [started, totalLimitSeconds, timeLeft]);
+
+  // Main active timer effect: ALWAYS ticks DOWN every second
+  useEffect(() => {
+    if (!started || submitting || showConfirm) return;
+
+    const interval = setInterval(() => {
+      // 1. Increment elapsed stopwatch time
+      setElapsedTime(prev => prev + 1);
+
+      // 2. Decrement countdown
+      setTimeLeft(prev => {
+        const current = prev !== null ? prev : totalLimitSeconds;
+        if (current <= 1) {
+          clearInterval(interval);
+          setTimeout(() => {
+            submit();
+          }, 0);
+          return 0;
+        }
+        return current - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [started, submitting, showConfirm, totalLimitSeconds]);
+
+  const handleAudioPlay = (e: React.SyntheticEvent<HTMLAudioElement>) => {
+    const current = e.currentTarget;
+    const allAudios = document.getElementsByTagName("audio");
+    for (let i = 0; i < allAudios.length; i++) {
+      if (allAudios[i] !== current && !allAudios[i].paused) {
+        allAudios[i].pause();
+      }
+    }
+  };
 
   const selectAnswer = (qIdx: number, answerId: number) => {
     playSound("click");
@@ -240,6 +297,10 @@ const QuizPage = () => {
     });
 
     const score = questions.length > 0 ? (correctCount / questions.length) * 10 : 0;
+    const finalTimeSpent = Math.max(
+      1,
+      timeLeft !== null ? (totalLimitSeconds - timeLeft) : (elapsedTimeRef.current || 1)
+    );
 
     const { data: result } = await supabase.from("user_quiz_results").insert({
       user_id: user.id,
@@ -247,6 +308,7 @@ const QuizPage = () => {
       score: Number(score.toFixed(2)),
       correct_answers: correctCount,
       total_questions: questions.length,
+      time_spent_seconds: finalTimeSpent,
     }).select().single();
 
     if (result) {
@@ -292,14 +354,32 @@ const QuizPage = () => {
     setSubmitting(false);
     navigate(`/courses/${courseId}/quiz/${quizId}/result`, {
       replace: true,
-      state: { score: correctCount, total: questions.length, answers, questions, resultId: result?.id },
+      state: { 
+        score: correctCount, 
+        total: questions.length, 
+        answers, 
+        questions, 
+        resultId: result?.id,
+        timeSpentSeconds: finalTimeSpent,
+      },
     });
   };
 
-  const uniqueQuestionAudios = new Set(
-    questions?.map((q: any) => q.audio_url).filter(Boolean) || []
-  );
-  const showGlobalPlayer = !!(quiz?.audio_url && quiz.audio_url !== "null" && uniqueQuestionAudios.size <= 1);
+  const uniqueQuestionAudios = useMemo(() => {
+    return new Set(questions?.map((q: any) => q.audio_url).filter(Boolean) || []);
+  }, [questions]);
+
+  const singleAudioUrl = useMemo(() => {
+    if (quiz?.audio_url && quiz.audio_url !== "null") return quiz.audio_url;
+    const audios = Array.from(uniqueQuestionAudios);
+    if (audios.length === 1 && (questions?.length || 0) > 1) {
+      return audios[0] as string;
+    }
+    return null;
+  }, [quiz?.audio_url, uniqueQuestionAudios, questions?.length]);
+
+  const hasSingleSharedAudio = !!singleAudioUrl;
+  const showGlobalPlayer = hasSingleSharedAudio;
 
   // Grouping logic
   const groupedQuestions = (() => {
@@ -370,7 +450,7 @@ const QuizPage = () => {
   })();
 
   const currentGroup = groupedQuestions[currentGroupIdx];
-  const hasGroupAudio = !!(currentGroup?.audio_url && (!showGlobalPlayer || currentGroup.audio_url !== quiz?.audio_url));
+  const hasGroupAudio = !!(currentGroup?.audio_url && (!hasSingleSharedAudio || currentGroup.audio_url !== singleAudioUrl));
   const hasGroupContent = !!(currentGroup && (currentGroup.passage || currentGroup.image_url || hasGroupAudio));
 
   const formatTime = (seconds: number) => {
@@ -425,13 +505,19 @@ const QuizPage = () => {
   const totalQ = questions?.length || 0;
   const unanswered = totalQ - answeredCount;
 
-  // Timer urgency style
+  // Timer urgency style & text (Always Countdown)
   const timerStyle = (() => {
-    if (timeLeft === null) return "bg-[#FFF0E0] border-[#FFCC80] text-[#CC7700]";
-    if (timeLeft <= 60) return "bg-red-100 border-red-400 text-red-600 animate-pulse font-black";
-    if (timeLeft <= 300) return "bg-amber-100 border-amber-400 text-amber-700 font-bold";
-    return "bg-[#FFF0E0] border-[#FFCC80] text-[#CC7700]";
+    const curTime = timeLeft !== null ? timeLeft : totalLimitSeconds;
+    if (curTime <= 60) {
+      return "bg-rose-500/20 border-rose-500/50 text-rose-300 animate-pulse font-black shadow-[0_0_15px_rgba(244,63,94,0.3)]";
+    }
+    if (curTime <= 300) {
+      return "bg-amber-500/20 border-amber-500/40 text-amber-300 font-bold";
+    }
+    return "bg-cyan-500/10 border-cyan-500/30 text-cyan-300 font-bold";
   })();
+
+  const displayedTime = formatTime(timeLeft !== null ? timeLeft : totalLimitSeconds);
 
   const filterQuestionsByPalette = (i: number) => {
     if (paletteFilter === "done") return answers[i] !== undefined;
@@ -441,23 +527,34 @@ const QuizPage = () => {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-background overflow-hidden font-sans">
+    <div className="h-screen flex flex-col bg-[#050914] text-slate-100 overflow-hidden font-sans">
+      {/* Ambient background glows matching homepage */}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        <div className="absolute -top-40 left-1/4 w-[600px] h-[400px] bg-cyan-500/10 blur-[140px] rounded-full" />
+        <div className="absolute top-1/3 -right-40 w-[500px] h-[500px] bg-blue-600/10 blur-[150px] rounded-full" />
+      </div>
+
       {/* Sticky Header */}
-      <header className="h-16 border-b border-border/70 shrink-0 bg-card z-20 flex items-center justify-between px-4 lg:px-8 shadow-soft-xs">
+      <header className="h-16 border-b border-cyan-500/20 shrink-0 bg-[#070e1c]/90 backdrop-blur-xl z-20 flex items-center justify-between px-4 lg:px-8 shadow-soft-xs">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => setShowExitConfirm(true)} className="rounded-xl hover:bg-muted" title="Thoát hoặc Tạm dừng">
+          <Button variant="ghost" size="icon" onClick={() => setShowExitConfirm(true)} className="rounded-xl hover:bg-slate-800 text-slate-300 hover:text-white" title="Thoát hoặc Tạm dừng">
             <ChevronLeft className="w-5 h-5"/>
           </Button>
           <div>
-            <h1 className="font-extrabold text-sm lg:text-base hidden sm:block truncate max-w-xs text-foreground">{quiz?.title}</h1>
-            <p className="text-xs text-muted-foreground font-semibold hidden sm:block">Đã làm {answeredCount}/{totalQ} câu</p>
+            <h1 className="font-extrabold text-sm lg:text-base hidden sm:block truncate max-w-xs text-white">{quiz?.title}</h1>
+            <p className="text-xs text-slate-400 font-semibold hidden sm:block">Đã làm {answeredCount}/{totalQ} câu</p>
           </div>
         </div>
         
         <div className="flex items-center gap-3 lg:gap-4">
-          <div className={cn("flex items-center gap-2 border-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl font-mono font-extrabold text-sm sm:text-base transition-colors", timerStyle)}>
-            <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
-            {timeLeft !== null ? formatTime(timeLeft) : "--:--"}
+          <div className={cn("flex items-center gap-2 border px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl font-mono text-sm sm:text-base transition-colors shadow-soft-xs", timerStyle)}>
+            <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-400 shrink-0" />
+            <div className="flex items-center gap-1.5 leading-none">
+              <span>{displayedTime}</span>
+              <span className="text-[10px] font-sans font-medium text-slate-400 hidden md:inline">
+                (còn lại)
+              </span>
+            </div>
           </div>
           <button onClick={() => setShowConfirm(true)} className="btn-3d btn-3d-primary py-2 px-4 text-xs sm:text-sm">
             Nộp bài
@@ -468,19 +565,18 @@ const QuizPage = () => {
       <main className="flex-1 flex overflow-hidden w-full h-[calc(100vh-64px)]">
         
         {/* Main Content: Group-based view */}
-        <div className="flex-1 h-full flex flex-col overflow-hidden bg-background">
+        <div className="flex-1 h-full flex flex-col overflow-hidden bg-transparent">
           {/* Scrollable Questions Container */}
           <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-3 sm:p-6 lg:p-8 space-y-6 scroll-smooth">
             <div className="max-w-4xl mx-auto space-y-6">
-              {/* Global Quiz Audio Player */}
-              {showGlobalPlayer && (
-                <div className="bg-[#DDF4FF]/60 dark:bg-zinc-900/60 p-5 rounded-2xl border-2 border-[var(--duo-blue)]/20 flex items-center gap-4 shadow-sm backdrop-blur-sm">
-                  <div className="w-12 h-12 rounded-xl bg-[var(--duo-blue)] flex items-center justify-center text-white text-xl shrink-0 shadow-md">🎧</div>
-                  <div className="flex-1">
-                    <p className="text-sm font-extrabold text-[var(--duo-blue)] mb-1">Âm thanh toàn bài thi (Listening Track)</p>
-                    <audio key={quiz.audio_url} controls src={quiz.audio_url} className="w-full h-9" controlsList="nodownload" />
-                  </div>
-                </div>
+              {/* Sticky Part Audio Player if quiz has single audio */}
+              {hasSingleSharedAudio && singleAudioUrl && (
+                <StickyPartAudioPlayer
+                  audioUrl={singleAudioUrl}
+                  title={quiz?.title || "Audio bài nghe"}
+                  subtitle="File nghe chung phát liên tục cho toàn bộ bài thi"
+                  questionRange={`Câu 1 - ${questions?.length || 0}`}
+                />
               )}
 
               {currentGroup && (
@@ -498,7 +594,7 @@ const QuizPage = () => {
                           <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-xl shrink-0">🎧</div>
                           <div className="flex-1">
                             <p className="text-sm font-bold text-primary mb-1">Nghe đoạn hội thoại / bài nói</p>
-                            <audio key={currentGroup.audio_url} controls src={currentGroup.audio_url} className="w-full h-9" controlsList="nodownload" />
+                            <audio key={currentGroup.audio_url} controls src={currentGroup.audio_url} className="w-full h-9" controlsList="nodownload" onPlay={handleAudioPlay} />
                           </div>
                         </div>
                       )}
@@ -539,8 +635,8 @@ const QuizPage = () => {
                         {q.image_url && (q.question_type === "part1" || q.image_url !== currentGroup.image_url) && (
                           <img src={q.image_url} alt="Question" className="image-safe max-w-full max-h-[260px] object-contain rounded-xl border border-border/70 shadow-soft-sm mb-4 mx-auto" />
                         )}
-                        {q.audio_url && q.audio_url !== currentGroup.audio_url && (
-                          <audio controls src={q.audio_url} className="w-full mb-4 animate-in fade-in" />
+                        {q.audio_url && q.audio_url !== currentGroup.audio_url && (!hasSingleSharedAudio || q.audio_url !== singleAudioUrl) && (
+                          <audio controls src={q.audio_url} className="w-full mb-4 animate-in fade-in" onPlay={handleAudioPlay} />
                         )}
 
                         {q.cleanText && q.question_type !== "part2" && (
@@ -846,7 +942,7 @@ const QuizPage = () => {
                 className="w-full py-2.5 px-4 rounded-xl bg-primary text-primary-foreground font-bold text-xs hover:bg-primary/90 transition-all duration-120 active:scale-95 shadow-soft-sm cursor-pointer"
                 onClick={() => {
                   setShowExitConfirm(false);
-                  navigate(`/courses/${courseId}/quiz`, { replace: true });
+                  navigate(`/courses/${courseId}/learn`, { replace: true });
                 }}
               >
                 💾 Tạm dừng &amp; Thoát (Lưu bài)
@@ -857,7 +953,7 @@ const QuizPage = () => {
                 onClick={() => {
                   try { localStorage.removeItem(DRAFT_KEY); } catch {}
                   setShowExitConfirm(false);
-                  navigate(`/courses/${courseId}/quiz`, { replace: true });
+                  navigate(`/courses/${courseId}/learn`, { replace: true });
                 }}
               >
                 Hủy bài tập này (Xóa nháp)

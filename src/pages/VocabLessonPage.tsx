@@ -447,7 +447,7 @@ export default function VocabLessonPage() {
               </div>
 
               {showResult && (
-                <div className="absolute inset-0 bg-white/90 backdrop-blur-sm rounded-3xl flex flex-col items-center justify-center space-y-6 animate-in fade-in zoom-in-95 duration-300 z-10 border-4 border-[var(--duo-correct)]/30">
+                <div className="absolute inset-0 bg-[#070e1c]/95 backdrop-blur-sm rounded-3xl flex flex-col items-center justify-center space-y-6 animate-in fade-in zoom-in-95 duration-300 z-10 border-4 border-[var(--duo-correct)]/30">
                   <div className="w-28 h-28 bg-[var(--duo-correct)]/10 rounded-full flex items-center justify-center border-4 border-[var(--duo-correct)]/30 shadow-[0_4px_0_var(--duo-correct-dark)]/20">
                     <CheckCircle2 className="w-14 h-14 text-[var(--duo-correct)]" />
                   </div>
@@ -491,7 +491,7 @@ export default function VocabLessonPage() {
 
               <div className="w-full space-y-8 min-h-[160px] flex flex-col justify-center">
                 {transcript ? (
-                  <div className="p-5 bg-white rounded-2xl border-4 border-border shadow-[0_4px_0_var(--border)] animate-in fade-in slide-in-from-top-4">
+                  <div className="p-5 bg-[#070e1c] rounded-2xl border-2 border-slate-700 shadow-soft-sm animate-in fade-in slide-in-from-top-4">
                     <p className="text-xs text-muted-foreground font-black uppercase tracking-widest mb-3">Máy nghe được:</p>
                     <p className="text-2xl font-black text-foreground italic">"{transcript}"</p>
                   </div>
@@ -510,7 +510,7 @@ export default function VocabLessonPage() {
               </div>
 
               {showResult && (
-                <div className="absolute inset-0 bg-white/90 backdrop-blur-sm rounded-3xl flex flex-col items-center justify-center space-y-6 animate-in fade-in duration-300 z-10 border-4 border-[var(--duo-correct)]/30">
+                <div className="absolute inset-0 bg-[#070e1c]/95 backdrop-blur-sm rounded-3xl flex flex-col items-center justify-center space-y-6 animate-in fade-in duration-300 z-10 border-4 border-[var(--duo-correct)]/30">
                   <div className="w-28 h-28 bg-[var(--duo-correct)]/10 rounded-full flex items-center justify-center border-4 border-[var(--duo-correct)]/30 shadow-[0_4px_0_var(--duo-correct-dark)]/20">
                     <CheckCircle2 className="w-14 h-14 text-[var(--duo-correct)]" />
                   </div>

@@ -23,7 +23,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   return (
     <div
       className={cn(
-        "p-10 text-center bg-card rounded-2xl border border-border/60 shadow-soft-sm flex flex-col items-center justify-center space-y-5 max-w-md mx-auto my-6 animate-fade-in-up",
+        "p-10 text-center bg-[#070e1c]/90 rounded-2xl border border-cyan-500/20 shadow-soft-sm flex flex-col items-center justify-center space-y-5 max-w-md mx-auto my-6 animate-fade-in-up backdrop-blur-xl",
         className
       )}
     >

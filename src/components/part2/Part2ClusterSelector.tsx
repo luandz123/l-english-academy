@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Part2Cluster } from '@/types/part2Coach';
 import { PART2_CLUSTERS } from '@/data/part2CoachData';
-import { Button } from '@/components/ui/button';
+import { getCleanClusterInfo } from './Part2HubView';
 import {
   Dialog,
   DialogContent,
@@ -9,7 +9,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { Sparkles, Check, Headphones, BookOpen, Layers, Search, FileCheck2, Filter } from 'lucide-react';
+import { Check, Headphones, Layers, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface Part2ClusterSelectorProps {
@@ -25,21 +25,26 @@ export const Part2ClusterSelector: React.FC<Part2ClusterSelectorProps> = ({
   selectedClusterId,
   onSelectCluster,
 }) => {
-  const [activeTab, setActiveTab] = useState<'all' | 'fulltest' | 'dictation'>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const filteredClusters = PART2_CLUSTERS.filter((c) => {
-    if (activeTab === 'fulltest' && c.sourceType !== 'fulltest') return false;
-    if (activeTab === 'dictation' && c.sourceType !== 'dictation') return false;
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      const matchTitle = c.title.toLowerCase().includes(q);
-      const matchSource = c.testSource.toLowerCase().includes(q);
-      const matchDesc = c.description.toLowerCase().includes(q);
-      return matchTitle || matchSource || matchDesc;
-    }
-    return true;
-  });
+  // 25 clusters indexed and sorted in strict sequential order 1 -> 25
+  const orderedClusters = useMemo(() => {
+    return PART2_CLUSTERS.map((c, idx) => ({
+      ...c,
+      info: getCleanClusterInfo(c, idx)
+    }));
+  }, []);
+
+  const filteredClusters = useMemo(() => {
+    if (!searchQuery.trim()) return orderedClusters;
+    const q = searchQuery.toLowerCase();
+    return orderedClusters.filter((c) => {
+      const matchTitle = c.info.formattedTitle.toLowerCase().includes(q);
+      const matchDesc = c.info.cleanDescription.toLowerCase().includes(q);
+      const matchNumber = String(c.info.sequentialNumber).includes(q);
+      return matchTitle || matchDesc || matchNumber;
+    });
+  }, [orderedClusters, searchQuery]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -50,76 +55,37 @@ export const Part2ClusterSelector: React.FC<Part2ClusterSelectorProps> = ({
               <Layers className="w-4 h-4" />
             </div>
             <DialogTitle className="text-xl sm:text-2xl font-black text-foreground">
-              Chọn Cụm Câu Hỏi Phản Xạ Part 2
+              Chọn Bài Luyện Phản Xạ Part 2
             </DialogTitle>
           </div>
           <DialogDescription className="text-sm font-medium text-muted-foreground">
-            Tổng hợp {PART2_CLUSTERS.length} cụm câu hỏi từ Đề thi Fulltest thật và Bài luyện nghe điền từ.
+            Danh sách {PART2_CLUSTERS.length} bài luyện tập được chia nhỏ và sắp xếp theo độ khó tăng dần.
           </DialogDescription>
         </DialogHeader>
 
-        {/* Search & Tabs */}
-        <div className="space-y-3">
-          <div className="relative">
-            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Tìm theo tên đề, cụm câu hỏi..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 rounded-xl text-sm border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
-            />
-          </div>
-
-          <div className="flex items-center gap-2 overflow-x-auto pb-1">
-            <button
-              onClick={() => setActiveTab('all')}
-              className={cn(
-                'px-3 py-1.5 rounded-xl text-xs font-black transition-all shrink-0 cursor-pointer border',
-                activeTab === 'all'
-                  ? 'bg-purple-600 text-white border-purple-600 shadow-sm'
-                  : 'bg-white dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 border-slate-200 dark:border-zinc-800 hover:bg-slate-50'
-              )}
-            >
-              Tất cả ({PART2_CLUSTERS.length})
-            </button>
-            <button
-              onClick={() => setActiveTab('fulltest')}
-              className={cn(
-                'px-3 py-1.5 rounded-xl text-xs font-black transition-all shrink-0 cursor-pointer border flex items-center gap-1.5',
-                activeTab === 'fulltest'
-                  ? 'bg-purple-600 text-white border-purple-600 shadow-sm'
-                  : 'bg-white dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 border-slate-200 dark:border-zinc-800 hover:bg-slate-50'
-              )}
-            >
-              <FileCheck2 className="w-3.5 h-3.5" />
-              Đề Thi Fulltest ({PART2_CLUSTERS.filter((c) => c.sourceType === 'fulltest').length})
-            </button>
-            <button
-              onClick={() => setActiveTab('dictation')}
-              className={cn(
-                'px-3 py-1.5 rounded-xl text-xs font-black transition-all shrink-0 cursor-pointer border flex items-center gap-1.5',
-                activeTab === 'dictation'
-                  ? 'bg-purple-600 text-white border-purple-600 shadow-sm'
-                  : 'bg-white dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 border-slate-200 dark:border-zinc-800 hover:bg-slate-50'
-              )}
-            >
-              <Headphones className="w-3.5 h-3.5" />
-              Nghe Điền Từ ({PART2_CLUSTERS.filter((c) => c.sourceType === 'dictation').length})
-            </button>
-          </div>
+        {/* Search */}
+        <div className="relative">
+          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="Tìm theo số bài, chủ đề..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-4 py-2 rounded-xl text-sm border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
+          />
         </div>
 
-        {/* Clusters List */}
+        {/* Clusters List in Strict Sequential Order */}
         <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-1">
           {filteredClusters.length === 0 ? (
             <div className="p-8 text-center text-muted-foreground text-sm">
-              Không tìm thấy cụm câu hỏi nào phù hợp với tìm kiếm.
+              Không tìm thấy bài luyện nào phù hợp với tìm kiếm.
             </div>
           ) : (
             filteredClusters.map((cluster) => {
               const isSelected = cluster.id === selectedClusterId;
-              const isFulltest = cluster.sourceType === 'fulltest';
+              const padIndex = String(cluster.info.sequentialNumber).padStart(2, '0');
+
               return (
                 <div
                   key={cluster.id}
@@ -137,28 +103,17 @@ export const Part2ClusterSelector: React.FC<Part2ClusterSelectorProps> = ({
                   <div className="flex items-start justify-between gap-3">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span
-                          className={cn(
-                            'text-xs font-black uppercase px-2 py-0.5 rounded-md border tracking-wider',
-                            isFulltest
-                              ? 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-400'
-                              : 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-400'
-                          )}
-                        >
-                          {cluster.testSource}
+                        <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-purple-500/10 text-purple-700 dark:text-purple-300">
+                          Bài {padIndex}
                         </span>
                         <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-zinc-800 text-xs font-bold text-muted-foreground">
-                          {cluster.difficulty}
+                          {cluster.difficulty.includes('650') ? 'Nâng cao (650+)' : 'Cơ bản (500+)'}
                         </span>
                       </div>
 
                       <h4 className="text-base sm:text-lg font-black text-foreground">
-                        {cluster.title}
+                        {cluster.info.formattedTitle}
                       </h4>
-
-                      <p className="text-xs sm:text-sm text-muted-foreground font-medium line-clamp-2">
-                        {cluster.description}
-                      </p>
                     </div>
 
                     <div className="shrink-0 flex items-center gap-1.5 bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 px-3 py-1.5 rounded-xl font-black text-xs">
@@ -170,7 +125,7 @@ export const Part2ClusterSelector: React.FC<Part2ClusterSelectorProps> = ({
                   {isSelected && (
                     <div className="pt-2 flex items-center gap-1.5 text-xs font-black text-purple-600 dark:text-purple-400">
                       <Check className="w-4 h-4" />
-                      <span>Đang luyện tập cụm này</span>
+                      <span>Đang luyện tập bài này</span>
                     </div>
                   )}
                 </div>
@@ -182,3 +137,5 @@ export const Part2ClusterSelector: React.FC<Part2ClusterSelectorProps> = ({
     </Dialog>
   );
 };
+
+export default Part2ClusterSelector;

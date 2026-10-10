@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { CheckCircle, LayoutGrid, Clock, Award, Eye, ChevronLeft, Loader2, Headphones, BookOpen } from "lucide-react";
 import ErrorState from "@/components/ErrorState";
+import { StickyPartAudioPlayer } from "@/components/audio/StickyPartAudioPlayer";
 
 const defaultPartTotals: Record<number, number> = {
   1: 6, 2: 25, 3: 39, 4: 30, 5: 30, 6: 16, 7: 54
@@ -33,6 +34,16 @@ const FullTestResult = () => {
   const [showReview, setShowReview] = useState(false);
   const [onlyShowIncorrect, setOnlyShowIncorrect] = useState(false);
   const [filterOnlyAttempted, setFilterOnlyAttempted] = useState(true);
+
+  const handleAudioPlay = (e: React.SyntheticEvent<HTMLAudioElement>) => {
+    const current = e.currentTarget;
+    const allAudios = document.getElementsByTagName("audio");
+    for (let i = 0; i < allAudios.length; i++) {
+      if (allAudios[i] !== current && !allAudios[i].paused) {
+        allAudios[i].pause();
+      }
+    }
+  };
 
   // 1. Get resultId from state or query latest result from DB
   const stateResultId = state?.resultId;
@@ -230,10 +241,46 @@ const FullTestResult = () => {
     return groups;
   }, [questions]);
 
+  // Detect if any Part (1, 2, 3, 4) uses a single shared audio for all its questions
+  const partAudioInfo = useMemo(() => {
+    const map: Record<number, { isSinglePartAudio: boolean; audioUrl: string | null; count: number; questionRange: string }> = {};
+    [1, 2, 3, 4].forEach(part => {
+      const pQuestions = questions.filter((q: any) => q.part_number === part);
+      const audioUrls = Array.from(new Set(pQuestions.map((q: any) => q.audio_url).filter(Boolean)));
+      if (audioUrls.length === 1 && pQuestions.length > 1) {
+        const firstIdx = questions.findIndex((q: any) => q.part_number === part) + 1;
+        const lastIdx = firstIdx + pQuestions.length - 1;
+        map[part] = { 
+          isSinglePartAudio: true, 
+          audioUrl: audioUrls[0] as string, 
+          count: pQuestions.length,
+          questionRange: `Câu ${firstIdx} - ${lastIdx}`
+        };
+      } else {
+        map[part] = { isSinglePartAudio: false, audioUrl: null, count: pQuestions.length, questionRange: "" };
+      }
+    });
+    return map;
+  }, [questions]);
+
+  // Organize groups by Part so sticky audio sticks for the whole Part in review mode
+  const partSections = useMemo(() => {
+    const sections: { partNumber: number; groups: any[] }[] = [];
+    groupedQuestions.forEach((group: any) => {
+      let lastSection = sections[sections.length - 1];
+      if (!lastSection || lastSection.partNumber !== group.part_number) {
+        lastSection = { partNumber: group.part_number, groups: [] };
+        sections.push(lastSection);
+      }
+      lastSection.groups.push(group);
+    });
+    return sections;
+  }, [groupedQuestions]);
+
   if (loadingResult || loadingQuestions || loadingDetails) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="w-10 h-10 animate-spin text-primary" />
+      <div className="min-h-screen bg-[#050914] text-slate-100 flex items-center justify-center">
+        <Loader2 className="w-10 h-10 animate-spin text-cyan-400" />
       </div>
     );
   }
@@ -311,9 +358,14 @@ const FullTestResult = () => {
   // Review Details Subview
   if (showReview) {
     return (
-      <div className="h-screen flex flex-col bg-background overflow-hidden font-sans">
+      <div className="h-screen flex flex-col bg-[#050914] text-slate-100 overflow-hidden font-sans">
+        {/* Ambient background glows matching homepage */}
+        <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+          <div className="absolute -top-40 left-1/4 w-[600px] h-[400px] bg-cyan-500/10 blur-[140px] rounded-full" />
+          <div className="absolute top-1/3 -right-40 w-[500px] h-[500px] bg-blue-600/10 blur-[150px] rounded-full" />
+        </div>
         {/* Sticky Header */}
-        <header className="h-16 border-b border-border/60 shrink-0 bg-card/95 backdrop-blur-md z-20 flex items-center justify-between px-4 lg:px-8 shadow-soft-xs">
+        <header className="h-16 border-b border-cyan-500/20 shrink-0 bg-[#070e1c]/95 backdrop-blur-md z-20 flex items-center justify-between px-4 lg:px-8 shadow-soft-xs">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setShowReview(false)}
@@ -363,62 +415,79 @@ const FullTestResult = () => {
 
         <main className="flex-1 flex overflow-hidden w-full h-[calc(100vh-64px)]">
           {/* List of questions */}
-          <div className="flex-1 h-full overflow-y-auto p-4 lg:p-8 space-y-6 scroll-smooth pb-32">
-            {groupedQuestions.map((group: any, gIdx: number) => {
-              if (filterOnlyAttempted && !attemptedParts.includes(group.part_number)) {
+          <div className="flex-1 h-full overflow-y-auto p-4 lg:p-8 space-y-10 scroll-smooth pb-32">
+            {partSections.map((section) => {
+              if (filterOnlyAttempted && !attemptedParts.includes(section.partNumber)) {
                 return null;
               }
 
-              const questionsToRender = group.questions.filter((q: any) => {
-                const isCorrect = correctnessLookup[q.id];
-                if (onlyShowIncorrect) return !isCorrect;
-                return true;
-              });
-
-              if (questionsToRender.length === 0) return null;
+              const singlePartAudio = partAudioInfo[section.partNumber];
 
               return (
-                <div key={gIdx} className="max-w-4xl mx-auto space-y-5">
-                  {/* Group Header Context */}
-                  {(group.passage || group.audio_url || group.image_url) && (
-                    <div className="p-5 sm:p-7 bg-primary/5 dark:bg-primary/10 border border-primary/20 space-y-4 rounded-2xl shadow-soft-sm">
-                      <span className="badge-duo badge-blue font-bold text-xs">{partShortNames[group.part_number - 1]}</span>
-
-                      {group.image_url && (
-                        <div className="w-full flex justify-center bg-muted/20 rounded-xl overflow-hidden p-1 border border-border/50">
-                          <img
-                            src={group.image_url}
-                            alt="Passage Context"
-                            className="max-w-full h-auto rounded-lg mx-auto max-h-[300px] object-contain image-safe"
-                          />
-                        </div>
-                      )}
-
-                      {group.audio_url && (
-                        <div className="flex items-center gap-4 bg-card p-4 rounded-xl border border-border/60 shadow-soft-xs">
-                          <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 text-xl font-bold">
-                            🎧
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-bold text-muted-foreground mb-1">Audio nghe chung</p>
-                            <audio
-                              controls
-                              src={group.audio_url}
-                              className="w-full h-8"
-                              controlsList="nodownload"
-                            />
-                          </div>
-                        </div>
-                      )}
-
-                      {group.passage && (
-                        <div 
-                          className="prose prose-sm max-w-none text-foreground font-medium bg-card p-5 rounded-xl border border-border/60 leading-relaxed shadow-soft-xs"
-                          dangerouslySetInnerHTML={{ __html: group.passage }}
-                        />
-                      )}
-                    </div>
+                <div key={section.partNumber} className="max-w-4xl mx-auto space-y-6 relative">
+                  {/* Sticky single part audio player if entire part shares 1 audio */}
+                  {singlePartAudio?.isSinglePartAudio && singlePartAudio.audioUrl && (
+                    <StickyPartAudioPlayer
+                      audioUrl={singlePartAudio.audioUrl}
+                      partNumber={section.partNumber}
+                      title={partShortNames[section.partNumber - 1]}
+                      subtitle="File nghe chung cho toàn bộ câu hỏi trong Part này"
+                      questionRange={singlePartAudio.questionRange}
+                    />
                   )}
+
+                  {section.groups.map((group: any, gIdx: number) => {
+                    const questionsToRender = group.questions.filter((q: any) => {
+                      const isCorrect = correctnessLookup[q.id];
+                      if (onlyShowIncorrect) return !isCorrect;
+                      return true;
+                    });
+
+                    if (questionsToRender.length === 0) return null;
+
+                    return (
+                      <div key={gIdx} className="space-y-5">
+                        {/* Group Header Context */}
+                        {(group.passage || (group.audio_url && !singlePartAudio?.isSinglePartAudio) || group.image_url) && (
+                          <div className="p-5 sm:p-7 bg-primary/5 dark:bg-primary/10 border border-primary/20 space-y-4 rounded-2xl shadow-soft-sm">
+                            <span className="badge-duo badge-blue font-bold text-xs">{partShortNames[group.part_number - 1]}</span>
+
+                            {group.image_url && (
+                              <div className="w-full flex justify-center bg-muted/20 rounded-xl overflow-hidden p-1 border border-border/50">
+                                <img
+                                  src={group.image_url}
+                                  alt="Passage Context"
+                                  className="max-w-full h-auto rounded-lg mx-auto max-h-[300px] object-contain image-safe"
+                                />
+                              </div>
+                            )}
+
+                            {group.audio_url && !singlePartAudio?.isSinglePartAudio && (
+                              <div className="flex items-center gap-4 bg-card p-4 rounded-xl border border-border/60 shadow-soft-xs">
+                                <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 text-xl font-bold">
+                                  🎧
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-xs font-bold text-muted-foreground mb-1">Audio nghe chung</p>
+                                  <audio
+                                    controls
+                                    src={group.audio_url}
+                                    className="w-full h-8"
+                                    controlsList="nodownload"
+                                    onPlay={handleAudioPlay}
+                                  />
+                                </div>
+                              </div>
+                            )}
+
+                            {group.passage && (
+                              <div 
+                                className="prose prose-sm max-w-none text-foreground font-medium bg-card p-5 rounded-xl border border-border/60 leading-relaxed shadow-soft-xs"
+                                dangerouslySetInnerHTML={{ __html: group.passage }}
+                              />
+                            )}
+                          </div>
+                        )}
 
                   {/* Questions */}
                   {questionsToRender.map((q: any) => {
@@ -461,12 +530,13 @@ const FullTestResult = () => {
                           </div>
                         )}
 
-                        {q.audio_url && q.audio_url !== group.audio_url && (
+                        {q.audio_url && q.audio_url !== group.audio_url && !singlePartAudio?.isSinglePartAudio && (
                           <audio
                             controls
                             src={q.audio_url}
                             className="w-full max-w-md"
                             controlsList="nodownload"
+                            onPlay={handleAudioPlay}
                           />
                         )}
 
@@ -539,6 +609,9 @@ const FullTestResult = () => {
                 </div>
               );
             })}
+                </div>
+              );
+            })}
           </div>
 
           {/* Right Sidebar navigation (Desktop) */}
@@ -606,7 +679,7 @@ const FullTestResult = () => {
     <StudentLayout>
       <div className="max-w-4xl mx-auto space-y-8 pb-20 font-sans">
         {/* Banner Header with Peak-End Rule Polish */}
-        <div className="p-8 text-center space-y-5 bg-card text-card-foreground rounded-2xl shadow-soft-lg border border-border/60 relative overflow-hidden">
+        <div className="p-8 text-center space-y-5 bg-[#070e1c]/90 text-card-foreground rounded-2xl shadow-soft-lg border border-cyan-500/20 relative overflow-hidden backdrop-blur-xl">
           <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-primary via-success to-amber-400" />
 
           <div className="text-6xl mb-2 animate-bounce">{scoreDisplay.emoji}</div>

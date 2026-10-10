@@ -2,9 +2,9 @@ import { useEffect } from "react";
 
 const ThemeToggle = () => {
   useEffect(() => {
-    // Force light mode always
-    document.documentElement.classList.remove("dark");
-    localStorage.setItem("theme", "light");
+    // Default to dark mode matching homepage theme
+    document.documentElement.classList.add("dark");
+    localStorage.setItem("theme", "dark");
   }, []);
 
   return null;

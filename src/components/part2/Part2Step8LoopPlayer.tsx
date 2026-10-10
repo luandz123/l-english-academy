@@ -120,23 +120,35 @@ export const Part2Step8LoopPlayer: React.FC<Part2Step8LoopPlayerProps> = ({
     setShowCelebration(true);
   };
 
-  // Keyboard shortcuts
+  const [pressedKey, setPressedKey] = useState<string | null>(null);
+
+  // Keyboard shortcuts with tactile feedback
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) return;
       if (e.code === 'Space') {
         e.preventDefault();
+        setPressedKey('Space');
         handleTogglePlay();
       } else if (e.key === 'ArrowLeft') {
         e.preventDefault();
+        setPressedKey('ArrowLeft');
         handlePrev();
       } else if (e.key === 'ArrowRight') {
         e.preventDefault();
+        setPressedKey('ArrowRight');
         handleNext();
       }
     };
+    const handleKeyUp = () => {
+      setPressedKey(null);
+    };
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
   }, [isPlaying, currentIdx]);
 
   return (
@@ -221,37 +233,62 @@ export const Part2Step8LoopPlayer: React.FC<Part2Step8LoopPlayerProps> = ({
           </div>
         )}
 
-        {/* Center Control Buttons */}
-        <div className="flex items-center justify-center gap-3">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={handlePrev}
-            className="w-12 h-12 rounded-2xl border-border cursor-pointer"
-          >
-            <SkipBack className="w-5 h-5" />
-          </Button>
+        {/* Center Control Buttons with Spatial Keycaps and Mechanical Feedback */}
+        <div className="flex items-center justify-center gap-4 pt-1">
+          {/* Prev */}
+          <div className="flex flex-col items-center gap-1.5">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handlePrev}
+              className={cn(
+                "w-12 h-12 rounded-2xl border-border cursor-pointer transition-transform duration-75 active:translate-y-[2px]",
+                pressedKey === 'ArrowLeft' && "translate-y-[2px] bg-accent"
+              )}
+            >
+              <SkipBack className="w-5 h-5" />
+            </Button>
+            <span className="text-[10px] font-mono font-bold text-muted-foreground bg-muted/80 px-2 py-0.5 rounded border border-border/60 shadow-[0_1px_0_rgba(0,0,0,0.1)]">
+              ←
+            </span>
+          </div>
 
-          <Button
-            size="lg"
-            onClick={handleTogglePlay}
-            className={cn(
-              'h-12 px-7 rounded-2xl text-white font-bold text-sm shadow-md transition-transform active:scale-95 cursor-pointer',
-              isPlaying ? 'bg-amber-500 hover:bg-amber-600' : 'bg-violet-600 hover:bg-violet-700'
-            )}
-          >
-            {isPlaying ? <Pause className="w-5 h-5 mr-1.5" /> : <Play className="w-5 h-5 ml-0.5 mr-1.5" />}
-            {isPlaying ? 'Tạm dừng' : 'Phát'}
-          </Button>
+          {/* Play/Pause */}
+          <div className="flex flex-col items-center gap-1.5">
+            <Button
+              size="lg"
+              onClick={handleTogglePlay}
+              className={cn(
+                "h-12 px-7 rounded-2xl text-white font-bold text-sm shadow-md transition-transform duration-75 active:translate-y-[2px] cursor-pointer",
+                isPlaying ? "bg-amber-500 hover:bg-amber-600" : "bg-violet-600 hover:bg-violet-700",
+                pressedKey === 'Space' && "translate-y-[2px]"
+              )}
+            >
+              {isPlaying ? <Pause className="w-5 h-5 mr-1.5" /> : <Play className="w-5 h-5 ml-0.5 mr-1.5" />}
+              {isPlaying ? 'Tạm dừng' : 'Phát'}
+            </Button>
+            <span className="text-[10px] font-mono font-bold text-muted-foreground bg-muted/80 px-2.5 py-0.5 rounded border border-border/60 shadow-[0_1px_0_rgba(0,0,0,0.1)]">
+              Space
+            </span>
+          </div>
 
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={handleNext}
-            className="w-12 h-12 rounded-2xl border-border cursor-pointer"
-          >
-            <SkipForward className="w-5 h-5" />
-          </Button>
+          {/* Next */}
+          <div className="flex flex-col items-center gap-1.5">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleNext}
+              className={cn(
+                "w-12 h-12 rounded-2xl border-border cursor-pointer transition-transform duration-75 active:translate-y-[2px]",
+                pressedKey === 'ArrowRight' && "translate-y-[2px] bg-accent"
+              )}
+            >
+              <SkipForward className="w-5 h-5" />
+            </Button>
+            <span className="text-[10px] font-mono font-bold text-muted-foreground bg-muted/80 px-2 py-0.5 rounded border border-border/60 shadow-[0_1px_0_rgba(0,0,0,0.1)]">
+              →
+            </span>
+          </div>
         </div>
 
         {/* Settings Bar: Speed & Subtitles */}

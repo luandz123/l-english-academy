@@ -1,4 +1,4 @@
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
 import { lazyWithRetry } from "@/lib/lazyWithRetry";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate, useSearchParams, useParams } from "react-router-dom";
@@ -127,19 +127,19 @@ const GamesHub = lazyWithRetry(() => import("./pages/GamesHub"));
 
 
 const PageLoader = () => (
-  <div className="min-h-screen bg-background p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 animate-fade-in-up">
-    <div className="flex items-center justify-between py-2 border-b border-border/40">
-      <Skeleton className="h-8 w-36 rounded-xl" />
+  <div className="min-h-screen bg-[#050914] text-slate-100 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 animate-fade-in-up">
+    <div className="flex items-center justify-between py-2 border-b border-slate-800">
+      <Skeleton className="h-8 w-36 rounded-xl bg-slate-800" />
       <div className="flex items-center gap-3">
-        <Skeleton className="h-8 w-24 rounded-xl" />
-        <Skeleton className="h-9 w-9 rounded-full" />
+        <Skeleton className="h-8 w-24 rounded-xl bg-slate-800" />
+        <Skeleton className="h-9 w-9 rounded-full bg-slate-800" />
       </div>
     </div>
-    <Skeleton className="h-56 sm:h-72 w-full rounded-2xl" />
+    <Skeleton className="h-56 sm:h-72 w-full rounded-2xl bg-slate-800" />
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pt-4">
-      <Skeleton className="h-44 rounded-2xl" />
-      <Skeleton className="h-44 rounded-2xl" />
-      <Skeleton className="h-44 rounded-2xl" />
+      <Skeleton className="h-44 rounded-2xl bg-slate-800" />
+      <Skeleton className="h-44 rounded-2xl bg-slate-800" />
+      <Skeleton className="h-44 rounded-2xl bg-slate-800" />
     </div>
   </div>
 );
@@ -153,16 +153,38 @@ const queryClient = new QueryClient({
   },
 });
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <ThemeToggle />
-      <BrowserRouter>
-        <AuthProvider>
-          <ErrorBoundary>
-            <Suspense fallback={<PageLoader />}>
-              <Routes>
+const App = () => {
+  useEffect(() => {
+    // Global single-audio playback: when any audio starts, pause all other audio elements
+    const handleGlobalAudioPlay = (e: Event) => {
+      const target = e.target;
+      if (target instanceof HTMLAudioElement) {
+        const allAudios = document.getElementsByTagName("audio");
+        for (let i = 0; i < allAudios.length; i++) {
+          const audio = allAudios[i];
+          if (audio !== target && !audio.paused) {
+            audio.pause();
+          }
+        }
+      }
+    };
+
+    document.addEventListener("play", handleGlobalAudioPlay, true);
+    return () => {
+      document.removeEventListener("play", handleGlobalAudioPlay, true);
+    };
+  }, []);
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <ThemeToggle />
+        <BrowserRouter>
+          <AuthProvider>
+            <ErrorBoundary>
+              <Suspense fallback={<PageLoader />}>
+                <Routes>
                 {/* Public */}
                 <Route path="/" element={<Index />} />
                 <Route path="/login" element={<Login />} />
@@ -178,6 +200,7 @@ const App = () => (
                 <Route path="/courses/:courseId/learn" element={<ProtectedRoute><LearnPage /></ProtectedRoute>} />
                 <Route path="/courses/:courseId/quiz/:quizId" element={<ProtectedRoute><QuizPage /></ProtectedRoute>} />
                 <Route path="/courses/:courseId/quiz/:quizId/result" element={<ProtectedRoute><QuizResult /></ProtectedRoute>} />
+                <Route path="/courses/:courseId/quiz" element={<CourseDetailRedirect />} />
                 <Route path="/courses/:courseId/vocab" element={<ProtectedRoute><VocabPage /></ProtectedRoute>} />
                 <Route path="/courses/:courseId/vocab-lesson/:lessonId" element={<ProtectedRoute><VocabLessonPage /></ProtectedRoute>} />
                 <Route path="/courses/:courseId/dictation/:quizId" element={<ProtectedRoute><DictationPage /></ProtectedRoute>} />
@@ -226,6 +249,7 @@ const App = () => (
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
-);
+  );
+};
 
 export default App;

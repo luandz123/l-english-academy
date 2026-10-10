@@ -3,7 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import StudentLayout from '@/components/StudentLayout';
 import { Part2Cluster, Part2StepId } from '@/types/part2Coach';
 import { PART2_CLUSTERS, PART2_STEPS_META } from '@/data/part2CoachData';
-import { Part2HubView } from '@/components/part2/Part2HubView';
+import { Part2HubView, getCleanClusterInfo } from '@/components/part2/Part2HubView';
 import { Part2Stepper } from '@/components/part2/Part2Stepper';
 import { Part2Step1Diagnostic } from '@/components/part2/Part2Step1Diagnostic';
 import { Part2Step2Chunks } from '@/components/part2/Part2Step2Chunks';
@@ -219,9 +219,12 @@ const Part2CoachPage: React.FC = () => {
     setIsClusterModalOpen(true);
   };
 
+  const activeClusterIndex = activeCluster ? PART2_CLUSTERS.findIndex(c => c.id === activeCluster.id) : 0;
+  const cleanActiveTitle = activeCluster ? getCleanClusterInfo(activeCluster, activeClusterIndex >= 0 ? activeClusterIndex : 0).formattedTitle : '';
+
   return (
     <StudentLayout>
-      <div className="min-h-screen bg-background pb-20 pt-4 px-3 sm:px-6 max-w-6xl mx-auto space-y-4 sm:space-y-5 font-sans">
+      <div className="pb-20 pt-2 px-3 sm:px-6 max-w-6xl mx-auto space-y-4 sm:space-y-5 font-sans">
         {/* If no cluster selected: show Hub View */}
         {!activeCluster ? (
           <Part2HubView onSelectCluster={handleSelectClusterFromHub} />
@@ -229,7 +232,7 @@ const Part2CoachPage: React.FC = () => {
           /* Active Cluster 8-Step Training Mode */
           <div className="space-y-4 sm:space-y-5">
             {/* Sticky Compact 1-Row Header & Slim Dot Stepper */}
-            <div className="sticky top-16 z-30 bg-card/95 backdrop-blur-md border border-border/70 rounded-2xl p-3 sm:px-4 sm:py-3 shadow-soft-sm space-y-2.5">
+            <div className="sticky top-16 z-30 bg-[#070e1c]/95 backdrop-blur-md border border-slate-800/80 rounded-2xl p-3 sm:px-4 sm:py-3 shadow-[0_4px_25px_rgba(0,0,0,0.5)] space-y-2.5">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2 min-w-0">
                   <Button
@@ -247,10 +250,10 @@ const Part2CoachPage: React.FC = () => {
 
                   <div className="min-w-0 flex items-center gap-2">
                     <span className="text-xs sm:text-sm font-black text-foreground truncate">
-                      {activeCluster.title}
+                      {cleanActiveTitle}
                     </span>
                     <span className="px-2 py-0.5 rounded-md bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 text-xs font-black uppercase tracking-wider shrink-0 hidden md:inline">
-                      {activeCluster.testSource}
+                      {activeCluster.questions.length} câu
                     </span>
                   </div>
                 </div>
@@ -262,7 +265,7 @@ const Part2CoachPage: React.FC = () => {
                   className="h-8 px-3 rounded-xl font-bold border-purple-200 dark:border-purple-800/60 text-purple-700 dark:text-purple-300 hover:bg-purple-50 text-xs shrink-0 cursor-pointer"
                 >
                   <Layers className="w-3.5 h-3.5 mr-1" />
-                  Đổi cụm ({activeCluster.questions.length} câu)
+                  Đổi bài ({activeCluster.questions.length} câu)
                 </Button>
               </div>
 

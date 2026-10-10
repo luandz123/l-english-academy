@@ -168,28 +168,34 @@ const VocabPage = () => {
   if (view === "flashcard" && word) {
     const progress = ((currentQ + 1) / vocabWords!.length) * 100;
     return (
-      <div className="min-h-screen bg-background flex flex-col">
+      <div className="min-h-screen bg-[#050914] text-slate-100 flex flex-col relative">
+        {/* Ambient background glows matching homepage */}
+        <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+          <div className="absolute -top-40 left-1/4 w-[600px] h-[400px] bg-cyan-500/10 blur-[140px] rounded-full" />
+          <div className="absolute top-1/3 -right-40 w-[500px] h-[500px] bg-blue-600/10 blur-[150px] rounded-full" />
+        </div>
+
         {/* Top Header */}
-        <div className="h-16 px-6 border-b border-border bg-card flex items-center justify-between shadow-sm">
+        <div className="h-16 px-6 border-b border-cyan-500/20 bg-[#070e1c]/90 backdrop-blur-xl flex items-center justify-between shadow-sm relative z-10">
           <span className="text-sm font-bold text-foreground flex items-center gap-2">
-            <LayoutGrid className="w-4 h-4 text-primary" /> Flashcards: {quizzes?.find(q => q.id === selectedQuiz)?.title}
+            <LayoutGrid className="w-4 h-4 text-cyan-400" /> Flashcards: {quizzes?.find(q => q.id === selectedQuiz)?.title}
           </span>
           <span className="badge-duo badge-blue font-bold">
             Từ {currentQ + 1}/{vocabWords!.length}
           </span>
-          <Button size="icon" variant="ghost" className="rounded-full hover:bg-muted" onClick={() => setView("days")}>
-            <XIcon className="w-5 h-5 text-muted-foreground"/>
+          <Button size="icon" variant="ghost" className="rounded-full hover:bg-slate-800 text-slate-400 hover:text-white" onClick={() => setView("days")}>
+            <XIcon className="w-5 h-5"/>
           </Button>
         </div>
 
         {/* Progress Bar */}
-        <div className="w-full bg-muted h-1">
-          <div className="h-full bg-primary transition-all duration-300" style={{ width: `${progress}%` }} />
+        <div className="w-full bg-slate-800 h-1 relative z-10">
+          <div className="h-full bg-cyan-500 transition-all duration-300" style={{ width: `${progress}%` }} />
         </div>
 
         {/* Flashcard Body */}
-        <div className="flex-1 flex flex-col items-center justify-center p-6 max-w-md mx-auto w-full">
-          <div className="w-full rounded-3xl border border-border/70 bg-card p-8 shadow-soft-lg flex flex-col items-center text-center space-y-6">
+        <div className="flex-1 flex flex-col items-center justify-center p-6 max-w-md mx-auto w-full relative z-10">
+          <div className="w-full rounded-3xl border border-cyan-500/20 bg-[#070e1c]/90 backdrop-blur-xl p-8 shadow-soft-lg flex flex-col items-center text-center space-y-6">
             <div className="w-full space-y-1">
               <h2 className="text-4xl font-black text-foreground">{word.word}</h2>
               {word.phonetic && (
@@ -242,20 +248,26 @@ const VocabPage = () => {
     const options = effectiveOptions;
     const progress = ((currentQ + 1) / vocabWords!.length) * 100;
     return (
-      <div className="min-h-screen bg-background flex flex-col">
-        <div className="h-16 px-6 border-b border-border bg-card flex items-center justify-between shadow-sm">
-          <span className="text-sm font-bold text-foreground">{quizzes?.find(q => q.id === selectedQuiz)?.title}</span>
-          <span className="badge-duo badge-blue">Câu {currentQ + 1}/{vocabWords!.length}</span>
-          <Button size="icon" variant="ghost" className="rounded-full hover:bg-muted" onClick={() => setView("days")}>
-            <XIcon className="w-5 h-5 text-muted-foreground"/>
-          </Button>
-        </div>
-        <div className="w-full bg-muted h-1">
-          <div className="h-full bg-primary transition-all duration-300" style={{ width: `${progress}%` }} />
+      <div className="min-h-screen bg-[#050914] text-slate-100 flex flex-col relative">
+        {/* Ambient background glows matching homepage */}
+        <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+          <div className="absolute -top-40 left-1/4 w-[600px] h-[400px] bg-cyan-500/10 blur-[140px] rounded-full" />
+          <div className="absolute top-1/3 -right-40 w-[500px] h-[500px] bg-blue-600/10 blur-[150px] rounded-full" />
         </div>
 
-        <div className="flex-1 flex items-center justify-center p-6">
-          <div className="max-w-lg w-full space-y-6 text-center rounded-2xl border border-border bg-card p-6 md:p-8 shadow-sm">
+        <div className="h-16 px-6 border-b border-cyan-500/20 bg-[#070e1c]/90 backdrop-blur-xl flex items-center justify-between shadow-sm relative z-10">
+          <span className="text-sm font-bold text-foreground">{quizzes?.find(q => q.id === selectedQuiz)?.title}</span>
+          <span className="badge-duo badge-blue">Câu {currentQ + 1}/{vocabWords!.length}</span>
+          <Button size="icon" variant="ghost" className="rounded-full hover:bg-slate-800 text-slate-400 hover:text-white" onClick={() => setView("days")}>
+            <XIcon className="w-5 h-5"/>
+          </Button>
+        </div>
+        <div className="w-full bg-slate-800 h-1 relative z-10">
+          <div className="h-full bg-cyan-500 transition-all duration-300" style={{ width: `${progress}%` }} />
+        </div>
+
+        <div className="flex-1 flex items-center justify-center p-6 relative z-10">
+          <div className="max-w-lg w-full space-y-6 text-center rounded-2xl border border-cyan-500/20 bg-[#070e1c]/90 backdrop-blur-xl p-6 md:p-8 shadow-sm">
             <div className="space-y-2">
               <h2 className="text-3xl font-extrabold text-foreground">{word.word}</h2>
               {word.phonetic && (

@@ -47,10 +47,10 @@ export const CourseCard: React.FC<{ course: CourseRow }> = ({ course: c }) => {
           is_free: Boolean(c.is_free),
         })
       }
-      className="group bg-card rounded-2xl border border-border/60 shadow-soft-sm hover:shadow-soft-md hover:border-primary/40 transition-all duration-200 flex flex-col h-full overflow-hidden cursor-pointer active:scale-[0.99]"
+      className="group bg-[#070e1c]/90 rounded-2xl border border-cyan-500/20 hover:border-cyan-400/50 shadow-[0_4px_25px_rgba(0,0,0,0.5),0_0_20px_rgba(6,182,212,0.04)] hover:shadow-[0_8px_30px_rgba(6,182,212,0.15)] transition-all duration-200 flex flex-col h-full overflow-hidden cursor-pointer active:scale-[0.99] backdrop-blur-md"
     >
       {/* Thumbnail Banner */}
-      <div className="aspect-video w-full relative overflow-hidden bg-slate-100 dark:bg-zinc-800">
+      <div className="aspect-video w-full relative overflow-hidden bg-[#030712]">
         {c.thumbnail_url ? (
           <img
             src={c.thumbnail_url}
@@ -58,7 +58,7 @@ export const CourseCard: React.FC<{ course: CourseRow }> = ({ course: c }) => {
             className="w-full h-full object-cover image-safe transition-transform duration-300 group-hover:scale-105"
           />
         ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-tr from-blue-600/15 via-indigo-600/10 to-emerald-600/15 p-4 text-center">
+          <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-tr from-cyan-950/60 via-slate-900 to-blue-950/60 p-4 text-center">
             {isFullTest ? (
               <img src={iconFulltest} alt="" className="w-14 h-14 object-contain drop-shadow-md mb-1 transition-transform group-hover:scale-110" />
             ) : isListening ? (
@@ -66,10 +66,10 @@ export const CourseCard: React.FC<{ course: CourseRow }> = ({ course: c }) => {
             ) : (
               <img src={iconVideo} alt="" className="w-14 h-14 object-contain drop-shadow-md mb-1 transition-transform group-hover:scale-110" />
             )}
-            <span className="text-xs font-black text-primary uppercase tracking-wider">
+            <span className="text-xs font-black text-cyan-400 uppercase tracking-wider">
               L-English Academy
             </span>
-            <span className="text-xs font-bold text-foreground/80 mt-1 line-clamp-1">
+            <span className="text-xs font-bold text-slate-300 mt-1 line-clamp-1">
               {c.title}
             </span>
           </div>
@@ -80,7 +80,7 @@ export const CourseCard: React.FC<{ course: CourseRow }> = ({ course: c }) => {
           <div className="absolute top-2.5 left-2.5">
             <Badge
               variant="default"
-              className="shadow-soft-sm backdrop-blur-md bg-card/90 border-border/80 text-xs font-bold"
+              className="shadow-soft-sm backdrop-blur-md bg-[#070e1c]/90 border border-slate-700/80 text-slate-200 text-xs font-bold"
             >
               {isListening && <img src={iconDictation} alt="" className="w-3.5 h-3.5 object-contain" />}
               {!isListening && <img src={iconVideo} alt="" className="w-3.5 h-3.5 object-contain" />}
@@ -89,9 +89,9 @@ export const CourseCard: React.FC<{ course: CourseRow }> = ({ course: c }) => {
           </div>
         )}
 
-        {/* Badge FREE: nhỏ, rõ, không quá chói (≥12px chuẩn) */}
+        {/* Badge FREE */}
         {c.is_free && (
-          <Badge variant="free" className="absolute top-2.5 right-2.5 text-xs px-2.5 py-0.5 shadow-soft-sm font-black">
+          <Badge variant="free" className="absolute top-2.5 right-2.5 text-xs px-2.5 py-0.5 shadow-soft-sm font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
             FREE
           </Badge>
         )}
@@ -102,24 +102,24 @@ export const CourseCard: React.FC<{ course: CourseRow }> = ({ course: c }) => {
         <div className="space-y-1.5">
           {/* Metadata bên dưới card */}
           {isFullTest ? (
-            <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 font-medium">
+            <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-400 font-medium">
               <span>200 câu · 120 phút</span>
               <span>•</span>
-              <span className="text-emerald-700 dark:text-emerald-400 font-semibold">Listening + Reading</span>
+              <span className="text-emerald-400 font-semibold">Listening + Reading</span>
             </div>
           ) : (
-            <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 font-medium">
+            <div className="flex items-center gap-1.5 text-xs text-slate-400 font-medium">
               <span>{isListening ? "Luyện nghe · Chép chính tả" : "Bài giảng video"}</span>
               <span>•</span>
               <span className="whitespace-nowrap">{c.duration_months || 12} tháng</span>
             </div>
           )}
 
-          <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2 leading-snug">
+          <h3 className="text-base font-bold text-white group-hover:text-cyan-400 transition-colors line-clamp-2 leading-snug">
             {c.title}
           </h3>
 
-          <p className="text-xs text-slate-600 dark:text-slate-400 font-normal line-clamp-2 leading-relaxed">
+          <p className="text-xs text-slate-400 font-normal line-clamp-2 leading-relaxed">
             {c.subtitle ||
               (isFullTest
                 ? "Bộ đề thi thử TOEIC chuẩn format ETS mới nhất, bấm giờ 120 phút, chấm điểm tự động kèm lời giải chi tiết."
@@ -130,20 +130,20 @@ export const CourseCard: React.FC<{ course: CourseRow }> = ({ course: c }) => {
         </div>
 
         {/* Instructor & Meta */}
-        <div className="pt-2 border-t border-border/40 flex items-center justify-between text-xs text-muted-foreground font-medium">
+        <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400 font-medium">
           <div className="flex items-center gap-1">
-            <Users className="w-3.5 h-3.5 text-primary" />
+            <Users className="w-3.5 h-3.5 text-cyan-400" />
             <span className="whitespace-nowrap">Học viên toàn quốc</span>
           </div>
-          <span className="font-bold text-foreground/80 truncate max-w-[110px]">
+          <span className="font-bold text-slate-300 truncate max-w-[110px]">
             {c.instructor || "L-English Mentor"}
           </span>
         </div>
 
         {/* Price & CTA Button: Nút Làm bài → */}
-        <div className="pt-2.5 border-t border-border/40 flex items-center justify-between gap-2">
+        <div className="pt-2.5 border-t border-slate-800/80 flex items-center justify-between gap-2">
           <div>
-            <span className="text-sm font-black text-primary block whitespace-nowrap">
+            <span className="text-sm font-black text-cyan-400 block whitespace-nowrap">
               {formatCoursePrice(c.price, c.is_free)}
             </span>
           </div>

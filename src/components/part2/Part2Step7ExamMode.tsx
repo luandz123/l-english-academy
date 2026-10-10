@@ -17,6 +17,7 @@ import {
 import { cn } from '@/lib/utils';
 import { soundAudioPlayer } from '@/services/soundAudioPlayer';
 import { useSound } from '@/hooks/useSound';
+import { Part2SpatialWaveformPlayer } from './Part2SpatialWaveformPlayer';
 
 interface Part2Step7ExamModeProps {
   questions: Part2CoachQuestion[];
@@ -103,6 +104,30 @@ export const Part2Step7ExamMode: React.FC<Part2Step7ExamModeProps> = ({
     setActiveStepIndex(null);
     playExamAudio();
   };
+
+  const handleSelectSegment = useCallback((segIdx: number) => {
+    if (!currentQ) return;
+    soundAudioPlayer.stop();
+    setIsPlaying(true);
+    setActiveStepIndex(segIdx);
+
+    const aText = currentQ.correctChoice.letter === 'A' ? currentQ.correctChoice.text : currentQ.distractors.find(d => d.letter === 'A')?.text || '';
+    const bText = currentQ.correctChoice.letter === 'B' ? currentQ.correctChoice.text : currentQ.distractors.find(d => d.letter === 'B')?.text || '';
+    const cText = currentQ.correctChoice.letter === 'C' ? currentQ.correctChoice.text : currentQ.distractors.find(d => d.letter === 'C')?.text || '';
+
+    let textToSpeak = '';
+    if (segIdx === 0) textToSpeak = currentQ.questionText;
+    else if (segIdx === 1) textToSpeak = `(A) ${aText}`;
+    else if (segIdx === 2) textToSpeak = `(B) ${bText}`;
+    else if (segIdx === 3) textToSpeak = `(C) ${cText}`;
+
+    if (textToSpeak) {
+      soundAudioPlayer.speakText(textToSpeak, 0.95).finally(() => {
+        setIsPlaying(false);
+        setActiveStepIndex(null);
+      });
+    }
+  }, [currentQ]);
 
   const handleSelectChoice = (choice: 'A' | 'B' | 'C') => {
     if (isSubmitted) return;
@@ -236,57 +261,19 @@ export const Part2Step7ExamMode: React.FC<Part2Step7ExamModeProps> = ({
       {/* Main Examination View */}
       {!isSubmitted ? (
         <div className="bg-card border border-border rounded-3xl p-6 sm:p-8 space-y-6 shadow-soft-sm">
-          {/* Question Audio Controller */}
-          <div className="bg-muted/40 border border-border/80 rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <Button
-                size="lg"
-                onClick={togglePlayAudio}
-                className={cn(
-                  'w-12 h-12 rounded-2xl text-white shadow-md transition-transform active:scale-95 cursor-pointer',
-                  isPlaying
-                    ? 'bg-amber-500 hover:bg-amber-600'
-                    : 'bg-blue-600 hover:bg-blue-700'
-                )}
-              >
-                {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
-              </Button>
-
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={handleReplay}
-                className="w-10 h-10 rounded-2xl border-border cursor-pointer"
-              >
-                <RotateCcw className="w-4 h-4" />
-              </Button>
-
-              <div className="text-left">
-                <div className="text-sm font-black text-foreground">
-                  Câu hỏi {currentQ.questionNumber || currentIndex + 1}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {isPlaying ? (
-                    activeStepIndex === 0
-                      ? '🔊 Đang đọc: Câu hỏi'
-                      : activeStepIndex === 1
-                      ? '🔊 Đang đọc: (A)'
-                      : activeStepIndex === 2
-                      ? '🔊 Đang đọc: (B)'
-                      : activeStepIndex === 3
-                      ? '🔊 Đang đọc: (C)'
-                      : 'Đang phát...'
-                  ) : (
-                    'Phím [Space] để phát/dừng'
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <span className="text-xs text-muted-foreground">
-              Tự do sửa đáp án trước khi nộp
-            </span>
-          </div>
+          {/* Spatial Waveform Player */}
+          <Part2SpatialWaveformPlayer
+            isPlaying={isPlaying}
+            activeSegmentIndex={activeStepIndex}
+            onTogglePlay={togglePlayAudio}
+            onReplay={handleReplay}
+            onPrevQuestion={handlePrev}
+            onNextQuestion={handleNext}
+            canPrev={currentIndex > 0}
+            canNext={currentIndex < questions.length - 1}
+            onSelectSegment={handleSelectSegment}
+            currentQuestionText={currentQ?.questionText}
+          />
 
           {/* Answer Choice Buttons (A, B, C) */}
           <div className="space-y-3">

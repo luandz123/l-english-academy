@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,7 +25,11 @@ import {
   ChevronRight,
   Gift,
   Crown,
-  HelpCircle,
+  Compass,
+  AlertTriangle,
+  RotateCcw,
+  BarChart3,
+  Check,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -85,7 +89,7 @@ export const DashboardPage: React.FC = () => {
   });
 
   // 2. Fetch lesson progress for "Continue Learning"
-  const { data: lessonProgress = [] } = useQuery({
+  const { data: lessonProgress = [], isLoading: isProgressLoading } = useQuery({
     queryKey: ["dashboard-lesson-progress", user?.id],
     queryFn: async () => {
       if (!user) return [];
@@ -166,6 +170,15 @@ export const DashboardPage: React.FC = () => {
     ? Math.min(100, Math.round((completedCourseLessonsCount / totalCourseLessonsCount) * 100))
     : 0;
 
+  // Next lesson identification
+  const nextLesson = useMemo(() => {
+    if (allCourseLessons.length === 0) return null;
+    const uncompleted = allCourseLessons.find(
+      (l: any) => !lessonProgress.some((p: any) => p.lesson_id === l.id && p.is_completed)
+    );
+    return uncompleted || allCourseLessons[0];
+  }, [allCourseLessons, lessonProgress]);
+
   // 5. Quiz results count
   const { data: quizResults = [] } = useQuery({
     queryKey: ["dashboard-quiz-results", user?.id],
@@ -182,7 +195,7 @@ export const DashboardPage: React.FC = () => {
   });
 
   // 6. User full test results (latest test completed)
-  const { data: fullTestResults = [] } = useQuery({
+  const { data: fullTestResults = [], isLoading: isFullTestLoading } = useQuery({
     queryKey: ["dashboard-full-tests", user?.id],
     queryFn: async () => {
       if (!user) return [];
@@ -208,43 +221,95 @@ export const DashboardPage: React.FC = () => {
     },
   });
 
+  // Check for unfinished active draft test (Zeigarnik Effect)
+  const activeDraft = useMemo(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      const prefix = `lenglish_fulltest_draft_v1_${user?.id || "guest"}_`;
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith(prefix)) {
+          const raw = localStorage.getItem(key);
+          if (!raw) continue;
+          const parsed = JSON.parse(raw);
+          const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
+          if (parsed.savedAt && Date.now() - parsed.savedAt < TWENTY_FOUR_HOURS) {
+            const answeredCount = parsed.answers ? Object.keys(parsed.answers).length : 0;
+            if (answeredCount > 0) {
+              const testId = parsed.testId || key.replace(prefix, "");
+              return {
+                testId: Number(testId),
+                answeredCount,
+                timeLeft: parsed.timeLeft ?? 120 * 60,
+                elapsedTime: parsed.elapsedTime || 0,
+                savedAt: parsed.savedAt,
+              };
+            }
+          }
+        }
+      }
+    } catch {}
+    return null;
+  }, [user?.id]);
+
+  const activeDraftTest = useMemo(() => {
+    if (!activeDraft) return null;
+    return allFullTests.find((t: any) => t.id === activeDraft.testId) || null;
+  }, [activeDraft, allFullTests]);
+
+  // Determine current Part in TOEIC full test from answeredCount
+  const draftPartInfo = useMemo(() => {
+    if (!activeDraft) return null;
+    const count = activeDraft.answeredCount;
+    let part = 1;
+    let partName = "Part 1 (Mô tả hình ảnh)";
+    if (count > 146) {
+      part = 7;
+      partName = "Part 7 (Đọc hiểu văn bản)";
+    } else if (count > 130) {
+      part = 6;
+      partName = "Part 6 (Điền đoạn văn)";
+    } else if (count > 100) {
+      part = 5;
+      partName = "Part 5 (Điền câu đơn)";
+    } else if (count > 70) {
+      part = 4;
+      partName = "Part 4 (Bài nói ngắn)";
+    } else if (count > 31) {
+      part = 3;
+      partName = "Part 3 (Hội thoại ngắn)";
+    } else if (count > 6) {
+      part = 2;
+      partName = "Part 2 (Hỏi - Đáp)";
+    }
+    const progressPercent = Math.min(100, Math.round((count / 200) * 100));
+    const remainingMinutes = Math.max(1, Math.ceil(activeDraft.timeLeft / 60));
+    return {
+      part,
+      partName,
+      progressPercent,
+      remainingMinutes,
+    };
+  }, [activeDraft]);
+
   const latestFullTest = fullTestResults[0];
 
-  // Đề thi gần nhất đã làm (hoặc đề mặc định nếu chưa làm đề nào)
-  const targetRecentTest = useMemo(() => {
+  // Target next test for recommended training
+  const nextRecommendedTest = useMemo(() => {
     if (latestFullTest?.full_tests) {
-      return {
-        id: latestFullTest.test_id,
-        course_id: latestFullTest.full_tests.course_id,
-        title: latestFullTest.full_tests.title,
-        score: latestFullTest.total_score,
-        isCompleted: true,
-      };
+      const remainingTests = allFullTests.filter(
+        (t: any) => !fullTestResults.some((r: any) => r.test_id === t.id)
+      );
+      if (remainingTests.length > 0) return remainingTests[0];
+      return allFullTests[0];
     }
-    const fallback = allFullTests[0];
-    return fallback
-      ? {
-          id: fallback.id,
-          course_id: fallback.course_id,
-          title: fallback.title,
-          score: null,
-          isCompleted: false,
-        }
-      : null;
-  }, [latestFullTest, allFullTests]);
+    return allFullTests[0] || null;
+  }, [latestFullTest, allFullTests, fullTestResults]);
 
-  const recentTestTitle = targetRecentTest?.title || latestFullTest?.full_tests?.title || allFullTests[0]?.title || "ETS TOEIC 2024 - Test 01";
-  const recentTestScore = latestFullTest
-    ? `${latestFullTest.total_score || 0}/990 điểm`
-    : "Chưa làm bài";
-
-  const recentTestUrl = useMemo(() => {
-    if (!targetRecentTest) return "/fulltests";
-    if (targetRecentTest.course_id && targetRecentTest.id) {
-      return `/courses/${targetRecentTest.course_id}/fulltest/${targetRecentTest.id}`;
-    }
-    return `/fulltests/${targetRecentTest.id}`;
-  }, [targetRecentTest]);
+  // Is first-time user (No test taken, no draft, no progress)
+  const isFirstTimeUser = useMemo(() => {
+    return fullTestResults.length === 0 && !activeDraft && completedCourseLessonsCount === 0;
+  }, [fullTestResults, activeDraft, completedCourseLessonsCount]);
 
   // 8. Study time leaderboard (aggregating real test & quiz time of all users)
   const { data: studyTimeLeaderboard = [] } = useQuery({
@@ -320,11 +385,13 @@ export const DashboardPage: React.FC = () => {
       const totalDaySecs = dayTestSecs + dayQuizSecs;
       const hours = Number((totalDaySecs / 3600).toFixed(1));
 
-      // Day is done if user has test, quiz, lesson, or is today (logged in), or covered by active streak
+      // Day is done if user has test, quiz, lesson, or is today with practice
       const hasLesson = lessonProgress.some((p: any) => (p.completed_at || p.created_at)?.startsWith(dateStr));
       const daysFromToday = currentDayOfWeek - index;
-      const streakCovered = !isFuture && streak > 0 && daysFromToday >= 0 && daysFromToday < streak;
-      const isDone = !isFuture && (totalDaySecs > 0 || hasLesson || isToday || streakCovered);
+      const streakCovered = !isFuture && streak > 0 && daysFromToday > 0 && daysFromToday < streak;
+      
+      // For today: done if user actually completed study/practice today
+      const isDone = !isFuture && (totalDaySecs > 0 || hasLesson || streakCovered);
 
       return {
         label,
@@ -356,42 +423,45 @@ export const DashboardPage: React.FC = () => {
   const weekTotalHours = Number((weekTotalSeconds / 3600).toFixed(1));
   const weekNumber = Math.min(4, Math.max(1, Math.ceil(now.getDate() / 7)));
 
-  // Today's practice detection
+  // Today's practice detection for Loss Aversion
   const hasTestToday = fullTestResults.some((r: any) => r.completed_at?.startsWith(todayStr));
   const hasQuizToday = quizResults.some((r: any) => r.completed_at?.startsWith(todayStr));
-  const hasPracticeToday = hasTestToday || hasQuizToday || quests.some((q) => q.id === "quest_practice" && q.current > 0);
+  const hasPracticeToday = hasTestToday || hasQuizToday || quests.some((q) => (q.id === "quest_practice" || q.id === "quest_dictation") && q.current > 0);
 
   // 3 Daily Quests mapping
   const displayQuests = useMemo(() => {
     return [
       {
         id: "quest_streak",
-        title: "Đăng nhập hàng ngày (+10 XP)",
-        description: "Đăng nhập vào bàn học và duy trì chuỗi học tập",
+        title: "Đăng nhập hàng ngày",
+        description: "Mở bàn học và duy trì chuỗi học tập",
         icon: Flame,
         current: 1,
         target: 1,
         xpReward: 10,
+        actionUrl: "/dashboard",
         claimed: quests.find((q) => q.id === "quest_streak")?.claimed || false,
       },
       {
         id: "quest_practice",
-        title: "Làm 1 bài luyện nghe hoặc đề thi (+20 XP)",
+        title: "Luyện 1 bài nghe hoặc đề thi",
         description: "Hoàn thành 1 bài nghe chép chính tả hoặc đề thi",
         icon: Headphones,
-        current: hasPracticeToday ? 1 : (quests.find((q) => q.id === "quest_practice")?.current || 0),
+        current: hasPracticeToday ? 1 : (quests.find((q) => q.id === "quest_practice" || q.id === "quest_dictation")?.current || 0),
         target: 1,
         xpReward: 20,
+        actionUrl: "/part2-coach",
         claimed: quests.find((q) => q.id === "quest_practice" || q.id === "quest_dictation")?.claimed || false,
       },
       {
         id: "quest_vocab",
-        title: "Học 10 từ vựng TOEIC (+20 XP)",
-        description: "Học 10 từ vựng trong kho từ vựng hoặc trò chơi",
+        title: "Học 10 từ vựng TOEIC",
+        description: "Chiến 1 trận Word Shooter hoặc học từ vựng mới",
         icon: Star,
         current: quests.find((q) => q.id === "quest_vocab")?.current || 0,
         target: 10,
         xpReward: 20,
+        actionUrl: "/games/word-shooter",
         claimed: quests.find((q) => q.id === "quest_vocab")?.claimed || false,
       },
     ];
@@ -413,264 +483,390 @@ export const DashboardPage: React.FC = () => {
     setChestModalOpen(true);
   };
 
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchTerm.trim()) return;
+    navigate(`/fulltests?search=${encodeURIComponent(searchTerm.trim())}`);
+  };
 
   return (
     <StudentLayout>
       <div className="max-w-[1440px] mx-auto space-y-6">
-        {/* ================= 1. THANH CHÀO MỪNG TRÊN CÙNG (WELCOME HEADER) ================= */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#070e1c]/90 backdrop-blur-xl p-5 sm:p-6 rounded-2xl border border-cyan-500/20 shadow-[0_4px_25px_rgba(0,0,0,0.5),0_0_20px_rgba(6,182,212,0.04)] relative overflow-hidden group">
-          <div className="absolute inset-x-6 -top-px h-px bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent" />
-          <div className="absolute -top-12 -right-12 w-48 h-48 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-12 -left-12 w-48 h-48 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
-          <div className="relative z-10 space-y-1">
-            <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-bold tracking-wide uppercase">
-              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-              Bàn Học Cá Nhân • L-English
+        {/* ================= 1. HEADER METRIC BAR (THANH TRẠNG THÁI TINH GỌN & HERO WELCOME) ================= */}
+        <div className="bg-[#070e1c]/90 backdrop-blur-xl p-5 sm:p-6 rounded-2xl border border-cyan-500/20 shadow-[0_8px_32px_rgba(0,0,0,0.5),0_0_24px_rgba(6,182,212,0.05)] relative overflow-hidden group">
+          <div className="absolute inset-x-6 -top-px h-px bg-gradient-to-r from-transparent via-cyan-400/60 to-transparent" />
+          <div className="absolute -top-12 -right-12 w-56 h-56 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-12 -left-12 w-56 h-56 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+            {/* Greeting + Cockpit Identity */}
+            <div className="space-y-1.5">
+              <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-[11px] font-bold tracking-wide uppercase">
+                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                Phòng Điều Khiển Trung Tâm • L-English Cockpit
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-display font-extrabold text-white tracking-tight flex items-center gap-2.5">
+                <span>Xin chào, {displayName}!</span>
+                <img
+                  src="/assets/hello-ghost.png"
+                  alt="Chào mừng"
+                  className="w-8 h-8 sm:w-9 sm:h-9 object-contain inline-block transform hover:scale-110 hover:rotate-6 transition-all duration-300 drop-shadow-[0_4px_12px_rgba(255,255,255,0.2)] select-none"
+                />
+              </h1>
+              <p className="text-xs sm:text-sm text-slate-300 font-medium max-w-xl">
+                Chào mừng bạn trở lại bàn học. Hôm nay hãy hoàn thành nhiệm vụ để duy trì chuỗi{" "}
+                <span className="text-amber-400 font-bold">{streak || 1} ngày Streak</span> nhé!
+              </p>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-display font-extrabold text-white tracking-tight flex items-center gap-2.5">
-              <span>Xin chào, {displayName}!</span>
-              <img
-                src="/assets/hello-ghost.png"
-                alt="Chào mừng"
-                className="w-8 h-8 sm:w-10 sm:h-10 object-contain inline-block transform hover:scale-110 hover:rotate-6 transition-all duration-300 drop-shadow-[0_4px_12px_rgba(255,255,255,0.2)] select-none"
-              />
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-300 font-medium max-w-xl">
-              Chào mừng bạn trở lại bàn học. Hôm nay bạn có mục tiêu luyện đề và duy trì chuỗi{" "}
-              <span className="text-amber-400 font-bold">{streak || 1} ngày Streak</span> nhé!
-            </p>
+
+            {/* Quick Search & Chest Action Button */}
+            <div className="flex items-center gap-3 shrink-0">
+              <form onSubmit={handleSearchSubmit} className="relative w-full sm:w-60">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Tìm bài học, đề thi ETS..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full h-10 pl-9 pr-3 rounded-xl bg-[#030712]/80 border border-slate-700/80 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/20 transition-all"
+                />
+              </form>
+
+              {chestClaimedToday ? (
+                <button
+                  onClick={handleOpenChestClick}
+                  className="h-10 px-3.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-slate-300 font-bold text-xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all shrink-0"
+                  title="Hôm nay bạn đã mở rương rồi (1 lần/ngày). Nhấn để xem lại."
+                >
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  <span className="hidden sm:inline">Rương Báu (Đã mở)</span>
+                </button>
+              ) : (
+                <button
+                  onClick={handleOpenChestClick}
+                  className="h-10 px-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-orange-500/20 cursor-pointer active:scale-95 transition-all shrink-0"
+                  title="Mở Rương Báu Mỗi Ngày (1 lần/ngày)"
+                >
+                  <Gift className="w-4 h-4 animate-bounce" />
+                  <span className="hidden sm:inline">Rương Báu Hôm Nay</span>
+                </button>
+              )}
+            </div>
           </div>
 
-          {/* Quick Search & Chest Button */}
-          <div className="relative z-10 flex items-center gap-3 shrink-0">
-            <div className="relative w-full sm:w-64">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Tìm bài học, đề thi..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full h-10 pl-9 pr-3 rounded-xl bg-[#030712]/80 border border-slate-700/80 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/20 transition-all"
-              />
+          {/* DẢI METRIC PILLS TINH GỌN (Header Metric Bar: Streak, XP, Level, Rank) */}
+          <div className="mt-5 pt-4 border-t border-slate-800/80 flex items-center gap-2.5 overflow-x-auto pb-1 scrollbar-none">
+            {/* Pill 1: Streak ngọn lửa với subtle pulse */}
+            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-orange-500/10 border border-orange-500/30 text-orange-400 font-bold text-xs shrink-0 shadow-xs">
+              <Flame className="w-4 h-4 text-orange-400 fill-current animate-pulse" />
+              <span>{streak || 1} ngày streak</span>
             </div>
-            {chestClaimedToday ? (
-              <button
-                onClick={handleOpenChestClick}
-                className="h-10 px-3.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-slate-400 font-bold text-xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all shrink-0"
-                title="Hôm nay bạn đã mở rương rồi (1 lần/ngày). Nhấn để xem lại."
-              >
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                <span className="hidden sm:inline">Rương Báu (Đã mở)</span>
-              </button>
-            ) : (
-              <button
-                onClick={handleOpenChestClick}
-                className="h-10 px-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-orange-500/20 cursor-pointer active:scale-95 transition-all shrink-0"
-                title="Mở Rương Báu Mỗi Ngày (1 lần/ngày)"
-              >
-                <Gift className="w-4 h-4 animate-bounce" />
-                <span className="hidden sm:inline">Rương Báu</span>
-              </button>
-            )}
+
+            {/* Pill 2: XP Tích lũy */}
+            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 font-bold text-xs shrink-0 shadow-xs">
+              <Zap className="w-4 h-4 text-amber-400 fill-current" />
+              <span>{xp.toLocaleString()} XP</span>
+            </div>
+
+            {/* Pill 3: Level & Cấp bậc */}
+            <button
+              onClick={() => setLevelModalOpen(true)}
+              className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 font-bold text-xs shrink-0 transition-all cursor-pointer shadow-xs group/lvl"
+            >
+              <Crown className="w-4 h-4 text-cyan-400" />
+              <span>{levelInfo.title}</span>
+              <span className="text-[10px] text-slate-400 font-normal">
+                (còn {levelInfo.xpToNextLevel} XP lên hạng)
+              </span>
+              <ChevronRight className="w-3.5 h-3.5 text-cyan-400/70 group-hover/lvl:translate-x-0.5 transition-transform" />
+            </button>
+
+            {/* Pill 4: Bảng vàng xếp hạng */}
+            <button
+              onClick={() => setLeaderboardModalOpen(true)}
+              className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/30 text-yellow-300 font-bold text-xs shrink-0 transition-all cursor-pointer shadow-xs group/rank"
+            >
+              <Trophy className="w-4 h-4 text-yellow-400" />
+              <span>Hạng #{userRank < 10 ? `0${userRank}` : userRank}</span>
+              <ChevronRight className="w-3.5 h-3.5 text-yellow-400/70 group-hover/rank:translate-x-0.5 transition-transform" />
+            </button>
+
+            {/* Pill 5: Lịch sử bài làm */}
+            <button
+              onClick={() => setTestHistoryModalOpen(true)}
+              className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-bold text-xs shrink-0 transition-all cursor-pointer shadow-xs"
+            >
+              <FileCheck2 className="w-4 h-4 text-emerald-400" />
+              <span>{fullTestResults.length + quizResults.length} bài đã thi</span>
+            </button>
           </div>
         </div>
 
-        {/* 2-Column Grid (Center Content: 7 cols, Right Study Desk: 5 cols) */}
+        {/* ================= 2-COLUMN GRID (MAIN HUB 65% : COCKPIT RIGHT 35%) ================= */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* ================= CENTER COLUMN (7 COLS) ================= */}
+          {/* ================= KHỐI CHÍNH (CỘT TRÁI - 7/12 = ~60-65% WIDTH) ================= */}
           <div className="lg:col-span-7 space-y-6">
-            {/* ================= 2. KHỐI "TIẾP TỤC BÀI HỌC" (CONTINUE LEARNING) ================= */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-5 rounded-full bg-gradient-to-b from-cyan-400 to-blue-500" />
-                  <h2 className="text-lg sm:text-xl font-display font-extrabold text-white tracking-tight">
-                    Tiếp Tục Bài Học{" "}
-                  </h2>
+            {/* ================= 2. HERO ACTION CARD (ĐIỂM NEO HÀNH ĐỘNG DUY NHẤT & ZEIGARNIK EFFECT) ================= */}
+            {isFullTestLoading || isCoursesLoading ? (
+              <div className="p-6 rounded-2xl bg-[#070e1c]/90 border border-cyan-500/20 space-y-4">
+                <Skeleton className="h-6 w-48 bg-slate-800" />
+                <Skeleton className="h-10 w-full bg-slate-800/80" />
+                <Skeleton className="h-4 w-3/4 bg-slate-800/60" />
+                <Skeleton className="h-12 w-full bg-blue-900/40 rounded-xl" />
+              </div>
+            ) : isFirstTimeUser ? (
+              /* ================= TRƯỜNG HỢP 1: TÂN HỌC VIÊN (EMPTY STATE / ACTIVATION LAUNCHPAD) ================= */
+              <div className="p-6 sm:p-7 rounded-2xl bg-gradient-to-br from-[#070e1c] via-[#09152e] to-[#041126] border-2 border-cyan-500/40 shadow-[0_12px_40px_rgba(0,0,0,0.6),0_0_30px_rgba(6,182,212,0.15)] relative overflow-hidden group">
+                <div className="absolute inset-x-8 -top-px h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent" />
+                <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/15 rounded-full blur-3xl pointer-events-none group-hover:bg-cyan-500/25 transition-all" />
+
+                <div className="space-y-4 relative z-10">
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 text-xs font-extrabold uppercase tracking-wider">
+                      <Compass className="w-3.5 h-3.5 text-cyan-300 animate-spin" style={{ animationDuration: "12s" }} />
+                      Bệ Phóng Nhập Môn • Activation Launchpad
+                    </span>
+                    <span className="text-xs text-amber-400 font-bold bg-amber-500/10 px-2.5 py-0.5 rounded-lg border border-amber-500/30">
+                      ⚡ Miễn phí 100%
+                    </span>
+                  </div>
+
+                  <div>
+                    <h2 className="text-xl sm:text-2xl font-display font-black text-white tracking-tight leading-snug">
+                      Góc học tập của bạn đã sẵn sàng! 🚀
+                    </h2>
+                    <p className="text-xs sm:text-sm text-slate-300 leading-relaxed mt-1.5">
+                      Hãy làm bài <strong>Test chẩn đoán trình độ 15 phút</strong> để hệ thống xác định chính xác điểm mạnh/yếu theo từng Part và gợi ý lộ trình TOEIC chuẩn nhất cho bạn.
+                    </p>
+                  </div>
+
+                  {/* 3 Value Pillars */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+                    <div className="p-2.5 rounded-xl bg-[#030712]/70 border border-slate-800 text-xs text-slate-300 flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-cyan-400 shrink-0" />
+                      <span>15 phút tinh gọn</span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-[#030712]/70 border border-slate-800 text-xs text-slate-300 flex items-center gap-2">
+                      <Target className="w-4 h-4 text-amber-400 shrink-0" />
+                      <span>Đo lường band điểm</span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-[#030712]/70 border border-slate-800 text-xs text-slate-300 flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>Lộ trình cá nhân hóa</span>
+                    </div>
+                  </div>
+
+                  {/* PRIMARY HERO CTA BUTTON (#2563EB) */}
+                  <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                    <Link
+                      to={allFullTests[0] ? `/fulltests/${allFullTests[0].id}` : "/fulltests"}
+                      className="flex-1 py-3.5 px-6 rounded-xl bg-[#2563EB] hover:bg-[#1d4ed8] text-white font-extrabold text-sm sm:text-base flex items-center justify-center gap-2 shadow-[0_4px_20px_rgba(37,99,235,0.4)] hover:shadow-[0_6px_25px_rgba(37,99,235,0.6)] active:scale-[0.98] transition-all cursor-pointer text-center"
+                    >
+                      <Play className="w-4 h-4 fill-current" />
+                      <span>Làm Bài Kiểm Tra Đầu Vào (15 Phút)</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </Link>
+                    <Link
+                      to="/fulltests"
+                      className="py-3 px-4 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-slate-200 text-xs font-bold flex items-center justify-center gap-1.5 transition-all text-center"
+                    >
+                      <span>Xem kho đề</span>
+                    </Link>
+                  </div>
                 </div>
+              </div>
+            ) : activeDraft ? (
+              /* ================= TRƯỜNG HỢP 2: CÓ ĐỀ ĐANG LÀM DỞ (HIỆU ỨNG ZEIGARNIK ĐỈNH CAO) ================= */
+              <div className="p-6 sm:p-7 rounded-2xl bg-gradient-to-br from-[#070e1c] via-[#09152e] to-[#041126] border-2 border-cyan-500/40 shadow-[0_12px_40px_rgba(0,0,0,0.6),0_0_30px_rgba(6,182,212,0.15)] relative overflow-hidden group">
+                <div className="absolute inset-x-8 -top-px h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent" />
+                <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/15 rounded-full blur-3xl pointer-events-none group-hover:bg-cyan-500/25 transition-all" />
+
+                <div className="space-y-4 relative z-10">
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-extrabold uppercase tracking-wider animate-pulse">
+                      <Clock className="w-3.5 h-3.5 text-amber-400" />
+                      Đang làm dở • Tự động lưu
+                    </span>
+                    <span className="text-xs text-slate-400 font-medium">
+                      ⏱ Còn lại: <strong className="text-cyan-300 font-bold">{draftPartInfo?.remainingMinutes} phút</strong>
+                    </span>
+                  </div>
+
+                  <div>
+                    <h2 className="text-xl sm:text-2xl font-display font-black text-white tracking-tight leading-snug">
+                      {activeDraftTest?.title || "ETS TOEIC 2024 - Đề thi thử"}
+                    </h2>
+                    <p className="text-xs sm:text-sm text-cyan-300/90 font-medium mt-1 flex items-center gap-2">
+                      <span>{draftPartInfo?.partName}</span>
+                      <span>•</span>
+                      <span>Đã làm: {activeDraft.answeredCount}/200 câu</span>
+                    </p>
+                  </div>
+
+                  {/* Thanh tiến độ trực quan hóa Zeigarnik */}
+                  <div className="space-y-2 pt-1">
+                    <div className="flex items-center justify-between text-xs font-semibold">
+                      <span className="text-slate-400">Tiến độ bài thi</span>
+                      <span className="text-cyan-300 font-extrabold">{draftPartInfo?.progressPercent}%</span>
+                    </div>
+                    <div className="w-full h-3 rounded-full bg-[#030712] border border-slate-800 overflow-hidden p-0.5">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-cyan-400 via-blue-500 to-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.6)] transition-all duration-700"
+                        style={{ width: `${draftPartInfo?.progressPercent}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* PRIMARY HERO CTA BUTTON (#2563EB) */}
+                  <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                    <Link
+                      to={
+                        activeDraftTest?.course_id
+                          ? `/courses/${activeDraftTest.course_id}/fulltest/${activeDraft.testId}`
+                          : `/fulltests/${activeDraft.testId}`
+                      }
+                      className="flex-1 py-3.5 px-6 rounded-xl bg-[#2563EB] hover:bg-[#1d4ed8] text-white font-extrabold text-sm sm:text-base flex items-center justify-center gap-2 shadow-[0_4px_20px_rgba(37,99,235,0.4)] hover:shadow-[0_6px_25px_rgba(37,99,235,0.6)] active:scale-[0.98] transition-all cursor-pointer text-center"
+                    >
+                      <Play className="w-4 h-4 fill-current" />
+                      <span>Tiếp tục làm tiếp câu {activeDraft.answeredCount + 1}/200</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </Link>
+
+                    <button
+                      onClick={() => setTestHistoryModalOpen(true)}
+                      className="py-3 px-4 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-slate-200 text-xs font-bold flex items-center justify-center gap-1.5 transition-all text-center cursor-pointer"
+                    >
+                      <span>Lịch sử đề</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* ================= TRƯỜNG HỢP 3: ĐÃ CÓ ĐỀ HOÀN THÀNH GẦN NHẤT & GỢI Ý ĐỀ TIẾP THEO ================= */
+              <div className="p-6 sm:p-7 rounded-2xl bg-gradient-to-br from-[#070e1c] via-[#09152e] to-[#041126] border-2 border-cyan-500/40 shadow-[0_12px_40px_rgba(0,0,0,0.6),0_0_30px_rgba(6,182,212,0.15)] relative overflow-hidden group">
+                <div className="absolute inset-x-8 -top-px h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent" />
+                <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/15 rounded-full blur-3xl pointer-events-none group-hover:bg-cyan-500/25 transition-all" />
+
+                <div className="space-y-4 relative z-10">
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-extrabold uppercase tracking-wider">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                      Vừa hoàn thành gần nhất
+                    </span>
+                    <span className="text-xs text-amber-300 font-bold bg-amber-500/10 px-2.5 py-0.5 rounded-lg border border-amber-500/30">
+                      Điểm đạt: {latestFullTest?.total_score || 0}/990 điểm
+                    </span>
+                  </div>
+
+                  <div>
+                    <h2 className="text-xl sm:text-2xl font-display font-black text-white tracking-tight leading-snug">
+                      Đề tiếp theo: {nextRecommendedTest?.title || "Full Test ETS TOEIC Mới"}
+                    </h2>
+                    <p className="text-xs sm:text-sm text-slate-300 leading-relaxed mt-1">
+                      Kết quả đề gần nhất: <strong>{latestFullTest?.full_tests?.title || "ETS Test"}</strong> (Nghe: {latestFullTest?.listening_score || 0} • Đọc: {latestFullTest?.reading_score || 0}). Hãy làm tiếp đề mới để nâng điểm số mục tiêu!
+                    </p>
+                  </div>
+
+                  {/* PRIMARY HERO CTA BUTTON (#2563EB) */}
+                  <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                    <Link
+                      to={
+                        nextRecommendedTest?.course_id
+                          ? `/courses/${nextRecommendedTest.course_id}/fulltest/${nextRecommendedTest.id}`
+                          : `/fulltests/${nextRecommendedTest?.id || 1}`
+                      }
+                      className="flex-1 py-3.5 px-6 rounded-xl bg-[#2563EB] hover:bg-[#1d4ed8] text-white font-extrabold text-sm sm:text-base flex items-center justify-center gap-2 shadow-[0_4px_20px_rgba(37,99,235,0.4)] hover:shadow-[0_6px_25px_rgba(37,99,235,0.6)] active:scale-[0.98] transition-all cursor-pointer text-center"
+                    >
+                      <Play className="w-4 h-4 fill-current" />
+                      <span>Vào Luyện Đề Tiếp Theo Ngay</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </Link>
+
+                    <button
+                      onClick={() => setTestHistoryModalOpen(true)}
+                      className="py-3 px-4 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-slate-200 text-xs font-bold flex items-center justify-center gap-1.5 transition-all text-center cursor-pointer"
+                    >
+                      <span>Xem lại kết quả</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ================= 3. LỘ TRÌNH KHÓA HỌC ĐANG HỌC (SECONDARY ACTION CARD) ================= */}
+            <div className="p-5 sm:p-6 rounded-2xl bg-[#070e1c]/90 backdrop-blur-xl border border-cyan-500/20 hover:border-cyan-500/40 shadow-[0_4px_25px_rgba(0,0,0,0.5),0_0_20px_rgba(6,182,212,0.04)] space-y-4 relative overflow-hidden group transition-all">
+              <div className="absolute inset-x-6 -top-px h-px bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent" />
+              
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+                    <BookOpen className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-base text-white group-hover:text-amber-300 transition-colors">
+                      Lộ Trình Khóa Học: {ngheDocCourse?.title || "Luyện thi TOEIC Nghe-Đọc"}
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      {nextLesson ? `Bài tiếp theo: ${nextLesson.title}` : "Tiếp tục bài học trong lộ trình"}
+                    </p>
+                  </div>
+                </div>
+
                 <Link
                   to="/my-courses"
-                  className="text-xs text-cyan-400 hover:text-cyan-300 font-semibold flex items-center gap-1 transition-colors"
+                  className="text-xs text-cyan-400 hover:text-cyan-300 font-bold flex items-center gap-1 shrink-0 transition-colors"
                 >
-                  Xem tất cả <ArrowRight className="w-3.5 h-3.5" />
+                  Xem tất cả <ChevronRight className="w-3.5 h-3.5" />
                 </Link>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Thẻ 1: Khóa học Nghe - Đọc */}
-                <div className="p-4 sm:p-5 rounded-2xl bg-[#070e1c]/90 backdrop-blur-xl border border-cyan-500/20 hover:border-cyan-500/50 transition-all shadow-[0_4px_25px_rgba(0,0,0,0.5),0_0_20px_rgba(6,182,212,0.04)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.6),0_0_25px_rgba(6,182,212,0.12)] space-y-3 relative group flex flex-col justify-between">
-                  <div className="absolute inset-x-6 -top-px h-px bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <div className="space-y-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
-                        <BookOpen className="w-5 h-5" />
-                      </div>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#030712]/90 text-amber-400 border border-slate-800 uppercase tracking-wide">
-                        TOEIC
-                      </span>
-                    </div>
-
-                    <div>
-                      <h3 className="font-bold text-sm sm:text-base text-white group-hover:text-amber-300 transition-colors line-clamp-1">
-                        Khóa Học: {ngheDocCourse?.title || "Luyện thi TOEIC Nghe-Đọc"}
-                      </h3>
-                      <p className="text-xs text-slate-400 line-clamp-1 mt-0.5">
-                        {ngheDocCourse?.description || "Khóa luyện thi TOEIC Nghe-Đọc (Listening & Reading) toàn diện"}
-                      </p>
-                    </div>
-
-                    {/* Tiến độ bài học */}
-                    <div className="space-y-1.5 pt-1">
-                      <div className="flex items-center justify-between text-xs text-slate-400 font-medium">
-                        <span>Tiến độ bài học</span>
-                        <span className="text-white font-bold">
-                          {courseProgressPercentage}% ({completedCourseLessonsCount}/{totalCourseLessonsCount} bài)
-                        </span>
-                      </div>
-                      <div className="w-full h-2 rounded-full bg-[#030712] border border-slate-800 overflow-hidden">
-                        <div
-                          className="h-full rounded-full bg-gradient-to-r from-amber-500 to-orange-500 shadow-sm transition-all duration-500"
-                          style={{ width: `${courseProgressPercentage}%` }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Nút bấm nhảy vào bài học của khóa nghe-đọc */}
-                  <Link
-                    to={`/courses/${ngheDocCourseId}/learn`}
-                    className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-orange-500/20 active:scale-[0.98] transition-all cursor-pointer mt-2"
-                  >
-                    <span>Học tiếp ngay</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
+              {/* Tiến độ khóa học */}
+              <div className="space-y-2 pt-1">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-400">Tiến độ bài học</span>
+                  <span className="text-white font-bold">
+                    {courseProgressPercentage}% ({completedCourseLessonsCount}/{totalCourseLessonsCount || 48} bài)
+                  </span>
                 </div>
-
-                {/* Thẻ 2: Đề thi gần nhất đã làm */}
-                <div className="p-4 sm:p-5 rounded-2xl bg-[#070e1c]/90 backdrop-blur-xl border border-cyan-500/20 hover:border-cyan-500/50 transition-all shadow-[0_4px_25px_rgba(0,0,0,0.5),0_0_20px_rgba(6,182,212,0.04)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.6),0_0_25px_rgba(6,182,212,0.12)] space-y-3 relative group flex flex-col justify-between">
-                  <div className="absolute inset-x-6 -top-px h-px bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <div className="space-y-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shrink-0">
-                        <FileCheck2 className="w-5 h-5" />
-                      </div>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#030712]/90 text-cyan-300 border border-slate-800 uppercase tracking-wide">
-                        Thi Thử 120p
-                      </span>
-                    </div>
-
-                    <div>
-                      <h3 className="font-bold text-sm sm:text-base text-white group-hover:text-cyan-300 transition-colors line-clamp-1">
-                        {latestFullTest ? "Đề Thi Gần Nhất Đã Làm" : "Đề thi Toeic chuẩn format theo các năm"}
-                      </h3>
-                      <p className="text-xs text-slate-400 line-clamp-1 mt-0.5">
-                        {recentTestTitle}
-                      </p>
-                    </div>
-
-                    {/* Tiến độ / Đề gần đây */}
-                    <div className="space-y-1.5 pt-1">
-                      <div className="flex items-center justify-between text-xs text-slate-400 font-medium">
-                        <span>đề làm gần đây</span>
-                        <span className="text-white font-bold truncate max-w-[170px]">
-                          {recentTestTitle} • {recentTestScore}
-                        </span>
-                      </div>
-                      <div className="w-full h-2 rounded-full bg-[#030712] border border-slate-800 overflow-hidden">
-                        <div
-                          className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 shadow-sm"
-                          style={{ width: latestFullTest ? "100%" : "35%" }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Nút bấm nhảy vào đề thi gần nhất đã làm */}
-                  <Link
-                    to={recentTestUrl}
-                    className="w-full py-2.5 px-4 rounded-xl bg-[#030712]/90 hover:bg-slate-800 border border-slate-700/80 hover:border-cyan-500/50 text-cyan-300 font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm active:scale-[0.98] transition-all cursor-pointer mt-2"
-                  >
-                    <span>{latestFullTest ? "Vào làm đề gần nhất" : "Làm đề thi ngay"}</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
+                <div className="w-full h-2 rounded-full bg-[#030712] border border-slate-800 overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-amber-500 to-orange-500 transition-all duration-700"
+                    style={{ width: `${courseProgressPercentage}%` }}
+                  />
                 </div>
               </div>
-            </div>
 
-            {/* Nhiệm Vụ Hôm Nay (Daily Quests) */}
-            <div className="p-5 rounded-2xl bg-[#070e1c]/90 backdrop-blur-xl border border-cyan-500/20 shadow-[0_4px_25px_rgba(0,0,0,0.5),0_0_20px_rgba(6,182,212,0.04)] space-y-3 relative overflow-hidden group">
-              <div className="absolute inset-x-6 -top-px h-px bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent" />
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-5 rounded-full bg-cyan-400" />
-                  <h3 className="font-bold text-sm sm:text-base uppercase tracking-wider text-slate-200 flex items-center gap-1.5">
-                    <Target className="w-4 h-4 text-cyan-400" />
-                    Nhiệm Vụ Hôm Nay
-                  </h3>
-                </div>
-                <span className="text-xs text-cyan-300 font-bold px-2.5 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/30">
-                  {completedQuestsCount}/3 Hoàn thành
+              {/* Nút hành động */}
+              <div className="pt-1 flex items-center justify-between gap-3">
+                <span className="text-[11px] text-slate-400 font-medium">
+                  {completedCourseLessonsCount === 0 ? "Bắt đầu bài đầu tiên hôm nay" : "Đang duy trì tiến độ học đều đặn"}
                 </span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
-                {displayQuests.map((quest) => {
-                  const isDone = quest.current >= quest.target;
-                  return (
-                    <div
-                      key={quest.id}
-                      className="p-3.5 rounded-xl bg-[#030712]/80 border border-slate-800/80 flex flex-col justify-between gap-2.5 text-xs relative group/q hover:border-slate-700 transition-colors"
-                    >
-                      <div className="space-y-1">
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="font-bold text-white truncate">{quest.title}</p>
-                          <span className="text-[10px] font-bold text-amber-400 shrink-0">+{quest.xpReward} XP</span>
-                        </div>
-                        <p className="text-[11px] text-slate-400 line-clamp-2">
-                          {quest.description}
-                        </p>
-                      </div>
-
-                      <div className="pt-2 border-t border-slate-800/60 flex items-center justify-between">
-                        <span className="text-[11px] text-slate-400 font-medium">
-                          {quest.current}/{quest.target}
-                        </span>
-                        {quest.claimed ? (
-                          <span className="text-[11px] font-semibold text-emerald-400 shrink-0 px-2 py-0.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
-                            Đã nhận ✓
-                          </span>
-                        ) : isDone ? (
-                          <button
-                            onClick={() => claimQuest(quest.id, quest.xpReward)}
-                            className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-[11px] shadow-xs active:scale-95 transition-all shrink-0 cursor-pointer"
-                          >
-                            Nhận XP
-                          </button>
-                        ) : (
-                          <span className="text-[10px] text-slate-500 shrink-0 px-1.5 py-0.5 rounded-md bg-slate-800/40 border border-slate-700/50">
-                            Chưa xong
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
+                <Link
+                  to={`/courses/${ngheDocCourseId}/learn`}
+                  className="py-2 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-orange-500/20 active:scale-95 transition-all cursor-pointer"
+                >
+                  <span>Học Bài Kế Tiếp</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
               </div>
             </div>
 
-            {/* Biểu Đồ Thời Gian Học */}
-            <div className="p-5 rounded-2xl bg-[#070e1c]/90 backdrop-blur-xl border border-cyan-500/20 shadow-[0_4px_25px_rgba(0,0,0,0.5),0_0_20px_rgba(6,182,212,0.04)] space-y-3 relative overflow-hidden group">
+            {/* ================= 4. BIỂU ĐỒ THỜI GIAN HỌC TUẦN QUA ================= */}
+            <div className="p-5 sm:p-6 rounded-2xl bg-[#070e1c]/90 backdrop-blur-xl border border-cyan-500/20 shadow-[0_4px_25px_rgba(0,0,0,0.5),0_0_20px_rgba(6,182,212,0.04)] space-y-3 relative overflow-hidden group">
               <div className="absolute inset-x-6 -top-px h-px bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent" />
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="font-bold text-xs uppercase tracking-wider text-slate-300">
+                  <h4 className="font-bold text-xs uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                    <BarChart3 className="w-4 h-4 text-cyan-400" />
                     Thời Gian Học Tuần Qua
                   </h4>
                   <p className="text-xs text-slate-400 mt-0.5">
-                    Tổng: {weekTotalHours > 0 ? weekTotalHours.toFixed(1) : totalStudyHours} giờ học tập
+                    Tổng: <strong>{weekTotalHours > 0 ? weekTotalHours.toFixed(1) : totalStudyHours} giờ</strong> học tập
                   </p>
                 </div>
-                <span className="text-[11px] text-cyan-400 font-semibold">Tuần {weekNumber}/4</span>
+                <span className="text-[11px] text-cyan-400 font-semibold px-2 py-0.5 rounded-lg bg-cyan-500/10 border border-cyan-500/30">
+                  Tuần {weekNumber}/4 • Tháng {currentMonth}
+                </span>
               </div>
 
               <div className="h-36 w-full pt-2">
@@ -717,112 +913,142 @@ export const DashboardPage: React.FC = () => {
             </div>
           </div>
 
-          {/* ================= RIGHT STUDY DESK (5 COLS) ================= */}
+          {/* ================= CỘT PHẢI (35% WIDTH - COCKPIT ĐỘNG LỰC & RETENTION) ================= */}
           <div className="lg:col-span-5 space-y-5">
-            {/* 6.1. Thẻ Học Viên & 3 Hộp Chỉ Số */}
-            <div className="p-5 rounded-2xl bg-[#070e1c]/90 backdrop-blur-xl border border-cyan-500/20 shadow-[0_4px_25px_rgba(0,0,0,0.5),0_0_20px_rgba(6,182,212,0.04)] space-y-4 relative overflow-hidden group">
-              <div className="absolute inset-x-6 -top-px h-px bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent" />
+            {/* ================= 5. NHIỆM VỤ HÔM NAY (DAILY QUESTS VỚI KỸ THUẬT JUICE) ================= */}
+            <div className="p-5 sm:p-6 rounded-2xl bg-[#070e1c]/90 backdrop-blur-xl border border-cyan-500/20 shadow-[0_4px_25px_rgba(0,0,0,0.5),0_0_20px_rgba(6,182,212,0.04)] space-y-4 relative overflow-hidden group">
+              <div className="absolute inset-x-6 -top-px h-px bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent" />
+              
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  {profile?.avatar_url ? (
-                    <img
-                      src={profile.avatar_url}
-                      alt={displayName}
-                      className="w-12 h-12 rounded-full object-cover border-2 border-cyan-500/40"
-                    />
-                  ) : (
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-600 text-white font-extrabold text-base flex items-center justify-center shadow-md shadow-cyan-500/20">
-                      {initials}
-                    </div>
-                  )}
-                  <div>
-                    <h3 className="font-bold text-base text-white">{displayName}</h3>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-semibold text-cyan-300">
-                        {levelInfo.title}
-                      </span>
-                    </div>
-                  </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-5 rounded-full bg-cyan-400" />
+                  <h3 className="font-bold text-sm sm:text-base uppercase tracking-wider text-slate-200 flex items-center gap-1.5">
+                    <Target className="w-4 h-4 text-cyan-400" />
+                    Nhiệm Vụ Hôm Nay
+                  </h3>
                 </div>
-                <div className="px-2.5 py-1 rounded-full bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 font-bold text-xs">
-                  {xp} XP
+                <span className="text-xs text-cyan-300 font-extrabold px-2.5 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/30">
+                  {completedQuestsCount}/3 Hoàn thành
+                </span>
+              </div>
+
+              {/* Thanh tiến độ ngày tổng quát: Kích hoạt hiệu ứng Juice */}
+              <div className="p-3 rounded-xl bg-[#030712]/90 border border-slate-800 space-y-1.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-300 font-medium">
+                    {completedQuestsCount === 3
+                      ? "🎉 Hoàn thành xuất sắc toàn bộ nhiệm vụ ngày!"
+                      : `Hoàn thành ${completedQuestsCount}/3 nhiệm vụ — Mở khóa hộp quà +50 XP!`}
+                  </span>
+                  <span className="text-amber-400 font-bold">+{completedQuestsCount * 20} XP</span>
+                </div>
+                <div className="w-full h-2 rounded-full bg-slate-900 border border-slate-800 overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-amber-400 transition-all duration-500"
+                    style={{ width: `${(completedQuestsCount / 3) * 100}%` }}
+                  />
                 </div>
               </div>
 
-              {/* Nút xem chi tiết cấp bậc & mốc XP */}
-              <button
-                onClick={() => setLevelModalOpen(true)}
-                className="w-full py-1.5 px-3 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 font-bold text-[11px] flex items-center justify-center gap-1 transition-all cursor-pointer"
-              >
-                <span>Xem chi tiết cấp bậc & mốc XP</span>
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
+              {/* Danh sách nhiệm vụ với Tactile Micro-feedback */}
+              <div className="space-y-2.5">
+                {displayQuests.map((quest) => {
+                  const isDone = quest.current >= quest.target;
+                  return (
+                    <div
+                      key={quest.id}
+                      className="p-3.5 rounded-xl bg-[#030712]/80 border border-slate-800 hover:border-slate-700 flex items-center justify-between gap-3 text-xs transition-all group/item"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        {/* Checkbox with tactile juice feedback */}
+                        <div
+                          className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-transform duration-300 ${
+                            isDone
+                              ? "bg-emerald-500/20 border border-emerald-500/50 text-emerald-400 scale-105"
+                              : "bg-slate-800/80 border border-slate-700 text-slate-500"
+                          }`}
+                        >
+                          {isDone ? (
+                            <Check className="w-4 h-4 stroke-[3]" />
+                          ) : (
+                            <span className="w-2 h-2 rounded-full bg-slate-600" />
+                          )}
+                        </div>
 
-              {/* 3 Hộp Chỉ Số */}
-              <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-800/80 text-center">
-                {/* Hộp 1: Ngày Streak */}
-                <div className="p-2.5 rounded-xl bg-[#030712]/80 border border-slate-800/80">
-                  <div className="w-6 h-6 mx-auto rounded-full bg-orange-500/15 flex items-center justify-center text-orange-400 mb-1">
-                    <Flame className="w-3.5 h-3.5 fill-current" />
-                  </div>
-                  <div className="font-extrabold text-sm text-white">{streak || 1}</div>
-                  <div className="text-[10px] text-slate-400 uppercase font-semibold">Ngày Streak</div>
-                </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="font-bold text-white truncate text-xs">{quest.title}</p>
+                            <span className="text-[10px] font-bold text-amber-400 shrink-0">
+                              +{quest.xpReward} XP
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-400 truncate mt-0.5">
+                            {quest.description}
+                          </p>
+                        </div>
+                      </div>
 
-                {/* Hộp 2: Mục Tiêu */}
-                <div className="p-2.5 rounded-xl bg-[#030712]/80 border border-slate-800/80">
-                  <div className="w-6 h-6 mx-auto rounded-full bg-cyan-500/15 flex items-center justify-center text-cyan-400 mb-1">
-                    <Target className="w-3.5 h-3.5" />
-                  </div>
-                  <div className="font-extrabold text-sm text-white">
-                    {completedQuestsCount}/3
-                  </div>
-                  <div className="text-[10px] text-slate-400 uppercase font-semibold">Mục Tiêu</div>
-                </div>
-
-                {/* Hộp 3: Bảng Vàng */}
-                <div
-                  onClick={() => setLeaderboardModalOpen(true)}
-                  className="p-2.5 rounded-xl bg-[#030712]/80 border border-slate-800/80 hover:border-yellow-500/40 cursor-pointer transition-colors"
-                  title="Nhấn để xem bảng vàng thời gian làm bài của học viên"
-                >
-                  <div className="w-6 h-6 mx-auto rounded-full bg-yellow-500/15 flex items-center justify-center text-yellow-400 mb-1">
-                    <Trophy className="w-3.5 h-3.5" />
-                  </div>
-                  <div className="font-extrabold text-sm text-white">
-                    #{userRank < 10 ? `0${userRank}` : userRank}
-                  </div>
-                  <div className="text-[10px] text-slate-400 uppercase font-semibold">Bảng Vàng</div>
-                </div>
+                      {/* Action status */}
+                      <div className="shrink-0">
+                        {quest.claimed ? (
+                          <span className="text-[11px] font-semibold text-emerald-400 px-2 py-0.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
+                            Đã nhận ✓
+                          </span>
+                        ) : isDone ? (
+                          <button
+                            onClick={() => claimQuest(quest.id, quest.xpReward)}
+                            className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-[11px] shadow-sm active:scale-95 transition-all cursor-pointer animate-bounce"
+                          >
+                            Nhận XP
+                          </button>
+                        ) : (
+                          <Link
+                            to={quest.actionUrl}
+                            className="text-[10px] font-semibold text-cyan-400 hover:text-cyan-300 px-2 py-0.5 rounded-md bg-cyan-500/10 border border-cyan-500/20 transition-colors inline-block"
+                          >
+                            Làm ngay →
+                          </Link>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
-            {/* 6.2. Lịch Chấm Công Tuần (Weekly Streak) */}
-            <div className="p-5 rounded-2xl bg-[#070e1c]/90 backdrop-blur-xl border border-cyan-500/20 shadow-[0_4px_25px_rgba(0,0,0,0.5),0_0_20px_rgba(6,182,212,0.04)] space-y-3 relative overflow-hidden group">
+            {/* ================= 6. LỊCH CHẤM CÔNG TUẦN (WEEKLY STREAK & LOSS AVERSION) ================= */}
+            <div className="p-5 sm:p-6 rounded-2xl bg-[#070e1c]/90 backdrop-blur-xl border border-cyan-500/20 shadow-[0_4px_25px_rgba(0,0,0,0.5),0_0_20px_rgba(6,182,212,0.04)] space-y-4 relative overflow-hidden group">
               <div className="absolute inset-x-6 -top-px h-px bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent" />
+              
               <div className="flex items-center justify-between">
                 <h4 className="font-bold text-xs uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-                  <Flame className="w-4 h-4 text-orange-400 fill-current" />
+                  <Flame className="w-4 h-4 text-orange-400 fill-current animate-pulse" />
                   Lịch Chấm Công Tuần (Weekly Streak)
                 </h4>
                 <span className="text-[11px] text-amber-400 font-semibold">Tháng {currentMonth}</span>
               </div>
 
-              <div className="grid grid-cols-7 gap-1.5 text-center">
+              {/* Dải 7 ngày tròn (T2 -> CN) tối thiểu 44x44px */}
+              <div className="grid grid-cols-7 gap-2 text-center">
                 {weekDays.map((d) => {
+                  const isTodayUnfinished = d.isToday && !hasPracticeToday;
                   return (
                     <div
                       key={d.label}
-                      className={`py-2 px-1 rounded-xl flex flex-col items-center justify-between transition-all ${
+                      className={`min-h-[52px] py-2 px-1 rounded-xl flex flex-col items-center justify-between transition-all ${
                         d.done
                           ? "bg-gradient-to-b from-amber-500/25 to-orange-500/20 border border-amber-500/40 text-amber-300 font-bold"
+                          : isTodayUnfinished
+                          ? "border-2 border-dashed border-orange-500/90 bg-orange-500/15 text-orange-300 animate-pulse font-extrabold"
                           : "bg-[#030712]/80 border border-slate-800 text-slate-500"
-                      } ${d.isToday ? "ring-2 ring-cyan-400 shadow-xs" : ""}`}
+                      }`}
                     >
                       <span className="text-[10px] uppercase font-bold">{d.label}</span>
-                      <div className="my-1">
+                      <div className="my-0.5">
                         {d.done ? (
-                          <Flame className="w-3.5 h-3.5 fill-current text-orange-400" />
+                          <Flame className="w-4 h-4 fill-current text-orange-400" />
+                        ) : isTodayUnfinished ? (
+                          <Flame className="w-4 h-4 text-orange-400 animate-bounce" />
                         ) : (
                           <span className="w-1.5 h-1.5 rounded-full bg-slate-700 inline-block" />
                         )}
@@ -832,43 +1058,60 @@ export const DashboardPage: React.FC = () => {
                   );
                 })}
               </div>
+
+              {/* THÔNG ĐIỆP TÂM LÝ HỌC: HIỆU ỨNG MẤT MÁT (LOSS AVERSION BANNER) */}
+              {!hasPracticeToday ? (
+                <div className="p-3 rounded-xl bg-gradient-to-r from-orange-500/15 via-amber-500/10 to-transparent border border-orange-500/30 text-xs text-orange-200 flex items-center gap-2.5">
+                  <AlertTriangle className="w-4 h-4 text-orange-400 shrink-0 animate-pulse" />
+                  <p className="leading-snug">
+                    <strong>Học ngay hôm nay</strong> để không bị gãy chuỗi{" "}
+                    <span className="text-amber-300 font-bold">{streak || 1} ngày Streak</span>!
+                  </p>
+                </div>
+              ) : (
+                <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-300 flex items-center gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <p className="leading-snug">
+                    Tuyệt vời! Bạn đã bảo vệ thành công chuỗi <strong>{streak || 1} ngày Streak</strong> hôm nay.
+                  </p>
+                </div>
+              )}
             </div>
 
-            {/* 6.3. Tổng Quan Khóa Học */}
+            {/* ================= 7. PHÍM TẮT TRUNG TÂM (QUICK SHORTCUTS: BẢNG VÀNG & TEST HISTORY) ================= */}
             <div className="grid grid-cols-2 gap-3">
-              <Link
-                to="/my-courses"
-                className="p-4 rounded-2xl bg-[#070e1c]/90 hover:bg-[#09152e] backdrop-blur-xl border border-cyan-500/20 hover:border-cyan-500/50 shadow-[0_4px_25px_rgba(0,0,0,0.5),0_0_20px_rgba(6,182,212,0.04)] space-y-1 relative overflow-hidden group transition-all cursor-pointer"
-                title="Nhấn để xem chi tiết khóa học"
+              {/* Thẻ 1: Bảng vàng thành tích */}
+              <div
+                onClick={() => setLeaderboardModalOpen(true)}
+                className="p-4 rounded-2xl bg-[#070e1c]/90 hover:bg-[#09152e] backdrop-blur-xl border border-cyan-500/20 hover:border-yellow-500/50 shadow-[0_4px_25px_rgba(0,0,0,0.5),0_0_20px_rgba(6,182,212,0.04)] space-y-1 relative overflow-hidden group transition-all cursor-pointer"
+                title="Nhấn để xem bảng vàng học viên"
               >
-                <div className="absolute inset-x-4 -top-px h-px bg-gradient-to-r from-transparent via-cyan-400/30 to-transparent" />
+                <div className="absolute inset-x-4 -top-px h-px bg-gradient-to-r from-transparent via-yellow-400/30 to-transparent" />
                 <div className="flex items-center justify-between text-xs font-semibold text-slate-400">
-                  <span>Khóa đang học</span>
-                  <ChevronRight className="w-3.5 h-3.5 text-cyan-400 group-hover:translate-x-0.5 transition-transform" />
+                  <span>Bảng vàng</span>
+                  <Trophy className="w-3.5 h-3.5 text-yellow-400 group-hover:scale-110 transition-transform" />
                 </div>
                 <div className="text-xl font-extrabold text-white">
-                  {enrollments.length > 0 ? enrollments.length : 1}
+                  #{userRank < 10 ? `0${userRank}` : userRank}
                 </div>
-                <p className="text-[11px] text-cyan-400 font-medium">Đang duy trì tiến độ</p>
-              </Link>
+                <p className="text-[11px] text-yellow-400 font-medium">Bấm xem xếp hạng →</p>
+              </div>
 
+              {/* Thẻ 2: Lịch sử bài tập & đề thi */}
               <div
                 onClick={() => setTestHistoryModalOpen(true)}
                 className="p-4 rounded-2xl bg-[#070e1c]/90 hover:bg-[#09152e] backdrop-blur-xl border border-cyan-500/20 hover:border-emerald-500/50 shadow-[0_4px_25px_rgba(0,0,0,0.5),0_0_20px_rgba(6,182,212,0.04)] space-y-1 relative overflow-hidden group transition-all cursor-pointer"
                 title="Nhấn để xem chi tiết bài tập & đề thi đã làm"
               >
-                <div className="absolute inset-x-4 -top-px h-px bg-gradient-to-r from-transparent via-cyan-400/30 to-transparent" />
+                <div className="absolute inset-x-4 -top-px h-px bg-gradient-to-r from-transparent via-emerald-400/30 to-transparent" />
                 <div className="flex items-center justify-between text-xs font-semibold text-slate-400">
                   <span>Bài tập & Test</span>
-                  <ChevronRight className="w-3.5 h-3.5 text-emerald-400 group-hover:translate-x-0.5 transition-transform" />
+                  <FileCheck2 className="w-3.5 h-3.5 text-emerald-400 group-hover:scale-110 transition-transform" />
                 </div>
                 <div className="text-xl font-extrabold text-white">
                   {fullTestResults.length + quizResults.length}
                 </div>
-                <p className="text-[11px] text-emerald-400 font-medium flex items-center justify-between">
-                  <span>Đã hoàn thành</span>
-                  <span className="text-[10px] text-slate-400 underline group-hover:text-emerald-300">Chi tiết →</span>
-                </p>
+                <p className="text-[11px] text-emerald-400 font-medium">Xem lịch sử làm →</p>
               </div>
             </div>
           </div>

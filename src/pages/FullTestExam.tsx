@@ -7,9 +7,12 @@ import { useAuth } from "@/hooks/useAuth";
 import {
   Loader2,
   ChevronLeft,
+  ChevronRight,
   Clock,
   AlertTriangle,
   Volume2,
+  VolumeX,
+  Volume1,
   ShieldAlert,
   LayoutGrid,
   Bookmark,
@@ -19,19 +22,45 @@ import {
   Check,
   Sparkles,
   Settings2,
-  CheckCircle2
+  CheckCircle2,
+  Eye,
+  EyeOff,
+  Keyboard,
+  HelpCircle,
+  Play,
+  Pause,
+  RotateCcw,
+  Flag,
+  X,
+  SlidersHorizontal,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import { useSound } from "@/hooks/useSound";
 import { useGamification, XP_REWARDS } from "@/hooks/useGamification";
+import { StickyPartAudioPlayer } from "@/components/audio/StickyPartAudioPlayer";
 
-const partMeta: Record<number, { name: string; shortName: string; section: "listening" | "reading"; desc: string; defaultCount: number; defaultTime: number }> = {
-  1: { name: "Part 1: Photo Description", shortName: "Part 1", section: "listening", desc: "Mô tả hình ảnh", defaultCount: 6, defaultTime: 3 },
-  2: { name: "Part 2: Question & Response", shortName: "Part 2", section: "listening", desc: "Hỏi & Đáp", defaultCount: 25, defaultTime: 10 },
-  3: { name: "Part 3: Conversations", shortName: "Part 3", section: "listening", desc: "Đoạn hội thoại", defaultCount: 39, defaultTime: 16 },
-  4: { name: "Part 4: Short Talks", shortName: "Part 4", section: "listening", desc: "Bài nói ngắn", defaultCount: 30, defaultTime: 16 },
-  5: { name: "Part 5: Incomplete Sentences", shortName: "Part 5", section: "reading", desc: "Điền vào câu", defaultCount: 30, defaultTime: 15 },
-  6: { name: "Part 6: Text Completion", shortName: "Part 6", section: "reading", desc: "Điền đoạn văn", defaultCount: 16, defaultTime: 10 },
-  7: { name: "Part 7: Reading Comprehension", shortName: "Part 7", section: "reading", desc: "Đọc hiểu đoạn văn", defaultCount: 54, defaultTime: 50 },
+// Metadata for TOEIC Parts
+const partMeta: Record<
+  number,
+  {
+    name: string;
+    shortName: string;
+    section: "listening" | "reading";
+    desc: string;
+    defaultCount: number;
+    defaultTime: number;
+    rangeStr: string;
+  }
+> = {
+  1: { name: "Part 1: Photo Description", shortName: "Part 1", section: "listening", desc: "Mô tả hình ảnh", defaultCount: 6, defaultTime: 3, rangeStr: "1–6" },
+  2: { name: "Part 2: Question & Response", shortName: "Part 2", section: "listening", desc: "Hỏi & Đáp", defaultCount: 25, defaultTime: 10, rangeStr: "7–31" },
+  3: { name: "Part 3: Conversations", shortName: "Part 3", section: "listening", desc: "Đoạn hội thoại", defaultCount: 39, defaultTime: 16, rangeStr: "32–70" },
+  4: { name: "Part 4: Short Talks", shortName: "Part 4", section: "listening", desc: "Bài nói ngắn", defaultCount: 30, defaultTime: 16, rangeStr: "71–100" },
+  5: { name: "Part 5: Incomplete Sentences", shortName: "Part 5", section: "reading", desc: "Điền vào câu", defaultCount: 30, defaultTime: 15, rangeStr: "101–130" },
+  6: { name: "Part 6: Text Completion", shortName: "Part 6", section: "reading", desc: "Điền đoạn văn", defaultCount: 16, defaultTime: 10, rangeStr: "131–146" },
+  7: { name: "Part 7: Reading Comprehension", shortName: "Part 7", section: "reading", desc: "Đọc hiểu đoạn văn", defaultCount: 54, defaultTime: 50, rangeStr: "147–200" },
 };
 
 const partShortNames = ["Part 1", "Part 2", "Part 3", "Part 4", "Part 5", "Part 6", "Part 7"];
@@ -72,15 +101,21 @@ const getToeicReadingScore = (correct: number): number => {
   return readingScores[correct] || Math.round((correct / 100) * 490) + 5;
 };
 
+// Preset Types
+type PresetKey = "full_ets" | "listening_sprint" | "reading_focus" | "custom";
+
 const FullTestExam = () => {
   const { courseId, testId } = useParams();
   const navigate = useNavigate();
   const { user, isAdmin } = useAuth();
   const { playSound } = useSound();
   const { addXp } = useGamification();
+  const { toast } = useToast();
 
   // Selection & Configuration States
   const [started, setStarted] = useState(false);
+  const [activePreset, setActivePreset] = useState<PresetKey>("full_ets");
+  const [showCustomConfig, setShowCustomConfig] = useState(false);
   const [testMode, setTestMode] = useState<"exam" | "practice">("exam");
   const [selectedParts, setSelectedParts] = useState<number[]>([1, 2, 3, 4, 5, 6, 7]);
   const [customTimeMinutes, setCustomTimeMinutes] = useState<number | null>(null);
@@ -89,20 +124,29 @@ const FullTestExam = () => {
   const [volumeChecked, setVolumeChecked] = useState(false);
   const [answers, setAnswers] = useState<Record<number, number>>({}); // key: sessionIdx, value: answerId
   const [flagged, setFlagged] = useState<Set<number>>(new Set()); // key: sessionIdx
+  const [activeSessionIdx, setActiveSessionIdx] = useState<number>(0);
+  const [recentlySelectedKey, setRecentlySelectedKey] = useState<string | null>(null);
+  const [palettePartTab, setPalettePartTab] = useState<number>(1);
   const [paletteFilter, setPaletteFilter] = useState<"all" | "done" | "flagged" | "todo">("all");
   const [mobilePaletteOpen, setMobilePaletteOpen] = useState(false);
   const [checkedAnswers, setCheckedAnswers] = useState<Record<number, boolean>>({}); // key: questionId, value: true/false (practice mode)
-  const [currentPart, setCurrentPart] = useState(0);
   const [timeLeft, setTimeLeft] = useState(120 * 60);
   const [elapsedTime, setElapsedTime] = useState(0);
+  const [timerVisible, setTimerVisible] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [showShortcutsModal, setShowShortcutsModal] = useState(false);
   const [pauseCount, setPauseCount] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [showDraftDialog, setShowDraftDialog] = useState(false);
 
-  const DRAFT_KEY = `lenglish_fulltest_draft_v1_${user?.id || 'guest'}_${testId}`;
+  // Audio Pre-check Interactive states
+  const [audioPrecheckPlaying, setAudioPrecheckPlaying] = useState(false);
+  const [audioPrecheckVolume, setAudioPrecheckVolume] = useState(0.85);
+  const [audioPrecheckCountdown, setAudioPrecheckCountdown] = useState<number | null>(null);
+
+  const DRAFT_KEY = `lenglish_fulltest_draft_v1_${user?.id || "guest"}_${testId}`;
   const [savedDraftInfo, setSavedDraftInfo] = useState<{
     answeredCount: number;
     timeLeft: number;
@@ -116,6 +160,8 @@ const FullTestExam = () => {
   const flaggedRef = useRef<Set<number>>(new Set());
   const timeLeftRef = useRef(timeLeft);
   const elapsedTimeRef = useRef(elapsedTime);
+  const autoSubmitTriggeredRef = useRef(false);
+
   useEffect(() => { answersRef.current = answers; }, [answers]);
   useEffect(() => { flaggedRef.current = flagged; }, [flagged]);
   useEffect(() => { timeLeftRef.current = timeLeft; }, [timeLeft]);
@@ -158,11 +204,14 @@ const FullTestExam = () => {
       if (parsed.timeLeft !== undefined) setTimeLeft(parsed.timeLeft);
       if (parsed.elapsedTime !== undefined) setElapsedTime(parsed.elapsedTime);
       if (parsed.testMode) setTestMode(parsed.testMode);
-      if (parsed.selectedParts) setSelectedParts(parsed.selectedParts);
+      if (parsed.selectedParts) {
+        setSelectedParts(parsed.selectedParts);
+        if (parsed.selectedParts[0]) setPalettePartTab(parsed.selectedParts[0]);
+      }
       if (parsed.customTimeMinutes !== undefined) setCustomTimeMinutes(parsed.customTimeMinutes);
       setVolumeChecked(true);
       setStarted(true);
-      setIsPaused(true); // Khôi phục ở trạng thái tạm dừng để người dùng chủ động bấm tiếp tục
+      setIsPaused(true);
       setShowDraftDialog(false);
       toast({
         title: "Đã khôi phục bài làm dở",
@@ -299,7 +348,7 @@ const FullTestExam = () => {
 
       if (secErr || !sections || sections.length === 0) return [];
 
-      const quizIds = sections.map(s => s.quiz_id).filter(Boolean) as number[];
+      const quizIds = sections.map((s) => s.quiz_id).filter(Boolean) as number[];
       if (quizIds.length === 0) return [];
 
       const { data: questions, error: qErr } = await supabase
@@ -310,7 +359,7 @@ const FullTestExam = () => {
       if (qErr || !questions) return [];
 
       const mapped = questions.map((q: any) => {
-        const sec = sections.find(s => s.quiz_id === q.quiz_id);
+        const sec = sections.find((s) => s.quiz_id === q.quiz_id);
         const part = sec ? sec.part_number : 5;
         return {
           ...q,
@@ -346,7 +395,6 @@ const FullTestExam = () => {
     if (!allQuestions || allQuestions.length === 0) return [];
     const filtered = allQuestions.filter((q: any) => selectedParts.includes(q.part_number));
     return filtered.map((q: any, sessionIdx: number) => {
-      // Find global index in the full 200-question test
       const originalGlobalIdx = allQuestions.findIndex((orig: any) => orig.id === q.id) + 1;
       return {
         ...q,
@@ -356,17 +404,38 @@ const FullTestExam = () => {
     });
   }, [allQuestions, selectedParts]);
 
+  // Detect single part shared audio
+  const partAudioInfo = useMemo(() => {
+    const map: Record<number, { isSinglePartAudio: boolean; audioUrl: string | null; count: number; questionRange: string }> = {};
+    [1, 2, 3, 4].forEach((part) => {
+      const pQuestions = examQuestions.filter((q: any) => q.part_number === part);
+      const audioUrls = Array.from(new Set(pQuestions.map((q: any) => q.audio_url).filter(Boolean)));
+      if (audioUrls.length === 1 && pQuestions.length > 1) {
+        const firstIdx = pQuestions[0].sessionIdx + 1;
+        const lastIdx = pQuestions[pQuestions.length - 1].sessionIdx + 1;
+        map[part] = {
+          isSinglePartAudio: true,
+          audioUrl: audioUrls[0] as string,
+          count: pQuestions.length,
+          questionRange: `Câu ${firstIdx} - ${lastIdx}`,
+        };
+      } else {
+        map[part] = { isSinglePartAudio: false, audioUrl: null, count: pQuestions.length, questionRange: "" };
+      }
+    });
+    return map;
+  }, [examQuestions]);
+
   // Calculate default recommended time in minutes for selected parts
   const recommendedMinutes = useMemo(() => {
     if (selectedParts.length === 7) return 120;
-    const isOnlyListening = selectedParts.every(p => p <= 4);
+    const isOnlyListening = selectedParts.every((p) => p <= 4);
     if (isOnlyListening && selectedParts.length === 4) return 45;
-    const isOnlyReading = selectedParts.every(p => p >= 5);
+    const isOnlyReading = selectedParts.every((p) => p >= 5);
     if (isOnlyReading && selectedParts.length === 3) return 75;
 
-    // Sum of part times based on questions ratio
     let totalMinutes = 0;
-    selectedParts.forEach(p => {
+    selectedParts.forEach((p) => {
       const pInfo = partMeta[p];
       if (pInfo) {
         const count = questionsPerPart[p] || pInfo.defaultCount;
@@ -381,21 +450,39 @@ const FullTestExam = () => {
 
   // Toggle single part selection
   const togglePart = (partNum: number) => {
-    setSelectedParts(prev => {
+    setActivePreset("custom");
+    setSelectedParts((prev) => {
       if (prev.includes(partNum)) {
-        if (prev.length === 1) return prev; // At least 1 part must be selected
-        return prev.filter(p => p !== partNum).sort((a, b) => a - b);
+        if (prev.length === 1) return prev;
+        return prev.filter((p) => p !== partNum).sort((a, b) => a - b);
       } else {
         return [...prev, partNum].sort((a, b) => a - b);
       }
     });
   };
 
-  // Quick preset selections
-  const selectAllParts = () => setSelectedParts([1, 2, 3, 4, 5, 6, 7]);
-  const selectListeningOnly = () => setSelectedParts([1, 2, 3, 4]);
-  const selectReadingOnly = () => setSelectedParts([5, 6, 7]);
-  const selectSinglePart = (partNum: number) => setSelectedParts([partNum]);
+  // Quick Presets Actions (Hick's Law & Progressive Disclosure)
+  const applyPreset = (preset: PresetKey) => {
+    setActivePreset(preset);
+    if (preset === "full_ets") {
+      setSelectedParts([1, 2, 3, 4, 5, 6, 7]);
+      setCustomTimeMinutes(120);
+      setTestMode("exam");
+      setPalettePartTab(1);
+    } else if (preset === "listening_sprint") {
+      setSelectedParts([1, 2, 3, 4]);
+      setCustomTimeMinutes(45);
+      setTestMode("exam");
+      setPalettePartTab(1);
+    } else if (preset === "reading_focus") {
+      setSelectedParts([5, 6, 7]);
+      setCustomTimeMinutes(75);
+      setTestMode("exam");
+      setPalettePartTab(5);
+    } else {
+      setShowCustomConfig(true);
+    }
+  };
 
   const hasListeningParts = useMemo(() => {
     return examQuestions.some((q: any) => q.part_number <= 4);
@@ -419,22 +506,54 @@ const FullTestExam = () => {
     setFlagged(new Set());
     setCheckedAnswers({});
     setElapsedTime(0);
-    setCurrentPart(selectedParts[0] - 1);
+    setActiveSessionIdx(0);
+    setPalettePartTab(selectedParts[0] || 1);
     setStarted(true);
   };
 
-  const handleConfirmSoundCheck = () => {
-    setVolumeChecked(true);
-    if (testMode === "exam") {
-      const initialTimeSeconds = Math.max(60, effectiveTimeMinutes * 60);
-      setTimeLeft(initialTimeSeconds);
-      autoSubmitTriggeredRef.current = false;
+  const handleAudioPlay = (e: React.SyntheticEvent<HTMLAudioElement>) => {
+    const current = e.currentTarget;
+    const allAudios = document.getElementsByTagName("audio");
+    for (let i = 0; i < allAudios.length; i++) {
+      if (allAudios[i] !== current && !allAudios[i].paused) {
+        allAudios[i].pause();
+      }
     }
   };
 
+  // Pre-check countdown transition
+  const handleConfirmSoundCheck = () => {
+    if (volumeAudioRef.current) {
+      volumeAudioRef.current.pause();
+    }
+    setAudioPrecheckPlaying(false);
+
+    // 3-second countdown micro-interaction
+    setAudioPrecheckCountdown(3);
+  };
+
+  useEffect(() => {
+    if (audioPrecheckCountdown === null) return;
+    if (audioPrecheckCountdown > 0) {
+      const timer = setTimeout(() => {
+        setAudioPrecheckCountdown((prev) => (prev !== null ? prev - 1 : null));
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else if (audioPrecheckCountdown === 0) {
+      setVolumeChecked(true);
+      setAudioPrecheckCountdown(null);
+      if (testMode === "exam") {
+        const initialTimeSeconds = Math.max(60, effectiveTimeMinutes * 60);
+        setTimeLeft(initialTimeSeconds);
+        autoSubmitTriggeredRef.current = false;
+      }
+    }
+  }, [audioPrecheckCountdown, testMode, effectiveTimeMinutes]);
+
   // Flag toggle
   const toggleFlag = (sessionIdx: number) => {
-    setFlagged(prev => {
+    playSound("click");
+    setFlagged((prev) => {
       const next = new Set(prev);
       if (next.has(sessionIdx)) {
         next.delete(sessionIdx);
@@ -445,15 +564,12 @@ const FullTestExam = () => {
     });
   };
 
-  // Auto-submit lock ref
-  const autoSubmitTriggeredRef = useRef(false);
-
   // Timer Effect
   useEffect(() => {
     if (!started || isPaused || needsSoundCheck) return;
     const interval = setInterval(() => {
       if (testMode === "exam") {
-        setTimeLeft(prev => {
+        setTimeLeft((prev) => {
           if (prev <= 1) {
             autoSubmitTriggeredRef.current = true;
             return 0;
@@ -461,7 +577,7 @@ const FullTestExam = () => {
           return prev - 1;
         });
       } else {
-        setElapsedTime(prev => prev + 1);
+        setElapsedTime((prev) => prev + 1);
       }
     }, 1000);
     return () => clearInterval(interval);
@@ -520,7 +636,7 @@ const FullTestExam = () => {
           audio_url: q.audio_url,
           image_url: q.image_url,
           group_id: q.group_id,
-          questions: []
+          questions: [],
         };
         groups.push(currentGroup);
       }
@@ -531,18 +647,59 @@ const FullTestExam = () => {
     return groups;
   }, [examQuestions]);
 
-  // Navigate to Part
-  const goToPart = (partNum: number) => {
-    setCurrentPart(partNum - 1);
-    const firstQ = examQuestions.findIndex((q: any) => q.part_number === partNum);
-    if (firstQ !== -1) {
-      document.getElementById(`question-${firstQ}`)?.scrollIntoView({ behavior: "smooth" });
+  // Organize groups by Part
+  const partSections = useMemo(() => {
+    const sections: { partNumber: number; groups: any[] }[] = [];
+    groupedQuestions.forEach((group: any) => {
+      let lastSection = sections[sections.length - 1];
+      if (!lastSection || lastSection.partNumber !== group.part_number) {
+        lastSection = { partNumber: group.part_number, groups: [] };
+        sections.push(lastSection);
+      }
+      lastSection.groups.push(group);
+    });
+    return sections;
+  }, [groupedQuestions]);
+
+  // Navigate to Question
+  const goToQuestion = (sessionIdx: number) => {
+    if (sessionIdx < 0 || sessionIdx >= examQuestions.length) return;
+    setActiveSessionIdx(sessionIdx);
+    const targetQ = examQuestions[sessionIdx];
+    if (targetQ) {
+      setPalettePartTab(targetQ.part_number);
+    }
+    const elem = document.getElementById(`question-${sessionIdx}`);
+    if (elem) {
+      elem.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   };
 
+  // Navigate to Part
+  const goToPart = (partNum: number) => {
+    setPalettePartTab(partNum);
+    const firstQ = examQuestions.findIndex((q: any) => q.part_number === partNum);
+    if (firstQ !== -1) {
+      goToQuestion(firstQ);
+    }
+  };
+
+  // Optimistic UI for answer selection (< 50ms) with tactile micro-interaction
   const handleSelectAnswer = (sessionIdx: number, answerId: number) => {
     playSound("click");
-    setAnswers(prev => ({ ...prev, [sessionIdx]: answerId }));
+    setRecentlySelectedKey(`${sessionIdx}-${answerId}`);
+    setTimeout(() => {
+      setRecentlySelectedKey(null);
+    }, 80);
+
+    // Immediate state update (Doherty threshold < 50ms)
+    setAnswers((prev) => ({ ...prev, [sessionIdx]: answerId }));
+    setActiveSessionIdx(sessionIdx);
+
+    const q = examQuestions[sessionIdx];
+    if (q && q.part_number !== palettePartTab) {
+      setPalettePartTab(q.part_number);
+    }
   };
 
   // Submit Exam
@@ -592,7 +749,7 @@ const FullTestExam = () => {
           test_mode: testMode,
           total_in_test: allQuestions.length,
           time_allocated_minutes: effectiveTimeMinutes,
-        }
+        },
       };
 
       const { data: resData } = await supabase
@@ -656,7 +813,7 @@ const FullTestExam = () => {
         selectedParts,
       },
     });
-  }, [examQuestions, selectedParts, testMode, effectiveTimeMinutes, timeLeft, elapsedTime, user, testId, courseId, pauseCount, allQuestions.length, navigate, playSound, addXp]);
+  }, [examQuestions, selectedParts, testMode, effectiveTimeMinutes, timeLeft, elapsedTime, user, testId, courseId, pauseCount, allQuestions.length, navigate, playSound, addXp, DRAFT_KEY]);
 
   // Timer auto-submit handler
   useEffect(() => {
@@ -666,20 +823,105 @@ const FullTestExam = () => {
     }
   }, [timeLeft, started, needsSoundCheck, submit]);
 
+  // Universal Keyboard Shortcuts (International Exam Standards)
+  useEffect(() => {
+    if (!started || needsSoundCheck || showConfirm || showExitConfirm || isPaused) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger if user is in an input or textarea
+      const target = e.target as HTMLElement;
+      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) {
+        return;
+      }
+
+      const key = e.key.toLowerCase();
+
+      // Navigation: J / ArrowRight = Next, K / ArrowLeft = Prev
+      if (key === "j" || e.key === "ArrowRight") {
+        e.preventDefault();
+        if (activeSessionIdx < examQuestions.length - 1) {
+          goToQuestion(activeSessionIdx + 1);
+        }
+        return;
+      }
+      if (key === "k" || e.key === "ArrowLeft") {
+        e.preventDefault();
+        if (activeSessionIdx > 0) {
+          goToQuestion(activeSessionIdx - 1);
+        }
+        return;
+      }
+
+      // Flag toggle: F
+      if (key === "f") {
+        e.preventDefault();
+        toggleFlag(activeSessionIdx);
+        return;
+      }
+
+      // Shortcut cheatsheet toggle: ?
+      if (e.key === "?") {
+        e.preventDefault();
+        setShowShortcutsModal((prev) => !prev);
+        return;
+      }
+
+      // Play/Pause audio toggle: Space
+      if (e.key === " ") {
+        const activeAudios = document.getElementsByTagName("audio");
+        if (activeAudios.length > 0) {
+          e.preventDefault();
+          const firstAudio = activeAudios[0];
+          if (firstAudio.paused) firstAudio.play();
+          else firstAudio.pause();
+        }
+        return;
+      }
+
+      // Option selection: A, B, C, D (or 1, 2, 3, 4)
+      const currentQ = examQuestions[activeSessionIdx];
+      if (!currentQ || !currentQ.answers) return;
+
+      let optionIndex = -1;
+      if (key === "a" || key === "1") optionIndex = 0;
+      else if (key === "b" || key === "2") optionIndex = 1;
+      else if (key === "c" || key === "3") optionIndex = 2;
+      else if (key === "d" || key === "4") optionIndex = 3;
+
+      if (optionIndex !== -1 && currentQ.answers[optionIndex]) {
+        e.preventDefault();
+        handleSelectAnswer(activeSessionIdx, currentQ.answers[optionIndex].id);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [started, needsSoundCheck, showConfirm, showExitConfirm, isPaused, activeSessionIdx, examQuestions]);
+
   const answeredCount = Object.keys(answers).length;
   const unansweredCount = examQuestions.length - answeredCount;
 
-  const formatTime = (sec: number) => {
-    const h = Math.floor(sec / 3600);
-    const m = Math.floor((sec % 3600) / 60);
+  // Unanswered questions index list for quick review in submission modal
+  const unansweredIndices = useMemo(() => {
+    return examQuestions
+      .filter((q: any) => answers[q.sessionIdx] === undefined)
+      .map((q: any) => q.sessionIdx);
+  }, [examQuestions, answers]);
+
+  // Formatted countdown timer: ⏱ 119:45 or 120:00
+  const formatTimerDisplay = (sec: number) => {
+    const m = Math.floor(sec / 60);
     const s = sec % 60;
-    return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+    return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   };
+
+  // Semantic color for timer: Slate neutral > 10 min (#334155 / slate-400), gentle amber <= 10 min (#D97706), no flashing red
+  const isTimeCritical = testMode === "exam" && timeLeft <= 600;
 
   if (loadingTest || loadingQuestions || loadingEnrollment) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="w-10 h-10 animate-spin text-primary" />
+      <div className="min-h-screen bg-[#050914] text-slate-100 flex items-center justify-center">
+        <Loader2 className="w-10 h-10 animate-spin text-cyan-400" />
       </div>
     );
   }
@@ -687,9 +929,9 @@ const FullTestExam = () => {
   // Block access if not enrolled
   if (!enrollment) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="card-duo p-8 max-w-md text-center space-y-5 bg-card rounded-2xl shadow-soft-xl">
-          <div className="w-16 h-16 rounded-full bg-red-50 text-[var(--duo-red)] flex items-center justify-center mx-auto">
+      <div className="min-h-screen bg-[#050914] text-slate-100 flex items-center justify-center p-4">
+        <div className="card-duo p-8 max-w-md text-center space-y-5 bg-[#070e1c] border border-cyan-500/20 rounded-2xl shadow-soft-xl">
+          <div className="w-16 h-16 rounded-full bg-red-950/40 text-[var(--duo-red)] flex items-center justify-center mx-auto border border-red-500/20">
             <ShieldAlert className="w-8 h-8" />
           </div>
           <h2 className="text-xl font-black text-foreground">Chưa đăng ký khóa học</h2>
@@ -707,30 +949,37 @@ const FullTestExam = () => {
     );
   }
 
-  // 1. Pre-exam Configuration & Part Selection Page
+  // =========================================================================
+  // 1. PRE-EXAM CONFIGURATION SCREEN (Hick's Law & Progressive Disclosure)
+  // =========================================================================
   if (!started) {
-    const isListeningSelected = selectedParts.some(p => p <= 4);
-    const isReadingSelected = selectedParts.some(p => p >= 5);
-    const totalSelectedQuestionsCount = examQuestions.length;
-
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4 sm:p-6 relative font-sans">
+      <div className="min-h-screen bg-[#050914] text-slate-100 flex items-center justify-center p-4 sm:p-6 relative font-sans">
+        {/* Ambient background glows */}
+        <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+          <div className="absolute -top-40 left-1/4 w-[600px] h-[400px] bg-cyan-500/10 blur-[140px] rounded-full" />
+          <div className="absolute top-1/3 -right-40 w-[500px] h-[500px] bg-blue-600/10 blur-[150px] rounded-full" />
+          <div className="absolute -bottom-40 left-1/3 w-[600px] h-[400px] bg-indigo-600/8 blur-[160px] rounded-full" />
+        </div>
+
         <button
           onClick={() => navigate(`/courses/${courseId}/fulltest`)}
-          className="absolute top-4 left-4 flex items-center gap-1.5 text-xs sm:text-sm font-bold text-muted-foreground hover:text-foreground transition-colors bg-card border border-border/70 px-3.5 py-2 rounded-xl hover:border-primary/50 shadow-soft-sm"
+          className="absolute top-4 left-4 z-10 flex items-center gap-1.5 text-xs sm:text-sm font-bold text-slate-300 hover:text-white transition-colors bg-[#070e1c]/90 border border-cyan-500/20 px-3.5 py-2 rounded-xl hover:border-cyan-400/50 shadow-soft-sm backdrop-blur-md cursor-pointer"
         >
           <ChevronLeft className="w-4 h-4" /> Danh sách đề thi
         </button>
 
-        <div className="card-duo p-6 sm:p-8 max-w-3xl w-full bg-card shadow-soft-2xl rounded-3xl space-y-6 my-10">
+        <div className="p-6 sm:p-8 max-w-3xl w-full bg-[#070e1c]/95 border border-cyan-500/20 shadow-soft-2xl rounded-3xl space-y-6 my-10 relative z-10 backdrop-blur-xl">
           {/* Header Banner */}
           <div className="text-center space-y-2">
-            <div className="w-16 h-16 rounded-2xl bg-[var(--duo-blue)] shadow-[0_4px_0_var(--duo-blue-dark)] flex items-center justify-center mx-auto text-3xl">
-              🎯
+            <div className="w-14 h-14 rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center mx-auto text-2xl shadow-inner">
+              🏛️
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black text-foreground">{testInfo?.title ?? `Đề thi TOEIC`}</h1>
-            <p className="text-xs sm:text-sm text-muted-foreground font-semibold max-w-xl mx-auto">
-              {testInfo?.description || "Tùy chọn luyện thi toàn bộ đề 200 câu hoặc chọn riêng các phần (Parts) bạn muốn ôn luyện."}
+            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+              {testInfo?.title ?? `Đề thi TOEIC Chuẩn Hóa`}
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-400 font-medium max-w-lg mx-auto">
+              Không gian thi trực tuyến công thái học cao cấp. Chọn nhanh cấu hình bài thi bên dưới để bắt đầu.
             </p>
           </div>
 
@@ -738,294 +987,299 @@ const FullTestExam = () => {
           {savedDraftInfo && (
             <div className="bg-amber-500/10 border-2 border-amber-500/30 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in">
               <div className="space-y-1">
-                <div className="flex items-center gap-2 font-black text-amber-600 dark:text-amber-400 text-sm">
+                <div className="flex items-center gap-2 font-black text-amber-400 text-sm">
                   <span>⚡ Phát hiện bài thi chưa hoàn tất!</span>
                 </div>
-                <p className="text-xs text-muted-foreground font-medium">
+                <p className="text-xs text-slate-300 font-medium">
                   Bạn có bài làm dở gồm <b>{savedDraftInfo.answeredCount} câu đã trả lời</b>, lưu lúc {new Date(savedDraftInfo.savedAt).toLocaleTimeString("vi-VN")}.
                 </p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                <Button
+                <button
                   type="button"
                   onClick={discardDraft}
-                  variant="outline"
-                  size="sm"
-                  className="rounded-xl border-amber-300 text-amber-700 hover:bg-amber-100 text-xs font-bold"
+                  className="px-3 py-1.5 rounded-xl border border-amber-500/30 text-amber-300 hover:bg-amber-500/20 text-xs font-bold transition-colors cursor-pointer"
                 >
                   Xóa bài dở
-                </Button>
-                <Button
+                </button>
+                <button
                   type="button"
                   onClick={restoreDraft}
-                  size="sm"
-                  className="rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-black text-xs shadow-md shadow-amber-500/20"
+                  className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs shadow-md shadow-amber-500/20 transition-all cursor-pointer"
                 >
                   Tiếp tục làm bài 🚀
-                </Button>
+                </button>
               </div>
             </div>
           )}
 
-          {/* Mode Selection */}
-          <div className="space-y-2">
-            <label className="text-xs font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-              <Sparkles className="w-4 h-4 text-primary" /> 1. Chọn chế độ làm bài
-            </label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setTestMode("exam")}
-                className={cn(
-                  "p-4 rounded-2xl border text-left transition-all relative overflow-hidden",
-                  testMode === "exam"
-                    ? "border-primary bg-primary/5 shadow-soft-sm"
-                    : "border-border/70 hover:border-primary/40 bg-card shadow-soft-xs"
-                )}
-              >
-                <div className="flex items-center gap-2">
-                  <span className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0", testMode === "exam" ? "border-primary bg-primary text-white" : "border-muted-foreground/30")}>
-                    {testMode === "exam" && <span className="w-2.5 h-2.5 rounded-full bg-white block" />}
-                  </span>
-                  <span className="font-black text-foreground text-sm">⏱ Thi thử (Exam Mode)</span>
-                </div>
-                <p className="text-xs text-muted-foreground mt-2 font-medium">Bấm giờ làm bài. Xem điểm số và giải thích chi tiết sau khi nộp bài.</p>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setTestMode("practice")}
-                className={cn(
-                  "p-4 rounded-2xl border text-left transition-all relative overflow-hidden",
-                  testMode === "practice"
-                    ? "border-primary bg-primary/5 shadow-soft-sm"
-                    : "border-border/70 hover:border-primary/40 bg-card shadow-soft-xs"
-                )}
-              >
-                <div className="flex items-center gap-2">
-                  <span className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0", testMode === "practice" ? "border-primary bg-primary text-white" : "border-muted-foreground/30")}>
-                    {testMode === "practice" && <span className="w-2.5 h-2.5 rounded-full bg-white block" />}
-                  </span>
-                  <span className="font-black text-foreground text-sm">📚 Luyện tập (Practice Mode)</span>
-                </div>
-                <p className="text-xs text-muted-foreground mt-2 font-medium">Không áp lực thời gian. Có thể bấm kiểm tra và xem ngay đáp án & lời giải từng câu.</p>
-              </button>
-            </div>
-          </div>
-
-          {/* Part Selection Section */}
-          <div className="space-y-3 pt-1 border-t border-border/70">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <label className="text-xs font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                <Settings2 className="w-4 h-4 text-primary" /> 2. Chọn phần thi (Parts) muốn làm
+          {/* Level 1: Quick Presets (Progressive Disclosure & Hick's Law) */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-black uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-cyan-400" /> Chọn Cấu Hình Phòng Thi (Quick Presets)
               </label>
-
-              {/* Quick Preset Buttons */}
-              <div className="flex flex-wrap gap-1.5">
-                <button
-                  type="button"
-                  onClick={selectAllParts}
-                  className={cn(
-                    "text-xs font-bold px-2.5 py-1 rounded-lg border transition-all",
-                    selectedParts.length === 7
-                      ? "bg-primary text-primary-foreground border-primary shadow-soft-xs"
-                      : "bg-card text-muted-foreground border-border/70 hover:border-primary/40 hover:text-foreground"
-                  )}
-                >
-                  🚀 Toàn bộ đề (7 Parts)
-                </button>
-                <button
-                  type="button"
-                  onClick={selectListeningOnly}
-                  className={cn(
-                    "text-xs font-bold px-2.5 py-1 rounded-lg border transition-all",
-                    selectedParts.length === 4 && isListeningSelected && !isReadingSelected
-                      ? "bg-primary text-primary-foreground border-primary shadow-soft-xs"
-                      : "bg-card text-muted-foreground border-border/70 hover:border-primary/40 hover:text-foreground"
-                  )}
-                >
-                  🎧 Chỉ Listening
-                </button>
-                <button
-                  type="button"
-                  onClick={selectReadingOnly}
-                  className={cn(
-                    "text-xs font-bold px-2.5 py-1 rounded-lg border transition-all",
-                    selectedParts.length === 3 && isReadingSelected && !isListeningSelected
-                      ? "bg-primary text-primary-foreground border-primary shadow-soft-xs"
-                      : "bg-card text-muted-foreground border-border/70 hover:border-primary/40 hover:text-foreground"
-                  )}
-                >
-                  📖 Chỉ Reading
-                </button>
-              </div>
+              <span className="text-[11px] text-cyan-400 font-semibold">Khuyên dùng</span>
             </div>
 
-            {/* Grid of Parts */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Listening Column */}
-              <div className="space-y-2 bg-muted/30 p-3.5 rounded-2xl border border-border/70 shadow-soft-xs">
-                <div className="flex items-center justify-between pb-1">
-                  <span className="text-xs font-black text-primary uppercase tracking-wider flex items-center gap-1.5">
-                    <Headphones className="w-3.5 h-3.5" /> Listening (Part 1 - 4)
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+              {/* Preset 1: Full ETS (Default) */}
+              <button
+                type="button"
+                onClick={() => applyPreset("full_ets")}
+                className={cn(
+                  "p-4 rounded-2xl border text-left transition-all relative overflow-hidden flex flex-col justify-between cursor-pointer group",
+                  activePreset === "full_ets"
+                    ? "border-blue-500 bg-blue-600/15 shadow-lg shadow-blue-500/10 ring-2 ring-blue-500/30"
+                    : "border-slate-800 hover:border-slate-700 bg-slate-900/60 opacity-80 hover:opacity-100"
+                )}
+              >
+                {activePreset === "full_ets" && (
+                  <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-blue-500 text-white text-[10px] font-black uppercase tracking-wider">
+                    Mặc định
                   </span>
-                  <span className="text-xs font-bold text-muted-foreground">
-                    {[1, 2, 3, 4].reduce((sum, p) => sum + (questionsPerPart[p] || 0), 0)} câu
-                  </span>
+                )}
+                <div>
+                  <div className="text-2xl mb-2">🎯</div>
+                  <h3 className="font-black text-white text-sm sm:text-base">Thi Chuẩn ETS</h3>
+                  <p className="text-xs text-slate-400 mt-1 font-medium leading-relaxed">
+                    Mô phỏng 100% kỳ thi thật tại IIG. Full 7 Parts, 200 câu hỏi, đồng hồ đếm ngược 120 phút.
+                  </p>
                 </div>
-                <div className="space-y-1.5">
-                  {[1, 2, 3, 4].map(part => {
-                    const isSelected = selectedParts.includes(part);
-                    const count = questionsPerPart[part] || partMeta[part].defaultCount;
-                    return (
-                      <div
-                        key={part}
-                        onClick={() => togglePart(part)}
-                        className={cn(
-                          "p-2.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all select-none",
-                          isSelected
-                            ? "border-primary bg-card shadow-soft-xs ring-1 ring-primary/20"
-                            : "border-border/70 bg-card/60 opacity-70 hover:opacity-100 hover:border-border"
-                        )}
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className={cn(
-                            "w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition-colors",
-                            isSelected ? "bg-primary border-primary text-primary-foreground" : "border-muted-foreground/30 bg-card"
-                          )}>
-                            {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-xs font-black text-foreground truncate">
-                              {partMeta[part].shortName}: {partMeta[part].desc}
-                            </p>
-                          </div>
-                        </div>
-                        <span className="badge-duo badge-blue text-xs font-bold shrink-0 ml-2">
-                          {count} câu
-                        </span>
-                      </div>
-                    );
-                  })}
+                <div className="mt-4 pt-2.5 border-t border-slate-800/80 flex items-center justify-between text-[11px] font-bold text-blue-400">
+                  <span>Part 1–7 (200 câu)</span>
+                  <span>⏱ 120 phút</span>
                 </div>
-              </div>
+              </button>
 
-              {/* Reading Column */}
-              <div className="space-y-2 bg-muted/30 p-3.5 rounded-2xl border border-border/70 shadow-soft-xs">
-                <div className="flex items-center justify-between pb-1">
-                  <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
-                    <BookOpen className="w-3.5 h-3.5" /> Reading (Part 5 - 7)
-                  </span>
-                  <span className="text-xs font-bold text-muted-foreground">
-                    {[5, 6, 7].reduce((sum, p) => sum + (questionsPerPart[p] || 0), 0)} câu
-                  </span>
+              {/* Preset 2: Listening Sprint */}
+              <button
+                type="button"
+                onClick={() => applyPreset("listening_sprint")}
+                className={cn(
+                  "p-4 rounded-2xl border text-left transition-all relative overflow-hidden flex flex-col justify-between cursor-pointer group",
+                  activePreset === "listening_sprint"
+                    ? "border-cyan-500 bg-cyan-600/15 shadow-lg shadow-cyan-500/10 ring-2 ring-cyan-500/30"
+                    : "border-slate-800 hover:border-slate-700 bg-slate-900/60 opacity-80 hover:opacity-100"
+                )}
+              >
+                <div>
+                  <div className="text-2xl mb-2">🎧</div>
+                  <h3 className="font-black text-white text-sm sm:text-base">Luyện Tốc Chiến Listening</h3>
+                  <p className="text-xs text-slate-400 mt-1 font-medium leading-relaxed">
+                    Tập trung phản xạ thính giác. Trọn vẹn Part 1–4, 100 câu nghe liên tục trong 45 phút.
+                  </p>
                 </div>
-                <div className="space-y-1.5">
-                  {[5, 6, 7].map(part => {
-                    const isSelected = selectedParts.includes(part);
-                    const count = questionsPerPart[part] || partMeta[part].defaultCount;
-                    return (
-                      <div
-                        key={part}
-                        onClick={() => togglePart(part)}
-                        className={cn(
-                          "p-2.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all select-none",
-                          isSelected
-                            ? "border-emerald-500 bg-card shadow-soft-xs ring-1 ring-emerald-500/20"
-                            : "border-border/70 bg-card/60 opacity-70 hover:opacity-100 hover:border-border"
-                        )}
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className={cn(
-                            "w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition-colors",
-                            isSelected ? "bg-emerald-500 border-emerald-500 text-white" : "border-muted-foreground/30 bg-card"
-                          )}>
-                            {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-xs font-black text-foreground truncate">
-                              {partMeta[part].shortName}: {partMeta[part].desc}
-                            </p>
-                          </div>
-                        </div>
-                        <span className="badge-duo badge-green text-xs font-bold shrink-0 ml-2">
-                          {count} câu
-                        </span>
-                      </div>
-                    );
-                  })}
+                <div className="mt-4 pt-2.5 border-t border-slate-800/80 flex items-center justify-between text-[11px] font-bold text-cyan-400">
+                  <span>Part 1–4 (100 câu)</span>
+                  <span>⏱ 45 phút</span>
                 </div>
-              </div>
+              </button>
+
+              {/* Preset 3: Reading Focus */}
+              <button
+                type="button"
+                onClick={() => applyPreset("reading_focus")}
+                className={cn(
+                  "p-4 rounded-2xl border text-left transition-all relative overflow-hidden flex flex-col justify-between cursor-pointer group",
+                  activePreset === "reading_focus"
+                    ? "border-emerald-500 bg-emerald-600/15 shadow-lg shadow-emerald-500/10 ring-2 ring-emerald-500/30"
+                    : "border-slate-800 hover:border-slate-700 bg-slate-900/60 opacity-80 hover:opacity-100"
+                )}
+              >
+                <div>
+                  <div className="text-2xl mb-2">📖</div>
+                  <h3 className="font-black text-white text-sm sm:text-base">Luyện Chuyên Sâu Reading</h3>
+                  <p className="text-xs text-slate-400 mt-1 font-medium leading-relaxed">
+                    Rèn luyện sức bền đọc hiểu & ngữ pháp. Trọn vẹn Part 5–7, 100 câu trong 75 phút.
+                  </p>
+                </div>
+                <div className="mt-4 pt-2.5 border-t border-slate-800/80 flex items-center justify-between text-[11px] font-bold text-emerald-400">
+                  <span>Part 5–7 (100 câu)</span>
+                  <span>⏱ 75 phút</span>
+                </div>
+              </button>
             </div>
           </div>
 
-          {/* Time Limit Setting (Exam Mode Only) */}
-          {testMode === "exam" && (
-            <div className="space-y-2 pt-1 border-t border-border/70">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                  <Clock className="w-4 h-4 text-primary" /> 3. Thời gian làm bài (Phút)
-                </label>
-                <span className="text-xs font-extrabold text-primary">
-                  Thời gian chọn: {effectiveTimeMinutes} phút
-                </span>
+          {/* Level 2: Progressive Disclosure Expandable Accordion */}
+          <div className="border border-slate-800/80 rounded-2xl overflow-hidden bg-slate-900/40">
+            <button
+              type="button"
+              onClick={() => setShowCustomConfig(!showCustomConfig)}
+              className="w-full px-4 py-3 flex items-center justify-between text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-800/40 transition-colors cursor-pointer"
+            >
+              <div className="flex items-center gap-2">
+                <SlidersHorizontal className="w-4 h-4 text-cyan-400" />
+                <span>⚙️ Tùy chỉnh tự do (Chia nhỏ đề thi, chọn Parts & thời gian riêng)</span>
               </div>
-
-              <div className="flex flex-wrap gap-1.5 items-center">
-                <button
-                  type="button"
-                  onClick={() => setCustomTimeMinutes(null)}
-                  className={cn(
-                    "text-xs font-bold px-3 py-1.5 rounded-xl border transition-all",
-                    customTimeMinutes === null
-                      ? "bg-primary text-primary-foreground border-primary shadow-soft-xs"
-                      : "bg-card text-muted-foreground border-border/70 hover:border-primary/40 hover:text-foreground"
-                  )}
-                >
-                  ⚡ Đề xuất ({recommendedMinutes} phút)
-                </button>
-
-                {[15, 30, 45, 60, 75, 90, 120].map(mins => (
-                  <button
-                    key={mins}
-                    type="button"
-                    onClick={() => setCustomTimeMinutes(mins)}
-                    className={cn(
-                      "text-xs font-bold px-3 py-1.5 rounded-xl border transition-all",
-                      customTimeMinutes === mins
-                        ? "bg-primary text-primary-foreground border-primary shadow-soft-xs"
-                        : "bg-card text-muted-foreground border-border/70 hover:border-primary/40 hover:text-foreground"
-                    )}
-                  >
-                    {mins}p
-                  </button>
-                ))}
+              <div className="flex items-center gap-2 text-slate-400 text-[11px]">
+                {showCustomConfig ? (
+                  <>
+                    <span>Thu gọn</span>
+                    <ChevronUp className="w-4 h-4" />
+                  </>
+                ) : (
+                  <>
+                    <span>Mở rộng</span>
+                    <ChevronDown className="w-4 h-4" />
+                  </>
+                )}
               </div>
-            </div>
-          )}
+            </button>
 
-          {/* Summary Box & Start Action */}
-          <div className="bg-muted/40 p-4 rounded-2xl border border-border/70 shadow-soft-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            {showCustomConfig && (
+              <div className="p-5 border-t border-slate-800/80 space-y-5 animate-in slide-in-from-top-2">
+                {/* Mode Selection */}
+                <div className="space-y-2">
+                  <label className="text-xs font-black uppercase tracking-wider text-slate-400">
+                    Chế độ thực hiện
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setTestMode("exam")}
+                      className={cn(
+                        "p-3 rounded-xl border text-left transition-all cursor-pointer",
+                        testMode === "exam"
+                          ? "border-blue-500 bg-blue-500/10 text-white"
+                          : "border-slate-800 bg-slate-900/80 text-slate-400"
+                      )}
+                    >
+                      <span className="font-bold text-xs text-white block">⏱ Thi thử (Exam Mode)</span>
+                      <span className="text-[11px] text-slate-400">Đếm ngược thời gian, chấm điểm sau khi nộp bài.</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTestMode("practice")}
+                      className={cn(
+                        "p-3 rounded-xl border text-left transition-all cursor-pointer",
+                        testMode === "practice"
+                          ? "border-blue-500 bg-blue-500/10 text-white"
+                          : "border-slate-800 bg-slate-900/80 text-slate-400"
+                      )}
+                    >
+                      <span className="font-bold text-xs text-white block">📚 Luyện tập (Practice Mode)</span>
+                      <span className="text-[11px] text-slate-400">Không giới hạn giờ, kiểm tra đáp án và lời giải tức thì.</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Custom Parts Checklist */}
+                <div className="space-y-2">
+                  <label className="text-xs font-black uppercase tracking-wider text-slate-400">
+                    Tùy chọn từng Phần thi (Parts)
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {[1, 2, 3, 4, 5, 6, 7].map((part) => {
+                      const isSelected = selectedParts.includes(part);
+                      const count = questionsPerPart[part] || partMeta[part].defaultCount;
+                      return (
+                        <button
+                          key={part}
+                          type="button"
+                          onClick={() => togglePart(part)}
+                          className={cn(
+                            "p-2.5 rounded-xl border text-left transition-all flex items-center justify-between cursor-pointer",
+                            isSelected
+                              ? "border-cyan-500/60 bg-cyan-500/10 text-cyan-200"
+                              : "border-slate-800 bg-slate-900/60 text-slate-500 hover:text-slate-300"
+                          )}
+                        >
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold truncate">{partMeta[part].shortName}</p>
+                            <p className="text-[10px] text-slate-400 truncate">{count} câu</p>
+                          </div>
+                          <div
+                            className={cn(
+                              "w-4 h-4 rounded flex items-center justify-center shrink-0 text-[10px] font-black border",
+                              isSelected ? "bg-cyan-500 border-cyan-400 text-slate-950" : "border-slate-700"
+                            )}
+                          >
+                            {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Time Granularity Options */}
+                {testMode === "exam" && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-black uppercase tracking-wider text-slate-400">
+                        Mốc thời gian làm bài (Phút)
+                      </label>
+                      <span className="text-xs font-bold text-cyan-400">
+                        {effectiveTimeMinutes} phút
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActivePreset("custom");
+                          setCustomTimeMinutes(null);
+                        }}
+                        className={cn(
+                          "text-xs font-bold px-3 py-1.5 rounded-xl border transition-all cursor-pointer",
+                          customTimeMinutes === null
+                            ? "bg-cyan-500 text-slate-950 border-cyan-400 font-black"
+                            : "bg-slate-900 border-slate-800 text-slate-400 hover:text-white"
+                        )}
+                      >
+                        ⚡ Đề xuất ({recommendedMinutes}p)
+                      </button>
+                      {[15, 30, 45, 60, 75, 90, 120].map((mins) => (
+                        <button
+                          key={mins}
+                          type="button"
+                          onClick={() => {
+                            setActivePreset("custom");
+                            setCustomTimeMinutes(mins);
+                          }}
+                          className={cn(
+                            "text-xs font-bold px-3 py-1.5 rounded-xl border transition-all cursor-pointer",
+                            customTimeMinutes === mins
+                              ? "bg-cyan-500 text-slate-950 border-cyan-400 font-black"
+                              : "bg-slate-900 border-slate-800 text-slate-400 hover:text-white"
+                          )}
+                        >
+                          {mins}p
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Configuration Summary & Action Bar */}
+          <div className="bg-slate-900/80 p-4 rounded-2xl border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-extrabold text-foreground text-sm sm:text-base">
-                  Tổng {totalSelectedQuestionsCount} câu hỏi
+                <span className="font-black text-white text-base">
+                  Tổng {examQuestions.length} câu hỏi
                 </span>
-                <span className="badge-duo badge-blue text-xs font-black">
+                <span className="px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30 text-xs font-bold">
                   {selectedParts.length === 7 ? "Toàn bộ 7 Parts" : `Part ${selectedParts.join(", ")}`}
                 </span>
               </div>
-              <p className="text-xs text-muted-foreground font-semibold mt-0.5">
-                {testMode === "exam" ? `Chế độ Thi thử • Giới hạn ${effectiveTimeMinutes} phút` : `Chế độ Luyện tập • Không giới hạn giờ`}
+              <p className="text-xs text-slate-400 font-medium mt-1">
+                {testMode === "exam"
+                  ? `Chế độ Thi thử • Giới hạn ${effectiveTimeMinutes} phút`
+                  : `Chế độ Luyện tập • Không giới hạn giờ`}
               </p>
             </div>
 
             <button
-              disabled={selectedParts.length === 0 || totalSelectedQuestionsCount === 0}
+              disabled={selectedParts.length === 0 || examQuestions.length === 0}
               onClick={handleStartExam}
-              className="btn-3d btn-3d-primary py-3.5 px-6 text-sm sm:text-base font-black tracking-wide shrink-0 disabled:opacity-50"
+              className="px-6 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-black tracking-wide shadow-lg shadow-blue-600/30 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer disabled:opacity-50"
             >
-              🚀 BẮT ĐẦU LÀM BÀI ({totalSelectedQuestionsCount} CÂU)
+              🚀 VÀO PHÒNG THI NGAY ({examQuestions.length} CÂU)
             </button>
           </div>
         </div>
@@ -1033,52 +1287,150 @@ const FullTestExam = () => {
     );
   }
 
-  // 2. Sound test page (if Listening parts are included and exam mode / volume test not done)
+  // =========================================================================
+  // 1B. INTERACTIVE AUDIO PRE-CHECK (Audio Waveform & 3-Second Countdown)
+  // =========================================================================
   if (needsSoundCheck) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="card-duo p-8 max-w-lg text-center space-y-6 bg-card rounded-2xl shadow-soft-xl">
-          <div className="w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto text-3xl">
+      <div className="min-h-screen bg-[#050914] text-slate-100 flex items-center justify-center p-4 relative font-sans">
+        <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+          <div className="absolute -top-40 left-1/4 w-[600px] h-[400px] bg-cyan-500/10 blur-[140px] rounded-full" />
+          <div className="absolute top-1/3 -right-40 w-[500px] h-[500px] bg-blue-600/10 blur-[150px] rounded-full" />
+        </div>
+
+        <div className="p-8 max-w-lg w-full text-center space-y-6 bg-[#070e1c] border border-cyan-500/20 rounded-3xl shadow-soft-2xl relative z-10 backdrop-blur-xl">
+          <div className="w-16 h-16 rounded-2xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 flex items-center justify-center mx-auto text-3xl shadow-inner">
             <Volume2 className="w-8 h-8" />
           </div>
+
           <div>
-            <h2 className="text-xl font-black text-foreground">Kiểm tra thiết bị âm thanh</h2>
-            <p className="text-sm text-muted-foreground font-medium mt-1">
-              Vui lòng kiểm tra tai nghe hoặc loa của bạn trước khi làm bài nghe Listening.
+            <h2 className="text-xl sm:text-2xl font-black text-white">Kiểm Tra Âm Thanh Phòng Thi</h2>
+            <p className="text-xs sm:text-sm text-slate-400 font-medium mt-1.5 leading-relaxed">
+              Nghe thử đoạn audio mẫu thực tế bên dưới và cân chỉnh âm lượng loa/tai nghe vừa vặn nhất cho bài thi.
             </p>
           </div>
 
-          <div className="bg-muted/40 p-4 rounded-xl border border-dashed border-border/80 space-y-3">
+          {/* Interactive Audio Waveform Visualizer */}
+          <div className="bg-slate-900/80 p-5 rounded-2xl border border-slate-800 space-y-4">
+            <div className="flex items-center justify-center gap-1.5 h-14 bg-slate-950/60 rounded-xl px-4 border border-slate-800/80">
+              {Array.from({ length: 20 }).map((_, i) => {
+                const heightPercent = audioPrecheckPlaying
+                  ? Math.sin(i * 0.8 + Date.now() * 0.005) * 40 + 50
+                  : 20;
+                return (
+                  <div
+                    key={i}
+                    className={cn(
+                      "w-1.5 rounded-full transition-all duration-150",
+                      audioPrecheckPlaying ? "bg-cyan-400" : "bg-slate-700"
+                    )}
+                    style={{
+                      height: `${audioPrecheckPlaying ? (i % 3 === 0 ? 36 : i % 2 === 0 ? 24 : 14) : 8}px`,
+                    }}
+                  />
+                );
+              })}
+            </div>
+
             <audio
               ref={volumeAudioRef}
               src={sampleAudioUrl}
-              controls
-              className="w-full"
+              onPlay={() => setAudioPrecheckPlaying(true)}
+              onPause={() => setAudioPrecheckPlaying(false)}
+              onEnded={() => setAudioPrecheckPlaying(false)}
+              className="hidden"
             />
-            <button
-              type="button"
-              onClick={() => playSound("correct")}
-              className="text-xs font-bold text-[var(--duo-blue)] hover:underline flex items-center justify-center gap-1 mx-auto cursor-pointer"
-            >
-              <Volume2 className="w-3.5 h-3.5" /> Bấm nghe thử âm thanh kiểm tra
-            </button>
+
+            {/* Play/Pause Trigger */}
+            <div className="flex items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  if (volumeAudioRef.current) {
+                    if (audioPrecheckPlaying) {
+                      volumeAudioRef.current.pause();
+                    } else {
+                      volumeAudioRef.current.volume = audioPrecheckVolume;
+                      volumeAudioRef.current.play();
+                    }
+                  }
+                }}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold flex items-center gap-2 transition-all cursor-pointer border border-slate-700"
+              >
+                {audioPrecheckPlaying ? (
+                  <>
+                    <Pause className="w-3.5 h-3.5 text-cyan-400" /> Tạm dừng câu hỏi mẫu
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-3.5 h-3.5 text-cyan-400" /> Bật nghe thử câu hỏi mẫu
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Large Volume Slider */}
+            <div className="space-y-1.5 pt-2">
+              <div className="flex items-center justify-between text-xs font-bold text-slate-300">
+                <span className="flex items-center gap-1.5 text-slate-400">
+                  {audioPrecheckVolume === 0 ? (
+                    <VolumeX className="w-4 h-4 text-rose-400" />
+                  ) : audioPrecheckVolume < 0.5 ? (
+                    <Volume1 className="w-4 h-4 text-cyan-400" />
+                  ) : (
+                    <Volume2 className="w-4 h-4 text-cyan-400" />
+                  )}
+                  Thanh trượt âm lượng
+                </span>
+                <span className="text-cyan-400 font-mono">{Math.round(audioPrecheckVolume * 100)}%</span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.05"
+                value={audioPrecheckVolume}
+                onChange={(e) => {
+                  const val = parseFloat(e.target.value);
+                  setAudioPrecheckVolume(val);
+                  if (volumeAudioRef.current) {
+                    volumeAudioRef.current.volume = val;
+                  }
+                }}
+                className="w-full h-3 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+              />
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <button
-              onClick={handleConfirmSoundCheck}
-              className="btn-3d btn-3d-primary w-full py-3.5 text-base font-bold"
-            >
-              Âm thanh tốt, bắt đầu ngay!
-            </button>
+          {/* Action & 3-Second Countdown */}
+          <div className="space-y-2.5">
+            {audioPrecheckCountdown !== null ? (
+              <div className="py-4 rounded-2xl bg-cyan-500/20 border border-cyan-500/40 text-center animate-pulse">
+                <span className="text-2xl font-black text-cyan-300 block">
+                  Đang vào bài thi sau {audioPrecheckCountdown}s...
+                </span>
+                <span className="text-xs text-slate-400 mt-1 block">
+                  Hít một hơi thật sâu và giữ bình tĩnh nhé!
+                </span>
+              </div>
+            ) : (
+              <button
+                onClick={handleConfirmSoundCheck}
+                className="w-full py-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black text-sm tracking-wide shadow-lg shadow-blue-600/30 transition-all hover:scale-[1.01] active:scale-[0.98] cursor-pointer"
+              >
+                Tôi nghe rõ rồi, vào thi ngay! 🎧
+              </button>
+            )}
+
             <button
               onClick={() => {
                 setStarted(false);
                 setVolumeChecked(false);
+                setAudioPrecheckCountdown(null);
               }}
-              className="btn-3d btn-3d-white w-full py-2.5 text-xs font-bold text-muted-foreground"
+              className="w-full py-2 text-xs font-bold text-slate-400 hover:text-white transition-colors cursor-pointer"
             >
-              ← Quay lại chọn phần thi
+              ← Quay lại tùy chỉnh cấu hình
             </button>
           </div>
         </div>
@@ -1086,148 +1438,216 @@ const FullTestExam = () => {
     );
   }
 
-  // 3. Main Exam View
+  // =========================================================================
+  // 2. MAIN EXAM ROOM VIEW
+  // =========================================================================
+  const currentActiveQ = examQuestions[activeSessionIdx] || examQuestions[0];
+  const activePartMeta = currentActiveQ ? partMeta[currentActiveQ.part_number] : null;
+
   return (
-    <div className="h-screen flex flex-col bg-background overflow-hidden font-sans">
-      {/* Header Bar */}
-      <header className="h-16 border-b border-border/70 shrink-0 bg-card z-20 flex items-center justify-between px-4 lg:px-8">
-        <div className="flex items-center gap-3">
+    <div className="h-screen flex flex-col bg-[#050914] text-slate-100 overflow-hidden font-sans select-none">
+      {/* Top Header Bar */}
+      <header className="h-16 border-b border-cyan-500/20 shrink-0 bg-[#070e1c]/95 backdrop-blur-xl z-20 flex items-center justify-between px-3 sm:px-6">
+        {/* Left: Exit & Test Title */}
+        <div className="flex items-center gap-3 min-w-0">
           <button
             onClick={() => setShowExitConfirm(true)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-card border border-border/70 hover:bg-muted shadow-soft-xs transition-colors"
-            title="Thoát bài thi"
-            aria-label="Thoát bài thi"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 hover:text-white transition-colors cursor-pointer text-xs font-bold"
+            title="Thoát phòng thi"
           >
-            <ChevronLeft className="w-5 h-5 text-foreground" />
-            <span className="hidden sm:inline text-xs font-bold text-foreground">Thoát</span>
+            <ChevronLeft className="w-4 h-4" />
+            <span className="hidden sm:inline">Thoát</span>
           </button>
-          <div>
-            <h1 className="font-extrabold text-sm lg:text-base hidden sm:block truncate max-w-xs">{testInfo?.title}</h1>
+          <div className="min-w-0">
+            <h1 className="font-black text-xs sm:text-sm text-white truncate max-w-[200px] sm:max-w-xs">
+              {testInfo?.title}
+            </h1>
             <div className="flex items-center gap-2">
-              <span className="text-xs uppercase font-black tracking-widest text-muted-foreground">
-                Chế độ: {testMode === "exam" ? "Thi thử ⏱" : "Luyện tập 📚"}
+              <span className="text-[11px] text-slate-400 font-medium">
+                {testMode === "exam" ? "Thi chuẩn ETS" : "Luyện tập"}
               </span>
-              <span className="badge-duo badge-blue text-xs py-0.5 px-2 font-bold">
-                {selectedParts.length === 7 ? "Full 7 Parts" : `Part ${selectedParts.join(", ")}`}
+              <span className="px-2 py-0.2 rounded-md bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-[10px] font-bold">
+                {selectedParts.length === 7 ? "Full 7 Parts" : `Part ${selectedParts.join(",")}`}
               </span>
             </div>
           </div>
         </div>
 
-        {/* Quick Part Tabs for selected parts */}
-        <div className="hidden xl:flex items-center gap-1.5">
-          {selectedParts.map(part => {
-            const hasQuestions = examQuestions.some((q: any) => q.part_number === part);
-            if (!hasQuestions) return null;
-            return (
-              <button
-                key={part}
-                onClick={() => goToPart(part)}
-                className={cn(
-                  "px-3 py-1.5 text-xs font-bold rounded-xl transition-all duration-150 active:scale-95",
-                  currentPart === part - 1
-                    ? "bg-primary text-primary-foreground shadow-soft-sm font-extrabold"
-                    : "bg-muted/70 text-muted-foreground hover:bg-muted hover:text-foreground"
-                )}
-              >
-                {partShortNames[part - 1]}
-              </button>
-            );
-          })}
+        {/* Center: Part Switcher Chips for Top Quick Jump */}
+        <div className="hidden xl:flex items-center gap-1">
+          {selectedParts.map((part) => (
+            <button
+              key={part}
+              onClick={() => goToPart(part)}
+              className={cn(
+                "px-2.5 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer",
+                palettePartTab === part
+                  ? "bg-blue-600 text-white font-extrabold shadow-sm"
+                  : "text-slate-400 hover:text-white hover:bg-slate-800/80"
+              )}
+            >
+              {partShortNames[part - 1]}
+            </button>
+          ))}
         </div>
 
-        {/* Timer, Answer count and submit actions */}
-        <div className="flex items-center gap-2.5 sm:gap-3">
-          {/* Zeigarnik progress badge */}
-          <div className="text-xs font-bold text-muted-foreground hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted/50 border border-border/50">
-            <span>{answeredCount}/{examQuestions.length} câu</span>
-            <span className="text-primary font-black">({Math.round((answeredCount / (examQuestions.length || 1)) * 100)}%)</span>
+        {/* Right Controls: Timer, Pause, Shortcuts, Submit */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Zeigarnik Progress Badge */}
+          <div className="text-xs font-bold text-slate-400 hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-900/80 border border-slate-800">
+            <span>{answeredCount}/{examQuestions.length}</span>
+            <span className="text-cyan-400 font-mono font-black">
+              ({Math.round((answeredCount / (examQuestions.length || 1)) * 100)}%)
+            </span>
           </div>
 
+          {/* 120-min Countdown with Toggle Visibility & Controlled Semantic Color */}
           {testMode === "exam" ? (
-            <div className="flex items-center gap-1.5 bg-rose-50 border border-rose-200 text-rose-600 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800 px-3 py-1.5 rounded-xl font-mono font-bold text-xs sm:text-sm shadow-soft-sm">
-              <Clock className="w-3.5 h-3.5 shrink-0 animate-pulse text-rose-500" />
-              <span>{formatTime(timeLeft)}</span>
+            <div
+              className={cn(
+                "group relative flex items-center gap-1.5 px-3 py-1.5 rounded-xl border font-mono font-bold text-xs sm:text-sm transition-all select-none",
+                isTimeCritical
+                  ? "bg-amber-500/15 border-amber-500/40 text-amber-400"
+                  : "bg-slate-800/80 border-slate-700/60 text-slate-300"
+              )}
+            >
+              <Clock className="w-3.5 h-3.5 shrink-0 text-current" />
+              <span>
+                {timerVisible ? formatTimerDisplay(timeLeft) : (
+                  <span className="group-hover:hidden tracking-widest text-slate-500">••••</span>
+                )}
+                {!timerVisible && (
+                  <span className="hidden group-hover:inline text-current font-bold animate-in fade-in">
+                    {formatTimerDisplay(timeLeft)}
+                  </span>
+                )}
+              </span>
+
+              {/* Eye toggle button */}
+              <button
+                type="button"
+                onClick={() => setTimerVisible(!timerVisible)}
+                className="ml-1 text-slate-500 hover:text-slate-300 cursor-pointer p-0.5"
+                title={timerVisible ? "Ẩn đồng hồ để tập trung" : "Hiện lại đồng hồ"}
+              >
+                {timerVisible ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5 text-amber-400" />}
+              </button>
             </div>
           ) : (
-            <div className="flex items-center gap-1.5 bg-blue-50 border border-blue-200 text-primary dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800 px-3 py-1.5 rounded-xl font-mono font-bold text-xs sm:text-sm shadow-soft-sm">
-              <Clock className="w-3.5 h-3.5 shrink-0 text-primary" />
-              <span>{formatTime(elapsedTime)}</span>
+            <div className="flex items-center gap-1.5 bg-blue-500/10 border border-blue-500/30 text-blue-300 px-3 py-1.5 rounded-xl font-mono font-bold text-xs sm:text-sm">
+              <Clock className="w-3.5 h-3.5 shrink-0 text-blue-400" />
+              <span>{formatTimerDisplay(elapsedTime)}</span>
             </div>
           )}
 
-          {/* Pause Button */}
+          {/* Ghost Pause Button (Von Restorff rule: does not compete with Submit) */}
           <button
             onClick={() => {
-              setIsPaused(prev => !prev);
-              if (!isPaused) setPauseCount(prev => prev + 1);
+              setIsPaused((prev) => !prev);
+              if (!isPaused) setPauseCount((prev) => prev + 1);
             }}
-            className="btn-3d btn-3d-white py-1.5 px-3 text-xs font-bold"
+            className="px-3 py-1.5 rounded-xl border border-slate-700/80 bg-transparent hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-semibold transition-colors cursor-pointer"
           >
             {isPaused ? "Tiếp tục" : "Tạm dừng"}
           </button>
 
+          {/* Primary Submit Button (#2563EB) placed far right */}
           <button
             onClick={() => setShowConfirm(true)}
-            className="btn-3d btn-3d-primary py-2 px-4 text-xs sm:text-sm font-bold shadow-soft-sm"
+            className="px-4 py-1.5 sm:py-2 rounded-xl bg-[#2563EB] hover:bg-blue-600 text-white text-xs sm:text-sm font-bold shadow-md shadow-blue-600/30 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
           >
             Nộp bài
           </button>
         </div>
       </header>
 
-      {/* Zeigarnik Micro Progress Bar right below header */}
-      <div className="w-full h-1 bg-muted/60 overflow-hidden">
+      {/* Zeigarnik Micro Progress Line below header */}
+      <div className="w-full h-1 bg-slate-900 overflow-hidden">
         <div
-          className="h-full bg-gradient-to-r from-blue-600 to-indigo-600 transition-all duration-300 ease-out"
+          className="h-full bg-gradient-to-r from-blue-500 to-cyan-400 transition-all duration-300 ease-out"
           style={{ width: `${Math.round((answeredCount / (examQuestions.length || 1)) * 100)}%` }}
         />
       </div>
 
-      {/* Pause Modal Overlay */}
-      {isPaused && (
-        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fade-in">
-          <div className="card-duo p-8 max-w-md w-full bg-card border border-border/80 text-center space-y-5 shadow-soft-lg rounded-2xl">
-            <span className="text-4xl block">⏸</span>
-            <h2 className="text-xl font-extrabold text-foreground">Đã tạm dừng bài thi</h2>
-            <p className="text-sm text-muted-foreground font-normal leading-relaxed">
-              Thời gian đang tạm ngưng. Hãy nhấn tiếp tục để tiếp tục trả lời các câu hỏi.
-            </p>
-            <button
-              onClick={() => setIsPaused(false)}
-              className="btn-3d btn-3d-primary w-full py-3 text-sm font-bold shadow-soft-sm"
-            >
-              TIẾP TỤC LÀM BÀI
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Main split content */}
+      {/* Main Split Layout: Left Question Palette + Right Question View */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Left Sidebar Palette (Question Grid) */}
-        <aside className="hidden lg:flex w-80 flex-col border-r border-border/60 bg-card shrink-0 select-none h-full shadow-soft-sm">
-          <div className="p-4 border-b border-border/50 space-y-3">
-            <h3 className="font-extrabold text-sm flex items-center gap-2 text-foreground">
-              <LayoutGrid className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> Bảng câu hỏi ({answeredCount}/{examQuestions.length})
-            </h3>
-            
-            {/* Filter chips */}
-            <div className="flex gap-1">
+        {/* Left Sidebar Palette (Restructured into Part Tabs & WCAG 2.2 states) */}
+        <aside className="hidden lg:flex w-80 flex-col border-r border-slate-800/80 bg-[#070e1c] shrink-0 h-full shadow-soft-sm">
+          {/* Palette Header with Part Tabs */}
+          <div className="p-4 border-b border-slate-800/80 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="font-black text-xs text-white uppercase tracking-wider flex items-center gap-1.5">
+                <LayoutGrid className="w-4 h-4 text-cyan-400" /> Bảng câu hỏi ({answeredCount}/{examQuestions.length})
+              </h3>
+              <button
+                onClick={() => setShowShortcutsModal(true)}
+                className="text-[11px] font-bold text-slate-400 hover:text-cyan-400 flex items-center gap-1 cursor-pointer transition-colors"
+              >
+                <Keyboard className="w-3.5 h-3.5" /> Phím tắt
+              </button>
+            </div>
+
+            {/* Part Horizontal Tabs */}
+            <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-none">
+              {selectedParts.map((part) => {
+                const partQuestions = examQuestions.filter((q: any) => q.part_number === part);
+                const partDone = partQuestions.filter((q: any) => answers[q.sessionIdx] !== undefined).length;
+                const isTabActive = palettePartTab === part;
+
+                return (
+                  <button
+                    key={part}
+                    onClick={() => setPalettePartTab(part)}
+                    className={cn(
+                      "px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1",
+                      isTabActive
+                        ? "bg-[#2563EB] text-white shadow-sm font-black"
+                        : "bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800/80"
+                    )}
+                  >
+                    <span>{partMeta[part].shortName}</span>
+                    <span className="text-[10px] opacity-80">({partDone}/{partQuestions.length})</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Part Progress Summary indicator */}
+            {(() => {
+              const partQuestions = examQuestions.filter((q: any) => q.part_number === palettePartTab);
+              const partDone = partQuestions.filter((q: any) => answers[q.sessionIdx] !== undefined).length;
+              return (
+                <div className="space-y-1 pt-1">
+                  <div className="flex justify-between text-[11px] font-bold text-slate-400">
+                    <span>{partMeta[palettePartTab]?.name}</span>
+                    <span className="text-cyan-400 font-mono">{partDone}/{partQuestions.length} câu</span>
+                  </div>
+                  <div className="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-cyan-400 transition-all duration-200"
+                      style={{ width: `${Math.round((partDone / (partQuestions.length || 1)) * 100)}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Palette Filter Chips */}
+            <div className="flex gap-1 pt-1">
               {[
                 { key: "all", label: `Tất cả` },
                 { key: "done", label: `Đã làm (${answeredCount})` },
-                { key: "flagged", label: `🚩 (${flagged.size})` },
+                { key: "flagged", label: `⚑ (${flagged.size})` },
                 { key: "todo", label: `Chưa làm (${unansweredCount})` },
-              ].map(f => (
+              ].map((f) => (
                 <button
                   key={f.key}
                   onClick={() => setPaletteFilter(f.key as any)}
                   className={cn(
-                    "text-xs font-semibold px-2.5 py-1.5 rounded-xl border transition-all duration-120 active:scale-95",
+                    "text-[11px] font-bold px-2 py-1 rounded-lg border transition-all cursor-pointer",
                     paletteFilter === f.key
-                      ? "bg-primary text-primary-foreground border-primary shadow-soft-sm font-bold"
-                      : "bg-muted/70 text-muted-foreground border-border/50 hover:bg-muted hover:text-foreground"
+                      ? "bg-slate-800 text-white border-slate-700"
+                      : "bg-slate-950/60 text-slate-400 border-slate-800/80 hover:text-slate-200"
                   )}
                 >
                   {f.label}
@@ -1236,279 +1656,352 @@ const FullTestExam = () => {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {selectedParts.map(part => {
-              const partQList = examQuestions.filter((q: any) => q.part_number === part);
-              if (partQList.length === 0) return null;
+          {/* Palette Buttons Grid (Only for Active Part Tab - WCAG 2.2 Compliant) */}
+          <div className="flex-1 overflow-y-auto p-4">
+            <div className="grid grid-cols-5 gap-2">
+              {examQuestions.map((q: any) => {
+                if (q.part_number !== palettePartTab) return null;
 
-              const filteredPartQs = examQuestions.filter((q: any) => {
-                if (q.part_number !== part) return false;
-                if (paletteFilter === "done") return answers[q.sessionIdx] !== undefined;
-                if (paletteFilter === "flagged") return flagged.has(q.sessionIdx);
-                if (paletteFilter === "todo") return answers[q.sessionIdx] === undefined;
-                return true;
-              });
+                const hasAns = answers[q.sessionIdx] !== undefined;
+                const isFlagged = flagged.has(q.sessionIdx);
+                const isActive = activeSessionIdx === q.sessionIdx;
 
-              if (filteredPartQs.length === 0) return null;
+                if (paletteFilter === "done" && !hasAns) return null;
+                if (paletteFilter === "flagged" && !isFlagged) return null;
+                if (paletteFilter === "todo" && hasAns) return null;
 
-              return (
-                <div key={part} className="space-y-2">
-                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center justify-between">
-                    <span>{partShortNames[part - 1]}</span>
-                    <span className="text-xs font-semibold lowercase">({partQList.length} câu)</span>
-                  </p>
-                  <div className="grid grid-cols-5 gap-1.5">
-                    {examQuestions.map((q: any) => {
-                      if (q.part_number !== part) return null;
-                      if (paletteFilter === "done" && answers[q.sessionIdx] === undefined) return null;
-                      if (paletteFilter === "flagged" && !flagged.has(q.sessionIdx)) return null;
-                      if (paletteFilter === "todo" && answers[q.sessionIdx] !== undefined) return null;
+                // WCAG 2.2 color styling
+                let btnStyle = "bg-slate-900 border-slate-700/80 text-slate-300 hover:border-slate-500";
+                if (hasAns) {
+                  btnStyle = "bg-[#2563EB] border-[#2563EB] text-white font-black shadow-sm";
+                }
+                if (isFlagged) {
+                  btnStyle = "bg-[#78350F]/70 border-amber-500 text-amber-200 font-bold";
+                }
 
-                      const hasAns = answers[q.sessionIdx] !== undefined;
-                      const isFlagged = flagged.has(q.sessionIdx);
-
-                      return (
-                        <button
-                          key={q.sessionIdx}
-                          onClick={() => {
-                            setCurrentPart(part - 1);
-                            document.getElementById(`question-${q.sessionIdx}`)?.scrollIntoView({ behavior: "smooth" });
-                          }}
-                          className={cn(
-                            "w-10 h-10 text-xs font-bold rounded-xl border transition-all duration-120 flex items-center justify-center relative cursor-pointer active:scale-95 shadow-soft-sm",
-                            isFlagged ? "border-amber-500 ring-2 ring-amber-500/30" : "",
-                            hasAns
-                              ? "bg-emerald-600 text-white border-emerald-600 shadow-soft-sm"
-                              : "bg-card text-muted-foreground border-border/80 hover:border-primary hover:text-foreground"
-                          )}
-                        >
-                          <span className="flex items-center justify-center gap-0.5">
-                            <span>{q.sessionIdx + 1}</span>
-                            {hasAns && <Check className="w-2.5 h-2.5 stroke-[3] text-white shrink-0" />}
-                          </span>
-                          {isFlagged && (
-                            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-500 border border-card" />
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
+                return (
+                  <button
+                    key={q.sessionIdx}
+                    onClick={() => goToQuestion(q.sessionIdx)}
+                    className={cn(
+                      "w-10 h-10 text-xs font-bold rounded-xl border transition-all flex items-center justify-center relative cursor-pointer active:scale-95",
+                      btnStyle,
+                      isActive && "ring-2 ring-[#2563EB] ring-offset-2 ring-offset-[#070e1c]"
+                    )}
+                  >
+                    <span>{q.sessionIdx + 1}</span>
+                    {isFlagged && (
+                      <span className="absolute -top-1 -right-1 text-amber-400 text-[10px]">⚑</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </aside>
 
-        {/* Scrollable Questions List */}
+        {/* Scrollable Questions List / Split Workspace */}
         <main
           ref={scrollContainerRef}
-          className="flex-1 h-full overflow-y-auto p-4 lg:p-8 space-y-8 scroll-smooth pb-36"
+          className="flex-1 h-full overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-8 scroll-smooth pb-36"
         >
-          {groupedQuestions.map((group: any, gIdx: number) => {
+          {partSections.map((section) => {
+            const singlePartAudio = partAudioInfo[section.partNumber];
+
             return (
-              <div key={gIdx} className="max-w-4xl mx-auto space-y-5">
-                {/* Group Headers & Passages / Shared Audio */}
-                {(group.passage || group.audio_url || group.image_url) && (
-                  <div className="card-duo p-5 sm:p-7 bg-muted/30 border border-border/60 rounded-2xl space-y-4 shadow-soft-sm">
-                    <span className="badge-duo badge-blue">{partShortNames[group.part_number - 1]}</span>
-
-                    {group.image_url && (
-                      <div className="w-full flex justify-center bg-card rounded-xl overflow-hidden min-h-[160px] border border-border/60 p-2 shadow-soft-sm">
-                        <img
-                          src={group.image_url}
-                          alt="Passage Context"
-                          className="max-w-full h-auto rounded-lg mx-auto max-h-[350px] object-contain image-safe"
-                          loading="lazy"
-                        />
-                      </div>
-                    )}
-
-                    {group.audio_url && (
-                      <div className="flex items-center gap-4 bg-card p-3 rounded-xl border border-border/60 shadow-soft-sm">
-                        <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-white shrink-0 shadow-soft-sm">
-                          🎧
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-bold text-muted-foreground mb-1">Audio nghe chung</p>
-                          <audio
-                            controls
-                            src={group.audio_url}
-                            className="w-full h-8"
-                            controlsList="nodownload"
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    {group.passage && (
-                      <div 
-                        className="prose prose-sm max-w-none text-foreground font-normal bg-card p-5 rounded-xl border border-border/60 leading-relaxed shadow-soft-sm"
-                        dangerouslySetInnerHTML={{ __html: group.passage }}
-                      />
-                    )}
-                  </div>
+              <div key={section.partNumber} className="max-w-5xl mx-auto space-y-8 relative">
+                {/* Single shared Part audio player for Part 1-4 if applicable */}
+                {singlePartAudio?.isSinglePartAudio && singlePartAudio.audioUrl && (
+                  <StickyPartAudioPlayer
+                    audioUrl={singlePartAudio.audioUrl}
+                    partNumber={section.partNumber}
+                    title={partMeta[section.partNumber]?.name || `Part ${section.partNumber}`}
+                    subtitle="File nghe chung phát liên tục cho toàn bộ câu hỏi trong Part này"
+                    questionRange={singlePartAudio.questionRange}
+                  />
                 )}
 
-                {/* Sub Questions */}
-                {group.questions.map((q: any) => {
-                  const isChecked = checkedAnswers[q.id];
-                  const selectedId = answers[q.sessionIdx];
-                  const hasSelected = selectedId !== undefined;
-                  const isFlagged = flagged.has(q.sessionIdx);
-
-                  const isPart1 = q.part_number === 1;
-                  const isPart2 = q.part_number === 2;
+                {section.groups.map((group: any, gIdx: number) => {
+                  const hasPassage = Boolean(group.passage);
+                  const isReadingSplit = hasPassage && (group.part_number === 6 || group.part_number === 7);
 
                   return (
                     <div
-                      key={q.id}
-                      id={`question-${q.sessionIdx}`}
-                      className="card-duo p-6 bg-card border border-border/60 rounded-2xl space-y-4 relative scroll-mt-6 shadow-soft-sm"
+                      key={gIdx}
+                      className={cn(
+                        "transition-all duration-200",
+                        isReadingSplit ? "lg:grid lg:grid-cols-12 lg:gap-6 lg:items-start" : "space-y-4"
+                      )}
                     >
-                      <div className="flex justify-between items-center border-b border-border/50 pb-3">
-                        <div className="flex items-center gap-2">
-                          <span className="badge-duo badge-orange font-bold text-xs">
-                            Câu {q.sessionIdx + 1}
-                          </span>
-                          {selectedParts.length < 7 && q.originalGlobalIdx && (
-                            <span className="text-xs text-muted-foreground font-semibold">
-                              (Đề gốc: #{q.originalGlobalIdx})
-                            </span>
-                          )}
-                          <span className="text-xs text-muted-foreground font-bold uppercase tracking-wider bg-muted/60 px-2.5 py-0.5 rounded-full">
-                            {partShortNames[q.part_number - 1]}
-                          </span>
-                        </div>
-
-                        {/* Bookmark Button */}
-                        <button
-                          onClick={() => toggleFlag(q.sessionIdx)}
+                      {/* Left Column for Passage (Constrained to 65ch measure for reading ergonomics) */}
+                      {(group.passage || (group.audio_url && !singlePartAudio?.isSinglePartAudio) || group.image_url) && (
+                        <div
                           className={cn(
-                            "flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl border transition-all duration-120 active:scale-95 cursor-pointer shadow-soft-sm",
-                            isFlagged
-                              ? "border-amber-500 bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-700"
-                              : "border-border/70 text-muted-foreground hover:text-foreground hover:bg-muted/70"
+                            "card-duo p-5 sm:p-6 bg-[#070e1c] border border-slate-800 rounded-2xl space-y-4 shadow-soft-sm",
+                            isReadingSplit
+                              ? "lg:col-span-6 lg:sticky lg:top-4 lg:max-h-[calc(100vh-140px)] lg:overflow-y-auto"
+                              : "w-full"
                           )}
                         >
-                          {isFlagged ? <BookmarkCheck className="w-3.5 h-3.5 fill-amber-500 text-amber-600" /> : <Bookmark className="w-3.5 h-3.5" />}
-                          <span>{isFlagged ? "Đã đánh dấu" : "Đánh dấu xem lại"}</span>
-                        </button>
-                      </div>
+                          <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                            <span className="px-2.5 py-0.5 rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20 text-xs font-bold">
+                              {partShortNames[group.part_number - 1]}
+                            </span>
+                            {hasPassage && (
+                              <span className="text-[11px] font-semibold text-slate-400">
+                                📖 Đoạn văn đọc hiểu
+                              </span>
+                            )}
+                          </div>
 
-                      {q.image_url && q.image_url !== group.image_url && (
-                        <div className="w-full flex justify-center bg-muted/20 rounded-xl overflow-hidden min-h-[140px] border border-border/50 p-1">
-                          <img
-                            src={q.image_url}
-                            alt="Question Image"
-                            className="max-w-full h-auto rounded-lg max-h-[280px] mx-auto object-contain image-safe"
-                            loading="lazy"
-                          />
+                          {/* Image Context */}
+                          {group.image_url && (
+                            <div className="w-full flex justify-center bg-slate-950/80 rounded-xl overflow-hidden min-h-[160px] border border-slate-800 p-2 shadow-soft-sm">
+                              <img
+                                src={group.image_url}
+                                alt="Passage Context"
+                                className="max-w-full h-auto rounded-lg mx-auto max-h-[350px] object-contain image-safe"
+                                loading="lazy"
+                              />
+                            </div>
+                          )}
+
+                          {/* Non-sticky Audio */}
+                          {group.audio_url && !singlePartAudio?.isSinglePartAudio && (
+                            <div className="flex items-center gap-3 bg-slate-900/80 p-3 rounded-xl border border-slate-800 shadow-soft-sm">
+                              <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white shrink-0">
+                                🎧
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-[11px] font-bold text-slate-400 mb-1">Audio nghe chung nhóm câu</p>
+                                <audio
+                                  controls
+                                  src={group.audio_url}
+                                  className="w-full h-8"
+                                  controlsList="nodownload"
+                                  onPlay={handleAudioPlay}
+                                />
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Passage Body: Typography with 16px, 1.6 line height, max-w-[65ch], text-left */}
+                          {group.passage && (
+                            <div
+                              className="prose prose-invert prose-slate max-w-[65ch] text-slate-200 text-base leading-[1.6] text-left overflow-x-hidden font-sans"
+                              dangerouslySetInnerHTML={{ __html: group.passage }}
+                            />
+                          )}
                         </div>
                       )}
 
-                      {q.audio_url && q.audio_url !== group.audio_url && (
-                        <audio
-                          controls
-                          src={q.audio_url}
-                          className="w-full max-w-md"
-                          controlsList="nodownload"
-                        />
-                      )}
+                      {/* Right Column / Sub Questions List */}
+                      <div
+                        className={cn(
+                          "space-y-4",
+                          isReadingSplit ? "lg:col-span-6" : "w-full"
+                        )}
+                      >
+                        {group.questions.map((q: any) => {
+                          const isChecked = checkedAnswers[q.id];
+                          const selectedId = answers[q.sessionIdx];
+                          const hasSelected = selectedId !== undefined;
+                          const isFlagged = flagged.has(q.sessionIdx);
+                          const isActive = activeSessionIdx === q.sessionIdx;
 
-                      {/* Clean Text */}
-                      {q.cleanText && !isPart1 && !isPart2 && (
-                        <p className="text-base font-bold text-foreground leading-relaxed">
-                          {q.cleanText}
-                        </p>
-                      )}
-
-                      {/* Options Grid */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                        {q.answers.map((opt: any, oi: number) => {
-                          const isSelected = selectedId === opt.id;
-                          const isOptCorrect = opt.is_correct;
-
-                          // Part 2 has only 3 choices A, B, C
-                          if (isPart2 && oi === 3) return null;
-
-                          let btnClass = "border-border/70 bg-card text-foreground hover:border-primary/50 hover:bg-muted/40 shadow-soft-sm";
-                          let indicatorClass = "border-border/80 text-muted-foreground bg-muted/40";
-
-                          if (isSelected) {
-                            if (testMode === "practice" && isChecked) {
-                              if (isOptCorrect) {
-                                btnClass = "border-emerald-600 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-700 font-bold shadow-soft-sm";
-                                indicatorClass = "border-emerald-600 bg-emerald-600 text-white";
-                              } else {
-                                btnClass = "border-rose-500 bg-rose-50 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-700 font-bold shadow-soft-sm";
-                                indicatorClass = "border-rose-500 bg-rose-500 text-white";
-                              }
-                            } else {
-                              btnClass = "border-primary bg-primary/10 text-primary font-bold shadow-soft-sm";
-                              indicatorClass = "border-primary bg-primary text-white";
-                            }
-                          } else if (testMode === "practice" && isChecked && isOptCorrect) {
-                            btnClass = "border-emerald-600 bg-emerald-50/50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 font-bold";
-                            indicatorClass = "border-emerald-600 bg-emerald-600 text-white";
-                          }
+                          const isPart1 = q.part_number === 1;
+                          const isPart2 = q.part_number === 2;
 
                           return (
-                            <button
-                              key={opt.id}
-                              disabled={testMode === "practice" && isChecked}
-                              onClick={() => handleSelectAnswer(q.sessionIdx, opt.id)}
-                              className={cn("w-full text-left p-4 rounded-xl border text-sm transition-all duration-120 flex items-center group disabled:opacity-90 active:scale-95 cursor-pointer", btnClass)}
+                            <div
+                              key={q.id}
+                              id={`question-${q.sessionIdx}`}
+                              onClick={() => setActiveSessionIdx(q.sessionIdx)}
+                              className={cn(
+                                "p-5 sm:p-6 bg-[#070e1c] border rounded-2xl space-y-4 relative scroll-mt-20 transition-all",
+                                isActive
+                                  ? "border-blue-500/80 shadow-lg shadow-blue-500/5 ring-1 ring-blue-500/30"
+                                  : "border-slate-800/80 hover:border-slate-700"
+                              )}
                             >
-                              <div className={cn("w-7 h-7 rounded-full border flex items-center justify-center shrink-0 transition-colors mr-3 font-bold text-sm", indicatorClass)}>
-                                {String.fromCharCode(65 + oi)}
-                              </div>
-                              <span className="flex-1 font-semibold leading-relaxed">
-                                {(isPart1 || isPart2) && !opt.answer_text ? (
-                                  <span className="text-muted-foreground/40 italic font-normal select-none tracking-widest">••••••••</span>
-                                ) : (
-                                  opt.answer_text
-                                )}
-                              </span>
-                            </button>
-                          );
-                        })}
-                      </div>
+                              {/* Question Card Header */}
+                              <div className="flex justify-between items-center border-b border-slate-800/80 pb-3">
+                                <div className="flex items-center gap-2">
+                                  <span className="px-2.5 py-1 rounded-lg bg-amber-500/15 text-amber-300 border border-amber-500/30 font-black text-xs">
+                                    Câu {q.sessionIdx + 1}
+                                  </span>
+                                  {selectedParts.length < 7 && q.originalGlobalIdx && (
+                                    <span className="text-xs text-slate-400 font-semibold">
+                                      (Đề gốc: #{q.originalGlobalIdx})
+                                    </span>
+                                  )}
+                                  <span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider bg-slate-900 px-2 py-0.5 rounded-md border border-slate-800">
+                                    {partShortNames[q.part_number - 1]}
+                                  </span>
+                                </div>
 
-                      {/* Practice Mode Actions & Explanations */}
-                      {testMode === "practice" && (
-                        <div className="pt-3 border-t border-dashed border-border/60 flex flex-col gap-3">
-                          {!isChecked ? (
-                            <button
-                              disabled={!hasSelected}
-                              onClick={() => {
-                                setCheckedAnswers(prev => ({ ...prev, [q.id]: true }));
-                                playSound(q.answers.find((a: any) => a.id === selectedId)?.is_correct ? "correct" : "incorrect");
-                              }}
-                              className="px-4 py-2 rounded-xl bg-primary text-primary-foreground font-bold text-xs hover:bg-primary/90 transition-all duration-120 active:scale-95 disabled:opacity-50 self-start shadow-soft-sm cursor-pointer"
-                            >
-                              Kiểm tra đáp án
-                            </button>
-                          ) : (
-                            <div className="space-y-3">
-                              {q.translation && (
-                                <div className="p-3 bg-muted/40 border border-border/60 rounded-xl text-xs font-medium text-foreground">
-                                  🇻🇳 <b className="font-bold text-foreground">Dịch nghĩa:</b> {q.translation}
+                                {/* Flag / Bookmark Button */}
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleFlag(q.sessionIdx);
+                                  }}
+                                  className={cn(
+                                    "flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl border transition-all cursor-pointer",
+                                    isFlagged
+                                      ? "border-amber-500 bg-amber-500/20 text-amber-300"
+                                      : "border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800"
+                                  )}
+                                >
+                                  {isFlagged ? (
+                                    <BookmarkCheck className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                                  ) : (
+                                    <Bookmark className="w-3.5 h-3.5" />
+                                  )}
+                                  <span>{isFlagged ? "Đã gắn cờ" : "Gắn cờ (F)"}</span>
+                                </button>
+                              </div>
+
+                              {/* Question Image if specific to this question */}
+                              {q.image_url && q.image_url !== group.image_url && (
+                                <div className="w-full flex justify-center bg-slate-950/60 rounded-xl overflow-hidden min-h-[140px] border border-slate-800 p-2">
+                                  <img
+                                    src={q.image_url}
+                                    alt="Question Image"
+                                    className="max-w-full h-auto rounded-lg max-h-[280px] mx-auto object-contain image-safe"
+                                    loading="lazy"
+                                  />
                                 </div>
                               )}
-                              {(q.explanation || q.answers.find((a: any) => a.is_correct)?.explanation) && (
-                                <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs font-medium text-emerald-800 dark:text-emerald-300">
-                                  💡 <b className="font-bold">Giải thích:</b> {q.explanation || q.answers.find((a: any) => a.is_correct)?.explanation}
-                                </div>
+
+                              {/* Question Audio if specific to this question */}
+                              {q.audio_url && q.audio_url !== group.audio_url && !singlePartAudio?.isSinglePartAudio && (
+                                <audio
+                                  controls
+                                  src={q.audio_url}
+                                  className="w-full max-w-md"
+                                  controlsList="nodownload"
+                                  onPlay={handleAudioPlay}
+                                />
                               )}
-                              {q.transcript && (
-                                <div className="p-3 bg-primary/10 border border-primary/20 rounded-xl text-xs font-medium text-primary">
-                                  📝 <b className="font-bold">Transcript:</b> {q.transcript}
+
+                              {/* Question Stem Text */}
+                              {q.cleanText && !isPart1 && !isPart2 && (
+                                <p className="text-base font-bold text-white leading-relaxed text-left">
+                                  {q.cleanText}
+                                </p>
+                              )}
+
+                              {/* Answer Row Cards A - B - C - D (Fitts's Law >= 48px, full width, tactile click) */}
+                              <div className="space-y-2.5 pt-1">
+                                {q.answers.map((opt: any, oi: number) => {
+                                  const isSelected = selectedId === opt.id;
+                                  const isOptCorrect = opt.is_correct;
+                                  const isRecentlyClicked = recentlySelectedKey === `${q.sessionIdx}-${opt.id}`;
+
+                                  if (isPart2 && oi === 3) return null;
+
+                                  let cardClass = "border-slate-800 bg-slate-900/60 text-slate-200 hover:bg-slate-800/80 hover:border-slate-700";
+                                  let badgeClass = "border-slate-700 bg-slate-800 text-slate-300";
+
+                                  if (isSelected) {
+                                    if (testMode === "practice" && isChecked) {
+                                      if (isOptCorrect) {
+                                        cardClass = "border-emerald-500 bg-emerald-500/15 text-emerald-200 font-bold";
+                                        badgeClass = "border-emerald-500 bg-emerald-500 text-slate-950";
+                                      } else {
+                                        cardClass = "border-rose-500 bg-rose-500/15 text-rose-200 font-bold";
+                                        badgeClass = "border-rose-500 bg-rose-500 text-white";
+                                      }
+                                    } else {
+                                      // Selected State: #2563EB border & subtle blue tint
+                                      cardClass = "border-[#2563EB] bg-[#1E3A8A]/30 text-blue-100 font-bold ring-1 ring-[#2563EB]/40";
+                                      badgeClass = "border-[#2563EB] bg-[#2563EB] text-white";
+                                    }
+                                  } else if (testMode === "practice" && isChecked && isOptCorrect) {
+                                    cardClass = "border-emerald-500 bg-emerald-500/10 text-emerald-300 font-bold";
+                                    badgeClass = "border-emerald-500 bg-emerald-500 text-slate-950";
+                                  }
+
+                                  return (
+                                    <button
+                                      key={opt.id}
+                                      type="button"
+                                      disabled={testMode === "practice" && isChecked}
+                                      onClick={() => handleSelectAnswer(q.sessionIdx, opt.id)}
+                                      className={cn(
+                                        "w-full text-left px-4 py-3 min-h-[48px] rounded-xl border transition-all flex items-center cursor-pointer select-none active:scale-[0.97]",
+                                        isRecentlyClicked && "scale-[0.97]",
+                                        cardClass
+                                      )}
+                                    >
+                                      <div
+                                        className={cn(
+                                          "w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mr-3.5 font-black text-xs transition-colors",
+                                          badgeClass
+                                        )}
+                                      >
+                                        {String.fromCharCode(65 + oi)}
+                                      </div>
+                                      <span className="flex-1 text-sm font-semibold leading-relaxed text-left">
+                                        {(isPart1 || isPart2) && !opt.answer_text ? (
+                                          <span className="text-slate-600 italic font-normal tracking-widest select-none">
+                                            ••••••••••••
+                                          </span>
+                                        ) : (
+                                          opt.answer_text
+                                        )}
+                                      </span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+
+                              {/* Practice Mode Instant Review */}
+                              {testMode === "practice" && (
+                                <div className="pt-3 border-t border-dashed border-slate-800 space-y-3">
+                                  {!isChecked ? (
+                                    <button
+                                      disabled={!hasSelected}
+                                      onClick={() => {
+                                        setCheckedAnswers((prev) => ({ ...prev, [q.id]: true }));
+                                        playSound(
+                                          q.answers.find((a: any) => a.id === selectedId)?.is_correct
+                                            ? "correct"
+                                            : "incorrect"
+                                        );
+                                      }}
+                                      className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition-colors disabled:opacity-50 cursor-pointer"
+                                    >
+                                      Kiểm tra đáp án
+                                    </button>
+                                  ) : (
+                                    <div className="space-y-2.5">
+                                      {q.translation && (
+                                        <div className="p-3 bg-slate-900 border border-slate-800 rounded-xl text-xs text-slate-300">
+                                          🇻🇳 <b className="text-white font-bold">Dịch nghĩa:</b> {q.translation}
+                                        </div>
+                                      )}
+                                      {(q.explanation || q.answers.find((a: any) => a.is_correct)?.explanation) && (
+                                        <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-xs text-emerald-300">
+                                          💡 <b className="font-bold">Giải thích:</b>{" "}
+                                          {q.explanation || q.answers.find((a: any) => a.is_correct)?.explanation}
+                                        </div>
+                                      )}
+                                      {q.transcript && (
+                                        <div className="p-3 bg-cyan-500/10 border border-cyan-500/20 rounded-xl text-xs text-cyan-300">
+                                          📝 <b className="font-bold">Transcript:</b> {q.transcript}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
                               )}
                             </div>
-                          )}
-                        </div>
-                      )}
+                          );
+                        })}
+                      </div>
                     </div>
                   );
                 })}
@@ -1518,97 +2011,121 @@ const FullTestExam = () => {
         </main>
       </div>
 
-      {/* Fixed Bottom Palette for Mobile/Tablet (< lg) */}
-      <footer className="h-16 border-t border-border/60 shrink-0 bg-card/95 backdrop-blur-md z-30 flex lg:hidden items-center justify-between px-4 sticky bottom-0 shadow-soft-lg">
+      {/* Floating Keyboard Shortcuts Hint Button at bottom left */}
+      <div className="fixed bottom-20 lg:bottom-4 left-4 z-20 hidden sm:block">
         <button
-          onClick={() => setMobilePaletteOpen(!mobilePaletteOpen)}
-          className="w-full py-2.5 px-4 rounded-xl border border-border/80 bg-background hover:bg-muted text-xs font-bold flex items-center justify-center gap-2 transition-all duration-120 active:scale-95 shadow-soft-sm cursor-pointer"
+          type="button"
+          onClick={() => setShowShortcutsModal(true)}
+          className="px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-800 text-slate-400 hover:text-cyan-400 text-xs font-bold shadow-soft-sm backdrop-blur-md flex items-center gap-1.5 transition-colors cursor-pointer"
         >
-          <LayoutGrid className="w-4 h-4 text-primary" />
-          <span>Danh sách câu hỏi ({answeredCount}/{examQuestions.length})</span>
-          {flagged.size > 0 && <span className="text-amber-500 font-bold">🚩 {flagged.size}</span>}
+          <Keyboard className="w-3.5 h-3.5 text-cyan-400" />
+          <span>⌨ Phím tắt (?)</span>
+        </button>
+      </div>
+
+      {/* =========================================================================
+          6. MOBILE BOTTOM BAR & THUMB ZONE (Viewport 390x844)
+          ========================================================================= */}
+      <footer className="h-16 border-t border-slate-800/90 shrink-0 bg-[#070e1c]/95 backdrop-blur-md z-30 flex lg:hidden items-center justify-between px-3 fixed bottom-0 inset-x-0">
+        {/* Fixed Prev Question Button (Fitts's Law >= 48x48px touch target) */}
+        <button
+          type="button"
+          disabled={activeSessionIdx <= 0}
+          onClick={() => goToQuestion(activeSessionIdx - 1)}
+          className="w-12 h-12 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-300 hover:text-white disabled:opacity-30 active:scale-95 cursor-pointer shrink-0"
+          title="Câu trước (K / ←)"
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+
+        {/* Center Status Bar Trigger: Câu 45/200 • ⏱ 75:12 • ⚑ */}
+        <button
+          type="button"
+          onClick={() => setMobilePaletteOpen(!mobilePaletteOpen)}
+          className="flex-1 mx-2 py-2 px-3 rounded-xl border border-slate-800 bg-slate-900 hover:bg-slate-800/80 text-xs font-bold text-slate-200 flex items-center justify-center gap-1.5 shadow-sm active:scale-95 cursor-pointer truncate"
+        >
+          <LayoutGrid className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+          <span className="truncate">
+            Câu {activeSessionIdx + 1}/{examQuestions.length} • ⏱ {formatTimerDisplay(timeLeft)}
+          </span>
+          {flagged.size > 0 && <span className="text-amber-400 shrink-0">⚑ {flagged.size}</span>}
+        </button>
+
+        {/* Fixed Next Question Button (Fitts's Law >= 48x48px touch target) */}
+        <button
+          type="button"
+          disabled={activeSessionIdx >= examQuestions.length - 1}
+          onClick={() => goToQuestion(activeSessionIdx + 1)}
+          className="w-12 h-12 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-300 hover:text-white disabled:opacity-30 active:scale-95 cursor-pointer shrink-0"
+          title="Câu sau (J / →)"
+        >
+          <ChevronRight className="w-5 h-5" />
         </button>
       </footer>
 
-      {/* Mobile Expandable Drawer */}
+      {/* Mobile Drawer (Bottom Sheet 60% height) */}
       {mobilePaletteOpen && (
-        <div className="fixed inset-x-0 bottom-16 bg-card border-t border-border/80 shadow-soft-2xl z-40 max-h-[65vh] overflow-y-auto p-5 animate-in slide-in-from-bottom-5 lg:hidden rounded-t-3xl">
-          <div className="max-w-xl mx-auto space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-border/60">
-              <h3 className="font-bold text-sm text-foreground">Điều hướng câu hỏi đề thi</h3>
-              <button onClick={() => setMobilePaletteOpen(false)} className="text-xs font-bold text-muted-foreground hover:text-foreground p-1 cursor-pointer">Đóng ✕</button>
+        <div className="fixed inset-x-0 bottom-16 bg-[#070e1c] border-t border-slate-800 shadow-2xl z-40 max-h-[60vh] overflow-y-auto p-4 animate-in slide-in-from-bottom-5 lg:hidden rounded-t-3xl">
+          <div className="max-w-md mx-auto space-y-3">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+              <h3 className="font-black text-xs text-white uppercase tracking-wider flex items-center gap-1.5">
+                <LayoutGrid className="w-4 h-4 text-cyan-400" /> Bảng câu hỏi ({answeredCount}/{examQuestions.length})
+              </h3>
+              <button
+                onClick={() => setMobilePaletteOpen(false)}
+                className="text-xs font-bold text-slate-400 hover:text-white p-1 cursor-pointer"
+              >
+                ✕ Đóng
+              </button>
             </div>
 
-            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-              {[
-                { key: "all", label: `Tất cả (${examQuestions.length})` },
-                { key: "done", label: `Đã làm (${answeredCount})` },
-                { key: "flagged", label: `🚩 (${flagged.size})` },
-                { key: "todo", label: `Chưa làm (${unansweredCount})` },
-              ].map(f => (
+            {/* Mobile Part Tabs */}
+            <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-none">
+              {selectedParts.map((part) => (
                 <button
-                  key={f.key}
-                  onClick={() => setPaletteFilter(f.key as any)}
+                  key={part}
+                  onClick={() => setPalettePartTab(part)}
                   className={cn(
-                    "text-xs font-bold px-3 py-1.5 rounded-xl border whitespace-nowrap transition-all duration-120 active:scale-95 cursor-pointer",
-                    paletteFilter === f.key
-                      ? "bg-primary text-primary-foreground border-primary shadow-soft-xs"
-                      : "bg-muted/50 text-muted-foreground border-border/50 hover:bg-muted"
+                    "px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap cursor-pointer",
+                    palettePartTab === part
+                      ? "bg-blue-600 text-white font-black"
+                      : "bg-slate-900 text-slate-400 border border-slate-800"
                   )}
                 >
-                  {f.label}
+                  {partShortNames[part - 1]}
                 </button>
               ))}
             </div>
 
-            <div className="space-y-4 max-h-[40vh] overflow-y-auto p-1">
-              {selectedParts.map(part => {
-                const partQList = examQuestions.filter((q: any) => q.part_number === part);
-                if (partQList.length === 0) return null;
+            {/* Mobile Buttons Grid */}
+            <div className="grid grid-cols-5 gap-2 max-h-[38vh] overflow-y-auto p-1">
+              {examQuestions.map((q: any) => {
+                if (q.part_number !== palettePartTab) return null;
+
+                const hasAns = answers[q.sessionIdx] !== undefined;
+                const isFlagged = flagged.has(q.sessionIdx);
+                const isActive = activeSessionIdx === q.sessionIdx;
+
+                let btnStyle = "bg-slate-900 border-slate-800 text-slate-400";
+                if (hasAns) btnStyle = "bg-[#2563EB] text-white border-[#2563EB]";
+                if (isFlagged) btnStyle = "bg-[#78350F] text-amber-200 border-amber-500";
 
                 return (
-                  <div key={part} className="space-y-2">
-                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{partShortNames[part - 1]}</p>
-                    <div className="flex flex-wrap gap-2">
-                      {examQuestions.map((q: any) => {
-                        if (q.part_number !== part) return null;
-                        if (paletteFilter === "done" && answers[q.sessionIdx] === undefined) return null;
-                        if (paletteFilter === "flagged" && !flagged.has(q.sessionIdx)) return null;
-                        if (paletteFilter === "todo" && answers[q.sessionIdx] !== undefined) return null;
-
-                        const hasAns = answers[q.sessionIdx] !== undefined;
-                        const isFlagged = flagged.has(q.sessionIdx);
-
-                        return (
-                          <button
-                            key={q.sessionIdx}
-                            onClick={() => {
-                              setCurrentPart(part - 1);
-                              setMobilePaletteOpen(false);
-                              setTimeout(() => {
-                                document.getElementById(`question-${q.sessionIdx}`)?.scrollIntoView({ behavior: "smooth" });
-                              }, 100);
-                            }}
-                            className={cn(
-                              "w-10 h-10 text-xs font-bold rounded-xl border transition-all duration-120 flex items-center justify-center relative active:scale-95 cursor-pointer shadow-soft-xs",
-                              isFlagged ? "border-amber-500 ring-2 ring-amber-500/30" : "",
-                              hasAns
-                                ? "bg-emerald-600 text-white border-emerald-600"
-                                : "bg-card text-muted-foreground border-border/70 hover:border-primary/50 hover:text-foreground"
-                            )}
-                          >
-                            <span className="flex items-center justify-center gap-0.5">
-                              <span>{q.sessionIdx + 1}</span>
-                              {hasAns && <Check className="w-2.5 h-2.5 stroke-[3] text-white shrink-0" />}
-                            </span>
-                            {isFlagged && (
-                              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-500 border border-white" />
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
+                  <button
+                    key={q.sessionIdx}
+                    onClick={() => {
+                      goToQuestion(q.sessionIdx);
+                      setMobilePaletteOpen(false);
+                    }}
+                    className={cn(
+                      "w-10 h-10 text-xs font-bold rounded-xl border flex items-center justify-center relative active:scale-95 cursor-pointer",
+                      btnStyle,
+                      isActive && "ring-2 ring-cyan-400"
+                    )}
+                  >
+                    <span>{q.sessionIdx + 1}</span>
+                    {isFlagged && <span className="absolute -top-1 -right-1 text-amber-400 text-[10px]">⚑</span>}
+                  </button>
                 );
               })}
             </div>
@@ -1616,49 +2133,66 @@ const FullTestExam = () => {
         </div>
       )}
 
-      {/* Confirmation Submit Dialog */}
+      {/* Confirmation Submit Dialog with Unanswered Questions Jump */}
       {showConfirm && (
-        <div className="fixed inset-0 bg-background/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in">
-          <div className="p-6 sm:p-8 max-w-md w-full bg-card border border-border/70 rounded-2xl text-center space-y-5 shadow-soft-2xl">
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in">
+          <div className="p-6 sm:p-8 max-w-lg w-full bg-[#070e1c] border border-slate-800 rounded-3xl text-center space-y-5 shadow-2xl">
             <span className="text-4xl block">📢</span>
-            <h2 className="text-xl font-bold text-foreground">Bạn có chắc muốn nộp bài?</h2>
-            
-            <div className="bg-muted/40 p-4 rounded-xl text-sm font-medium text-muted-foreground space-y-2.5 border border-border/60">
-              <div className="flex justify-between items-center">
-                <span>Số câu trong phần đã chọn:</span>
-                <span className="font-bold text-foreground">{examQuestions.length} câu</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span>Đã trả lời:</span>
-                <span className="text-emerald-600 dark:text-emerald-400 font-bold">{answeredCount} câu</span>
-              </div>
-              {flagged.size > 0 && (
-                <div className="flex justify-between items-center">
-                  <span>Đang đánh dấu xem lại:</span>
-                  <span className="text-amber-500 font-bold">{flagged.size} câu 🚩</span>
-                </div>
-              )}
-              {unansweredCount > 0 && (
-                <div className="pt-2 border-t border-border/60 flex items-center justify-center gap-1.5 text-rose-600 dark:text-rose-400 font-bold text-xs">
-                  <AlertTriangle className="w-4 h-4 shrink-0" />
-                  <span>Còn {unansweredCount} câu chưa điền đáp án!</span>
-                </div>
-              )}
+            <div>
+              <h2 className="text-xl font-black text-white">Xác nhận nộp bài thi</h2>
+              <p className="text-xs sm:text-sm text-slate-400 mt-1">
+                Bạn đã làm <b>{answeredCount}/{examQuestions.length} câu</b>.
+                {unansweredCount > 0 ? (
+                  <span className="text-amber-400 block mt-1">
+                    Còn <b>{unansweredCount} câu</b> chưa trả lời!
+                  </span>
+                ) : (
+                  <span className="text-emerald-400 block mt-1">
+                    Chúc mừng! Bạn đã hoàn thành tất cả các câu hỏi.
+                  </span>
+                )}
+              </p>
             </div>
+
+            {/* List of unanswered questions for quick jumps */}
+            {unansweredCount > 0 && (
+              <div className="space-y-2 text-left bg-slate-900/80 p-3.5 rounded-2xl border border-slate-800">
+                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                  Bấm vào số câu để xem lại trước khi nộp:
+                </p>
+                <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto">
+                  {unansweredIndices.map((idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => {
+                        setShowConfirm(false);
+                        goToQuestion(idx);
+                      }}
+                      className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 border border-slate-700 cursor-pointer"
+                    >
+                      Câu {idx + 1}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="flex gap-3 pt-2">
               <button
+                type="button"
                 onClick={() => setShowConfirm(false)}
-                className="flex-1 py-2.5 px-4 rounded-xl border border-border/70 bg-card hover:bg-muted text-sm font-bold transition-all duration-120 active:scale-95 cursor-pointer shadow-soft-xs"
+                className="flex-1 py-3 px-4 rounded-xl border border-slate-700 bg-slate-900 hover:bg-slate-800 text-sm font-bold text-slate-300 cursor-pointer transition-colors"
               >
                 Làm tiếp
               </button>
               <button
+                type="button"
                 onClick={submit}
                 disabled={submitting}
-                className="flex-1 py-2.5 px-4 rounded-xl bg-primary text-primary-foreground text-sm font-bold transition-all duration-120 active:scale-95 disabled:opacity-50 cursor-pointer shadow-soft-sm"
+                className="flex-1 py-3 px-4 rounded-xl bg-[#2563EB] hover:bg-blue-600 text-white text-sm font-bold shadow-lg shadow-blue-600/30 transition-all cursor-pointer disabled:opacity-50"
               >
-                {submitting ? "Đang nộp..." : "Nộp bài"}
+                {submitting ? "Đang nộp..." : "Xác nhận Nộp"}
               </button>
             </div>
           </div>
@@ -1667,13 +2201,12 @@ const FullTestExam = () => {
 
       {/* Confirmation Exit Dialog */}
       {showExitConfirm && (
-        <div className="fixed inset-0 bg-background/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in">
-          <div className="p-6 sm:p-8 max-w-md w-full bg-card border border-border/70 rounded-2xl text-center space-y-5 shadow-soft-2xl">
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in">
+          <div className="p-6 sm:p-8 max-w-md w-full bg-[#070e1c] border border-slate-800 rounded-3xl text-center space-y-5 shadow-2xl">
             <span className="text-4xl block">⏸</span>
-            <h2 className="text-xl font-bold text-foreground">Tạm dừng hoặc Rời bài thi?</h2>
-            
-            <p className="text-xs sm:text-sm text-muted-foreground font-medium leading-relaxed">
-              Bạn đã hoàn thành <b className="text-foreground">{answeredCount}/{examQuestions.length} câu</b>. Bài làm của bạn đã được tự động lưu tạm thời trên trình duyệt.
+            <h2 className="text-xl font-black text-white">Tạm dừng hoặc Rời bài thi?</h2>
+            <p className="text-xs text-slate-400 font-medium leading-relaxed">
+              Bạn đã hoàn thành <b>{answeredCount}/{examQuestions.length} câu</b>. Bài làm được tự động lưu trên trình duyệt trong vòng 24 giờ.
             </p>
 
             <div className="flex flex-col gap-2.5 pt-2">
@@ -1683,11 +2216,10 @@ const FullTestExam = () => {
                   setShowExitConfirm(false);
                   navigate(`/courses/${courseId}/fulltest`, { replace: true });
                 }}
-                className="w-full py-3 px-4 rounded-xl bg-primary text-primary-foreground text-sm font-bold transition-all duration-120 active:scale-95 shadow-soft-sm cursor-pointer"
+                className="w-full py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold transition-all cursor-pointer"
               >
                 💾 Tạm dừng &amp; Thoát (Lưu bài làm)
               </button>
-
               <button
                 type="button"
                 onClick={() => {
@@ -1695,15 +2227,14 @@ const FullTestExam = () => {
                   setShowExitConfirm(false);
                   navigate(`/courses/${courseId}/fulltest`, { replace: true });
                 }}
-                className="py-2.5 text-xs text-rose-600 dark:text-rose-400 hover:underline font-bold cursor-pointer"
+                className="py-2 text-xs text-rose-400 hover:underline font-bold cursor-pointer"
               >
                 Hủy bài thi này (Không lưu)
               </button>
-
               <button
                 type="button"
                 onClick={() => setShowExitConfirm(false)}
-                className="w-full py-2.5 px-4 rounded-xl border border-border/70 bg-card hover:bg-muted text-sm font-bold transition-all duration-120 active:scale-95 shadow-soft-xs cursor-pointer"
+                className="w-full py-2.5 px-4 rounded-xl border border-slate-800 bg-slate-900 hover:bg-slate-800 text-sm font-bold text-slate-300 transition-all cursor-pointer"
               >
                 Ở lại làm tiếp
               </button>
@@ -1712,36 +2243,84 @@ const FullTestExam = () => {
         </div>
       )}
 
-      {/* Draft Resume Dialog */}
-      {showDraftDialog && savedDraftInfo && (
-        <div className="fixed inset-0 bg-background/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in">
-          <div className="p-6 sm:p-8 max-w-md w-full bg-card border border-border/70 rounded-2xl text-center space-y-5 shadow-soft-2xl">
-            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto text-2xl font-black">
-              ⚡
-            </div>
-            <div className="space-y-2">
-              <h3 className="text-xl font-bold text-foreground">Bạn có bài đang làm dở</h3>
-              <p className="text-sm text-muted-foreground font-medium">
-                Bạn có bài đang làm dở ({savedDraftInfo.answeredCount} câu đã trả lời). Tiếp tục hay làm mới?
-              </p>
-            </div>
-            <div className="flex gap-3 pt-2">
-              <Button
-                type="button"
-                onClick={discardDraft}
-                variant="outline"
-                className="flex-1 py-2.5 rounded-xl font-bold border border-border/70"
+      {/* Keyboard Shortcuts Cheatsheet Modal */}
+      {showShortcutsModal && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in">
+          <div className="p-6 sm:p-7 max-w-md w-full bg-[#070e1c] border border-cyan-500/30 rounded-3xl space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <h3 className="font-black text-sm text-white flex items-center gap-2">
+                <Keyboard className="w-4 h-4 text-cyan-400" /> Bảng phím tắt chuẩn phòng thi
+              </h3>
+              <button
+                onClick={() => setShowShortcutsModal(false)}
+                className="text-slate-400 hover:text-white text-xs font-bold p-1 cursor-pointer"
               >
-                Làm mới
-              </Button>
-              <Button
-                type="button"
-                onClick={restoreDraft}
-                className="flex-1 py-2.5 rounded-xl font-bold"
-              >
-                Tiếp tục
-              </Button>
+                ✕
+              </button>
             </div>
+
+            <div className="space-y-2.5 text-xs text-slate-300">
+              <div className="flex items-center justify-between p-2 rounded-xl bg-slate-900 border border-slate-800">
+                <span>Chọn đáp án tương ứng:</span>
+                <span className="flex gap-1">
+                  <kbd className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 font-mono text-cyan-400 font-bold">A</kbd>
+                  <kbd className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 font-mono text-cyan-400 font-bold">B</kbd>
+                  <kbd className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 font-mono text-cyan-400 font-bold">C</kbd>
+                  <kbd className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 font-mono text-cyan-400 font-bold">D</kbd>
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between p-2 rounded-xl bg-slate-900 border border-slate-800">
+                <span>Gắn cờ / Bỏ cờ câu hỏi:</span>
+                <kbd className="px-2.5 py-0.5 rounded bg-slate-800 border border-slate-700 font-mono text-amber-400 font-bold">F</kbd>
+              </div>
+
+              <div className="flex items-center justify-between p-2 rounded-xl bg-slate-900 border border-slate-800">
+                <span>Câu tiếp theo / Câu trước:</span>
+                <span className="flex gap-1">
+                  <kbd className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 font-mono text-white font-bold">J</kbd>
+                  <span className="text-slate-500">/</span>
+                  <kbd className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 font-mono text-white font-bold">K</kbd>
+                  <span className="text-slate-500">(hoặc ← / →)</span>
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between p-2 rounded-xl bg-slate-900 border border-slate-800">
+                <span>Phát / Tạm dừng audio:</span>
+                <kbd className="px-3 py-0.5 rounded bg-slate-800 border border-slate-700 font-mono text-white font-bold">Space</kbd>
+              </div>
+
+              <div className="flex items-center justify-between p-2 rounded-xl bg-slate-900 border border-slate-800">
+                <span>Mở bảng tra cứu phím tắt:</span>
+                <kbd className="px-2.5 py-0.5 rounded bg-slate-800 border border-slate-700 font-mono text-white font-bold">?</kbd>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setShowShortcutsModal(false)}
+              className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition-colors cursor-pointer"
+            >
+              Đã hiểu, quay lại làm bài
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Pause Modal Overlay */}
+      {isPaused && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in">
+          <div className="p-8 max-w-md w-full bg-[#070e1c] border border-slate-800 text-center space-y-5 rounded-3xl shadow-2xl">
+            <span className="text-4xl block">⏸</span>
+            <h2 className="text-xl font-black text-white">Đã tạm dừng bài thi</h2>
+            <p className="text-xs text-slate-400 font-medium leading-relaxed">
+              Thời gian đang tạm ngưng. Hãy nhấn tiếp tục để tiếp tục trả lời các câu hỏi.
+            </p>
+            <button
+              onClick={() => setIsPaused(false)}
+              className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold shadow-md cursor-pointer transition-colors"
+            >
+              TIẾP TỤC LÀM BÀI 🚀
+            </button>
           </div>
         </div>
       )}

@@ -82,54 +82,55 @@
     --shadow-soft-lg: 0 4px 8px rgba(15, 23, 42, 0.06), 0 16px 32px rgba(15, 23, 42, 0.05);
 
     /* ==========================================================================
-       TẦNG 2: SEMANTIC TOKENS (LIGHT MODE) - Đạt chuẩn WCAG 2.2 AAA & APCA
+    /* ==========================================================================
+       TẦNG 2: SEMANTIC TOKENS -> ĐỒNG BỘ TOÀN DIỆN VỚI TONE TRANG CHỦ (#050914)
        ========================================================================== */
-    --background: 210 20% 98%;          /* #F8FAFC - Tinted neutral nền */
-    --foreground: 222 47% 11%;          /* #0F172A - Tiêu đề Slate-900 (tương phản 16.1:1) */
+    --background: 224 60% 5%;          /* #050914 - Tone nền xanh đen sâu thẳm chuẩn trang chủ */
+    --foreground: 210 40% 98%;          /* Slate-50 / Slate-100 */
     
-    --card: 0 0% 100%;                  /* #FFFFFF - Bề mặt thẻ trắng trên nền lệch 1-2% */
-    --card-foreground: 215 25% 27%;     /* #334155 - Body Slate-700 (tương phản 9.6:1) */
+    --card: 222 47% 7.5%;               /* #070e1c - Bề mặt card tối màu viền quang học */
+    --card-foreground: 214 32% 91%;     /* Slate-100 */
     
-    --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover: 222 47% 7.5%;
+    --popover-foreground: 210 40% 98%;
     
-    --primary: 221 83% 53%;             /* #2563EB - Brand Blue */
+    --primary: 217.2 91.2% 59.8%;       /* Brand Blue nổi bật */
     --primary-foreground: 210 40% 98%;
     --primary-dark: 224 76% 40%;
     --primary-light: 214 95% 93%;
     
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 215 25% 27%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
     
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215 16% 47%;    /* #475569 - Slate-600 Meta/Caption (tương phản 6.0:1) */
+    --muted: 217.2 32.6% 14%;           /* Khối phụ tối màu */
+    --muted-foreground: 215 20.2% 65.1%; /* Slate-400 Meta/Caption */
     
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222 47% 11%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
     --accent-dark: 215 25% 27%;
     
-    --destructive: 0 84% 60%;
+    --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
     
     --warning: 38 92% 50%;
-    --warning-foreground: 48 96% 89%;
+    --warning-foreground: 48 96% 12%;
     
-    --success: 152 76% 40%;
+    --success: 152 69% 46%;
     --success-foreground: 0 0% 100%;
     
-    --border: 214.3 31.8% 91.4%;        /* Slate-200 nhạt */
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
+    --border: 217.2 32.6% 17.5%;        /* #1E293B viền kính */
+    --input: 217.2 32.6% 17.5%;
+    --ring: 189 94% 43%;                /* Cyan-500 focus ring */
     --radius: 0.875rem;
 
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 215 25% 27%;
-    --sidebar-primary: 221.2 83.2% 53.3%;
-    --sidebar-primary-foreground: 210 40% 98%;
-    --sidebar-accent: 210 40% 96.1%;
-    --sidebar-accent-foreground: 222 47% 11%;
-    --sidebar-border: 214.3 31.8% 91.4%;
-    --sidebar-ring: 221.2 83.2% 53.3%;
+    --sidebar-background: 222.2 47% 8%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 217.2 91.2% 59.8%;
+    --sidebar-primary-foreground: 222.2 47.4% 11.2%;
+    --sidebar-accent: 217.2 32.6% 17.5%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217.2 32.6% 17.5%;
+    --sidebar-ring: 189 94% 43%;
 
     /* Semantic Aliases */
     --brand-primary: var(--primitive-blue-500);
@@ -148,14 +149,14 @@
     --logout: var(--primitive-rose-500);
 
     /* Backwards-compatibility aliases for duo variables */
-    --duo-blue: var(--primitive-blue-500);
-    --duo-blue-dark: var(--primitive-blue-600);
+    --duo-blue: #3B82F6;
+    --duo-blue-dark: #2563EB;
     --duo-blue-light: var(--primitive-blue-400);
-    --duo-green: var(--primitive-emerald-500);
-    --duo-green-dark: var(--primitive-emerald-600);
+    --duo-green: #10B981;
+    --duo-green-dark: #059669;
     --duo-green-light: #34D399;
-    --duo-correct: var(--primitive-emerald-500);
-    --duo-correct-dark: var(--primitive-emerald-600);
+    --duo-correct: #10B981;
+    --duo-correct-dark: #059669;
     --duo-correct-light: #34D399;
     --duo-sky: var(--primitive-sky-500);
     --duo-sky-dark: #0284C7;
@@ -163,23 +164,23 @@
     --duo-yellow-dark: var(--primitive-amber-600);
     --duo-orange: #EA580C;
     --duo-red: var(--primitive-rose-500);
-    --duo-purple: var(--primitive-purple-500);
-    --duo-purple-dark: var(--primitive-purple-600);
-    --duo-gray: var(--primitive-slate-200);
-    --duo-gray-dark: var(--primitive-slate-400);
+    --duo-purple: #A855F7;
+    --duo-purple-dark: #9333EA;
+    --duo-gray: #1E293B;
+    --duo-gray-dark: #475569;
   }
 
   .dark {
     /* ==========================================================================
-       TẦNG 2: SEMANTIC TOKENS (DARK MODE)
+       TẦNG 2: SEMANTIC TOKENS (DARK MODE) -> ĐỒNG BỘ TOÀN DIỆN VỚI TONE TRANG CHỦ (#050914)
        ========================================================================== */
-    --background: 222.2 47% 6%;          /* #090D16 - Tinted dark neutral */
+    --background: 224 60% 5%;          /* #050914 - Tone nền xanh đen sâu thẳm chuẩn trang chủ */
     --foreground: 210 40% 98%;          /* Slate-50 */
     
-    --card: 222.2 47% 9%;               /* #0F172A */
+    --card: 222 47% 7.5%;               /* #070e1c */
     --card-foreground: 214 32% 91%;     /* Slate-100 */
     
-    --popover: 222.2 47% 9%;
+    --popover: 222 47% 7.5%;
     --popover-foreground: 210 40% 98%;
     
     --primary: 217.2 91.2% 59.8%;
@@ -188,7 +189,7 @@
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
     
-    --muted: 217.2 32.6% 17.5%;
+    --muted: 217.2 32.6% 14%;
     --muted-foreground: 215 20.2% 65.1%; /* Slate-400 */
     
     --accent: 217.2 32.6% 17.5%;
@@ -204,7 +205,7 @@
 
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
+    --ring: 189 94% 43%;
 
     --sidebar-background: 222.2 47% 8%;
     --sidebar-foreground: 210 40% 98%;
@@ -213,7 +214,7 @@
     --sidebar-accent: 217.2 32.6% 17.5%;
     --sidebar-accent-foreground: 210 40% 98%;
     --sidebar-border: 217.2 32.6% 17.5%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-ring: 189 94% 43%;
 
     --duo-gray: #1E293B;
     --duo-gray-dark: #475569;
@@ -245,11 +246,13 @@
   }
 
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply bg-background text-foreground antialiased selection:bg-cyan-500/30 selection:text-cyan-200;
     font-family: 'Plus Jakarta Sans', 'Nunito Sans', sans-serif;
     font-size: 1rem;       /* 16px tối thiểu */
     line-height: 1.6;      /* Thân văn bản: 150% - 165% */
     letter-spacing: 0;
+    background-color: #050914;
+    color: #f8fafc;
   }
 
   /* Tiêu đề: Line-height hẹp nghịch biến với kích thước (1.1 - 1.25) */
@@ -530,6 +533,32 @@
 .animate-pulse-slow {
   animation: pulse-slow 4s ease-in-out infinite;
 }
+
+@keyframes dictation-shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-3px); }
+  40%, 80% { transform: translateX(3px); }
+}
+
+@keyframes dictation-correct {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+
+@keyframes physical-press {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(2px); }
+  100% { transform: translateY(0); }
+}
+
+.animate-dictation-shake {
+  animation: dictation-shake 200ms ease-in-out;
+}
+.animate-dictation-correct {
+  animation: dictation-correct 250ms ease-in-out;
+}
+
 
 
 

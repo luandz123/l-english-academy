@@ -137,10 +137,10 @@ const AuthCallback = () => {
   }, [navigate, toast]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
+    <div className="min-h-screen flex items-center justify-center bg-[#050914] text-slate-100">
       <div className="flex flex-col items-center gap-4">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
-        <p className="text-muted-foreground animate-pulse">Đang xác thực...</p>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400" />
+        <p className="text-slate-400 font-medium animate-pulse text-sm">Đang xác thực thông tin đăng nhập...</p>
       </div>
     </div>
   );
