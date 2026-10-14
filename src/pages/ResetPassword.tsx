@@ -4,11 +4,14 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { getFriendlyErrorMessage } from "@/lib/errorHandler";
-import { Loader2, ArrowLeft, KeyRound } from "lucide-react";
+import { Loader2, ArrowLeft, KeyRound, Eye, EyeOff } from "lucide-react";
+import { PasswordStrengthIndicator, analyzePassword } from "@/components/auth/PasswordStrengthIndicator";
 
 const ResetPassword = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -19,8 +22,13 @@ const ResetPassword = () => {
       toast({ title: "Mật khẩu không khớp", description: "Mật khẩu xác nhận phải giống mật khẩu mới.", variant: "destructive" });
       return;
     }
-    if (password.length < 6) {
-      toast({ title: "Mật khẩu quá ngắn", description: "Vui lòng đặt mật khẩu tối thiểu 6 ký tự để bảo mật tài khoản.", variant: "destructive" });
+    const analysis = analyzePassword(password);
+    if (!analysis.isAcceptable) {
+      toast({
+        title: "Mật khẩu chưa đạt chuẩn an toàn",
+        description: "Mật khẩu mới cần tối thiểu 8 ký tự, bao gồm cả chữ cái và chữ số.",
+        variant: "destructive"
+      });
       return;
     }
 
@@ -72,46 +80,67 @@ const ResetPassword = () => {
             Đặt Lại Mật Khẩu
           </h1>
           <p className="text-xs sm:text-sm text-slate-400 font-medium mt-1">
-            Thiết lập mật khẩu mới cho tài khoản của bạn
+            Thiết lập mật khẩu mới an toàn cho tài khoản của bạn
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
             <Label htmlFor="password" className="text-xs font-semibold text-slate-300">
-              Mật khẩu mới
+              Mật khẩu mới (Tối thiểu 8 ký tự, gồm chữ & số)
             </Label>
-            <input
-              id="password"
-              type="password"
-              placeholder="Tối thiểu 6 ký tự"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={6}
-              className="w-full h-11 px-4 rounded-xl bg-[#030712]/80 border border-slate-700/80 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/20 text-white placeholder:text-slate-500 text-sm outline-none transition-all"
-            />
+            <div className="relative">
+              <input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={8}
+                className="w-full h-11 pl-4 pr-11 rounded-xl bg-[#030712]/80 border border-slate-700/80 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/20 text-white placeholder:text-slate-500 text-sm outline-none transition-all"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((p) => !p)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-cyan-300 transition-colors p-1"
+                aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+            <PasswordStrengthIndicator password={password} />
           </div>
 
           <div className="space-y-1.5">
             <Label htmlFor="confirmPassword" className="text-xs font-semibold text-slate-300">
               Xác nhận mật khẩu
             </Label>
-            <input
-              id="confirmPassword"
-              type="password"
-              placeholder="Nhập lại mật khẩu"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-              minLength={6}
-              className="w-full h-11 px-4 rounded-xl bg-[#030712]/80 border border-slate-700/80 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/20 text-white placeholder:text-slate-500 text-sm outline-none transition-all"
-            />
+            <div className="relative">
+              <input
+                id="confirmPassword"
+                type={showConfirmPassword ? "text" : "password"}
+                placeholder="Nhập lại mật khẩu mới"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                minLength={8}
+                className="w-full h-11 pl-4 pr-11 rounded-xl bg-[#030712]/80 border border-slate-700/80 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/20 text-white placeholder:text-slate-500 text-sm outline-none transition-all"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword((p) => !p)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-cyan-300 transition-colors p-1"
+                aria-label={showConfirmPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+              >
+                {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
           </div>
 
           <button
             type="submit"
-            className="w-full h-11 mt-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-sm shadow-[0_0_25px_rgba(6,182,212,0.35)] flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] transition-all disabled:opacity-70"
+            className="w-full h-11 mt-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-sm shadow-[0_0_25px_rgba(6,182,212,0.35)] flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] transition-all disabled:opacity-70"
             disabled={loading}
           >
             {loading && <Loader2 className="w-4 h-4 animate-spin" />}

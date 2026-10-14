@@ -11,6 +11,7 @@ export interface CourseRow {
   id: number;
   title: string;
   subtitle: string | null;
+  description?: string | null;
   course_type: string;
   price: number | null;
   thumbnail_url: string | null;
@@ -20,6 +21,7 @@ export interface CourseRow {
   display_order: number | null;
   category_id: number | null;
   duration_months?: number | null;
+  category_name?: string | null;
 }
 
 export const formatCoursePrice = (price: number | null, isFree: boolean | null) => {
@@ -30,11 +32,18 @@ export const formatCoursePrice = (price: number | null, isFree: boolean | null) 
 export const CourseCard: React.FC<{ course: CourseRow }> = ({ course: c }) => {
   const isFullTest = c.course_type === "fulltest";
   const isListening = c.course_type === "listening";
+  const isFlashcard = c.course_type === "flashcard";
   const courseUrl = isFullTest
     ? `/courses/${c.id}/fulltest`
-    : c.course_type === "flashcard"
+    : isFlashcard
     ? `/courses/${c.id}/vocab`
     : `/courses/${c.id}/learn`;
+
+  // Mô tả do Admin cài đặt: ưu tiên subtitle, nếu trống lấy description. Tuyệt đối không dùng chữ fallback cứng.
+  const displayDescription =
+    (c.subtitle && c.subtitle.trim().length > 0 ? c.subtitle.trim() : null) ||
+    (c.description && c.description.trim().length > 0 ? c.description.trim() : null) ||
+    "";
 
   return (
     <Link
@@ -75,16 +84,14 @@ export const CourseCard: React.FC<{ course: CourseRow }> = ({ course: c }) => {
           </div>
         )}
 
-        {/* Chỉ hiện badge phân loại khi không phải Full Test có thumbnail (tránh đè chữ lặp lại) */}
-        {(!isFullTest || !c.thumbnail_url) && (
+        {/* Badge phân loại danh mục */}
+        {c.category_name && (
           <div className="absolute top-2.5 left-2.5">
             <Badge
               variant="default"
               className="shadow-soft-sm backdrop-blur-md bg-[#070e1c]/90 border border-slate-700/80 text-slate-200 text-xs font-bold"
             >
-              {isListening && <img src={iconDictation} alt="" className="w-3.5 h-3.5 object-contain" />}
-              {!isListening && <img src={iconVideo} alt="" className="w-3.5 h-3.5 object-contain" />}
-              <span>{isListening ? "DICTATION" : "VIDEO"}</span>
+              <span>{c.category_name.toUpperCase()}</span>
             </Badge>
           </div>
         )}
@@ -101,17 +108,19 @@ export const CourseCard: React.FC<{ course: CourseRow }> = ({ course: c }) => {
       <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
         <div className="space-y-1.5">
           {/* Metadata bên dưới card */}
-          {isFullTest ? (
+          {(c.category_name || c.duration_months !== null && c.duration_months !== undefined) && (
             <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-400 font-medium">
-              <span>200 câu · 120 phút</span>
-              <span>•</span>
-              <span className="text-emerald-400 font-semibold">Listening + Reading</span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-1.5 text-xs text-slate-400 font-medium">
-              <span>{isListening ? "Luyện nghe · Chép chính tả" : "Bài giảng video"}</span>
-              <span>•</span>
-              <span className="whitespace-nowrap">{c.duration_months || 12} tháng</span>
+              {c.category_name && (
+                <span className="text-cyan-400 font-bold">{c.category_name}</span>
+              )}
+              {c.duration_months !== null && c.duration_months !== undefined && (
+                <>
+                  {c.category_name && <span>•</span>}
+                  <span className="whitespace-nowrap">
+                    {c.duration_months === 0 ? "Vĩnh viễn" : `${c.duration_months} tháng`}
+                  </span>
+                </>
+              )}
             </div>
           )}
 
@@ -119,28 +128,24 @@ export const CourseCard: React.FC<{ course: CourseRow }> = ({ course: c }) => {
             {c.title}
           </h3>
 
-          <p className="text-xs text-slate-400 font-normal line-clamp-2 leading-relaxed">
-            {c.subtitle ||
-              (isFullTest
-                ? "Bộ đề thi thử TOEIC chuẩn format ETS mới nhất, bấm giờ 120 phút, chấm điểm tự động kèm lời giải chi tiết."
-                : isListening
-                ? "Luyện nghe chép chính tả Part 1-4, kéo thả từ khóa mượt mà cảm ứng, tăng phản xạ nghe nhanh chóng."
-                : "Hệ thống video bài giảng chi tiết, bám sát các dạng bài trọng tâm và kỹ thuật làm bài thi đạt điểm cao.")}
-          </p>
+          {displayDescription ? (
+            <p className="text-xs text-slate-300 font-medium line-clamp-2 leading-relaxed">
+              {displayDescription}
+            </p>
+          ) : null}
         </div>
 
-        {/* Instructor & Meta */}
-        <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400 font-medium">
-          <div className="flex items-center gap-1">
-            <Users className="w-3.5 h-3.5 text-cyan-400" />
-            <span className="whitespace-nowrap">Học viên toàn quốc</span>
+        {/* Instructor do Admin nhập nếu có */}
+        {c.instructor && c.instructor.trim().length > 0 && (
+          <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400 font-medium">
+            <span className="text-slate-500 text-[11px]">Giảng viên</span>
+            <span className="font-bold text-slate-300 truncate max-w-[150px]">
+              {c.instructor.trim()}
+            </span>
           </div>
-          <span className="font-bold text-slate-300 truncate max-w-[110px]">
-            {c.instructor || "L-English Mentor"}
-          </span>
-        </div>
+        )}
 
-        {/* Price & CTA Button: Nút Làm bài → */}
+        {/* Price & CTA Button */}
         <div className="pt-2.5 border-t border-slate-800/80 flex items-center justify-between gap-2">
           <div>
             <span className="text-sm font-black text-cyan-400 block whitespace-nowrap">
@@ -157,7 +162,9 @@ export const CourseCard: React.FC<{ course: CourseRow }> = ({ course: c }) => {
                 : "bg-blue-600 hover:bg-blue-700"
             }`}
           >
-            <span>{isFullTest ? "Làm bài" : isListening ? "Luyện nghe" : "Vào học"}</span>
+            <span>
+              {isFullTest ? "Làm bài" : isListening ? "Luyện nghe" : isFlashcard ? "Học từ" : "Vào học"}
+            </span>
             <ArrowRight className="w-3.5 h-3.5" />
           </span>
         </div>

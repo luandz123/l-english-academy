@@ -6,7 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { signInWithGoogle } from "@/lib/googleOAuth";
 import { getFriendlyErrorMessage } from "@/lib/errorHandler";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { Loader2, ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { PasswordStrengthIndicator, analyzePassword } from "@/components/auth/PasswordStrengthIndicator";
 
 const Register = () => {
   const [email, setEmail] = useState("");
@@ -27,8 +28,21 @@ const Register = () => {
 
   if (user) return null;
 
+  const [showPassword, setShowPassword] = useState(false);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    const analysis = analyzePassword(password);
+    if (!analysis.isAcceptable) {
+      toast({
+        title: "Mật khẩu chưa đạt chuẩn bảo mật",
+        description: "Mật khẩu cần có tối thiểu 8 ký tự, bao gồm cả chữ cái và số để đảm bảo an toàn tài khoản.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setLoading(true);
     
     const { data, error } = await supabase.auth.signUp({
@@ -167,26 +181,37 @@ const Register = () => {
               htmlFor="password"
               className="text-xs font-semibold text-slate-300"
             >
-              Mật khẩu (Tối thiểu 6 ký tự)
+              Mật khẩu (Tối thiểu 8 ký tự, gồm chữ & số)
             </Label>
-            <input
-              id="password"
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={6}
-              autoComplete="new-password"
-              className="w-full h-11 px-4 rounded-xl bg-[#030712]/80 border border-slate-700/80 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/20 text-white placeholder:text-slate-500 text-sm outline-none transition-all"
-            />
+            <div className="relative">
+              <input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={8}
+                autoComplete="new-password"
+                className="w-full h-11 pl-4 pr-11 rounded-xl bg-[#030712]/80 border border-slate-700/80 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/20 text-white placeholder:text-slate-500 text-sm outline-none transition-all"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((p) => !p)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-cyan-300 transition-colors p-1"
+                aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+            <PasswordStrengthIndicator password={password} />
           </div>
 
           {/* Primary Gradient Register Button */}
           <button
             type="submit"
             disabled={loading || googleLoading}
-            className="w-full h-11 mt-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-sm shadow-[0_0_25px_rgba(6,182,212,0.35)] flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] transition-all disabled:opacity-70"
+            className="w-full h-11 mt-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-sm shadow-[0_0_25px_rgba(6,182,212,0.35)] flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] transition-all disabled:opacity-70"
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
             <span>{loading ? "Đang tạo tài khoản..." : "ĐĂNG KÝ HỌC NGAY"}</span>

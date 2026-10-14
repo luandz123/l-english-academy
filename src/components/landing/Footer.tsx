@@ -1,16 +1,23 @@
 import Logo from "@/components/Logo";
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { Phone, Mail, Clock, MessageCircle, ArrowRight, ShieldCheck, Heart } from "lucide-react";
 import zaloSvg from "@/assets/icons/zalo-official.svg";
-
-const SOCIAL_LINKS = {
-  tiktok: "https://www.tiktok.com/@YOUR_TIKTOK",
-  youtube: "https://www.youtube.com/@YOUR_YOUTUBE",
-  facebook: "https://www.facebook.com/YOUR_FACEBOOK",
-  zalo: "https://zalo.me/0334729066",
-};
+import {
+  getHomepageShowcaseConfig,
+  DEFAULT_HOMEPAGE_CONFIG,
+  HomepageShowcaseConfig,
+} from "@/services/homepageShowcaseService";
 
 const Footer = () => {
+  const { data: showcaseConfig = DEFAULT_HOMEPAGE_CONFIG } = useQuery<HomepageShowcaseConfig>({
+    queryKey: ["homepage-showcase-config"],
+    queryFn: () => getHomepageShowcaseConfig(),
+  });
+
+  const contactInfo = showcaseConfig.contact_info || DEFAULT_HOMEPAGE_CONFIG.contact_info;
+  const zaloUrl = `https://zalo.me/${contactInfo.zalo_number}`;
+
   return (
     <footer className="bg-[#050c18] text-white/80 pt-16 pb-12 border-t border-cyan-500/20" id="contact">
       <div className="container mx-auto px-4 max-w-7xl">
@@ -33,7 +40,7 @@ const Footer = () => {
               <div className="flex items-center gap-2.5">
                 {/* TikTok */}
                 <a
-                  href={SOCIAL_LINKS.tiktok}
+                  href={contactInfo.tiktok_url || "https://www.tiktok.com"}
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="TikTok"
@@ -46,7 +53,7 @@ const Footer = () => {
 
                 {/* YouTube */}
                 <a
-                  href={SOCIAL_LINKS.youtube}
+                  href={contactInfo.youtube_url || "https://www.youtube.com"}
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="YouTube"
@@ -59,7 +66,7 @@ const Footer = () => {
 
                 {/* Facebook */}
                 <a
-                  href={SOCIAL_LINKS.facebook}
+                  href={contactInfo.facebook_url || "https://www.facebook.com"}
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Facebook"
@@ -72,7 +79,7 @@ const Footer = () => {
 
                 {/* Zalo */}
                 <a
-                  href={SOCIAL_LINKS.zalo}
+                  href={zaloUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Zalo"
@@ -120,7 +127,7 @@ const Footer = () => {
               <a href="/#section-video" className="hover:text-emerald-400 transition-colors">
                 Cẩm Nang Học Từ Mất Gốc
               </a>
-              <a href={SOCIAL_LINKS.zalo} target="_blank" rel="noopener noreferrer" className="hover:text-emerald-400 transition-colors">
+              <a href={zaloUrl} target="_blank" rel="noopener noreferrer" className="hover:text-emerald-400 transition-colors">
                 Cộng Đồng Học Viên
               </a>
               <a href="/#combos" className="hover:text-emerald-400 transition-colors">
@@ -143,11 +150,11 @@ const Footer = () => {
                   Hotline Cố Vấn Học Tập:
                 </span>
                 <a
-                  href="tel:0334729066"
+                  href={`tel:${contactInfo.hotline.replace(/\s+/g, "")}`}
                   className="text-xs font-black text-white hover:text-emerald-400 flex items-center gap-1.5 transition-colors"
                 >
                   <Phone className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>0334 729 066 (Thầy Luận)</span>
+                  <span>{contactInfo.hotline}</span>
                 </a>
               </div>
 
@@ -156,11 +163,11 @@ const Footer = () => {
                   Email Hỗ Trợ:
                 </span>
                 <a
-                  href="mailto:hotro@l-english.vn"
+                  href={`mailto:${contactInfo.email}`}
                   className="text-xs font-bold text-slate-300 hover:text-white flex items-center gap-1.5 transition-colors"
                 >
                   <Mail className="w-3.5 h-3.5 text-blue-400" />
-                  <span>hotro@l-english.vn</span>
+                  <span>{contactInfo.email}</span>
                 </a>
               </div>
 
@@ -170,13 +177,13 @@ const Footer = () => {
                 </span>
                 <p className="text-[11px] font-medium text-slate-300 flex items-center gap-1.5">
                   <Clock className="w-3.5 h-3.5 text-amber-400" />
-                  <span>08:00 – 23:00 (Cả Thứ 7 &amp; CN)</span>
+                  <span>{contactInfo.working_hours}</span>
                 </p>
               </div>
 
               <div className="pt-1">
                 <a
-                  href={SOCIAL_LINKS.zalo}
+                  href={zaloUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-full py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black text-xs inline-flex items-center justify-center gap-1.5 shadow-md transition-all active:scale-95"

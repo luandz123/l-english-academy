@@ -1,9 +1,24 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useEffect, useRef } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading, isAdmin } = useAuth();
   const location = useLocation();
+  const { toast } = useToast();
+  const alertedRef = useRef(false);
+
+  useEffect(() => {
+    if (!loading && user && !isAdmin && !alertedRef.current) {
+      alertedRef.current = true;
+      toast({
+        title: "Truy cập bị từ chối (403 Forbidden)",
+        description: "Bạn không có quyền quản trị viên để truy cập khu vực quản trị.",
+        variant: "destructive",
+      });
+    }
+  }, [loading, user, isAdmin, toast]);
 
   if (loading) {
     return (
@@ -18,7 +33,7 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   if (!isAdmin) {
-    return <Navigate to="/profile" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <>{children}</>;

@@ -1,6 +1,6 @@
 
 import AdminLayout from "@/components/AdminLayout";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -66,13 +66,14 @@ const AdminCourseDetail = () => {
   const [description, setDescription] = useState("");
   const [subtitle, setSubtitle] = useState("");
   const [instructor, setInstructor] = useState("");
-  const [courseType, setCourseType] = useState("");
+  const [courseType, setCourseType] = useState("video_quiz");
   const [thumbnailUrl, setThumbnailUrl] = useState("");
   const [price, setPrice] = useState(0);
   const [durationMonths, setDurationMonths] = useState(6);
   const [isActive, setIsActive] = useState(true);
   const [isFree, setIsFree] = useState(false);
   const [categoryId, setCategoryId] = useState("");
+  const [displayOrder, setDisplayOrder] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
 
   const { data: categories = [] } = useQuery({
@@ -89,15 +90,33 @@ const AdminCourseDetail = () => {
       setDescription(course.description ?? "");
       setSubtitle(course.subtitle ?? "");
       setInstructor(course.instructor ?? "");
-      setCourseType(course.course_type);
+      setCourseType(course.course_type || "video_quiz");
       setThumbnailUrl(course.thumbnail_url ?? "");
       setPrice(course.price ?? 0);
       setDurationMonths(course.duration_months ?? 6);
       setIsActive(course.is_active ?? true);
       setIsFree((course as any).is_free ?? false);
       setCategoryId(course.category_id ? String(course.category_id) : "");
+      setDisplayOrder(course.display_order ?? 0);
     }
   }, [course]);
+
+  const handleCategorySelect = (catIdStr: string) => {
+    setCategoryId(catIdStr);
+    const cat = categories.find((c) => String(c.id) === catIdStr);
+    if (cat) {
+      const slug = (cat.slug || "").toLowerCase();
+      if (slug.includes("fulltest") || slug.includes("thi-thu")) {
+        setCourseType("fulltest");
+      } else if (slug.includes("listening") || slug.includes("nghe") || slug.includes("chep")) {
+        setCourseType("listening");
+      } else if (slug.includes("vocab") || slug.includes("flashcard") || slug.includes("tu-vung")) {
+        setCourseType("flashcard");
+      } else if (slug.includes("speaking") || slug.includes("noi")) {
+        setCourseType("speaking");
+      }
+    }
+  };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -124,20 +143,29 @@ const AdminCourseDetail = () => {
   const updateMutation = useMutation({
     mutationFn: async () => {
       const { error } = await supabase.from("courses").update({
-        title, description, subtitle, instructor, course_type: courseType,
+        title,
+        description: description || null,
+        subtitle: subtitle || null,
+        instructor: instructor || null,
+        course_type: courseType,
         thumbnail_url: thumbnailUrl || null,
         category_id: categoryId ? parseInt(categoryId) : null,
-        price, duration_months: durationMonths, is_active: isActive,
+        price: isFree ? 0 : price,
+        duration_months: durationMonths,
+        is_active: isActive,
         is_free: isFree,
+        display_order: displayOrder,
       }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-course", id] });
-      toast({ title: "Đã cập nhật khóa học" });
+      queryClient.invalidateQueries({ queryKey: ["admin-courses"] });
+      queryClient.invalidateQueries({ queryKey: ["homepage-active-courses"] });
+      toast({ title: "Đã cập nhật thông tin khóa học thành công" });
     },
     onError: (error: any) => {
-      toast({ title: "Lỗi", description: error.message, variant: "destructive" });
+      toast({ title: "Lỗi lưu khóa học", description: error.message, variant: "destructive" });
     },
   });
 
@@ -274,24 +302,116 @@ const AdminCourseDetail = () => {
           {/* Info Tab */}
           <TabsContent value="info" className="mt-5">
             <div className="bg-card rounded-2xl border border-border/70 shadow-soft-sm p-6 sm:p-8 space-y-6 max-w-3xl">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-5">
+                {/* Tên khóa học */}
                 <div className="space-y-2 col-span-2">
-                  <Label className="text-sm font-bold text-foreground">Tên khóa học</Label>
-                  <Input className="rounded-xl border-border/80" value={title} onChange={(e) => setTitle(e.target.value)} />
+                  <Label className="text-sm font-bold text-foreground">Tên khóa học *</Label>
+                  <Input
+                    className="rounded-xl border-border/80 font-bold text-base"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                  />
                 </div>
-                <div className="space-y-2 col-span-2">
-                  <Label className="text-sm font-bold text-foreground">Phụ đề</Label>
-                  <Input className="rounded-xl border-border/80" value={subtitle} onChange={(e) => setSubtitle(e.target.value)} />
+
+                {/* Danh mục khóa học (BẮT BUỘC LẤY TỪ COURSE_CATEGORIES) */}
+                <div className="space-y-2 col-span-2 p-3.5 bg-primary/5 rounded-2xl border border-primary/20">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-black text-primary">
+                      Danh mục khóa học *
+                    </Label>
+                    <Link
+                      to="/admin/categories"
+                      className="text-xs text-primary font-bold hover:underline"
+                    >
+                      + Quản lý danh mục
+                    </Link>
+                  </div>
+                  <Select value={categoryId} onValueChange={handleCategorySelect}>
+                    <SelectTrigger className="rounded-xl border-primary/30 font-bold bg-card">
+                      <SelectValue placeholder="-- Chọn danh mục khóa học --" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl">
+                      {categories.map((c) => (
+                        <SelectItem key={c.id} value={String(c.id)} className="font-medium">
+                          {c.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[11px] text-muted-foreground font-medium">
+                    Khóa học sẽ xuất hiện trong cụm danh mục tương ứng ngoài trang chủ.
+                  </p>
                 </div>
+
+                {/* Hình thức làm bài / Giao diện học tập */}
                 <div className="space-y-2 col-span-2">
-                  <Label className="text-sm font-bold text-foreground">Mô tả</Label>
-                  <Textarea className="rounded-xl border-border/80" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
+                  <Label className="text-sm font-bold text-foreground">
+                    Hình thức học tập &amp; Giao diện làm bài *
+                  </Label>
+                  <Select value={courseType} onValueChange={setCourseType}>
+                    <SelectTrigger className="rounded-xl border-border/80 font-medium">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl">
+                      <SelectItem value="fulltest">📋 Phòng thi thử Full Test (Format ETS 200 câu, 120 phút)</SelectItem>
+                      <SelectItem value="listening">🎧 Luyện nghe từng bước &amp; Dictation (Chép chính tả)</SelectItem>
+                      <SelectItem value="video_quiz">🎬 Video bài giảng + Trắc nghiệm Quiz</SelectItem>
+                      <SelectItem value="flashcard">🃏 Học từ vựng Flashcard</SelectItem>
+                      <SelectItem value="speaking">🗣️ Luyện nói &amp; Viết (Speaking &amp; Writing)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[11px] text-muted-foreground">
+                    Giao diện mà học viên sẽ thấy khi bấm vào học (Full Test, Nghe chép chính tả hay Xem video).
+                  </p>
                 </div>
+
+                {/* Mô tả ngắn hiển thị trên thẻ ngoài trang chủ */}
                 <div className="space-y-2 col-span-2">
-                  <Label className="text-sm font-bold text-foreground">Link ảnh khóa học (Thumbnail URL)</Label>
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-bold text-foreground">
+                      Mô tả ngắn (Hiển thị trực tiếp trên thẻ ngoài trang chủ)
+                    </Label>
+                    <span className="text-[11px] text-muted-foreground">Admin sửa trực tiếp tại đây</span>
+                  </div>
+                  <Input
+                    className="rounded-xl border-border/80 font-medium"
+                    value={subtitle}
+                    onChange={(e) => setSubtitle(e.target.value)}
+                    placeholder="VD: 200 câu • 120 phút • Bấm giờ thật • Chấm điểm tự động kèm lời giải chi tiết."
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Dòng mô tả này sẽ thay thế hoàn toàn chữ hardcode và hiển thị trên card ngoài trang chủ.
+                  </p>
+                </div>
+
+                {/* Mô tả chi tiết */}
+                <div className="space-y-2 col-span-2">
+                  <Label className="text-sm font-bold text-foreground">Mô tả chi tiết nội dung khóa học</Label>
+                  <Textarea
+                    className="rounded-xl border-border/80 font-medium resize-none"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    rows={4}
+                    placeholder="Mục tiêu kiến thức, nội dung các phần thi, lưu ý cho học viên..."
+                  />
+                </div>
+
+                {/* Thumbnail */}
+                <div className="space-y-2 col-span-2">
+                  <Label className="text-sm font-bold text-foreground">Ảnh bìa khóa học (Thumbnail URL)</Label>
                   <div className="flex gap-2">
-                    <Input value={thumbnailUrl} onChange={(e) => setThumbnailUrl(e.target.value)} placeholder="https://..." className="flex-1 rounded-xl border-border/80" />
-                    <Button variant="outline" className="shrink-0 rounded-xl font-semibold active:scale-95 duration-120" asChild disabled={isUploading}>
+                    <Input
+                      value={thumbnailUrl}
+                      onChange={(e) => setThumbnailUrl(e.target.value)}
+                      placeholder="https://..."
+                      className="flex-1 rounded-xl border-border/80 font-mono text-sm"
+                    />
+                    <Button
+                      variant="outline"
+                      className="shrink-0 rounded-xl font-semibold active:scale-95 duration-120"
+                      asChild
+                      disabled={isUploading}
+                    >
                       <label className="cursor-pointer">
                         {isUploading ? "Đang tải..." : <><Upload className="w-4 h-4 mr-2" /> Tải ảnh lên</>}
                         <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} disabled={isUploading} />
@@ -304,67 +424,94 @@ const AdminCourseDetail = () => {
                     </div>
                   )}
                 </div>
+
+                {/* Giảng viên */}
                 <div className="space-y-2">
-                  <Label className="text-sm font-bold text-foreground">Giảng viên</Label>
-                  <Input className="rounded-xl border-border/80" value={instructor} onChange={(e) => setInstructor(e.target.value)} />
+                  <Label className="text-sm font-bold text-foreground">Giảng viên / Người hướng dẫn</Label>
+                  <Input
+                    className="rounded-xl border-border/80 font-medium"
+                    value={instructor}
+                    onChange={(e) => setInstructor(e.target.value)}
+                    placeholder="VD: L-English Mentor, Cô Mai Phương..."
+                  />
                 </div>
+
+                {/* Chế độ học */}
                 <div className="space-y-2">
-                  <Label className="text-sm font-bold text-foreground">Loại khóa học</Label>
-                  <Select value={courseType} onValueChange={setCourseType}>
-                    <SelectTrigger className="rounded-xl border-border/80"><SelectValue /></SelectTrigger>
-                    <SelectContent className="rounded-xl">
-                      <SelectItem value="listening_reading">Nghe - Đọc</SelectItem>
-                      <SelectItem value="speaking">Nói</SelectItem>
-                      <SelectItem value="writing">Viết</SelectItem>
-                      <SelectItem value="vocabulary">Từ vựng</SelectItem>
-                      <SelectItem value="fulltest">Full Test</SelectItem>
-                      <SelectItem value="combo">Combo</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-bold text-foreground">Danh mục hiển thị (Trang chủ)</Label>
-                  <Select value={categoryId} onValueChange={setCategoryId}>
-                    <SelectTrigger className="rounded-xl border-border/80"><SelectValue placeholder="Chọn danh mục" /></SelectTrigger>
-                    <SelectContent className="rounded-xl">
-                      {categories.map(c => (
-                        <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-bold text-foreground">Giá (VNĐ)</Label>
-                  <Input className="rounded-xl border-border/80" type="number" value={price} onChange={(e) => setPrice(Number(e.target.value))} />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-bold text-foreground">Thời hạn (tháng)</Label>
-                  <Input className="rounded-xl border-border/80" type="number" value={durationMonths} onChange={(e) => setDurationMonths(Number(e.target.value))} />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-bold text-foreground">Chế độ học</Label>
+                  <Label className="text-sm font-bold text-foreground">Chế độ học phí</Label>
                   <Select value={isFree ? "free" : "paid"} onValueChange={(v) => setIsFree(v === "free")}>
-                    <SelectTrigger className="rounded-xl border-border/80"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="rounded-xl border-border/80 font-medium"><SelectValue /></SelectTrigger>
                     <SelectContent className="rounded-xl">
-                      <SelectItem value="paid">Tính phí / Phải đăng ký</SelectItem>
-                      <SelectItem value="free">Hoàn toàn Miễn phí (Public)</SelectItem>
+                      <SelectItem value="paid">Tính phí / Có học phí</SelectItem>
+                      <SelectItem value="free">Miễn phí hoàn toàn (FREE)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* Giá */}
+                {!isFree && (
+                  <div className="space-y-2">
+                    <Label className="text-sm font-bold text-foreground">Giá (VNĐ)</Label>
+                    <Input
+                      className="rounded-xl border-border/80 font-bold"
+                      type="number"
+                      value={price}
+                      onChange={(e) => setPrice(Number(e.target.value))}
+                    />
+                  </div>
+                )}
+
+                {/* Thời hạn */}
                 <div className="space-y-2">
-                  <Label className="text-sm font-bold text-foreground">Trạng thái hiển thị</Label>
-                  <Select value={isActive ? "active" : "inactive"} onValueChange={(v) => setIsActive(v === "active")}>
-                    <SelectTrigger className="rounded-xl border-border/80"><SelectValue /></SelectTrigger>
+                  <Label className="text-sm font-bold text-foreground">Thời hạn học (tháng)</Label>
+                  <Select
+                    value={String(durationMonths)}
+                    onValueChange={(v) => setDurationMonths(Number(v))}
+                  >
+                    <SelectTrigger className="rounded-xl border-border/80 font-medium"><SelectValue /></SelectTrigger>
                     <SelectContent className="rounded-xl">
-                      <SelectItem value="active">Hoạt động (Đang bán/dạy)</SelectItem>
+                      <SelectItem value="3">3 tháng</SelectItem>
+                      <SelectItem value="6">6 tháng</SelectItem>
+                      <SelectItem value="12">12 tháng (1 năm)</SelectItem>
+                      <SelectItem value="0">Vĩnh viễn (Trọn đời)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Thứ tự hiển thị */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-bold text-foreground">Thứ tự hiển thị</Label>
+                  <Input
+                    className="rounded-xl border-border/80 font-medium"
+                    type="number"
+                    value={displayOrder}
+                    onChange={(e) => setDisplayOrder(Number(e.target.value))}
+                  />
+                  <p className="text-[11px] text-muted-foreground">Số nhỏ xếp trước ngoài trang chủ</p>
+                </div>
+
+                {/* Trạng thái hiển thị */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-bold text-foreground">Trạng thái hoạt động</Label>
+                  <Select value={isActive ? "active" : "inactive"} onValueChange={(v) => setIsActive(v === "active")}>
+                    <SelectTrigger className="rounded-xl border-border/80 font-medium"><SelectValue /></SelectTrigger>
+                    <SelectContent className="rounded-xl">
+                      <SelectItem value="active">Hoạt động (Hiển thị cho học viên)</SelectItem>
                       <SelectItem value="inactive">Tạm dừng (Ẩn khỏi học viên)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
-              <Button className="btn-3d btn-3d-primary font-bold rounded-xl active:scale-95 duration-120" onClick={() => updateMutation.mutate()} disabled={updateMutation.isPending}>
-                {updateMutation.isPending ? "Đang lưu..." : "Lưu thay đổi"}
-              </Button>
+
+              <div className="pt-4 border-t border-border/70 flex justify-end">
+                <Button
+                  className="btn-3d btn-3d-primary font-bold rounded-xl active:scale-95 duration-120 px-6 py-2.5"
+                  onClick={() => updateMutation.mutate()}
+                  disabled={updateMutation.isPending}
+                >
+                  {updateMutation.isPending ? "Đang lưu..." : "Lưu Thay Đổi Thông Tin Khóa Học"}
+                </Button>
+              </div>
             </div>
           </TabsContent>
 

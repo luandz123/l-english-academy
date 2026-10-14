@@ -1,7 +1,21 @@
+import { useQuery } from "@tanstack/react-query";
 import { trackEvent } from "@/lib/analytics";
 import zaloSvg from "@/assets/icons/zalo-official.svg";
+import {
+  getHomepageShowcaseConfig,
+  DEFAULT_HOMEPAGE_CONFIG,
+  HomepageShowcaseConfig,
+} from "@/services/homepageShowcaseService";
 
 export const ZaloContactWidget = () => {
+  const { data: showcaseConfig = DEFAULT_HOMEPAGE_CONFIG } = useQuery<HomepageShowcaseConfig>({
+    queryKey: ["homepage-showcase-config"],
+    queryFn: () => getHomepageShowcaseConfig(),
+  });
+
+  const contactInfo = showcaseConfig.contact_info || DEFAULT_HOMEPAGE_CONFIG.contact_info;
+  const zaloNumber = contactInfo.zalo_number || "0334729066";
+
   return (
     <aside aria-label="Kênh hỗ trợ nhanh" className="fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-40 flex flex-col items-end gap-2 group">
       {/* Tooltip text: Gọn gàng "Tư vấn Zalo" */}
@@ -12,11 +26,11 @@ export const ZaloContactWidget = () => {
 
       {/* Main Floating Button */}
       <a
-        href="https://zalo.me/0334729066"
+        href={`https://zalo.me/${zaloNumber}`}
         target="_blank"
         rel="noopener noreferrer"
         onClick={() => trackEvent("click_zalo", { source: "floating_widget" })}
-        aria-label="Liên hệ Zalo tư vấn: 0334 729 066"
+        aria-label={`Liên hệ Zalo tư vấn: ${contactInfo.hotline || zaloNumber}`}
         className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-tr from-blue-600 via-sky-500 to-blue-500 text-white flex items-center justify-center shadow-[0_0_25px_rgba(37,99,235,0.7)] hover:scale-105 active:scale-95 transition-all duration-200 border-2 border-white/30"
       >
         {/* Pulse wave ring */}

@@ -117,6 +117,7 @@ const AdminEnrollments = lazyWithRetry(() => import("./pages/admin/AdminEnrollme
 const AdminMaterials = lazyWithRetry(() => import("./pages/admin/AdminMaterials"));
 const AdminReports = lazyWithRetry(() => import("./pages/admin/AdminReports"));
 const AdminSettings = lazyWithRetry(() => import("./pages/admin/AdminSettings"));
+const AdminBackup = lazyWithRetry(() => import("./pages/admin/AdminBackup"));
 const AdminVocabPacks = lazyWithRetry(() => import("./pages/admin/AdminVocabPacks"));
 const AdminFullTestManager = lazyWithRetry(() => import("./pages/admin/AdminFullTestManager"));
 const AdminFullTestQuestions = lazyWithRetry(() => import("./pages/admin/AdminFullTestQuestions"));
@@ -239,6 +240,7 @@ const App = () => {
                 <Route path="/admin/enrollments" element={<AdminRoute><AdminEnrollments /></AdminRoute>} />
                 <Route path="/admin/materials" element={<AdminRoute><AdminMaterials /></AdminRoute>} />
                 <Route path="/admin/reports" element={<AdminRoute><AdminReports /></AdminRoute>} />
+                <Route path="/admin/backup" element={<AdminRoute><AdminBackup /></AdminRoute>} />
                 <Route path="/admin/settings" element={<AdminRoute><AdminSettings /></AdminRoute>} />
 
                 <Route path="*" element={<NotFound />} />

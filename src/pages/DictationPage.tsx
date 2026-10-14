@@ -590,9 +590,9 @@ const DictationInput = ({
 
   const containerClass = `w-full relative flex flex-col rounded-2xl border transition-all duration-150 shadow-soft-sm ${
     status === "correct" 
-      ? "border-[#15803D]/60 bg-[#F0FDF4] dark:bg-emerald-950/30 text-foreground animate-dictation-correct" 
+      ? "border-emerald-500/60 bg-emerald-500/10 text-foreground animate-dictation-correct" 
       : "border-border/80 bg-card focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20"
-  } ${shake ? "animate-dictation-shake border-red-300 dark:border-red-700 bg-red-50/50 dark:bg-red-950/20" : ""}`;
+  } ${shake ? "animate-dictation-shake border-rose-500/60 bg-rose-500/10" : ""}`;
 
   return (
     <div className="w-full relative flex flex-col gap-2">
@@ -610,7 +610,7 @@ const DictationInput = ({
             onKeyDown={handleKeyDown}
             placeholder={placeholder || "Nghe và gõ lại cả câu (Enter để kiểm tra)..."}
             className={`w-full resize-none text-base sm:text-lg border-none bg-transparent shadow-none focus:outline-none focus-visible:ring-0 leading-relaxed font-bold transition-colors duration-150 ${
-              status === "correct" ? "text-[#15803D] dark:text-emerald-300" : "text-foreground"
+              status === "correct" ? "text-emerald-400" : "text-foreground"
             }`}
             readOnly={status === "correct"}
           />
@@ -758,19 +758,19 @@ const KeywordDictationInput = ({
           placeholder="..."
           className={`w-full text-center px-2 py-1 h-auto text-sm sm:text-base border transition-colors duration-150 shadow-soft-xs focus-visible:ring-0 rounded-lg ${
             status === "correct" 
-              ? "font-extrabold text-[#15803D] dark:text-emerald-300 border-[#15803D]/60 bg-[#F0FDF4] dark:bg-emerald-950/40 pr-6" 
+              ? "font-extrabold text-emerald-400 border-emerald-500/60 bg-emerald-500/15 pr-6" 
               : status === "error"
-              ? "font-extrabold text-red-500 dark:text-red-400 border-red-300 dark:border-red-700 bg-red-50/50 dark:bg-red-950/20 pr-6"
+              ? "font-extrabold text-rose-400 border-rose-500/60 bg-rose-500/15 pr-6"
               : "font-bold border-border/80 bg-card text-foreground focus-visible:border-primary focus-visible:ring-primary/20 pr-6"
           }`}
           readOnly={status === "correct"}
           style={{ width: `${Math.max(70, Math.max(expected.length, value.length) * 10 + 26)}px` }}
         />
         {status === "correct" && (
-          <CheckCircle className="w-3.5 h-3.5 text-[#15803D] dark:text-emerald-400 absolute right-2 top-1/2 -translate-y-1/2" />
+          <CheckCircle className="w-3.5 h-3.5 text-emerald-400 absolute right-2 top-1/2 -translate-y-1/2" />
         )}
         {status === "error" && (
-          <div className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-black text-red-500 dark:text-red-400 select-none animate-pulse">
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-black text-rose-400 select-none animate-pulse">
             !
           </div>
         )}
@@ -1761,7 +1761,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
               type="button"
               variant="outline"
               onClick={() => setIsSettingsOpen(true)}
-              className="btn-3d flex items-center gap-2 font-black border-2 border-border hover:border-[var(--duo-blue)] hover:bg-blue-50/50 text-foreground px-4 py-2 h-auto"
+              className="btn-3d flex items-center gap-2 font-black border-2 border-border hover:border-[var(--duo-blue)] hover:bg-[var(--duo-blue)]/10 text-foreground px-4 py-2 h-auto"
             >
               <Settings className="w-5 h-5 text-[var(--duo-blue)]" />
               <span>Cài đặt</span>
@@ -1781,7 +1781,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                    {dictationMode === "keyword" && "✍️ Gõ từ khóa"}
                    {dictationMode === "full" && "📝 Gõ cả câu"}
                  </span>
-                 <span className="inline-flex items-center gap-1 font-black text-xs sm:text-sm px-3 py-1 rounded-xl bg-orange-50 text-[var(--duo-orange)] border border-orange-200">
+                 <span className="inline-flex items-center gap-1 font-black text-xs sm:text-sm px-3 py-1 rounded-xl bg-orange-500/15 text-orange-400 border border-orange-500/30">
                    <Clock className="w-3.5 h-3.5" />
                    {timeLimitMinutes === 0 ? "Không giới hạn thời gian" : `${timeLimitMinutes} phút`}
                  </span>
@@ -1791,7 +1791,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                  variant="outline"
                  size="sm"
                  onClick={() => setIsSettingsOpen(true)}
-                 className="btn-3d font-black text-xs h-8 px-3 ml-auto border-2 border-[var(--duo-blue)] text-[var(--duo-blue)] hover:bg-blue-50"
+                 className="btn-3d font-black text-xs h-8 px-3 ml-auto border-2 border-[var(--duo-blue)] text-[var(--duo-blue)] hover:bg-[var(--duo-blue)]/10"
                >
                  <Settings className="w-3.5 h-3.5 mr-1.5" /> Đổi cài đặt
                </Button>
@@ -1799,7 +1799,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
 
              {questions.length === 0 ? (
                <div className="p-8 text-center bg-card rounded-2xl border border-border/70 space-y-4 shadow-soft-sm">
-                 <div className="w-12 h-12 bg-blue-100 text-[var(--duo-blue)] rounded-2xl mx-auto flex items-center justify-center font-black">
+                 <div className="w-12 h-12 bg-[var(--duo-blue)]/15 text-[var(--duo-blue)] rounded-2xl mx-auto flex items-center justify-center font-black">
                    🎧
                  </div>
                  <div className="space-y-1">
@@ -1825,7 +1825,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                         Chọn nhanh số lượng câu ({activeQuestionIndices.length}/{questions.length} câu đã chọn)
                       </span>
                       {completedTotalCount > 0 && (
-                        <Button size="sm" variant="outline" className="bg-card text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-rose-300 dark:border-rose-800 font-bold self-start sm:self-auto rounded-xl shadow-soft-xs transition-all duration-120 active:scale-95" onClick={() => resetAllMutation.mutate()}>
+                        <Button size="sm" variant="outline" className="bg-card text-rose-400 hover:bg-rose-500/15 border border-rose-500/30 font-bold self-start sm:self-auto rounded-xl shadow-soft-xs transition-all duration-120 active:scale-95" onClick={() => resetAllMutation.mutate()}>
                           <RefreshCcw className="w-4 h-4 mr-2" /> Làm lại từ đầu
                         </Button>
                       )}
@@ -1874,7 +1874,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                           size="sm"
                           variant="outline"
                           onClick={selectUncompletedOnly}
-                          className="font-black text-xs sm:text-sm h-9 px-3.5 rounded-xl bg-card text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 border border-amber-500/30 transition-all duration-120 active:scale-95 shadow-soft-xs"
+                          className="font-black text-xs sm:text-sm h-9 px-3.5 rounded-xl bg-card text-amber-400 hover:bg-amber-500/15 border border-amber-500/30 transition-all duration-120 active:scale-95 shadow-soft-xs"
                         >
                           🎯 Chỉ câu chưa làm ({questions.length - completedTotalCount})
                         </Button>
@@ -1961,8 +1961,8 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                          isSelected 
                            ? "bg-[var(--duo-blue)]/10 border-[var(--duo-blue)] shadow-[0_2px_0_var(--duo-blue)] -translate-y-0.5" 
                            : isDone
-                           ? "bg-emerald-50/40 border-emerald-200/80 hover:bg-emerald-50"
-                           : "bg-white border-border hover:bg-muted/40 hover:border-border/80"
+                           ? "bg-emerald-500/10 border-emerald-500/30 hover:bg-emerald-500/20 text-emerald-300"
+                           : "bg-card border-border/80 hover:bg-muted/60 hover:border-border"
                        )}
                      >
                        <Checkbox 
@@ -1979,11 +1979,11 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                              Câu số {idx + 1}
                            </span>
                            {isDone ? (
-                             <span className="px-2 py-0.5 rounded-full text-xs font-black bg-[var(--duo-correct)]/15 text-[var(--duo-correct-dark)] border border-[var(--duo-correct)]/30 inline-flex items-center gap-1">
-                               <CheckCircle className="w-3 h-3 text-[var(--duo-correct)]" /> Đã làm
+                             <span className="px-2 py-0.5 rounded-full text-xs font-black bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 inline-flex items-center gap-1">
+                               <CheckCircle className="w-3 h-3 text-emerald-400" /> Đã làm
                              </span>
                            ) : (
-                             <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                             <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30">
                                Chưa làm
                              </span>
                            )}
@@ -2040,7 +2040,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                       ? "opacity-50 cursor-not-allowed bg-muted/20 border-dashed"
                       : dictationMode === "drag"
                       ? "bg-[var(--duo-blue)]/10 border-[var(--duo-blue)] shadow-[0_2px_0_var(--duo-blue)] -translate-y-0.5 cursor-pointer"
-                      : "bg-white border-border hover:bg-muted/40 cursor-pointer"
+                      : "bg-card border-border/80 hover:bg-muted/60 cursor-pointer"
                   )}
                 >
                   <div className="space-y-1">
@@ -2075,7 +2075,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                       ? "opacity-50 cursor-not-allowed bg-muted/20 border-dashed"
                       : dictationMode === "keyword"
                       ? "bg-[var(--duo-blue)]/10 border-[var(--duo-blue)] shadow-[0_2px_0_var(--duo-blue)] -translate-y-0.5 cursor-pointer"
-                      : "bg-white border-border hover:bg-muted/40 cursor-pointer"
+                      : "bg-card border-border/80 hover:bg-muted/60 cursor-pointer"
                   )}
                 >
                   <div className="space-y-1">
@@ -2106,7 +2106,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                       ? "opacity-50 cursor-not-allowed bg-muted/20 border-dashed"
                       : dictationMode === "full"
                       ? "bg-[var(--duo-blue)]/10 border-[var(--duo-blue)] shadow-[0_2px_0_var(--duo-blue)] -translate-y-0.5 cursor-pointer"
-                      : "bg-white border-border hover:bg-muted/40 cursor-pointer"
+                      : "bg-card border-border/80 hover:bg-muted/60 cursor-pointer"
                   )}
                 >
                   <div className="space-y-1">
@@ -2135,7 +2135,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                   <Clock className="w-5 h-5 text-[var(--duo-orange)]" />
                   <span className="text-base font-extrabold text-foreground">Thời gian làm bài</span>
                 </div>
-                <span className="text-xs font-black text-[var(--duo-orange)] bg-orange-100 px-2.5 py-1 rounded-lg border border-orange-200">
+                <span className="text-xs font-black text-orange-400 bg-orange-500/15 px-2.5 py-1 rounded-lg border border-orange-500/30">
                   {timeLimitMinutes === 0 ? "Không giới hạn" : `${timeLimitMinutes} phút`}
                 </span>
               </div>
@@ -2157,7 +2157,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                       "btn-3d font-black text-xs sm:text-sm h-9 px-3.5",
                       timeLimitMinutes === opt.value
                         ? "bg-[var(--duo-orange)] text-white border-[#E58700] hover:bg-[var(--duo-orange)]/90 shadow-sm"
-                        : "bg-white text-foreground hover:bg-orange-50 border-border"
+                        : "bg-card text-foreground hover:bg-muted border-border/80"
                     )}
                   >
                     {opt.label}
@@ -2270,12 +2270,12 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
             <div className={cn(
               "w-20 h-20 sm:w-24 sm:h-24 rounded-full mx-auto flex items-center justify-center border-4 shadow-sm animate-in zoom-in-75 duration-300",
               isPerfect 
-                ? "bg-amber-100 border-amber-400 text-amber-500" 
+                ? "bg-amber-500/20 border-amber-400 text-amber-400" 
                 : isGreat 
-                ? "bg-[var(--duo-correct)]/15 border-[var(--duo-correct)] text-[var(--duo-correct)]" 
+                ? "bg-emerald-500/20 border-emerald-400 text-emerald-400" 
                 : isGood 
-                ? "bg-[var(--duo-blue)]/15 border-[var(--duo-blue)] text-[var(--duo-blue)]" 
-                : "bg-orange-100 border-orange-400 text-orange-500"
+                ? "bg-[var(--duo-blue)]/20 border-[var(--duo-blue)] text-[var(--duo-blue)]" 
+                : "bg-orange-500/20 border-orange-400 text-orange-400"
             )}>
               {isPerfect ? (
                 <Trophy className="w-12 h-12" />
@@ -2342,11 +2342,11 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
               </div>
 
               {/* Skipped / Incomplete Count */}
-              <div className="p-4 rounded-2xl border-2 bg-red-50 border-red-200 flex flex-col items-center justify-center space-y-1">
-                <span className="text-xs font-black uppercase text-[var(--duo-red)] flex items-center gap-1">
+              <div className="p-4 rounded-2xl border-2 bg-rose-500/10 border-rose-500/30 flex flex-col items-center justify-center space-y-1">
+                <span className="text-xs font-black uppercase text-rose-400 flex items-center gap-1">
                   <XCircle className="w-3.5 h-3.5" /> {isKeywordMode ? "Từ khóa Chưa đúng" : "Bỏ qua / Chưa làm"}
                 </span>
-                <span className="text-2xl sm:text-3xl font-black text-[var(--duo-red)]">
+                <span className="text-2xl sm:text-3xl font-black text-rose-400">
                   {isKeywordMode ? `${skippedKeywordsCount}` : `${skippedIndices.length}`}
                   {isKeywordMode && <span className="text-xs font-bold text-muted-foreground"> từ</span>}
                 </span>
@@ -2356,14 +2356,14 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
               </div>
 
               {/* XP Gained */}
-              <div className="p-4 rounded-2xl border-2 bg-amber-50 border-amber-200 flex flex-col items-center justify-center space-y-1">
-                <span className="text-xs font-black uppercase text-amber-700 flex items-center gap-1">
-                  <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-500" /> Kinh nghiệm
+              <div className="p-4 rounded-2xl border-2 bg-amber-500/10 border-amber-500/30 flex flex-col items-center justify-center space-y-1">
+                <span className="text-xs font-black uppercase text-amber-400 flex items-center gap-1">
+                  <Zap className="w-3.5 h-3.5 text-amber-400 fill-amber-400" /> Kinh nghiệm
                 </span>
-                <span className="text-2xl sm:text-3xl font-black text-amber-600">
+                <span className="text-2xl sm:text-3xl font-black text-amber-400">
                   +{xpEarned} <span className="text-xs font-bold">XP</span>
                 </span>
-                <span className="text-xs font-bold text-amber-600">
+                <span className="text-xs font-bold text-amber-400">
                   Thưởng luyện tập
                 </span>
               </div>
@@ -2389,7 +2389,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
               
               {effectiveLessonId && (
                 <Button 
-                  className="btn-3d bg-white text-[var(--duo-blue)] border-[var(--duo-blue)]/30 hover:bg-blue-50 py-5 px-6 text-base font-extrabold h-auto"
+                  className="btn-3d bg-card text-[var(--duo-blue)] border-[var(--duo-blue)]/40 hover:bg-[var(--duo-blue)]/10 py-5 px-6 text-base font-extrabold h-auto"
                   onClick={() => {
                     navigate(`/courses/${courseId}/vocab-lesson/${effectiveLessonId}`, { 
                     state: { questionIds: activeQuestionIndices.map(idx => questions[idx]?.id).filter(Boolean) } 
@@ -2516,11 +2516,11 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                             </span>
                           )
                         ) : isKeywordMode && qStats.correctWords > 0 ? (
-                          <span className="inline-flex items-center gap-1 text-xs font-black text-[var(--duo-orange)] bg-amber-100 px-2.5 py-1 rounded-xl border border-amber-300">
+                          <span className="inline-flex items-center gap-1 text-xs font-black text-[var(--duo-orange)] bg-amber-500/15 text-amber-400 px-2.5 py-1 rounded-xl border border-amber-500/30">
                             <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-500" /> Đúng {qStats.correctWords}/{qStats.totalWords} từ (Thiếu {qStats.incorrectWords} từ)
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 text-xs font-black text-[var(--duo-red)] bg-red-100 px-2.5 py-1 rounded-xl border border-red-300">
+                          <span className="inline-flex items-center gap-1 text-xs font-black text-[var(--duo-red)] bg-rose-500/15 text-rose-400 px-2.5 py-1 rounded-xl border border-rose-500/30">
                             <XCircle className="w-3.5 h-3.5" /> Bỏ qua / Chưa hoàn thành {isKeywordMode && qStats.totalWords > 0 && `(0/${qStats.totalWords} từ)`}
                           </span>
                         )}
@@ -2563,11 +2563,11 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                             "flex gap-3 sm:gap-4 items-center p-3.5 sm:p-4 rounded-xl border-2 transition-all",
                             isDone 
                               ? "bg-[var(--duo-correct)]/10 border-[var(--duo-correct)]/20" 
-                              : "bg-white border-border"
+                              : "bg-card border-border/80"
                           )}>
                             <span className={cn(
                               "w-8 h-8 rounded-lg flex items-center justify-center text-sm font-black shadow-sm shrink-0 border-2",
-                              isDone ? "bg-white border-[var(--duo-correct)] text-[var(--duo-correct)]" : "bg-muted border-border text-muted-foreground"
+                              isDone ? "bg-emerald-500/20 border-emerald-500 text-emerald-400" : "bg-muted border-border text-muted-foreground"
                             )}>
                               {String.fromCharCode(65 + aIdx)}
                             </span>
@@ -2578,7 +2578,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                               <button
                                 type="button"
                                 onClick={() => speakText(ans.answer_text)}
-                                className="p-1.5 rounded-lg text-muted-foreground hover:text-[var(--duo-blue)] hover:bg-white transition-colors shrink-0"
+                                className="p-1.5 rounded-lg text-muted-foreground hover:text-[var(--duo-blue)] hover:bg-muted transition-colors shrink-0"
                                 title="Nghe phát âm"
                               >
                                 <Volume2 className="w-4 h-4" />
@@ -2602,7 +2602,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                                     "text-xs font-black px-2.5 py-1 rounded-lg border flex items-center gap-1.5 shadow-2xs",
                                     isKwCorrect
                                       ? "bg-[var(--duo-correct)]/10 text-[var(--duo-correct)] border-[var(--duo-correct)]/30"
-                                      : "bg-red-50 text-[var(--duo-red)] border-red-300 border-dashed"
+                                      : "bg-rose-500/10 text-rose-400 border-rose-500/30 border-dashed"
                                   )}
                                 >
                                   {isKwCorrect ? <CheckCircle2 className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
@@ -2639,7 +2639,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                                 <span className="font-black text-[var(--duo-orange)]">{w.word}</span>
                                 {w.phonetic && <span className="text-muted-foreground font-mono text-xs">{w.phonetic}</span>}
                                 <span className="text-foreground">({w.definition_vi})</span>
-                                <button type="button" onClick={() => speakText(w.word)} className="p-0.5 hover:bg-white rounded text-[var(--duo-orange)]">
+                                <button type="button" onClick={() => speakText(w.word)} className="p-0.5 hover:bg-muted rounded text-[var(--duo-orange)]">
                                   <Volume2 className="w-3 h-3" />
                                 </button>
                               </div>
@@ -2721,9 +2721,9 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
               <div className={cn(
                 "flex items-center gap-1.5 px-3 py-1.5 rounded-xl border-2 font-black text-xs sm:text-sm transition-all shadow-2xs",
                 timeLeftSeconds <= 60
-                  ? "bg-red-50 text-[var(--duo-red)] border-red-300 animate-pulse"
+                  ? "bg-rose-500/15 text-rose-400 border-rose-500/30 animate-pulse"
                   : timeLeftSeconds <= 180
-                  ? "bg-amber-50 text-amber-600 border-amber-300"
+                  ? "bg-amber-500/15 text-amber-400 border-amber-500/30"
                   : "bg-[var(--duo-blue)]/10 text-[var(--duo-blue)] border-[var(--duo-blue)]/30"
               )}>
                 <Clock className="w-4 h-4 shrink-0" />
@@ -2815,16 +2815,16 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                                 <button
                                   type="button"
                                   onClick={() => speakText(w.word)}
-                                  className="p-0.5 text-[var(--duo-orange)] hover:bg-white rounded"
+                                  className="p-0.5 text-[var(--duo-orange)] hover:bg-muted rounded"
                                 >
                                   <Volume2 className="w-3 h-3" />
                                 </button>
                               </div>
-                              {w.phonetic && <span className="text-xs text-muted-foreground font-mono bg-white px-1.5 py-0.5 rounded border">{w.phonetic}</span>}
+                              {w.phonetic && <span className="text-xs text-muted-foreground font-mono bg-muted px-1.5 py-0.5 rounded border border-border/60">{w.phonetic}</span>}
                             </div>
                             <p className="text-foreground text-xs font-bold leading-tight">{w.definition_vi}</p>
                             {w.example_sentence && (
-                              <p className="text-xs text-muted-foreground italic bg-white/80 p-1.5 rounded border truncate">"{w.example_sentence}"</p>
+                              <p className="text-xs text-muted-foreground italic bg-muted/50 p-1.5 rounded border border-border/60 truncate">"{w.example_sentence}"</p>
                             )}
                           </div>
                         ))}
@@ -2856,12 +2856,12 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
               </div>
               <div className="hidden sm:flex items-center gap-2 text-xs font-bold text-muted-foreground bg-muted/40 px-3 py-1.5 rounded-xl border">
                 <span className="flex items-center gap-1">
-                  <kbd className="px-1.5 py-0.5 bg-white rounded border shadow-2xs text-xs font-mono">Ctrl</kbd>
+                  <kbd className="px-1.5 py-0.5 bg-muted rounded border border-border/80 shadow-2xs text-xs font-mono text-foreground">Ctrl</kbd>
                   <span>Phát/Dừng</span>
                 </span>
                 <span>•</span>
                 <span className="flex items-center gap-1">
-                  <kbd className="px-1.5 py-0.5 bg-white rounded border shadow-2xs text-xs font-mono">Alt + ← / →</kbd>
+                  <kbd className="px-1.5 py-0.5 bg-muted rounded border border-border/80 shadow-2xs text-xs font-mono text-foreground">Alt + ← / →</kbd>
                   <span>Tua 5s</span>
                 </span>
               </div>
@@ -2887,7 +2887,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                     <button
                       type="button"
                       onClick={() => seekRelative(-5)}
-                      className="h-10 px-2.5 bg-white border-2 rounded-xl text-xs font-black text-muted-foreground hover:text-foreground hover:bg-muted flex items-center gap-1 shadow-2xs shrink-0 cursor-pointer"
+                      className="h-10 px-2.5 bg-card border-2 border-border/80 rounded-xl text-xs font-black text-muted-foreground hover:text-foreground hover:bg-muted flex items-center gap-1 shadow-2xs shrink-0 cursor-pointer"
                       title="Lùi 5 giây (Alt + ← hoặc Alt + [)"
                     >
                       <RotateCcw className="w-3.5 h-3.5" /> -5s
@@ -2899,7 +2899,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                     <button
                       type="button"
                       onClick={() => seekRelative(5)}
-                      className="h-10 px-2.5 bg-white border-2 rounded-xl text-xs font-black text-muted-foreground hover:text-foreground hover:bg-muted flex items-center gap-1 shadow-2xs shrink-0 cursor-pointer"
+                      className="h-10 px-2.5 bg-card border-2 border-border/80 rounded-xl text-xs font-black text-muted-foreground hover:text-foreground hover:bg-muted flex items-center gap-1 shadow-2xs shrink-0 cursor-pointer"
                       title="Tua tới 5 giây (Alt + → hoặc Alt + ])"
                     >
                       <RotateCw className="w-3.5 h-3.5" /> +5s
@@ -2961,8 +2961,8 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                   className={cn(
                     "h-10 px-2.5 rounded-xl text-xs font-bold border-2 transition-all flex items-center gap-1.5 shadow-2xs shrink-0 cursor-pointer",
                     autoPlayAudio
-                      ? "bg-blue-50 text-blue-700 border-blue-300 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-700"
-                      : "bg-white text-muted-foreground border-border hover:bg-muted dark:bg-zinc-900"
+                      ? "bg-[var(--duo-blue)]/15 text-[var(--duo-blue)] border-[var(--duo-blue)]/30"
+                      : "bg-card text-muted-foreground border-border/80 hover:bg-muted"
                   )}
                   title={autoPlayAudio ? "Tự động phát khi chuyển câu: Đang BẬT" : "Tự động phát khi chuyển câu: Đang TẮT (bấm để bật)"}
                 >
@@ -3418,7 +3418,7 @@ const QuestionDictationSection = ({
               "w-9 h-9 sm:w-10 sm:h-10 rounded-xl shrink-0 flex items-center justify-center font-black text-sm sm:text-base border-2 shadow-sm transition-all mt-1",
               isDone
                 ? "bg-[var(--duo-correct)] text-white border-[var(--duo-correct-dark)] shadow-[0_2px_0_var(--duo-correct-dark)]"
-                : "bg-white text-[var(--duo-blue)] border-[var(--duo-blue)]/30 shadow-[0_2px_0_rgba(24,153,214,0.25)]"
+                : "bg-card text-[var(--duo-blue)] border-[var(--duo-blue)]/40 shadow-soft-xs"
             )}>
               {labelLetter}
             </div>
@@ -3446,7 +3446,7 @@ const QuestionDictationSection = ({
                     <button
                       type="button"
                       onClick={() => speakText(item.text)}
-                      className="p-1.5 rounded-lg text-muted-foreground hover:text-[var(--duo-blue)] hover:bg-white transition-colors"
+                      className="p-1.5 rounded-lg text-muted-foreground hover:text-[var(--duo-blue)] hover:bg-muted transition-colors"
                       title="Nghe phát âm câu này"
                     >
                       <Volume2 className="w-4 h-4" />
@@ -3828,7 +3828,7 @@ const DragDropQuestionGroup = ({
                 "w-9 h-9 sm:w-10 sm:h-10 rounded-xl shrink-0 flex items-center justify-center font-black text-sm sm:text-base border-2 shadow-sm transition-all mt-1",
                 isLineCorrect
                   ? "bg-[var(--duo-correct)] text-white border-[var(--duo-correct-dark)] shadow-[0_2px_0_var(--duo-correct-dark)]"
-                  : "bg-white text-[var(--duo-blue)] border-[var(--duo-blue)]/30 shadow-[0_2px_0_rgba(24,153,214,0.25)]"
+                  : "bg-card text-[var(--duo-blue)] border-[var(--duo-blue)]/40 shadow-soft-xs"
               )}>
                 {labelLetter}
               </div>
@@ -3838,7 +3838,7 @@ const DragDropQuestionGroup = ({
                 "flex-1 p-3.5 sm:p-4 rounded-2xl border-2 transition-all leading-loose sm:leading-[2.5] text-base sm:text-lg font-bold shadow-sm",
                 isLineCorrect
                   ? "bg-[var(--duo-correct)]/10 border-[var(--duo-correct)]/30 text-foreground"
-                  : "bg-white border-border text-foreground"
+                  : "bg-card border-border/80 text-foreground"
               )}>
                 {item.parts.map((p, pIdx) => {
                   if (!p.isKeyword) {
@@ -3864,16 +3864,16 @@ const DragDropQuestionGroup = ({
                       className={cn(
                         "inline-flex items-center justify-center min-w-[90px] sm:min-w-[120px] px-2.5 sm:px-3 py-1.5 sm:py-1 mx-1.5 my-1 align-middle rounded-xl border-2 transition-all select-none touch-none",
                         isLineCorrect
-                          ? "bg-[var(--duo-correct)]/20 border-[var(--duo-correct)] text-[var(--duo-correct-dark)] font-black"
+                          ? "bg-emerald-500/20 border-emerald-500 text-emerald-400 font-black"
                           : isWrong
-                          ? "bg-red-50 border-[var(--duo-red)] text-[var(--duo-red)] animate-shake cursor-pointer shadow-sm"
+                          ? "bg-rose-500/15 border-rose-500 text-rose-400 animate-shake cursor-pointer shadow-sm"
                           : placedToken
-                          ? "bg-blue-50 border-[var(--duo-blue)] text-[var(--duo-blue)] cursor-grab active:cursor-grabbing font-black shadow-sm group/blank"
+                          ? "bg-[var(--duo-blue)]/15 border-[var(--duo-blue)] text-[var(--duo-blue)] cursor-grab active:cursor-grabbing font-black shadow-sm group/blank"
                           : isHovered
-                          ? "bg-blue-100 border-[var(--duo-blue)] border-solid scale-105 shadow-md ring-2 ring-[var(--duo-blue)]/50"
+                          ? "bg-[var(--duo-blue)]/25 border-[var(--duo-blue)] border-solid scale-105 shadow-md ring-2 ring-[var(--duo-blue)]/50 text-[var(--duo-blue)]"
                           : isFocused
-                          ? "bg-blue-50/70 border-[var(--duo-blue)] border-dashed ring-2 ring-[var(--duo-blue)]/40 animate-pulse text-[var(--duo-blue)] cursor-pointer"
-                          : "bg-muted/40 border-dashed border-border text-muted-foreground/60 hover:border-[var(--duo-blue)]/50 hover:bg-blue-50/30 cursor-pointer"
+                          ? "bg-[var(--duo-blue)]/15 border-[var(--duo-blue)] border-dashed ring-2 ring-[var(--duo-blue)]/40 animate-pulse text-[var(--duo-blue)] cursor-pointer"
+                          : "bg-muted/40 border-dashed border-border/80 text-muted-foreground/60 hover:border-[var(--duo-blue)]/50 hover:bg-[var(--duo-blue)]/10 cursor-pointer"
                       )}
                       draggable={!!placedToken && status !== "correct"}
                       onDragStart={(e) => placedToken && handleDragStart(e, placedToken, currentBlankKey)}
@@ -3946,7 +3946,7 @@ const DragDropQuestionGroup = ({
                     onTouchStart={(e) => touchDrag.handleTouchStart(e, token)}
                     onClick={() => handleTokenClick(token)}
                     className={cn(
-                      "btn-3d px-3.5 py-2.5 sm:py-2 rounded-xl bg-white hover:bg-blue-50 text-foreground hover:text-[var(--duo-blue)] border-2 border-border hover:border-[var(--duo-blue)] text-sm sm:text-base font-black shadow-sm active:scale-95 transition-all cursor-grab active:cursor-grabbing flex items-center gap-1.5 touch-none select-none",
+                      "btn-3d px-3.5 py-2.5 sm:py-2 rounded-xl bg-card hover:bg-[var(--duo-blue)]/15 text-foreground hover:text-[var(--duo-blue)] border-2 border-border/80 hover:border-[var(--duo-blue)] text-sm sm:text-base font-black shadow-sm active:scale-95 transition-all cursor-grab active:cursor-grabbing flex items-center gap-1.5 touch-none select-none",
                       isBeingDragged && "opacity-40 scale-95"
                     )}
                     title="Nhấp để điền nhanh hoặc kéo vào bất kỳ ô trống nào"
@@ -3996,12 +3996,12 @@ const DragDropQuestionGroup = ({
 
       {/* Correct Celebration Card */}
       {status === "correct" && (
-        <div className="p-3 bg-[var(--duo-correct)]/10 rounded-xl border border-[var(--duo-correct)]/30 flex items-center justify-between text-xs sm:text-sm font-black text-[var(--duo-correct-dark)] animate-in fade-in slide-in-from-bottom-1">
+        <div className="p-3 bg-[var(--duo-correct)]/10 rounded-xl border border-[var(--duo-correct)]/30 flex items-center justify-between text-xs sm:text-sm font-black text-emerald-400 animate-in fade-in slide-in-from-bottom-1">
           <span className="flex items-center gap-1.5">
             <CheckCircle className="w-4 h-4 text-[var(--duo-correct)]" />
             Chính xác tuyệt đối! Đã hoàn thành các từ khóa của câu này.
           </span>
-          <span className="text-xs bg-white px-2 py-0.5 rounded-md border border-[var(--duo-correct)]/30 shadow-2xs font-black text-[var(--duo-correct-dark)]">
+          <span className="text-xs bg-card px-2 py-0.5 rounded-md border border-emerald-500/30 shadow-2xs font-black text-emerald-400">
             +{allBlanks.length * 5 || 10} XP
           </span>
         </div>
@@ -4255,7 +4255,7 @@ const DragDropClozeSection = ({
   };
 
   return (
-    <div className="bg-white p-4 sm:p-6 rounded-2xl border-2 shadow-sm flex flex-col gap-4">
+    <div className="bg-card p-4 sm:p-6 rounded-2xl border-2 border-border/80 shadow-sm flex flex-col gap-4">
       {/* Top Toolbar */}
       <div className="flex items-center justify-between w-full border-b border-border/60 pb-2.5">
         <span className="text-xs font-black uppercase text-[var(--duo-blue)] bg-[var(--duo-blue)]/10 px-2.5 py-1 rounded-lg border border-[var(--duo-blue)]/20 flex items-center gap-1.5">
@@ -4267,7 +4267,7 @@ const DragDropClozeSection = ({
             <button
               type="button"
               onClick={handleReset}
-              className="text-xs font-extrabold text-muted-foreground hover:text-[var(--duo-red)] bg-muted/50 hover:bg-red-50 px-2.5 py-1 rounded-lg border transition-colors flex items-center gap-1"
+              className="text-xs font-extrabold text-muted-foreground hover:text-[var(--duo-red)] bg-muted/50 hover:bg-rose-500/20 px-2.5 py-1 rounded-lg border transition-colors flex items-center gap-1"
             >
               <RotateCcw className="w-3 h-3" /> Đặt lại
             </button>
@@ -4309,12 +4309,12 @@ const DragDropClozeSection = ({
                   onTouchStart={(e) => placedToken && status !== "correct" && touchDrag.handleTouchStart(e, placedToken, currentBlankIdx)}
                   className={cn(
                     "inline-flex items-center justify-center mx-1.5 my-1 px-3 py-1.5 sm:py-1 min-w-[90px] min-h-[38px] rounded-xl border-2 transition-all cursor-pointer select-none text-center font-black text-sm sm:text-base align-middle shadow-2xs touch-none",
-                    !placedToken && !isHovered && !isFocused && "border-dashed border-border/90 bg-muted/30 text-muted-foreground/50 hover:border-[var(--duo-blue)]/50 hover:bg-blue-50/30",
+                    !placedToken && !isHovered && !isFocused && "border-dashed border-border/90 bg-muted/30 text-muted-foreground/50 hover:border-[var(--duo-blue)]/50 hover:bg-[var(--duo-blue)]/10",
                     !placedToken && isHovered && "border-solid border-[var(--duo-blue)] bg-[var(--duo-blue)]/20 scale-105 shadow-md ring-2 ring-[var(--duo-blue)]/50 text-[var(--duo-blue)]",
-                    !placedToken && isFocused && "border-dashed border-[var(--duo-blue)] bg-blue-50/70 ring-2 ring-[var(--duo-blue)]/40 animate-pulse text-[var(--duo-blue)]",
-                    placedToken && isCorrect && "border-[var(--duo-correct)] bg-[var(--duo-correct)]/15 text-[var(--duo-correct-dark)] shadow-[0_2px_0_var(--duo-correct)] animate-[dictation-correct_0.4s_ease-in-out]",
-                    placedToken && isWrong && "border-[var(--duo-red)] bg-[var(--duo-red)]/15 text-[var(--duo-red)] shadow-[0_2px_0_var(--duo-red)] animate-[dictation-shake_0.3s_ease-in-out]",
-                    placedToken && !isCorrect && !isWrong && "border-[var(--duo-blue)] bg-white text-[var(--duo-blue)] shadow-[0_2px_0_#1899D6] hover:bg-red-50 hover:border-red-300 hover:text-red-600 group/blank"
+                    !placedToken && isFocused && "border-dashed border-[var(--duo-blue)] bg-[var(--duo-blue)]/15 ring-2 ring-[var(--duo-blue)]/40 animate-pulse text-[var(--duo-blue)]",
+                    placedToken && isCorrect && "border-emerald-500 bg-emerald-500/20 text-emerald-400 shadow-[0_2px_0_var(--duo-correct)] animate-[dictation-correct_0.4s_ease-in-out]",
+                    placedToken && isWrong && "border-rose-500 bg-rose-500/20 text-rose-400 shadow-[0_2px_0_var(--duo-red)] animate-[dictation-shake_0.3s_ease-in-out]",
+                    placedToken && !isCorrect && !isWrong && "border-[var(--duo-blue)] bg-[var(--duo-blue)]/15 text-[var(--duo-blue)] shadow-[0_2px_0_#1899D6] hover:bg-rose-500/20 hover:border-rose-400 hover:text-rose-400 group/blank"
                   )}
                   draggable={!!placedToken && status !== "correct"}
                   onDragStart={(e) => placedToken && handleDragStart(e, placedToken, currentBlankIdx)}
@@ -4376,7 +4376,7 @@ const DragDropClozeSection = ({
                     onTouchStart={(e) => touchDrag.handleTouchStart(e, token)}
                     onClick={() => handleTokenClick(token)}
                     className={cn(
-                      "btn-3d px-3.5 py-2.5 sm:py-2 rounded-xl bg-white hover:bg-blue-50 text-foreground hover:text-[var(--duo-blue)] border-2 border-border hover:border-[var(--duo-blue)] text-sm sm:text-base font-black shadow-sm active:scale-95 transition-all cursor-grab active:cursor-grabbing touch-none select-none",
+                      "btn-3d px-3.5 py-2.5 sm:py-2 rounded-xl bg-card hover:bg-[var(--duo-blue)]/15 text-foreground hover:text-[var(--duo-blue)] border-2 border-border/80 hover:border-[var(--duo-blue)] text-sm sm:text-base font-black shadow-sm active:scale-95 transition-all cursor-grab active:cursor-grabbing touch-none select-none",
                       isBeingDragged && "opacity-40 scale-95"
                     )}
                   >
@@ -4423,12 +4423,12 @@ const DragDropClozeSection = ({
 
       {/* Correct Cloze Indicator */}
       {status === "correct" && (
-        <div className="p-3 bg-[var(--duo-correct)]/10 rounded-xl border border-[var(--duo-correct)]/30 flex items-center justify-between text-xs sm:text-sm font-black text-[var(--duo-correct-dark)] animate-in fade-in slide-in-from-bottom-1">
+        <div className="p-3 bg-[var(--duo-correct)]/10 rounded-xl border border-[var(--duo-correct)]/30 flex items-center justify-between text-xs sm:text-sm font-black text-emerald-400 animate-in fade-in slide-in-from-bottom-1">
           <span className="flex items-center gap-1.5">
             <CheckCircle className="w-4 h-4 text-[var(--duo-correct)]" />
             Chính xác! Bạn đã hoàn thành câu này.
           </span>
-          <span className="text-xs bg-white px-2 py-0.5 rounded-md border border-[var(--duo-correct)]/30 shadow-2xs">
+          <span className="text-xs bg-card px-2 py-0.5 rounded-md border border-emerald-500/30 shadow-2xs font-black text-emerald-400">
             +{expectedAnswers.length * 5} XP
           </span>
         </div>
@@ -4541,7 +4541,7 @@ const KeywordModeItem = ({
 
   if (keywordIndices.length === 0) {
     return (
-      <div className="bg-white p-4 sm:p-5 rounded-2xl border-2 leading-loose sm:leading-[2.6] text-base sm:text-lg font-medium shadow-sm flex items-start justify-between gap-3 text-foreground font-bold">
+      <div className="bg-card p-4 sm:p-5 rounded-2xl border-2 border-border/80 leading-loose sm:leading-[2.6] text-base sm:text-lg font-medium shadow-sm flex items-start justify-between gap-3 text-foreground font-bold">
         <p className="text-base sm:text-lg leading-relaxed flex-1">{item.text}</p>
         <button
           type="button"
@@ -4556,7 +4556,7 @@ const KeywordModeItem = ({
   }
 
   return (
-    <div className="bg-white p-4 sm:p-5 rounded-2xl border-2 leading-loose sm:leading-[2.6] text-base sm:text-lg font-medium shadow-sm flex flex-col items-start gap-2 relative group">
+    <div className="bg-card p-4 sm:p-5 rounded-2xl border-2 border-border/80 leading-loose sm:leading-[2.6] text-base sm:text-lg font-medium shadow-sm flex flex-col items-start gap-2 relative group">
       {!isDoneInSession && keywordIndices.length > 0 && !forceRevealAll && (
         <button 
           onClick={() => setInternalForceReveal(true)}

@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, BookOpen, Users, ClipboardList, FileText, BarChart3, Settings, LogOut, Menu, X, Sun, Moon, ChevronRight, ShieldAlert, Home, FileJson, Gamepad2 } from "lucide-react";
+import { LayoutDashboard, BookOpen, Users, ClipboardList, FileText, BarChart3, Settings, LogOut, Menu, X, Sun, Moon, ChevronRight, ShieldAlert, Home, FileJson, Gamepad2, Database } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -17,6 +17,7 @@ const navItems = [
   { to: "/admin/enrollments", label: "Đăng ký", icon: ClipboardList },
   { to: "/admin/materials", label: "Tài liệu", icon: FileText },
   { to: "/admin/reports", label: "Báo cáo", icon: BarChart3 },
+  { to: "/admin/backup", label: "Sao lưu Dữ liệu", icon: Database },
   { to: "/admin/settings", label: "Cài đặt", icon: Settings },
 ];
 
