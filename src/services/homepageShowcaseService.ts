@@ -1,4 +1,17 @@
 import { supabase } from "@/integrations/supabase/client";
+import {
+  ArcadeGameItem,
+  ArcadeSectionConfig,
+  DEFAULT_ARCADE_GAMES,
+  DEFAULT_ARCADE_SECTION,
+  AVATAR_PRESETS,
+  resolveGameAvatar,
+  ARCADE_THEME_STYLES,
+  ArcadeThemeColor,
+} from "./arcadeGamesService";
+
+export type { ArcadeGameItem, ArcadeSectionConfig, ArcadeThemeColor };
+export { DEFAULT_ARCADE_GAMES, DEFAULT_ARCADE_SECTION, AVATAR_PRESETS, resolveGameAvatar, ARCADE_THEME_STYLES };
 
 export interface ContactInfo {
   hotline: string;
@@ -73,6 +86,7 @@ export interface HomepageShowcaseConfig {
   testimonials: TestimonialItem[];
   faqs: FaqItem[];
   commitments: EtsCommitment[];
+  arcade_section: ArcadeSectionConfig;
 }
 
 export const SHOWCASE_CONFIG_STORAGE_KEY = "l_english_homepage_showcase_config";
@@ -87,6 +101,7 @@ export const DEFAULT_HOMEPAGE_CONFIG: HomepageShowcaseConfig = {
     show_faq: true,
     show_ets_commitments: true,
   },
+  arcade_section: DEFAULT_ARCADE_SECTION,
   contact_info: {
     hotline: "0334 729 066",
     zalo_number: "0334729066",
@@ -301,6 +316,13 @@ export async function getHomepageShowcaseConfig(): Promise<HomepageShowcaseConfi
         commitments: Array.isArray(parsed.commitments) && parsed.commitments.length > 0
           ? parsed.commitments
           : DEFAULT_HOMEPAGE_CONFIG.commitments,
+        arcade_section: {
+          ...DEFAULT_ARCADE_SECTION,
+          ...(parsed.arcade_section || {}),
+          games: Array.isArray(parsed.arcade_section?.games) && parsed.arcade_section.games.length > 0
+            ? parsed.arcade_section.games
+            : DEFAULT_ARCADE_SECTION.games,
+        },
       };
       localStorage.setItem(SHOWCASE_CONFIG_STORAGE_KEY, JSON.stringify(merged));
       return merged;
@@ -333,6 +355,13 @@ export async function getHomepageShowcaseConfig(): Promise<HomepageShowcaseConfi
         commitments: Array.isArray(parsed.commitments) && parsed.commitments.length > 0
           ? parsed.commitments
           : DEFAULT_HOMEPAGE_CONFIG.commitments,
+        arcade_section: {
+          ...DEFAULT_ARCADE_SECTION,
+          ...(parsed.arcade_section || {}),
+          games: Array.isArray(parsed.arcade_section?.games) && parsed.arcade_section.games.length > 0
+            ? parsed.arcade_section.games
+            : DEFAULT_ARCADE_SECTION.games,
+        },
       };
     }
   } catch (err) {

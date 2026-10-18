@@ -122,6 +122,7 @@ const AdminVocabPacks = lazyWithRetry(() => import("./pages/admin/AdminVocabPack
 const AdminFullTestManager = lazyWithRetry(() => import("./pages/admin/AdminFullTestManager"));
 const AdminFullTestQuestions = lazyWithRetry(() => import("./pages/admin/AdminFullTestQuestions"));
 const AdminCourseJsonImport = lazyWithRetry(() => import("./pages/admin/AdminCourseJsonImport"));
+const AdminGamesConfig = lazyWithRetry(() => import("./pages/admin/AdminGamesConfig"));
 const WordShooterGame = lazyWithRetry(() => import("./pages/WordShooterGame"));
 const WordDefenseGame = lazyWithRetry(() => import("./pages/WordDefenseGame"));
 const GamesHub = lazyWithRetry(() => import("./pages/GamesHub"));
@@ -227,6 +228,7 @@ const App = () => {
                 {/* Admin (role-protected) */}
                 <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
                 <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+                <Route path="/admin/games" element={<AdminRoute><AdminGamesConfig /></AdminRoute>} />
                 <Route path="/admin/vocab-packs" element={<AdminRoute><AdminVocabPacks /></AdminRoute>} />
                 <Route path="/admin/categories" element={<AdminRoute><AdminCategories /></AdminRoute>} />
                 <Route path="/admin/courses" element={<AdminRoute><AdminCourses /></AdminRoute>} />

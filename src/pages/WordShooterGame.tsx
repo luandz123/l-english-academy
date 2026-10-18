@@ -13,17 +13,29 @@ import {
 } from '@/components/game/WordShooter/types';
 import { DEFAULT_VOCAB_TOPICS } from '@/components/game/WordShooter/defaultVocabPacks';
 import { getCachedVocabPacks } from '@/services/vocabPacksService';
-import { Maximize2, Minimize2, ArrowLeft, HelpCircle, Trophy } from 'lucide-react';
+import { Maximize2, Minimize2, ArrowLeft, HelpCircle, Trophy, ShieldAlert, Wrench } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { WordShooterTutorialModal } from '@/components/game/WordShooter/WordShooterTutorialModal';
 import { WordShooterLeaderboardModal } from '@/components/game/WordShooter/WordShooterLeaderboardModal';
 import { MatchedRankedOpponent } from '@/services/wordShooterRankService';
+import { useAuth } from '@/hooks/useAuth';
+import { useQuery } from '@tanstack/react-query';
+import { getHomepageShowcaseConfig } from '@/services/homepageShowcaseService';
 
 type GameState = 'lobby' | 'playing' | 'result';
 
 export default function WordShooterGame() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { isAdmin } = useAuth();
+
+  const { data: showcaseConfig } = useQuery({
+    queryKey: ['homepage-showcase-config'],
+    queryFn: () => getHomepageShowcaseConfig(),
+  });
+
+  const gameConfig = showcaseConfig?.arcade_section?.games?.find((g) => g.id === 'word-shooter');
+  const isGameActive = gameConfig ? gameConfig.is_active : true;
 
   const [gameState, setGameState] = useState<GameState>('lobby');
   const [selectedTopic, setSelectedTopic] = useState<VocabTopic>(() => getCachedVocabPacks()[0] || DEFAULT_VOCAB_TOPICS[0]);
@@ -119,8 +131,52 @@ export default function WordShooterGame() {
     }
   };
 
+  if (!isGameActive && !isAdmin) {
+    return (
+      <StudentLayout>
+        <div className="min-h-[70vh] flex flex-col items-center justify-center text-center p-6 space-y-6 max-w-lg mx-auto">
+          <div className="w-20 h-20 rounded-3xl bg-cyan-500/10 border-2 border-cyan-500/30 flex items-center justify-center text-4xl shadow-xl shadow-cyan-500/10">
+            🛠️
+          </div>
+          <div className="space-y-2">
+            <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-rose-500/15 text-rose-400 border border-rose-500/30">
+              Trò Chơi Tạm Tắt Bảo Trì
+            </span>
+            <h2 className="text-2xl font-black text-white font-display">
+              {gameConfig?.title || "Word Shooter"} Đang Tạm Đóng
+            </h2>
+            <p className="text-sm text-slate-300 leading-relaxed font-medium">
+              Trò chơi này hiện đang được ban quản trị tạm tắt để nâng cấp &amp; tối ưu tính năng mới. Vui lòng quay lại sau hoặc thử các trò chơi từ vựng khác nhé!
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+            <Button
+              onClick={() => navigate('/games')}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground font-black text-xs px-6 py-5 rounded-2xl cursor-pointer"
+            >
+              🕹️ Đến Đấu Trường Game Khác
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => navigate('/')}
+              className="border-slate-700 bg-slate-900/60 hover:bg-slate-800 text-slate-300 font-bold text-xs px-6 py-5 rounded-2xl cursor-pointer"
+            >
+              🏠 Về Trang Chủ
+            </Button>
+          </div>
+        </div>
+      </StudentLayout>
+    );
+  }
+
   const content = (
     <div className="w-full min-h-screen bg-slate-950 text-foreground flex flex-col justify-between relative overflow-x-hidden">
+      {!isGameActive && isAdmin && (
+        <div className="bg-amber-500/20 border-b border-amber-500/40 px-4 py-2 text-xs text-amber-300 font-bold flex items-center justify-center gap-2 z-50">
+          <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0" />
+          <span>Chế độ Quản Trị Viên: Trò chơi đang tắt với học viên, bạn đang xem trước &amp; thử nghiệm.</span>
+        </div>
+      )}
       {/* Top Floating Control Bar */}
       <div className="w-full px-4 py-3 flex items-center justify-between border-b border-slate-900 bg-slate-950/80 backdrop-blur-md z-50">
         <div className="flex items-center gap-3">

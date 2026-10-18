@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 
 const navItems = [
   { to: "/admin/dashboard", label: "Tổng quan", icon: LayoutDashboard },
-  { to: "/admin/vocab-packs", label: "Bộ từ vựng Game", icon: Gamepad2 },
+  { to: "/admin/games", label: "Cấu hình Trò chơi", icon: Gamepad2 },
+  { to: "/admin/vocab-packs", label: "Bộ từ vựng Game", icon: BookOpen },
   { to: "/admin/categories", label: "Danh mục", icon: BookOpen },
   { to: "/admin/courses", label: "Khóa học", icon: BookOpen },
   { to: "/admin/fulltests", label: "Full Test TOEIC", icon: ClipboardList },

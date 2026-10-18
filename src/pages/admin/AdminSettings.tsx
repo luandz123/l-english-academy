@@ -238,20 +238,28 @@ const AdminSettings = () => {
                   />
                 </div>
 
-                <div className="flex items-center justify-between p-3.5 rounded-xl bg-muted/40 border border-border/60">
-                  <div className="space-y-0.5">
-                    <Label className="font-bold text-xs cursor-pointer">Đấu Trường Arcade Game</Label>
-                    <p className="text-[11px] text-muted-foreground">Word Defense, Word Shooter &amp; Từ vựng</p>
+                <div className="flex flex-col justify-between p-3.5 rounded-xl bg-muted/40 border border-border/60 gap-3">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label className="font-bold text-xs cursor-pointer">Đấu Trường Arcade Game</Label>
+                      <p className="text-[11px] text-muted-foreground">Word Defense, Word Shooter &amp; Từ vựng</p>
+                    </div>
+                    <Switch
+                      checked={showcaseConfig.section_toggles.show_games}
+                      onCheckedChange={(val) =>
+                        setShowcaseConfig({
+                          ...showcaseConfig,
+                          section_toggles: { ...showcaseConfig.section_toggles, show_games: val },
+                        })
+                      }
+                    />
                   </div>
-                  <Switch
-                    checked={showcaseConfig.section_toggles.show_games}
-                    onCheckedChange={(val) =>
-                      setShowcaseConfig({
-                        ...showcaseConfig,
-                        section_toggles: { ...showcaseConfig.section_toggles, show_games: val },
-                      })
-                    }
-                  />
+                  <Button asChild variant="outline" size="sm" className="w-full rounded-xl text-xs font-bold border-cyan-500/30 text-cyan-500 hover:bg-cyan-500/10">
+                    <Link to="/admin/games">
+                      <Gamepad2 className="w-3.5 h-3.5 mr-1.5" />
+                      Cấu hình Vị trí, Bật/Tắt, Tiêu đề, Mô tả &amp; Avt Game ➜
+                    </Link>
+                  </Button>
                 </div>
 
                 <div className="flex items-center justify-between p-3.5 rounded-xl bg-muted/40 border border-border/60">

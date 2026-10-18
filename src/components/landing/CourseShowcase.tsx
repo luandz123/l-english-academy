@@ -42,6 +42,8 @@ import {
 
 import { CourseCard, CourseRow } from "@/components/CourseCard";
 import { trackEvent } from "@/lib/analytics";
+import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 import {
   getHomepageShowcaseConfig,
   parseCategoryIconAndDesc,
@@ -49,6 +51,9 @@ import {
   calculateSavings,
   DEFAULT_HOMEPAGE_CONFIG,
   HomepageShowcaseConfig,
+  resolveGameAvatar,
+  ARCADE_THEME_STYLES,
+  DEFAULT_ARCADE_SECTION,
 } from "@/services/homepageShowcaseService";
 
 import iconFulltest from "@/assets/icons/icon-fulltest-3d.webp";
@@ -257,7 +262,16 @@ export const CourseShowcase = () => {
     return activeCourses.filter((c) => !c.category_id || !knownCatIds.has(c.category_id));
   }, [activeCourses, categories]);
 
+  const { toast } = useToast();
   const { section_toggles, part2_banner, vip_combo, commitments, testimonials, faqs } = showcaseConfig;
+  const arcadeSection = showcaseConfig.arcade_section || DEFAULT_ARCADE_SECTION;
+
+  const visibleArcadeGames = useMemo(() => {
+    const games = arcadeSection?.games || DEFAULT_ARCADE_SECTION.games;
+    return [...games]
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+      .filter((g) => g.is_active || !g.hide_when_inactive);
+  }, [arcadeSection]);
 
   return (
     <div className="space-y-12">
@@ -434,129 +448,156 @@ export const CourseShowcase = () => {
             <div className="space-y-2">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-xs font-black uppercase tracking-wider">
                 <Gamepad2 className="w-4 h-4 text-cyan-400" />
-                <span>ARCADE GAMIFICATION · VỪA HỌC VỪA CHƠI</span>
+                <span>{arcadeSection.badge}</span>
               </div>
               <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-white font-display tracking-wide">
-                KHU VỰC TRÒ CHƠI HỌC TỪ VỰNG THEO BỘ TỪ VỰNG TÙY CHỌN
+                {arcadeSection.title}
               </h2>
               <p className="text-slate-300 text-xs sm:text-sm font-medium">
-                Chọn bộ từ vựng yêu thích (TOEIC 600 từ, Giao tiếp, Công nghệ...) và chiến game ngay!
+                {arcadeSection.description}
               </p>
             </div>
 
             <Link
-              to="/games"
+              to={arcadeSection.view_all_url || "/games"}
               onClick={() => trackEvent("click_arcade_view_all", { source: "games_header" })}
               className="py-2.5 px-5 rounded-xl font-black text-xs text-cyan-300 bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/40 hover:border-cyan-400 transition-all inline-flex items-center gap-2 shadow-[0_0_15px_rgba(6,182,212,0.25)] shrink-0 self-start md:self-auto cursor-pointer"
             >
-              <span>Vào đấu trường Game</span>
+              <span>{arcadeSection.view_all_text || "Vào đấu trường Game"}</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
 
-          {/* Bento Grid 2 Game Chủ Lực + Thẻ Bộ Từ Vựng */}
+          {/* Bento Grid Dynamic Cards (Sắp xếp theo thứ tự, bật/tắt và ảnh cấu hình) */}
           <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
-            {/* Card 1: Word Defense */}
-            <div className="group rounded-2xl border border-emerald-500/30 bg-[#071329]/90 hover:border-emerald-400/60 p-6 flex flex-col justify-between space-y-5 transition-all duration-300 shadow-[0_4px_25px_rgba(0,0,0,0.5)] hover:shadow-[0_0_30px_rgba(16,185,129,0.3)]">
-              <div className="space-y-3.5">
-                <div className="flex items-center justify-between">
-                  <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 p-1 flex items-center justify-center shadow-lg shadow-emerald-500/20 group-hover:scale-110 transition-transform shrink-0">
-                    <img src={iconWordDefense} alt="Word Defense" className="w-full h-full object-contain drop-shadow" />
+            {visibleArcadeGames.map((game) => {
+              const theme = ARCADE_THEME_STYLES[game.theme_color || "cyan"];
+              const avatarSrc = resolveGameAvatar(game.avatar_url);
+
+              if (!game.is_active) {
+                return (
+                  <div
+                    key={game.id}
+                    className="group rounded-2xl border border-slate-700/80 bg-[#071329]/80 p-6 flex flex-col justify-between space-y-5 transition-all duration-300 shadow-[0_4px_25px_rgba(0,0,0,0.5)] opacity-80 grayscale-[15%]"
+                  >
+                    <div className="space-y-3.5">
+                      <div className="flex items-center justify-between">
+                        <div className="w-14 h-14 rounded-2xl bg-slate-800/80 border border-slate-700 p-1 flex items-center justify-center shadow-lg shrink-0 overflow-hidden">
+                          <img
+                            src={avatarSrc}
+                            alt={game.title}
+                            className="w-full h-full object-contain drop-shadow opacity-75"
+                          />
+                        </div>
+                        <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-rose-500/20 text-rose-300 border border-rose-500/40">
+                          🔒 TẠM BẢO TRÌ
+                        </span>
+                      </div>
+                      <div className="space-y-1.5">
+                        <h3 className="text-lg font-black text-slate-300 font-display">
+                          {game.title}
+                        </h3>
+                        <p className="text-xs text-slate-400 font-medium leading-relaxed">
+                          {game.description}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="pt-4 border-t border-slate-800/80 flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-500">{game.footer_tag}</span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          toast({
+                            title: `🔒 Trò chơi "${game.title}" đang tạm tắt`,
+                            description: "Game đang được bảo trì hoặc cập nhật tính năng mới. Vui lòng quay lại sau nhé!",
+                          })
+                        }
+                        className="py-2 px-4 rounded-xl font-black text-xs text-slate-400 bg-slate-800 hover:bg-slate-700 border border-slate-700 inline-flex items-center gap-1.5 transition-all cursor-not-allowed"
+                      >
+                        <span>🔒 Đang Bảo Trì</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
-                  <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                    MỚI • PVZ STYLE
-                  </span>
-                </div>
-                <div className="space-y-1.5">
-                  <h3 className="text-lg font-black text-white group-hover:text-emerald-300 transition-colors font-display">
-                    Word Defense: Cuộc Chiến Khu Vườn
-                  </h3>
-                  <p className="text-xs text-slate-300 font-medium leading-relaxed">
-                    Bảo vệ khu vườn bằng cách gõ từ vựng triệu hồi Đậu Thần, Băng Tiễn, Bom Anh Đào. Giải mã khiên quái vật, luyện phản xạ từ vựng cấp tốc.
-                  </p>
-                </div>
-              </div>
+                );
+              }
 
-              <div className="pt-4 border-t border-slate-800/80 flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-400">Chọn mọi bộ từ vựng</span>
-                <Link
-                  to="/games/word-defense"
-                  onClick={() => trackEvent("click_play_defense", { source: "homepage_bento" })}
-                  className="py-2 px-4 rounded-xl font-black text-xs text-white bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 shadow-[0_0_15px_rgba(16,185,129,0.4)] inline-flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 cursor-pointer"
+              return (
+                <div
+                  key={game.id}
+                  className={cn(
+                    "group rounded-2xl border bg-[#071329]/90 p-6 flex flex-col justify-between space-y-5 transition-all duration-300 shadow-[0_4px_25px_rgba(0,0,0,0.5)]",
+                    theme.border,
+                    theme.borderHover,
+                    theme.shadowHover
+                  )}
                 >
-                  <span>⚔️ Chơi Ngay</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
-              </div>
-            </div>
-
-            {/* Card 2: Word Shooter */}
-            <div className="group rounded-2xl border border-cyan-500/30 bg-[#071329]/90 hover:border-cyan-400/60 p-6 flex flex-col justify-between space-y-5 transition-all duration-300 shadow-[0_4px_25px_rgba(0,0,0,0.5)] hover:shadow-[0_0_30px_rgba(6,182,212,0.3)]">
-              <div className="space-y-3.5">
-                <div className="flex items-center justify-between">
-                  <div className="w-14 h-14 rounded-2xl bg-cyan-500/20 border border-cyan-500/40 p-1 flex items-center justify-center shadow-lg shadow-cyan-500/20 group-hover:scale-110 transition-transform shrink-0">
-                    <img src={iconWordShooter} alt="Word Shooter" className="w-full h-full object-contain drop-shadow" />
+                  <div className="space-y-3.5">
+                    <div className="flex items-center justify-between">
+                      <div
+                        className={cn(
+                          "w-14 h-14 rounded-2xl p-1 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform shrink-0 border overflow-hidden",
+                          theme.avatarBg,
+                          theme.avatarBorder,
+                          theme.avatarShadow
+                        )}
+                      >
+                        <img
+                          src={avatarSrc}
+                          alt={game.title}
+                          className="w-full h-full object-contain drop-shadow"
+                        />
+                      </div>
+                      <span
+                        className={cn(
+                          "px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border",
+                          theme.badgeBg,
+                          theme.badgeText,
+                          theme.badgeBorder
+                        )}
+                      >
+                        {game.badge}
+                      </span>
+                    </div>
+                    <div className="space-y-1.5">
+                      <h3
+                        className={cn(
+                          "text-lg font-black text-white transition-colors font-display",
+                          theme.titleHover
+                        )}
+                      >
+                        {game.title}
+                      </h3>
+                      <p className="text-xs text-slate-300 font-medium leading-relaxed">
+                        {game.description}
+                      </p>
+                    </div>
                   </div>
-                  <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
-                    HOT • NÂNG CẤP 2.0
-                  </span>
-                </div>
-                <div className="space-y-1.5">
-                  <h3 className="text-lg font-black text-white group-hover:text-cyan-300 transition-colors font-display">
-                    Phi Cơ Diệt Từ Vựng (Sky Strike 2.0)
-                  </h3>
-                  <p className="text-xs text-slate-300 font-medium leading-relaxed">
-                    Lái chiến đấu cơ bắn nổ từ vựng đang rơi bằng cách gõ phím. Tích hợp audio phát âm chuẩn TTS, popup nghĩa nổ và đóng băng từ đặc biệt.
-                  </p>
-                </div>
-              </div>
 
-              <div className="pt-4 border-t border-slate-800/80 flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-400">Có Audio TTS &amp; PvP</span>
-                <Link
-                  to="/games/word-shooter"
-                  onClick={() => trackEvent("click_play_shooter", { source: "homepage_bento" })}
-                  className="py-2 px-4 rounded-xl font-black text-xs text-white bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 shadow-[0_0_15px_rgba(6,182,212,0.4)] inline-flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 cursor-pointer"
-                >
-                  <span>🚀 Xuất Kích</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
-              </div>
-            </div>
-
-            {/* Card 3: Kho Bộ Từ Vựng Tùy Chọn */}
-            <div className="group rounded-2xl border border-purple-500/30 bg-[#071329]/90 hover:border-purple-400/60 p-6 flex flex-col justify-between space-y-5 transition-all duration-300 shadow-[0_4px_25px_rgba(0,0,0,0.5)] hover:shadow-[0_0_30px_rgba(168,85,247,0.3)]">
-              <div className="space-y-3.5">
-                <div className="flex items-center justify-between">
-                  <div className="w-14 h-14 rounded-2xl bg-purple-500/20 border border-purple-500/40 p-1 flex items-center justify-center shadow-lg shadow-purple-500/20 group-hover:scale-110 transition-transform shrink-0">
-                    <img src={iconVocabPacks} alt="Vocab Packs" className="w-full h-full object-contain drop-shadow" />
+                  <div className="pt-4 border-t border-slate-800/80 flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-400">{game.footer_tag}</span>
+                    <Link
+                      to={game.action_url}
+                      onClick={() =>
+                        trackEvent("click_play_game", {
+                          game_id: game.id,
+                          source: "homepage_bento",
+                        })
+                      }
+                      className={cn(
+                        "py-2 px-4 rounded-xl font-black text-xs text-white bg-gradient-to-r inline-flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 cursor-pointer",
+                        theme.buttonGradient,
+                        theme.buttonShadow
+                      )}
+                    >
+                      <span>{game.action_text}</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
                   </div>
-                  <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-purple-500/20 text-purple-300 border border-purple-500/40">
-                    TÙY CHỌN BỘ TỪ
-                  </span>
                 </div>
-                <div className="space-y-1.5">
-                  <h3 className="text-lg font-black text-white group-hover:text-purple-300 transition-colors font-display">
-                    Kho Bộ Từ Vựng Đa Dạng
-                  </h3>
-                  <p className="text-xs text-slate-300 font-medium leading-relaxed">
-                    Tùy ý nạp bộ từ: <strong>TOEIC 600 Master</strong>, <strong>Giao tiếp hàng ngày</strong>, <strong>Công nghệ</strong>, hoặc tự tạo bộ từ vựng cá nhân để chơi game.
-                  </p>
-                </div>
-              </div>
-
-              <div className="pt-4 border-t border-slate-800/80 flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-400">1.000+ từ cốt lõi</span>
-                <Link
-                  to="/games"
-                  onClick={() => trackEvent("click_view_vocab_packs", { source: "homepage_bento" })}
-                  className="py-2 px-4 rounded-xl font-black text-xs text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 shadow-[0_0_15px_rgba(168,85,247,0.4)] inline-flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 cursor-pointer"
-                >
-                  <span>🕹️ Vào Kho Game</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
-              </div>
-            </div>
+              );
+            })}
           </div>
         </section>
       )}

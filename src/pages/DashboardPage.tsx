@@ -30,6 +30,10 @@ import {
   RotateCcw,
   BarChart3,
   Check,
+  Rocket,
+  Layers,
+  GraduationCap,
+  TrendingUp,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -471,6 +475,27 @@ export const DashboardPage: React.FC = () => {
     return displayQuests.filter((q) => q.current >= q.target).length;
   }, [displayQuests]);
 
+  const featuredTests = useMemo(() => {
+    if (!allFullTests || allFullTests.length === 0) return [];
+    return allFullTests.slice(0, 4).map((test: any, idx: number) => {
+      const userResult = fullTestResults.find((r: any) => r.test_id === test.id);
+      return {
+        ...test,
+        category: test.category || `ETS Full Test 0${idx + 1}`,
+        bestScore: userResult?.total_score ?? null,
+        isCompleted: !!userResult,
+      };
+    });
+  }, [allFullTests, fullTestResults]);
+
+  const maxStudyDay = useMemo(() => {
+    if (weeklyStudyData.length === 0) return null;
+    const sorted = [...weeklyStudyData].sort((a, b) => b.hours - a.hours);
+    return sorted[0] && sorted[0].hours > 0 ? sorted[0] : null;
+  }, [weeklyStudyData]);
+
+  const avgStudyHours = (weekTotalHours / 7).toFixed(1);
+
   const handleOpenChestClick = () => {
     if (chestClaimedToday) {
       toast({
@@ -491,29 +516,29 @@ export const DashboardPage: React.FC = () => {
 
   return (
     <StudentLayout>
-      <div className="max-w-[1440px] mx-auto space-y-6">
+      <div className="w-full max-w-[1720px] mx-auto space-y-8 select-none font-sans">
         {/* ================= 1. HEADER METRIC BAR (THANH TRẠNG THÁI TINH GỌN & HERO WELCOME) ================= */}
-        <div className="bg-[#070e1c]/90 backdrop-blur-xl p-5 sm:p-6 rounded-2xl border border-cyan-500/20 shadow-[0_8px_32px_rgba(0,0,0,0.5),0_0_24px_rgba(6,182,212,0.05)] relative overflow-hidden group">
-          <div className="absolute inset-x-6 -top-px h-px bg-gradient-to-r from-transparent via-cyan-400/60 to-transparent" />
-          <div className="absolute -top-12 -right-12 w-56 h-56 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-12 -left-12 w-56 h-56 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="bg-[#070e1c]/95 backdrop-blur-xl p-6 sm:p-8 rounded-3xl border border-cyan-500/25 shadow-[0_12px_40px_rgba(0,0,0,0.6),0_0_30px_rgba(6,182,212,0.08)] relative overflow-hidden group">
+          <div className="absolute inset-x-8 -top-px h-px bg-gradient-to-r from-transparent via-cyan-400/60 to-transparent" />
+          <div className="absolute -top-16 -right-16 w-72 h-72 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-16 -left-16 w-72 h-72 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
 
-          <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+          <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
             {/* Greeting + Cockpit Identity */}
-            <div className="space-y-1.5">
-              <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-[11px] font-bold tracking-wide uppercase">
-                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-bold tracking-wide uppercase">
+                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
                 Phòng Điều Khiển Trung Tâm • L-English Cockpit
               </div>
-              <h1 className="text-2xl sm:text-3xl font-display font-extrabold text-white tracking-tight flex items-center gap-2.5">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-display font-extrabold text-white tracking-tight flex items-center gap-3">
                 <span>Xin chào, {displayName}!</span>
                 <img
                   src="/assets/hello-ghost.png"
                   alt="Chào mừng"
-                  className="w-8 h-8 sm:w-9 sm:h-9 object-contain inline-block transform hover:scale-110 hover:rotate-6 transition-all duration-300 drop-shadow-[0_4px_12px_rgba(255,255,255,0.2)] select-none"
+                  className="w-9 h-9 sm:w-10 sm:h-10 object-contain inline-block transform hover:scale-110 hover:rotate-6 transition-all duration-300 drop-shadow-[0_4px_12px_rgba(255,255,255,0.2)] select-none"
                 />
               </h1>
-              <p className="text-xs sm:text-sm text-slate-300 font-medium max-w-xl">
+              <p className="text-sm sm:text-base text-slate-300 font-medium max-w-2xl leading-relaxed">
                 Chào mừng bạn trở lại bàn học. Hôm nay hãy hoàn thành nhiệm vụ để duy trì chuỗi{" "}
                 <span className="text-amber-400 font-bold">{streak || 1} ngày Streak</span> nhé!
               </p>
@@ -521,21 +546,21 @@ export const DashboardPage: React.FC = () => {
 
             {/* Quick Search & Chest Action Button */}
             <div className="flex items-center gap-3 shrink-0">
-              <form onSubmit={handleSearchSubmit} className="relative w-full sm:w-60">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <form onSubmit={handleSearchSubmit} className="relative w-full sm:w-72">
+                <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
                   type="text"
                   placeholder="Tìm bài học, đề thi ETS..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full h-10 pl-9 pr-3 rounded-xl bg-[#030712]/80 border border-slate-700/80 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/20 transition-all"
+                  className="w-full h-11 pl-10 pr-3 rounded-2xl bg-[#030712]/90 border border-slate-700/80 text-xs sm:text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/20 transition-all font-medium"
                 />
               </form>
 
               {chestClaimedToday ? (
                 <button
                   onClick={handleOpenChestClick}
-                  className="h-10 px-3.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-slate-300 font-bold text-xs flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all shrink-0"
+                  className="h-11 px-4 rounded-2xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-slate-300 font-bold text-xs sm:text-sm flex items-center gap-2 cursor-pointer active:scale-95 transition-all shrink-0"
                   title="Hôm nay bạn đã mở rương rồi (1 lần/ngày). Nhấn để xem lại."
                 >
                   <CheckCircle2 className="w-4 h-4 text-emerald-400" />
@@ -544,7 +569,7 @@ export const DashboardPage: React.FC = () => {
               ) : (
                 <button
                   onClick={handleOpenChestClick}
-                  className="h-10 px-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-orange-500/20 cursor-pointer active:scale-95 transition-all shrink-0"
+                  className="h-11 px-4 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white font-black text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-orange-500/25 cursor-pointer active:scale-95 transition-all shrink-0"
                   title="Mở Rương Báu Mỗi Ngày (1 lần/ngày)"
                 >
                   <Gift className="w-4 h-4 animate-bounce" />
@@ -555,15 +580,15 @@ export const DashboardPage: React.FC = () => {
           </div>
 
           {/* DẢI METRIC PILLS TINH GỌN (Header Metric Bar: Streak, XP, Level, Rank) */}
-          <div className="mt-5 pt-4 border-t border-slate-800/80 flex items-center gap-2.5 overflow-x-auto pb-1 scrollbar-none">
+          <div className="mt-6 pt-5 border-t border-slate-800/80 flex items-center gap-3 overflow-x-auto pb-1 scrollbar-none">
             {/* Pill 1: Streak ngọn lửa với subtle pulse */}
-            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-orange-500/10 border border-orange-500/30 text-orange-400 font-bold text-xs shrink-0 shadow-xs">
+            <div className="flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-orange-500/10 border border-orange-500/30 text-orange-400 font-bold text-xs sm:text-sm shrink-0 shadow-sm">
               <Flame className="w-4 h-4 text-orange-400 fill-current animate-pulse" />
               <span>{streak || 1} ngày streak</span>
             </div>
 
             {/* Pill 2: XP Tích lũy */}
-            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 font-bold text-xs shrink-0 shadow-xs">
+            <div className="flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 font-bold text-xs sm:text-sm shrink-0 shadow-sm">
               <Zap className="w-4 h-4 text-amber-400 fill-current" />
               <span>{xp.toLocaleString()} XP</span>
             </div>
@@ -571,11 +596,11 @@ export const DashboardPage: React.FC = () => {
             {/* Pill 3: Level & Cấp bậc */}
             <button
               onClick={() => setLevelModalOpen(true)}
-              className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 font-bold text-xs shrink-0 transition-all cursor-pointer shadow-xs group/lvl"
+              className="flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 font-bold text-xs sm:text-sm shrink-0 transition-all cursor-pointer shadow-sm group/lvl"
             >
               <Crown className="w-4 h-4 text-cyan-400" />
               <span>{levelInfo.title}</span>
-              <span className="text-[10px] text-slate-400 font-normal">
+              <span className="text-[11px] text-slate-400 font-normal">
                 (còn {levelInfo.xpToNextLevel} XP lên hạng)
               </span>
               <ChevronRight className="w-3.5 h-3.5 text-cyan-400/70 group-hover/lvl:translate-x-0.5 transition-transform" />
@@ -584,7 +609,7 @@ export const DashboardPage: React.FC = () => {
             {/* Pill 4: Bảng vàng xếp hạng */}
             <button
               onClick={() => setLeaderboardModalOpen(true)}
-              className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/30 text-yellow-300 font-bold text-xs shrink-0 transition-all cursor-pointer shadow-xs group/rank"
+              className="flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/30 text-yellow-300 font-bold text-xs sm:text-sm shrink-0 transition-all cursor-pointer shadow-sm group/rank"
             >
               <Trophy className="w-4 h-4 text-yellow-400" />
               <span>Hạng #{userRank < 10 ? `0${userRank}` : userRank}</span>
@@ -594,7 +619,7 @@ export const DashboardPage: React.FC = () => {
             {/* Pill 5: Lịch sử bài làm */}
             <button
               onClick={() => setTestHistoryModalOpen(true)}
-              className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-bold text-xs shrink-0 transition-all cursor-pointer shadow-xs"
+              className="flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-bold text-xs sm:text-sm shrink-0 transition-all cursor-pointer shadow-sm"
             >
               <FileCheck2 className="w-4 h-4 text-emerald-400" />
               <span>{fullTestResults.length + quizResults.length} bài đã thi</span>
@@ -602,10 +627,10 @@ export const DashboardPage: React.FC = () => {
           </div>
         </div>
 
-        {/* ================= 2-COLUMN GRID (MAIN HUB 65% : COCKPIT RIGHT 35%) ================= */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* ================= KHỐI CHÍNH (CỘT TRÁI - 7/12 = ~60-65% WIDTH) ================= */}
-          <div className="lg:col-span-7 space-y-6">
+        {/* ================= 2-COLUMN GRID (MAIN HUB 60-65% : COCKPIT RIGHT 35-40%) ================= */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 xl:gap-8 items-start">
+          {/* ================= KHỐI CHÍNH (CỘT TRÁI - 7/12 HOẶC 8/12) ================= */}
+          <div className="lg:col-span-7 xl:col-span-8 space-y-6 xl:space-y-8">
             {/* ================= 2. HERO ACTION CARD (ĐIỂM NEO HÀNH ĐỘNG DUY NHẤT & ZEIGARNIK EFFECT) ================= */}
             {isFullTestLoading || isCoursesLoading ? (
               <div className="p-6 rounded-2xl bg-[#070e1c]/90 border border-cyan-500/20 space-y-4">
@@ -852,54 +877,76 @@ export const DashboardPage: React.FC = () => {
             </div>
 
             {/* ================= 4. BIỂU ĐỒ THỜI GIAN HỌC TUẦN QUA ================= */}
-            <div className="p-5 sm:p-6 rounded-2xl bg-[#070e1c]/90 backdrop-blur-xl border border-cyan-500/20 shadow-[0_4px_25px_rgba(0,0,0,0.5),0_0_20px_rgba(6,182,212,0.04)] space-y-3 relative overflow-hidden group">
-              <div className="absolute inset-x-6 -top-px h-px bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent" />
-              <div className="flex items-center justify-between">
+            <div className="p-6 sm:p-7 rounded-3xl bg-[#070e1c]/90 backdrop-blur-xl border border-cyan-500/25 shadow-[0_4px_25px_rgba(0,0,0,0.5),0_0_20px_rgba(6,182,212,0.04)] space-y-4 relative overflow-hidden group">
+              <div className="absolute inset-x-8 -top-px h-px bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent" />
+              
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
-                  <h4 className="font-bold text-xs uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-                    <BarChart3 className="w-4 h-4 text-cyan-400" />
-                    Thời Gian Học Tuần Qua
+                  <h4 className="font-extrabold text-sm sm:text-base uppercase tracking-wider text-white flex items-center gap-2">
+                    <BarChart3 className="w-5 h-5 text-cyan-400" />
+                    Biểu Đồ Thời Gian Học Tập Tuần Này
                   </h4>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    Tổng: <strong>{weekTotalHours > 0 ? weekTotalHours.toFixed(1) : totalStudyHours} giờ</strong> học tập
+                  <p className="text-xs sm:text-sm text-slate-300 mt-0.5">
+                    Ghi nhận tự động từ các bài thi Full Test và Quiz luyện tập của bạn.
                   </p>
                 </div>
-                <span className="text-[11px] text-cyan-400 font-semibold px-2 py-0.5 rounded-lg bg-cyan-500/10 border border-cyan-500/30">
+                <span className="text-xs text-cyan-300 font-bold px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 self-start sm:self-auto">
                   Tuần {weekNumber}/4 • Tháng {currentMonth}
                 </span>
               </div>
 
-              <div className="h-36 w-full pt-2">
+              {/* Stats Summary Pills Row */}
+              <div className="grid grid-cols-3 gap-2.5 pt-1">
+                <div className="p-3 rounded-2xl bg-[#030712]/80 border border-slate-800 text-center">
+                  <span className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase block">Tổng thời gian</span>
+                  <span className="text-sm sm:text-base font-black text-cyan-400">
+                    {weekTotalHours > 0 ? weekTotalHours.toFixed(1) : totalStudyHours}h
+                  </span>
+                </div>
+                <div className="p-3 rounded-2xl bg-[#030712]/80 border border-slate-800 text-center">
+                  <span className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase block">Trung bình ngày</span>
+                  <span className="text-sm sm:text-base font-black text-amber-400">{avgStudyHours}h/ngày</span>
+                </div>
+                <div className="p-3 rounded-2xl bg-[#030712]/80 border border-slate-800 text-center">
+                  <span className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase block">Tập trung nhất</span>
+                  <span className="text-sm sm:text-base font-black text-emerald-400 truncate block">
+                    {maxStudyDay ? `${maxStudyDay.label} (${maxStudyDay.hours}h)` : "Đang tính..."}
+                  </span>
+                </div>
+              </div>
+
+              {/* Chart container doubled in height */}
+              <div className="h-56 sm:h-64 w-full pt-3">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={weeklyStudyData} margin={{ top: 10, right: 5, left: -25, bottom: 0 }}>
+                  <BarChart data={weeklyStudyData} margin={{ top: 15, right: 10, left: -20, bottom: 0 }}>
                     <XAxis
                       dataKey="day"
                       axisLine={false}
                       tickLine={false}
-                      tick={{ fill: "#94a3b8", fontSize: 11 }}
+                      tick={{ fill: "#94a3b8", fontSize: 12, fontWeight: 600 }}
                     />
                     <YAxis
                       axisLine={false}
                       tickLine={false}
-                      tick={{ fill: "#64748b", fontSize: 10 }}
+                      tick={{ fill: "#64748b", fontSize: 11 }}
                       domain={[0, 4]}
                     />
                     <Tooltip
-                      cursor={{ fill: "rgba(6,182,212,0.05)" }}
+                      cursor={{ fill: "rgba(6,182,212,0.08)" }}
                       content={({ active, payload }) => {
                         if (active && payload && payload.length) {
                           const item = payload[0].payload;
                           return (
-                            <div className="px-2.5 py-1.5 rounded-lg bg-[#030712] border border-cyan-500/30 text-xs shadow-xl">
+                            <div className="px-3.5 py-2 rounded-xl bg-[#030712] border border-cyan-500/40 text-xs shadow-2xl">
                               <span className="font-bold text-cyan-400">{item.label}: </span>
-                              <span className="text-white">{item.hours} giờ</span>
+                              <span className="text-white font-extrabold">{item.hours} giờ học</span>
                             </div>
                           );
                         }
                         return null;
                       }}
                     />
-                    <Bar dataKey="hours" radius={[6, 6, 0, 0]}>
+                    <Bar dataKey="hours" radius={[8, 8, 0, 0]}>
                       {weeklyStudyData.map((entry) => (
                         <Cell
                           key={entry.day}
@@ -913,36 +960,36 @@ export const DashboardPage: React.FC = () => {
             </div>
           </div>
 
-          {/* ================= CỘT PHẢI (35% WIDTH - COCKPIT ĐỘNG LỰC & RETENTION) ================= */}
-          <div className="lg:col-span-5 space-y-5">
+          {/* ================= CỘT PHẢI (COCKPIT ĐỘNG LỰC & RETENTION) ================= */}
+          <div className="lg:col-span-5 xl:col-span-4 space-y-6 xl:space-y-8">
             {/* ================= 5. NHIỆM VỤ HÔM NAY (DAILY QUESTS VỚI KỸ THUẬT JUICE) ================= */}
-            <div className="p-5 sm:p-6 rounded-2xl bg-[#070e1c]/90 backdrop-blur-xl border border-cyan-500/20 shadow-[0_4px_25px_rgba(0,0,0,0.5),0_0_20px_rgba(6,182,212,0.04)] space-y-4 relative overflow-hidden group">
-              <div className="absolute inset-x-6 -top-px h-px bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent" />
+            <div className="p-6 sm:p-7 rounded-3xl bg-[#070e1c]/90 backdrop-blur-xl border border-cyan-500/25 shadow-[0_4px_25px_rgba(0,0,0,0.5),0_0_20px_rgba(6,182,212,0.04)] space-y-4 relative overflow-hidden group">
+              <div className="absolute inset-x-8 -top-px h-px bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent" />
               
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-5 rounded-full bg-cyan-400" />
-                  <h3 className="font-bold text-sm sm:text-base uppercase tracking-wider text-slate-200 flex items-center gap-1.5">
-                    <Target className="w-4 h-4 text-cyan-400" />
+                <div className="flex items-center gap-2.5">
+                  <div className="w-2.5 h-6 rounded-full bg-cyan-400" />
+                  <h3 className="font-extrabold text-sm sm:text-base uppercase tracking-wider text-white flex items-center gap-2">
+                    <Target className="w-5 h-5 text-cyan-400" />
                     Nhiệm Vụ Hôm Nay
                   </h3>
                 </div>
-                <span className="text-xs text-cyan-300 font-extrabold px-2.5 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/30">
+                <span className="text-xs text-cyan-300 font-extrabold px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30">
                   {completedQuestsCount}/3 Hoàn thành
                 </span>
               </div>
 
               {/* Thanh tiến độ ngày tổng quát: Kích hoạt hiệu ứng Juice */}
-              <div className="p-3 rounded-xl bg-[#030712]/90 border border-slate-800 space-y-1.5">
+              <div className="p-3.5 rounded-2xl bg-[#030712]/90 border border-slate-800 space-y-2">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-300 font-medium">
+                  <span className="text-slate-200 font-medium">
                     {completedQuestsCount === 3
                       ? "🎉 Hoàn thành xuất sắc toàn bộ nhiệm vụ ngày!"
                       : `Hoàn thành ${completedQuestsCount}/3 nhiệm vụ — Mở khóa hộp quà +50 XP!`}
                   </span>
-                  <span className="text-amber-400 font-bold">+{completedQuestsCount * 20} XP</span>
+                  <span className="text-amber-400 font-black">+{completedQuestsCount * 20} XP</span>
                 </div>
-                <div className="w-full h-2 rounded-full bg-slate-900 border border-slate-800 overflow-hidden">
+                <div className="w-full h-2.5 rounded-full bg-slate-900 border border-slate-800 overflow-hidden">
                   <div
                     className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-amber-400 transition-all duration-500"
                     style={{ width: `${(completedQuestsCount / 3) * 100}%` }}
@@ -951,18 +998,18 @@ export const DashboardPage: React.FC = () => {
               </div>
 
               {/* Danh sách nhiệm vụ với Tactile Micro-feedback */}
-              <div className="space-y-2.5">
+              <div className="space-y-3">
                 {displayQuests.map((quest) => {
                   const isDone = quest.current >= quest.target;
                   return (
                     <div
                       key={quest.id}
-                      className="p-3.5 rounded-xl bg-[#030712]/80 border border-slate-800 hover:border-slate-700 flex items-center justify-between gap-3 text-xs transition-all group/item"
+                      className="p-4 rounded-2xl bg-[#030712]/90 border border-slate-800/90 hover:border-cyan-500/40 flex items-center justify-between gap-3 text-xs transition-all group/item"
                     >
                       <div className="flex items-center gap-3 min-w-0">
                         {/* Checkbox with tactile juice feedback */}
                         <div
-                          className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-transform duration-300 ${
+                          className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 ${
                             isDone
                               ? "bg-emerald-500/20 border border-emerald-500/50 text-emerald-400 scale-105"
                               : "bg-slate-800/80 border border-slate-700 text-slate-500"
@@ -971,18 +1018,18 @@ export const DashboardPage: React.FC = () => {
                           {isDone ? (
                             <Check className="w-4 h-4 stroke-[3]" />
                           ) : (
-                            <span className="w-2 h-2 rounded-full bg-slate-600" />
+                            <span className="w-2.5 h-2.5 rounded-full bg-slate-600" />
                           )}
                         </div>
 
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
-                            <p className="font-bold text-white truncate text-xs">{quest.title}</p>
-                            <span className="text-[10px] font-bold text-amber-400 shrink-0">
+                            <p className="font-bold text-white truncate text-xs sm:text-sm">{quest.title}</p>
+                            <span className="text-[10px] sm:text-xs font-black text-amber-400 shrink-0">
                               +{quest.xpReward} XP
                             </span>
                           </div>
-                          <p className="text-[11px] text-slate-400 truncate mt-0.5">
+                          <p className="text-[11px] sm:text-xs text-slate-400 truncate mt-0.5 font-medium">
                             {quest.description}
                           </p>
                         </div>
@@ -991,20 +1038,20 @@ export const DashboardPage: React.FC = () => {
                       {/* Action status */}
                       <div className="shrink-0">
                         {quest.claimed ? (
-                          <span className="text-[11px] font-semibold text-emerald-400 px-2 py-0.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
+                          <span className="text-xs font-bold text-emerald-400 px-2.5 py-1 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
                             Đã nhận ✓
                           </span>
                         ) : isDone ? (
                           <button
                             onClick={() => claimQuest(quest.id, quest.xpReward)}
-                            className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-[11px] shadow-sm active:scale-95 transition-all cursor-pointer animate-bounce"
+                            className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-black text-xs shadow-md active:scale-95 transition-all cursor-pointer animate-bounce"
                           >
                             Nhận XP
                           </button>
                         ) : (
                           <Link
                             to={quest.actionUrl}
-                            className="text-[10px] font-semibold text-cyan-400 hover:text-cyan-300 px-2 py-0.5 rounded-md bg-cyan-500/10 border border-cyan-500/20 transition-colors inline-block"
+                            className="text-xs font-bold text-cyan-400 hover:text-cyan-300 px-3 py-1.5 rounded-xl bg-cyan-500/10 border border-cyan-500/30 transition-colors inline-block"
                           >
                             Làm ngay →
                           </Link>
@@ -1017,15 +1064,15 @@ export const DashboardPage: React.FC = () => {
             </div>
 
             {/* ================= 6. LỊCH CHẤM CÔNG TUẦN (WEEKLY STREAK & LOSS AVERSION) ================= */}
-            <div className="p-5 sm:p-6 rounded-2xl bg-[#070e1c]/90 backdrop-blur-xl border border-cyan-500/20 shadow-[0_4px_25px_rgba(0,0,0,0.5),0_0_20px_rgba(6,182,212,0.04)] space-y-4 relative overflow-hidden group">
-              <div className="absolute inset-x-6 -top-px h-px bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent" />
+            <div className="p-6 sm:p-7 rounded-3xl bg-[#070e1c]/90 backdrop-blur-xl border border-cyan-500/25 shadow-[0_4px_25px_rgba(0,0,0,0.5),0_0_20px_rgba(6,182,212,0.04)] space-y-4 relative overflow-hidden group">
+              <div className="absolute inset-x-8 -top-px h-px bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent" />
               
               <div className="flex items-center justify-between">
-                <h4 className="font-bold text-xs uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-                  <Flame className="w-4 h-4 text-orange-400 fill-current animate-pulse" />
+                <h4 className="font-extrabold text-xs sm:text-sm uppercase tracking-wider text-slate-200 flex items-center gap-2">
+                  <Flame className="w-5 h-5 text-orange-400 fill-current animate-pulse" />
                   Lịch Chấm Công Tuần (Weekly Streak)
                 </h4>
-                <span className="text-[11px] text-amber-400 font-semibold">Tháng {currentMonth}</span>
+                <span className="text-xs text-amber-400 font-bold">Tháng {currentMonth}</span>
               </div>
 
               {/* Dải 7 ngày tròn (T2 -> CN) tối thiểu 44x44px */}
@@ -1035,7 +1082,7 @@ export const DashboardPage: React.FC = () => {
                   return (
                     <div
                       key={d.label}
-                      className={`min-h-[52px] py-2 px-1 rounded-xl flex flex-col items-center justify-between transition-all ${
+                      className={`min-h-[62px] py-2.5 px-1 rounded-2xl flex flex-col items-center justify-between transition-all ${
                         d.done
                           ? "bg-gradient-to-b from-amber-500/25 to-orange-500/20 border border-amber-500/40 text-amber-300 font-bold"
                           : isTodayUnfinished
@@ -1115,6 +1162,239 @@ export const DashboardPage: React.FC = () => {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* ================= 8. HỆ THỐNG TRỢ LÝ LUYỆN TẬP CẤP TỐC (4 CORE ACCELERATORS) ================= */}
+        <div className="space-y-4 pt-2">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-bold tracking-wide uppercase">
+                <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                Hệ Thống Trợ Lý Luyện Thi Chuyên Sâu
+              </div>
+              <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight mt-1 flex items-center gap-2.5 font-display">
+                Trung Tâm Luyện Tập &amp; Bứt Phá Điểm Số
+              </h2>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+            {/* Card 1: Nghe Chép Chính Tả */}
+            <div 
+              onClick={() => navigate('/listening')}
+              className="p-6 rounded-3xl bg-[#070e1c]/90 hover:bg-[#09152e] border border-cyan-500/20 hover:border-cyan-400/50 transition-all duration-300 shadow-xl cursor-pointer group flex flex-col justify-between space-y-4 relative overflow-hidden"
+            >
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="w-12 h-12 rounded-2xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform shadow-md">
+                    <Headphones className="w-6 h-6" />
+                  </div>
+                  <span className="px-3 py-1 rounded-full text-[10px] font-extrabold uppercase bg-cyan-500/10 text-cyan-300 border border-cyan-500/30">
+                    Bắt Âm Chuẩn
+                  </span>
+                </div>
+                <div>
+                  <h3 className="text-base sm:text-lg font-black text-white group-hover:text-cyan-300 transition-colors">
+                    Nghe Chép Chính Tả
+                  </h3>
+                  <p className="text-xs text-slate-400 font-medium leading-relaxed mt-1 line-clamp-2">
+                    Luyện tai bắt âm nối, nuốt âm và chuẩn hóa chính tả từng câu TOEIC.
+                  </p>
+                </div>
+              </div>
+              <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs font-bold text-cyan-400">
+                <span>Bắt đầu nghe</span>
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </div>
+            </div>
+
+            {/* Card 2: Coach Luyện Nghe Part 2 */}
+            <div 
+              onClick={() => navigate('/part2-coach')}
+              className="p-6 rounded-3xl bg-[#070e1c]/90 hover:bg-[#09152e] border border-amber-500/20 hover:border-amber-400/50 transition-all duration-300 shadow-xl cursor-pointer group flex flex-col justify-between space-y-4 relative overflow-hidden"
+            >
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 group-hover:scale-110 transition-transform shadow-md">
+                    <Zap className="w-6 h-6" />
+                  </div>
+                  <span className="px-3 py-1 rounded-full text-[10px] font-extrabold uppercase bg-amber-500/10 text-amber-300 border border-amber-500/30">
+                    Phương Pháp 3 Bước
+                  </span>
+                </div>
+                <div>
+                  <h3 className="text-base sm:text-lg font-black text-white group-hover:text-amber-300 transition-colors">
+                    Coach Luyện Nghe Part 2
+                  </h3>
+                  <p className="text-xs text-slate-400 font-medium leading-relaxed mt-1 line-clamp-2">
+                    Bẻ khóa bẫy gián tiếp, từ đồng âm và phản xạ hỏi - đáp không cần dịch nhẩm.
+                  </p>
+                </div>
+              </div>
+              <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs font-bold text-amber-400">
+                <span>Vào luyện ngay</span>
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </div>
+            </div>
+
+            {/* Card 3: Đấu Trường Game Từ Vựng */}
+            <div 
+              onClick={() => navigate('/games')}
+              className="p-6 rounded-3xl bg-[#070e1c]/90 hover:bg-[#09152e] border border-fuchsia-500/20 hover:border-fuchsia-400/50 transition-all duration-300 shadow-xl cursor-pointer group flex flex-col justify-between space-y-4 relative overflow-hidden"
+            >
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="w-12 h-12 rounded-2xl bg-fuchsia-500/15 border border-fuchsia-500/30 flex items-center justify-center text-fuchsia-400 group-hover:scale-110 transition-transform shadow-md">
+                    <Gamepad2 className="w-6 h-6" />
+                  </div>
+                  <span className="px-3 py-1 rounded-full text-[10px] font-extrabold uppercase bg-fuchsia-500/10 text-fuchsia-300 border border-fuchsia-500/30">
+                    Học Qua Game
+                  </span>
+                </div>
+                <div>
+                  <h3 className="text-base sm:text-lg font-black text-white group-hover:text-fuchsia-300 transition-colors">
+                    Đấu Trường Từ Vựng
+                  </h3>
+                  <p className="text-xs text-slate-400 font-medium leading-relaxed mt-1 line-clamp-2">
+                    Word Defense & Phi Cơ Diệt Từ Vựng - phản xạ 600 từ TOEIC cực cuốn.
+                  </p>
+                </div>
+              </div>
+              <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs font-bold text-fuchsia-400">
+                <span>Khám phá game</span>
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </div>
+            </div>
+
+            {/* Card 4: Kho Đề Thi Full Test ETS */}
+            <div 
+              onClick={() => navigate('/fulltests')}
+              className="p-6 rounded-3xl bg-[#070e1c]/90 hover:bg-[#09152e] border border-emerald-500/20 hover:border-emerald-400/50 transition-all duration-300 shadow-xl cursor-pointer group flex flex-col justify-between space-y-4 relative overflow-hidden"
+            >
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform shadow-md">
+                    <FileCheck2 className="w-6 h-6" />
+                  </div>
+                  <span className="px-3 py-1 rounded-full text-[10px] font-extrabold uppercase bg-emerald-500/10 text-emerald-300 border border-emerald-500/30">
+                    ETS 2024 Chuẩn
+                  </span>
+                </div>
+                <div>
+                  <h3 className="text-base sm:text-lg font-black text-white group-hover:text-emerald-300 transition-colors">
+                    Kho Đề Full Test ETS
+                  </h3>
+                  <p className="text-xs text-slate-400 font-medium leading-relaxed mt-1 line-clamp-2">
+                    200 câu thi thật, bấm giờ 120 phút, giải thích chi tiết & bảng điểm TOEIC tự động.
+                  </p>
+                </div>
+              </div>
+              <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs font-bold text-emerald-400">
+                <span>Xem kho đề thi</span>
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ================= 9. BỘ ĐỀ THI THỬ ETS TIÊU BIỂU DÀNH CHO BẠN ================= */}
+        <div className="p-6 sm:p-8 rounded-3xl bg-[#070e1c]/90 backdrop-blur-xl border border-cyan-500/25 shadow-2xl space-y-6 relative overflow-hidden">
+          <div className="absolute inset-x-8 -top-px h-px bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent" />
+          
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-bold uppercase tracking-wider mb-1.5">
+                <FileCheck2 className="w-3.5 h-3.5 text-cyan-400" />
+                Đề Thi Thử ETS Đề Xuất
+              </div>
+              <h2 className="text-xl sm:text-2xl font-black text-white font-display">
+                Đề Thi Thử TOEIC Tiêu Biểu Dành Cho Bạn
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-300 mt-0.5">
+                Luyện đề có áp lực thời gian thực chiến để làm quen format đề thi thật trước khi vào phòng thi.
+              </p>
+            </div>
+
+            <Link
+              to="/fulltests"
+              className="px-4 py-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-cyan-300 font-bold text-xs sm:text-sm flex items-center gap-1.5 self-start sm:self-auto transition-all cursor-pointer shrink-0"
+            >
+              <span>Xem tất cả ({allFullTests.length} đề thi)</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4.5">
+            {featuredTests.map((test: any, idx: number) => (
+              <div
+                key={test.id}
+                className="p-5 rounded-2xl bg-[#030712]/80 border border-slate-800 hover:border-cyan-500/40 flex flex-col justify-between space-y-4 transition-all duration-200 group"
+              >
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-cyan-500/10 text-cyan-300 border border-cyan-500/30">
+                      {test.category || `Đề thi 0${idx + 1}`}
+                    </span>
+                    {test.isCompleted ? (
+                      <span className="text-[11px] font-bold text-emerald-400 flex items-center gap-1">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        {test.bestScore}/990 điểm
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-slate-500 font-medium">Chưa thi</span>
+                    )}
+                  </div>
+
+                  <h4 className="text-sm sm:text-base font-extrabold text-white group-hover:text-cyan-300 transition-colors line-clamp-1">
+                    {test.title}
+                  </h4>
+
+                  <div className="flex items-center gap-3 text-xs text-slate-400 font-medium">
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-3.5 h-3.5 text-slate-500" />
+                      120 phút
+                    </span>
+                    <span>•</span>
+                    <span>200 câu hỏi</span>
+                  </div>
+                </div>
+
+                <Link
+                  to={`/fulltests/${test.id}`}
+                  className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-cyan-500/15 to-blue-500/15 hover:from-cyan-500 hover:to-blue-600 border border-cyan-500/30 hover:border-cyan-400 text-cyan-300 hover:text-slate-950 font-black text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm active:scale-95 text-center"
+                >
+                  <Play className="w-3.5 h-3.5 fill-current" />
+                  <span>{test.isCompleted ? "Làm Lại Đề" : "Vào Thi Thử"}</span>
+                </Link>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ================= 10. BANNER ĐẤU TRƯỜNG TRÒ CHƠI HỌC TỪ VỰNG ================= */}
+        <div className="relative overflow-hidden rounded-3xl border border-fuchsia-500/30 p-6 sm:p-8 md:p-10 shadow-2xl bg-gradient-to-r from-purple-950/80 via-slate-950 to-blue-950/80 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-fuchsia-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="space-y-2.5 max-w-2xl relative z-10">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-fuchsia-500/20 border border-fuchsia-500/40 text-fuchsia-300 text-xs font-bold uppercase tracking-wider">
+              <Gamepad2 className="w-4 h-4 text-fuchsia-400 animate-pulse" />
+              Đấu Trường Game Học Từ Vựng TOEIC
+            </div>
+            <h3 className="text-xl sm:text-2xl md:text-3xl font-black text-white font-display">
+              Vừa Chiến Game Đỉnh Cao, Vừa Ghi Nhớ Từ Vựng Phản Xạ!
+            </h3>
+            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-medium">
+              Bảo vệ khu vườn trong <strong>Word Defense</strong> hoặc điều khiển chiến cơ bắn từ rơi tự do trong <strong>Sky Strike Vocab</strong>. Tích hợp audio phát âm chuẩn bản xứ, leo rank và nhận rương quà hàng ngày.
+            </p>
+          </div>
+
+          <button
+            onClick={() => navigate('/games')}
+            className="relative z-10 py-3.5 px-8 rounded-2xl font-black text-xs sm:text-sm text-slate-950 bg-gradient-to-r from-cyan-400 via-teal-300 to-cyan-400 hover:from-cyan-300 hover:to-teal-200 shadow-[0_0_25px_rgba(6,182,212,0.45)] inline-flex items-center gap-2 shrink-0 cursor-pointer transition-all hover:scale-105 active:scale-95"
+          >
+            <Rocket className="w-4 h-4" />
+            <span>Vào Đấu Trường Game Ngay</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
