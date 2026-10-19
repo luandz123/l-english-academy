@@ -18,13 +18,20 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Home,
-  Crown
+  Crown,
+  ArrowRight
 } from "lucide-react";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import Logo from "@/components/Logo";
 import { Button } from "@/components/ui/button";
+import UpgradeProModal from "@/components/UpgradeProModal";
+import { 
+  getHomepageShowcaseConfig, 
+  calculateSavings, 
+  type HomepageShowcaseConfig 
+} from "@/services/homepageShowcaseService";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -80,6 +87,30 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, profile, signOut, isAdmin } = useAuth();
+
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
+  const [upgradeInitialStep, setUpgradeInitialStep] = useState<"details" | "checkout">("details");
+  const [vipComboConfig, setVipComboConfig] = useState<HomepageShowcaseConfig["vip_combo"] | null>(null);
+
+  useEffect(() => {
+    getHomepageShowcaseConfig().then((cfg) => {
+      if (cfg?.vip_combo) setVipComboConfig(cfg.vip_combo);
+    });
+  }, []);
+
+  useEffect(() => {
+    const handleOpenUpgrade = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail?.step) {
+        setUpgradeInitialStep(customEvent.detail.step);
+      } else {
+        setUpgradeInitialStep("details");
+      }
+      setUpgradeModalOpen(true);
+    };
+    window.addEventListener("open-upgrade-pro", handleOpenUpgrade);
+    return () => window.removeEventListener("open-upgrade-pro", handleOpenUpgrade);
+  }, []);
 
   const displayName = profile?.full_name || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Học viên";
   const initials = displayName.charAt(0).toUpperCase();
@@ -167,8 +198,8 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
               </div>
             )}
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-white truncate">{displayName}</p>
-              <p className="text-xs text-slate-400 truncate">{email}</p>
+              <p className="text-sm font-bold text-white truncate">{displayName}</p>
+              <p className="text-xs text-slate-300 truncate font-medium">{email}</p>
             </div>
           </div>
         ) : (
@@ -208,11 +239,11 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
                 onClick={() => setSidebarOpen(false)}
                 title={isCollapsed ? item.label : undefined}
                 className={cn(
-                  "flex items-center rounded-xl text-sm font-semibold transition-all group relative active:scale-95 duration-150",
+                  "flex items-center rounded-xl text-sm font-bold transition-all group relative active:scale-95 duration-150",
                   isCollapsed ? "justify-center p-2.5" : "justify-between px-3.5 py-2.5",
                   active
-                    ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold shadow-md shadow-amber-500/25"
-                    : "text-slate-400 hover:text-white hover:bg-slate-800/60"
+                    ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black shadow-md shadow-amber-500/25"
+                    : "text-slate-300 hover:text-white hover:bg-slate-800/70"
                 )}
               >
                 <div className={cn("flex items-center min-w-0", isCollapsed ? "justify-center" : "gap-3")}>
@@ -227,7 +258,7 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
           {isAdmin && (
             <div className="pt-3 mt-3 border-t border-slate-800/80 space-y-1.5">
               {!isCollapsed && (
-                <p className="px-3.5 text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">
+                <p className="px-3.5 text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
                   Khu vực khác
                 </p>
               )}
@@ -235,7 +266,7 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
                 to="/admin/dashboard"
                 title={isCollapsed ? "Quản trị Admin" : undefined}
                 className={cn(
-                  "flex items-center rounded-xl text-sm font-semibold text-amber-400 hover:bg-amber-950/40 transition-all active:scale-95",
+                  "flex items-center rounded-xl text-sm font-bold text-amber-300 hover:bg-amber-950/40 transition-all active:scale-95",
                   isCollapsed ? "justify-center p-2.5" : "gap-3 px-3.5 py-2"
                 )}
               >
@@ -246,25 +277,54 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
           )}
         </nav>
 
-        {/* VIP Upgrade Banner (Focotech style) */}
-        {!isCollapsed && (
-          <div className="mx-3 my-2 p-3.5 rounded-2xl bg-gradient-to-br from-amber-500/15 via-orange-500/10 to-slate-900/60 border border-amber-500/30 text-left relative overflow-hidden group shadow-sm">
-            <div className="absolute -right-4 -bottom-4 w-16 h-16 bg-amber-500/20 rounded-full blur-xl pointer-events-none group-hover:scale-125 transition-transform" />
-            <div className="flex items-center gap-2 mb-1.5">
-              <div className="w-6 h-6 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400">
-                <Crown className="w-3.5 h-3.5" />
+        {/* VIP Upgrade Banner (Dynamic từ cấu hình hệ thống & mẫu reference) */}
+        {!isCollapsed ? (
+          <div className="mx-3 my-2 p-3.5 rounded-2xl bg-gradient-to-br from-[#1c1d3b]/90 via-[#15162d]/90 to-[#0e0f20]/90 border border-[#2e3160] text-left relative overflow-hidden group shadow-md">
+            <div className="absolute -right-4 -bottom-4 w-16 h-16 bg-[#5452ee]/20 rounded-full blur-xl pointer-events-none group-hover:scale-125 transition-transform" />
+            <div className="flex items-center justify-between gap-2 mb-1.5">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <div className="w-6 h-6 rounded-lg bg-[#5452ee]/20 border border-[#5452ee]/40 flex items-center justify-center text-[#797af5] shrink-0">
+                  <Crown className="w-3.5 h-3.5 text-amber-300" />
+                </div>
+                <span className="text-xs font-black text-white uppercase tracking-wider font-serif truncate">
+                  {vipComboConfig?.title || "VIP TRỌN ĐỜI"}
+                </span>
               </div>
-              <span className="text-xs font-bold text-amber-300 uppercase tracking-wider">Học Viên VIP</span>
+              {(() => {
+                const savings = calculateSavings(vipComboConfig?.original_price || 0, vipComboConfig?.price || 0);
+                const badgeText = vipComboConfig?.discount_badge || (savings.percent > 0 ? `-${savings.percent}%` : "ƯU ĐÃI");
+                return (
+                  <span className="bg-[#5452ee] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shrink-0">
+                    {badgeText}
+                  </span>
+                );
+              })()}
             </div>
-            <p className="text-[11px] text-slate-300 leading-tight mb-2.5">
-              Mở khóa 200+ đề ETS & Trợ lý luyện thi AI không giới hạn!
+            <p className="text-xs text-slate-300 leading-snug mb-3 font-medium line-clamp-2">
+              {vipComboConfig?.subtitle || "Mở khóa toàn bộ kho đề ETS 200 câu & hệ thống Dictation 8 bước!"}
             </p>
-            <Link
-              to="/#section-pricing"
-              className="inline-flex items-center justify-center w-full py-1.5 px-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white font-bold text-xs shadow-md shadow-orange-500/25 transition-all active:scale-95"
+            <button
+              type="button"
+              onClick={() => setUpgradeModalOpen(true)}
+              className="inline-flex items-center justify-center w-full py-2.5 px-3 rounded-xl bg-[#5452ee] hover:bg-[#4745dc] text-white font-bold text-xs shadow-md shadow-[#5452ee]/25 transition-all active:scale-95 cursor-pointer gap-1.5"
             >
-              Nâng Cấp VIP PRO ↑
-            </Link>
+              <span>
+                {vipComboConfig?.cta_text || (vipComboConfig?.price ? `Nâng Cấp (${vipComboConfig.price.toLocaleString("vi-VN")}đ)` : "Nâng Cấp VIP")}
+              </span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ) : (
+          <div className="py-2 flex justify-center">
+            <button
+              type="button"
+              onClick={() => setUpgradeModalOpen(true)}
+              title={vipComboConfig?.price ? `Nâng cấp VIP (${vipComboConfig.price.toLocaleString("vi-VN")}đ)` : "Nâng cấp VIP"}
+              className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#1c1d3b] to-[#121327] border border-[#2e3160] hover:border-[#5452ee] flex items-center justify-center text-[#797af5] hover:text-white shadow-sm transition-all active:scale-95 cursor-pointer relative group"
+            >
+              <Crown className="w-4 h-4 group-hover:scale-110 transition-transform text-amber-300" />
+              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[#5452ee] rounded-full ring-2 ring-[#070e1c] animate-pulse" />
+            </button>
           </div>
         )}
 
@@ -274,8 +334,8 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
             to="/"
             title={isCollapsed ? "Về Trang chủ" : undefined}
             className={cn(
-              "flex items-center rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800/60 transition-all active:scale-95 w-full text-left",
-              isCollapsed ? "justify-center p-2" : "gap-2.5 px-3 py-2"
+              "flex items-center rounded-xl text-xs sm:text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-800/70 transition-all active:scale-95 w-full text-left",
+              isCollapsed ? "justify-center p-2.5" : "gap-2.5 px-3 py-2.5"
             )}
           >
             <Home className="w-4 h-4 shrink-0 text-cyan-400" />
@@ -285,8 +345,8 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
             onClick={handleSignOut}
             title={isCollapsed ? "Đăng xuất" : undefined}
             className={cn(
-              "flex items-center rounded-xl text-xs font-semibold text-slate-400 hover:text-rose-400 hover:bg-rose-950/30 transition-all active:scale-95 w-full text-left",
-              isCollapsed ? "justify-center p-2" : "gap-2.5 px-3 py-2"
+              "flex items-center rounded-xl text-xs sm:text-sm font-semibold text-slate-300 hover:text-rose-400 hover:bg-rose-950/30 transition-all active:scale-95 w-full text-left",
+              isCollapsed ? "justify-center p-2.5" : "gap-2.5 px-3 py-2.5"
             )}
           >
             <LogOut className="w-4 h-4 shrink-0 text-rose-500" />
@@ -342,6 +402,19 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
           </div>
           
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            {/* Upgrade PRO Quick Button */}
+            <button
+              type="button"
+              onClick={() => {
+                setUpgradeDefaultPlan("yearly");
+                setUpgradeModalOpen(true);
+              }}
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-[#5452ee]/20 to-purple-600/20 hover:from-[#5452ee]/30 hover:to-purple-600/30 border border-[#5452ee]/40 text-indigo-200 hover:text-white text-xs font-bold transition-all shadow-[0_0_15px_rgba(84,82,238,0.2)] active:scale-95 cursor-pointer"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-[#797af5]" />
+              <span>Nâng Cấp PRO</span>
+            </button>
+
             <GamificationChips />
 
             {/* User Profile Dropdown */}
@@ -363,6 +436,16 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
                   <p className="text-xs text-slate-400 font-normal truncate mt-0.5">{email}</p>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator className="bg-slate-800" />
+                <DropdownMenuItem
+                  onClick={() => {
+                    setUpgradeDefaultPlan("yearly");
+                    setUpgradeModalOpen(true);
+                  }}
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-[#797af5] hover:bg-[#5452ee]/15 cursor-pointer font-bold"
+                >
+                  <Crown className="w-4 h-4 text-[#797af5]" />
+                  Nâng cấp gói PRO (-40%)
+                </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link to="/profile" className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-slate-200 hover:bg-slate-800/80 cursor-pointer">
                     <User className="w-4 h-4 text-slate-400" />
@@ -440,6 +523,14 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
           </div>
         </nav>
       </div>
+
+      {/* PRO Upgrade Modal */}
+      <UpgradeProModal
+        open={upgradeModalOpen}
+        onOpenChange={setUpgradeModalOpen}
+        vipCombo={vipComboConfig || undefined}
+        initialStep={upgradeInitialStep}
+      />
     </div>
   );
 };

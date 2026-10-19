@@ -452,8 +452,8 @@ export default function GamesHub() {
               >
                 <div className="space-y-1.5">
                   <span className="text-xl">🚀</span>
-                  <h4 className="text-xs font-black text-white">1. Đấu Đơn</h4>
-                  <p className="text-[10px] text-cyan-400 font-bold leading-tight">Vượt Wave + Săn Kỷ Lục</p>
+                  <h4 className="text-xs sm:text-sm font-black text-white">1. Đấu Đơn</h4>
+                  <p className="text-xs text-cyan-400 font-bold leading-tight">Vượt Wave + Săn Kỷ Lục</p>
                 </div>
                 <div className="pt-2 flex justify-end">
                   <ArrowRight className="w-3.5 h-3.5 text-cyan-400 group-hover:translate-x-0.5 transition-transform" />
@@ -467,8 +467,8 @@ export default function GamesHub() {
               >
                 <div className="space-y-1.5">
                   <span className="text-xl">⚔️</span>
-                  <h4 className="text-xs font-black text-white">2. Đấu Thường</h4>
-                  <p className="text-[10px] text-blue-400 font-bold leading-tight">Giao hữu 1v1 - Không rank</p>
+                  <h4 className="text-xs sm:text-sm font-black text-white">2. Đấu Thường</h4>
+                  <p className="text-xs text-blue-400 font-bold leading-tight">Giao hữu 1v1 - Không rank</p>
                 </div>
                 <div className="pt-2 flex justify-end">
                   <ArrowRight className="w-3.5 h-3.5 text-blue-400 group-hover:translate-x-0.5 transition-transform" />
@@ -565,10 +565,10 @@ export default function GamesHub() {
               {rankInfo.icon}
             </div>
             <div>
-              <span className="text-[10px] font-black uppercase text-amber-400 tracking-wider">
+              <span className="text-xs font-black uppercase text-amber-300 tracking-wider">
                 Hạng Liên Quân
               </span>
-              <p className="text-sm font-black text-amber-300">
+              <p className="text-sm font-black text-amber-200">
                 {rankInfo.tierNameVi} {rankInfo.divisionRoman}
               </p>
             </div>
@@ -579,7 +579,7 @@ export default function GamesHub() {
             <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/60 border border-slate-800/80">
               <div className="flex items-center gap-2">
                 <span className="text-base text-cyan-400">⚡</span>
-                <span className="text-xs font-bold text-slate-400">KINH NGHIỆM</span>
+                <span className="text-xs font-bold text-slate-300">KINH NGHIỆM</span>
               </div>
               <span className="text-sm font-black text-cyan-400">{xp.toLocaleString()} XP</span>
             </div>
@@ -587,7 +587,7 @@ export default function GamesHub() {
             <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/60 border border-slate-800/80">
               <div className="flex items-center gap-2">
                 <span className="text-base text-rose-400">🔥</span>
-                <span className="text-xs font-bold text-slate-400">CHUỖI NGÀY HỌC</span>
+                <span className="text-xs font-bold text-slate-300">CHUỖI NGÀY HỌC</span>
               </div>
               <span className="text-sm font-black text-rose-400">{streak} ngày</span>
             </div>
@@ -597,15 +597,15 @@ export default function GamesHub() {
         {/* Hoạt động gần đây (Recent Activities) */}
         <div className="space-y-3 p-4 rounded-3xl bg-[#0b1222] border border-slate-800 shadow-xl">
           <div className="flex items-center justify-between">
-            <h4 className="text-xs font-black text-slate-200 tracking-wider uppercase">
+            <h4 className="text-xs sm:text-sm font-black text-slate-200 tracking-wider uppercase">
               Hoạt động gần đây
             </h4>
-            <span className="text-[10px] text-cyan-400 font-bold">5 bạn bè</span>
+            <span className="text-xs text-cyan-400 font-bold">5 bạn bè</span>
           </div>
 
           <div className="space-y-2.5">
             {recentActivities.map((act) => (
-              <div key={act.id} className="flex items-center justify-between gap-3 text-xs">
+              <div key={act.id} className="flex items-center justify-between gap-3 text-xs sm:text-sm">
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div className="relative shrink-0">
                     <img
@@ -618,16 +618,16 @@ export default function GamesHub() {
                     )}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs font-bold text-slate-200 truncate">{act.name}</p>
-                    <p className="text-[10px] text-slate-400 truncate">{act.action}</p>
+                    <p className="text-xs sm:text-sm font-bold text-slate-200 truncate">{act.name}</p>
+                    <p className="text-xs text-slate-400 truncate">{act.action}</p>
                   </div>
                 </div>
                 {act.online ? (
-                  <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                  <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
                     online
                   </span>
                 ) : (
-                  <span className="text-[10px] text-slate-500">vừa xong</span>
+                  <span className="text-xs text-slate-400">vừa xong</span>
                 )}
               </div>
             ))}
@@ -636,11 +636,11 @@ export default function GamesHub() {
 
         {/* Weekly Learning Wave Chart */}
         <div className="p-4 rounded-3xl bg-[#0b1222] border border-slate-800 shadow-xl space-y-3">
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-[11px] font-black text-slate-200 uppercase tracking-wider">
+          <div className="flex items-center justify-between text-xs sm:text-sm">
+            <span className="text-xs sm:text-sm font-black text-slate-200 uppercase tracking-wider">
               Nhịp Độ Học Tập Tuần
             </span>
-            <span className="text-[10px] font-bold text-fuchsia-400">+15% tuần này</span>
+            <span className="text-xs font-bold text-fuchsia-400">+15% tuần này</span>
           </div>
 
           {/* SVG Sine Wave Graph with Glowing Node */}
@@ -674,12 +674,12 @@ export default function GamesHub() {
             </svg>
 
             {/* Days labels */}
-            <div className="flex items-center justify-between text-[10px] font-bold text-slate-500 pt-1">
+            <div className="flex items-center justify-between text-xs font-bold text-slate-400 pt-1">
               <span>Sat</span>
               <span>Sun</span>
               <span>Mon</span>
               <span>Tue</span>
-              <span className="px-1.5 py-0.5 rounded-full bg-fuchsia-500 text-white font-black text-[9px] shadow-[0_0_10px_rgba(217,70,239,0.5)]">
+              <span className="px-2 py-0.5 rounded-full bg-fuchsia-500 text-white font-black text-xs shadow-[0_0_10px_rgba(217,70,239,0.5)]">
                 Wed
               </span>
               <span>Thu</span>

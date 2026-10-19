@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Users,
   CheckCircle,
+  Check,
   ArrowRight,
   BookOpen,
   Layers,
@@ -41,6 +42,7 @@ import {
 } from "@/components/ui/dialog";
 
 import { CourseCard, CourseRow } from "@/components/CourseCard";
+import UpgradeProModal from "@/components/UpgradeProModal";
 import { trackEvent } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -193,6 +195,7 @@ const getCategoryTheme = (slug: string, index: number) => {
 
 export const CourseShowcase = () => {
   const [modalOpen, setModalOpen] = useState(false);
+  const [modalStep, setModalStep] = useState<"details" | "checkout">("checkout");
 
   // 1. Lấy toàn bộ Cấu hình Kệ Trang Chủ (Showcase Config) do Admin thiết lập
   const { data: showcaseConfig = DEFAULT_HOMEPAGE_CONFIG } = useQuery<HomepageShowcaseConfig>({
@@ -489,7 +492,7 @@ export const CourseShowcase = () => {
                             className="w-full h-full object-contain drop-shadow opacity-75"
                           />
                         </div>
-                        <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-rose-500/20 text-rose-300 border border-rose-500/40">
+                        <span className="px-3 py-1 rounded-full text-xs font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40">
                           🔒 TẠM BẢO TRÌ
                         </span>
                       </div>
@@ -497,14 +500,14 @@ export const CourseShowcase = () => {
                         <h3 className="text-lg font-black text-slate-300 font-display">
                           {game.title}
                         </h3>
-                        <p className="text-xs text-slate-400 font-medium leading-relaxed">
+                        <p className="text-xs sm:text-sm text-slate-300 font-medium leading-relaxed">
                           {game.description}
                         </p>
                       </div>
                     </div>
 
                     <div className="pt-4 border-t border-slate-800/80 flex items-center justify-between">
-                      <span className="text-xs font-bold text-slate-500">{game.footer_tag}</span>
+                      <span className="text-xs font-bold text-slate-400">{game.footer_tag}</span>
                       <button
                         type="button"
                         onClick={() =>
@@ -513,10 +516,10 @@ export const CourseShowcase = () => {
                             description: "Game đang được bảo trì hoặc cập nhật tính năng mới. Vui lòng quay lại sau nhé!",
                           })
                         }
-                        className="py-2 px-4 rounded-xl font-black text-xs text-slate-400 bg-slate-800 hover:bg-slate-700 border border-slate-700 inline-flex items-center gap-1.5 transition-all cursor-not-allowed"
+                        className="py-2 px-4 rounded-xl font-bold text-xs sm:text-sm text-slate-400 bg-slate-800 hover:bg-slate-700 border border-slate-700 inline-flex items-center gap-1.5 transition-all cursor-not-allowed"
                       >
                         <span>🔒 Đang Bảo Trì</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
+                        <ArrowRight className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
@@ -551,7 +554,7 @@ export const CourseShowcase = () => {
                       </div>
                       <span
                         className={cn(
-                          "px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border",
+                          "px-3 py-1 rounded-full text-xs font-bold border",
                           theme.badgeBg,
                           theme.badgeText,
                           theme.badgeBorder
@@ -569,14 +572,14 @@ export const CourseShowcase = () => {
                       >
                         {game.title}
                       </h3>
-                      <p className="text-xs text-slate-300 font-medium leading-relaxed">
+                      <p className="text-xs sm:text-sm text-slate-200 font-medium leading-relaxed">
                         {game.description}
                       </p>
                     </div>
                   </div>
 
                   <div className="pt-4 border-t border-slate-800/80 flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-400">{game.footer_tag}</span>
+                    <span className="text-xs font-bold text-slate-300">{game.footer_tag}</span>
                     <Link
                       to={game.action_url}
                       onClick={() =>
@@ -586,13 +589,13 @@ export const CourseShowcase = () => {
                         })
                       }
                       className={cn(
-                        "py-2 px-4 rounded-xl font-black text-xs text-white bg-gradient-to-r inline-flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 cursor-pointer",
+                        "py-2.5 px-4.5 rounded-xl font-bold text-xs sm:text-sm text-white bg-gradient-to-r inline-flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 cursor-pointer",
                         theme.buttonGradient,
                         theme.buttonShadow
                       )}
                     >
                       <span>{game.action_text}</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
+                      <ArrowRight className="w-4 h-4" />
                     </Link>
                   </div>
                 </div>
@@ -650,30 +653,30 @@ export const CourseShowcase = () => {
                         {t.avatar_emoji || "🎓"}
                       </div>
                       <div>
-                        <h3 className="text-sm font-black text-white">{t.name}</h3>
-                        {t.target && <p className="text-[11px] text-slate-400">{t.target}</p>}
+                        <h3 className="text-sm sm:text-base font-black text-white">{t.name}</h3>
+                        {t.target && <p className="text-xs text-slate-300 font-medium">{t.target}</p>}
                       </div>
                     </div>
                   </div>
 
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-xl bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-black">
-                    <Award className="w-3.5 h-3.5 text-emerald-400" />
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border border-emerald-500/40 text-emerald-300 text-xs sm:text-sm font-black">
+                    <Award className="w-4 h-4 text-emerald-400" />
                     <span>{t.score}</span>
                     {t.score_increase && (
-                      <span className="text-[10px] text-emerald-400 font-semibold">({t.score_increase})</span>
+                      <span className="text-xs text-emerald-300 font-bold">({t.score_increase})</span>
                     )}
                   </div>
 
-                  <p className="text-xs text-slate-300 font-medium leading-relaxed italic relative pl-3 border-l-2 border-cyan-500/40">
+                  <p className="text-xs sm:text-sm text-slate-200 font-medium leading-relaxed italic relative pl-3 border-l-2 border-cyan-500/40">
                     "{t.quote}"
                   </p>
                 </div>
 
-                <div className="flex items-center gap-1 text-amber-400 pt-2 border-t border-slate-800/80">
+                <div className="flex items-center gap-1.5 text-amber-400 pt-2.5 border-t border-slate-800/80">
                   {[1, 2, 3, 4, 5].map((s) => (
-                    <Star key={s} className="w-3 h-3 fill-amber-400 text-amber-400" />
+                    <Star key={s} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
                   ))}
-                  <span className="text-[10px] font-bold text-slate-400 ml-1.5">Đã xác minh điểm thi IIG</span>
+                  <span className="text-xs font-semibold text-slate-300 ml-1.5">Đã xác minh điểm thi IIG</span>
                 </div>
               </div>
             ))}
@@ -682,62 +685,67 @@ export const CourseShowcase = () => {
       )}
 
       {/* ========================================================================= */}
-      {/* SECTION: NÂNG CẤP VIP TRỌN ĐỜI (COMBO VIỀN VÀNG NEON - DYNAMIC)           */}
+      {/* SECTION: NÂNG CẤP VIP TRỌN ĐỜI (THIẾT KẾ PRO PLAN CAO CẤP THEO MẪU)       */}
       {/* ========================================================================= */}
       {section_toggles.show_vip_combo && (
         <div
           id="combos"
-          className="relative overflow-hidden rounded-3xl border-2 border-amber-400/80 bg-gradient-to-br from-[#0c1629] via-[#080f1e] to-[#040810] text-white p-6 sm:p-8 md:p-10 shadow-[0_0_45px_rgba(245,158,11,0.25)] scroll-mt-24"
+          className="relative overflow-hidden rounded-[32px] sm:rounded-[36px] border border-[#2d2f5e]/90 bg-gradient-to-b from-[#181938] via-[#121327] to-[#0c0d1d] text-white p-6 sm:p-8 md:p-10 shadow-[0_25px_70px_-15px_rgba(0,0,0,0.85),0_0_50px_rgba(84,82,238,0.2)] scroll-mt-24"
         >
-          {/* Glow ambient effects */}
-          <div className="absolute top-0 right-0 w-80 h-80 bg-amber-500/15 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute bottom-0 left-0 w-80 h-80 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
+          {/* Ambient Glow Effects (Tím Indigo Dịu Mắt) */}
+          <div className="absolute -top-28 left-1/4 w-[500px] h-[300px] bg-[#5452ee]/20 rounded-full blur-[120px] pointer-events-none" />
+          <div className="absolute -bottom-28 right-10 w-[450px] h-[260px] bg-purple-600/15 rounded-full blur-[130px] pointer-events-none" />
 
           <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
             {/* Cột Trái: Quyền Lợi VIP */}
             <div className="lg:col-span-7 space-y-6">
               <div className="space-y-3">
-                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/40 text-xs font-black uppercase tracking-wider backdrop-blur-xs">
-                  <img src={iconVipCrown} alt="" className="w-5 h-5 object-contain inline-block" />
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#5452ee]/15 text-[#a2a4f6] border border-[#5452ee]/30 text-xs font-bold uppercase tracking-wider backdrop-blur-sm">
+                  <img src={iconVipCrown} alt="" className="w-4 h-4 object-contain inline-block" />
                   <span>{vip_combo.badge}</span>
                 </div>
-                <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-white font-display tracking-wide leading-tight">
+                <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-[42px] font-bold text-white font-serif tracking-tight leading-tight">
                   {vip_combo.title}
                 </h2>
-                <p className="text-slate-300 text-xs sm:text-sm font-medium leading-relaxed max-w-2xl">
+                <p className="text-[#9597be] text-sm sm:text-base font-normal leading-relaxed max-w-2xl">
                   {vip_combo.subtitle}
                 </p>
               </div>
 
-              {/* 4 Quyền Lợi Cốt Lõi (Dynamic từ Admin) */}
+              {/* 4 Quyền Lợi Cốt Lõi (Dynamic từ Admin) - Dấu Tích Tròn Trắng Theo Mẫu Reference */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 {vip_combo.features.map((feat, idx) => (
                   <div
                     key={idx}
-                    className="flex items-start gap-3 p-3.5 rounded-2xl bg-white/5 border border-white/10 hover:border-amber-400/40 transition-colors"
+                    className="flex items-start gap-3 p-4 rounded-2xl bg-[#1c1d38]/80 hover:bg-[#202142] border border-white/5 hover:border-[#5452ee]/40 transition-all shadow-xs group"
                   >
-                    <div className="w-8 h-8 rounded-xl bg-amber-400/20 text-amber-300 flex items-center justify-center shrink-0 mt-0.5">
-                      <CheckCircle2 className="w-4 h-4" />
+                    <div className="w-5 h-5 rounded-full bg-white text-[#121327] flex items-center justify-center shrink-0 mt-0.5 shadow-sm group-hover:scale-105 transition-transform">
+                      <Check className="w-3.5 h-3.5 stroke-[3] text-[#121327]" />
                     </div>
-                    <div className="space-y-0.5">
-                      <h4 className="text-xs font-bold text-white">{feat.title}</h4>
-                      <p className="text-[11px] text-slate-400">{feat.desc}</p>
+                    <div className="space-y-0.5 min-w-0">
+                      <h4 className="text-xs sm:text-sm font-bold text-white leading-snug">{feat.title}</h4>
+                      {feat.desc && (
+                        <p className="text-xs sm:text-[13px] text-[#9597be] font-normal leading-relaxed">{feat.desc}</p>
+                      )}
                     </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Cột Phải: Thẻ Vé VIP Ticket Giá Sốc (Tự Động Tính Tiết Kiệm) */}
+            {/* Cột Phải: Thẻ Vé VIP Ticket Giá Sốc (Thiết kế Good Deal chuẩn mẫu reference) */}
             <div className="lg:col-span-5">
-              <div className="bg-[#0b172d]/90 backdrop-blur-md rounded-2xl border-2 border-amber-400/60 p-6 flex flex-col items-center text-center space-y-4 shadow-[0_0_35px_rgba(245,158,11,0.2)] relative">
+              <div className="bg-[#161732]/95 backdrop-blur-md rounded-[28px] border-2 border-[#5452ee] p-6 sm:p-8 flex flex-col items-center text-center space-y-4 shadow-[0_0_35px_rgba(84,82,238,0.25)] relative overflow-hidden">
+                {/* Subtle top glow inside the card */}
+                <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-48 h-24 bg-[#5452ee]/30 rounded-full blur-2xl pointer-events-none" />
+
                 {(() => {
                   const savingsInfo = calculateSavings(vip_combo.original_price, vip_combo.price);
                   const badgeText = savingsInfo.badgeText || (vip_combo as any).discount_badge;
                   if (!badgeText) return null;
                   return (
-                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/20 text-red-300 border border-red-500/40 text-[11px] font-black uppercase tracking-wider animate-pulse">
-                      <Zap className="w-3.5 h-3.5 text-red-400" />
+                    <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#5452ee] text-white text-xs font-bold uppercase tracking-wide shadow-[0_0_15px_rgba(84,82,238,0.4)]">
+                      <Zap className="w-3.5 h-3.5 text-white" />
                       <span>{badgeText}</span>
                     </div>
                   );
@@ -745,15 +753,15 @@ export const CourseShowcase = () => {
 
                 <div className="space-y-1">
                   {vip_combo.original_price > 0 && (
-                    <span className="text-xs text-slate-400 line-through font-bold">
+                    <span className="text-xs sm:text-sm text-[#797b9e] line-through font-medium block">
                       Giá gốc: {vip_combo.original_price.toLocaleString("vi-VN")} đ
                     </span>
                   )}
-                  <div className="text-3xl sm:text-4xl font-black text-amber-300 tracking-tight font-tech">
+                  <div className="text-3xl sm:text-4xl md:text-[40px] font-extrabold text-white tracking-tight font-sans">
                     {vip_combo.price.toLocaleString("vi-VN")} đ
                   </div>
                   {vip_combo.price_note && (
-                    <p className="text-xs text-slate-300 font-medium">
+                    <p className="text-xs sm:text-sm text-[#9597be] font-normal">
                       {vip_combo.price_note}
                     </p>
                   )}
@@ -762,9 +770,10 @@ export const CourseShowcase = () => {
                 <button
                   onClick={() => {
                     trackEvent("click_combo", { location: "showcase_vip_card" });
+                    setModalStep("checkout");
                     setModalOpen(true);
                   }}
-                  className="w-full py-3.5 rounded-2xl text-sm sm:text-base font-black text-slate-950 bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 shadow-[0_0_25px_rgba(245,158,11,0.5)] hover:shadow-[0_0_35px_rgba(245,158,11,0.7)] flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95 cursor-pointer"
+                  className="w-full py-4 rounded-xl text-sm sm:text-base font-bold text-white bg-[#5452ee] hover:bg-[#4745dc] active:scale-[0.98] shadow-[0_4px_25px_rgba(84,82,238,0.45)] flex items-center justify-center gap-2 transition-all hover:scale-[1.01] cursor-pointer"
                 >
                   <img src={iconVipCrown} alt="" className="w-5 h-5 object-contain inline-block" />
                   <span>{vip_combo.cta_text || "MUA GÓI VIP TRỌN GÓI"}</span>
@@ -772,7 +781,7 @@ export const CourseShowcase = () => {
                 </button>
 
                 {vip_combo.security_note && (
-                  <div className="text-[11px] text-slate-400 flex items-center gap-1.5 font-medium">
+                  <div className="text-xs sm:text-[13px] text-[#9597be] flex items-center justify-center gap-2 font-normal">
                     <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
                     <span>{vip_combo.security_note}</span>
                   </div>
@@ -867,8 +876,8 @@ export const CourseShowcase = () => {
                   <img src={iconImg} alt="" className="w-full h-full object-contain drop-shadow" />
                 </div>
                 <div>
-                  <h4 className="text-xs font-black text-white font-tech">{cmt.title}</h4>
-                  <p className="text-[11px] text-slate-400 font-medium">{cmt.desc}</p>
+                  <h4 className="text-xs sm:text-sm font-black text-white font-tech">{cmt.title}</h4>
+                  <p className="text-xs text-slate-300 font-medium">{cmt.desc}</p>
                 </div>
               </div>
             );
@@ -876,87 +885,13 @@ export const CourseShowcase = () => {
         </div>
       )}
 
-      {/* MODAL THANH TOÁN VIETQR COMBO KHÓA HỌC (DYNAMIC 100% TỪ ADMIN) */}
-      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-w-lg p-6 rounded-3xl bg-[#09152b] border border-cyan-500/30 text-white">
-          <DialogHeader className="space-y-2 text-center flex flex-col items-center">
-            <div className="w-14 h-14 rounded-2xl bg-cyan-500/15 p-2 flex items-center justify-center border border-cyan-500/30 shadow-[0_0_20px_rgba(6,182,212,0.3)]">
-              <img src={iconGift} alt="" className="w-full h-full object-contain drop-shadow-sm" />
-            </div>
-            <DialogTitle className="text-xl font-black text-white font-display">
-              {vip_combo.title}
-            </DialogTitle>
-            <p className="text-xs text-slate-300">
-              Quét mã VietQR chuyển khoản tự động để kích hoạt tài khoản học viên ngay lập tức.
-            </p>
-          </DialogHeader>
-
-          <div className="space-y-4 pt-2">
-            <div className="p-4 rounded-2xl bg-[#0c1f40] border border-cyan-500/30 flex items-center justify-between">
-              <div>
-                <span className="text-xs uppercase font-bold text-cyan-400">
-                  GÓI HỌC TOÀN DIỆN
-                </span>
-                <h4 className="font-black text-sm text-white font-display">
-                  {vip_combo.title}
-                </h4>
-                <span className="text-xs text-slate-400">{vip_combo.price_note || "Thời hạn: Vĩnh viễn"}</span>
-              </div>
-              <div className="text-right">
-                <span className="text-lg font-black text-amber-300 font-tech">
-                  {vip_combo.price.toLocaleString("vi-VN")} đ
-                </span>
-                {vip_combo.original_price > 0 && (
-                  <span className="text-xs text-slate-500 line-through block">
-                    {vip_combo.original_price.toLocaleString("vi-VN")} đ
-                  </span>
-                )}
-              </div>
-            </div>
-
-            <div className="flex flex-col items-center justify-center p-5 rounded-2xl border border-slate-700 bg-white">
-              <img
-                src={generateVietQrUrl(
-                  vip_combo.bank_bin,
-                  vip_combo.bank_account,
-                  vip_combo.account_holder,
-                  vip_combo.price,
-                  vip_combo.transfer_syntax
-                )}
-                alt="VietQR Chuyển Khoản"
-                className="w-48 h-48 object-contain"
-              />
-            </div>
-
-            <div className="text-center space-y-1 p-3 rounded-xl bg-slate-900/60 border border-slate-800 text-xs">
-              <p className="font-bold text-slate-200">
-                Ngân hàng: <span className="text-cyan-400 font-extrabold">{vip_combo.bank_name}</span> | STK:{" "}
-                <span className="text-cyan-400 font-extrabold">{vip_combo.bank_account}</span>
-              </p>
-              <p className="font-bold text-slate-200">
-                Chủ tài khoản:{" "}
-                <span className="text-white font-extrabold">{vip_combo.account_holder}</span>
-              </p>
-              <p className="text-slate-400">
-                Nội dung CK: <strong className="text-amber-300 font-mono">{vip_combo.transfer_syntax}</strong>
-              </p>
-            </div>
-
-            <div className="pt-2 text-center">
-              <a
-                href={`https://zalo.me/${showcaseConfig.contact_info?.zalo_number || vip_combo.zalo_hotline || "0334729066"}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => trackEvent("click_zalo", { source: "combo_payment_modal" })}
-                className="w-full py-3 rounded-xl text-xs font-black inline-flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.4)] cursor-pointer"
-              >
-                <span>Xác nhận chuyển khoản qua Zalo ({showcaseConfig.contact_info?.hotline || vip_combo.zalo_hotline || "0334 729 066"})</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </a>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* MODAL NÂNG CẤP PRO PLAN (MATCHING SAMPLE DESIGN 1:1) */}
+      <UpgradeProModal 
+        open={modalOpen} 
+        onOpenChange={setModalOpen} 
+        vipCombo={vip_combo}
+        initialStep={modalStep}
+      />
     </div>
   );
 };

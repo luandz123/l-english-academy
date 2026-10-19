@@ -82,6 +82,8 @@ export interface HomepageShowcaseConfig {
     bank_account: string;
     account_holder: string;
     transfer_syntax: string;
+    discount_badge?: string;
+    zalo_hotline?: string;
   };
   testimonials: TestimonialItem[];
   faqs: FaqItem[];
@@ -150,6 +152,7 @@ export const DEFAULT_HOMEPAGE_CONFIG: HomepageShowcaseConfig = {
     bank_account: "0334729066",
     account_holder: "HOANG CONG LUAN",
     transfer_syntax: "VIP [SĐT Của Bạn]",
+    zalo_hotline: "0334729066",
   },
   testimonials: [
     {
