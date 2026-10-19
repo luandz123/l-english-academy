@@ -1,19 +1,18 @@
-
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { PlayCircle, CheckCircle, ChevronLeft, ChevronRight, Check, Loader2, FileQuestion, X, Headphones, PanelRightClose, PanelRight, Keyboard, Trophy, ChevronDown } from "lucide-react";
+import { PlayCircle, CheckCircle, ChevronLeft, ChevronRight, Check, Loader2, FileQuestion, X, Headphones, PanelRightClose, PanelRight, Keyboard, Trophy, ChevronDown, Lock, Crown, Zap, Sparkles, ShieldCheck, Eye, EyeOff } from "lucide-react";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { Lock } from "lucide-react";
 import DictationPage from "./DictationPage";
 import GamificationChips from "@/components/GamificationChips";
 import ErrorState from "@/components/ErrorState";
+import UpgradeProModal from "@/components/UpgradeProModal";
 
 const LearnPage = () => {
   const { courseId } = useParams();
@@ -23,11 +22,15 @@ const LearnPage = () => {
   const queryClient = useQueryClient();
   const cId = Number(courseId);
 
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [adminPreviewAsGuest, setAdminPreviewAsGuest] = useState(false);
+
   const { data: enrollment } = useQuery({
-    queryKey: ["learn-enrollment", user?.id, cId, isAdmin],
+    queryKey: ["learn-enrollment", user?.id, cId, isAdmin, adminPreviewAsGuest],
     queryFn: async () => {
       if (!user) return null;
-      if (isAdmin) return { id: 0, user_id: user.id, course_id: cId, enrolled: true };
+      if (isAdmin && !adminPreviewAsGuest) return { id: 0, user_id: user.id, course_id: cId, enrolled: true };
+      if (isAdmin && adminPreviewAsGuest) return null;
       const { data } = await supabase.from("enrollments").select("*").eq("user_id", user.id).eq("course_id", cId).maybeSingle();
       return data;
     },
@@ -212,6 +215,13 @@ const LearnPage = () => {
   const isCompleted = progress.some((p: any) => p.lesson_id === currentLessonId && p.is_completed);
   const isFavorited = favorites.some((f: any) => f.lesson_id === currentLessonId);
 
+  const currentModule = modules.find((m: any) => m.lessons.some((l: any) => l.id === currentLessonId));
+  const effectiveEnrollment = (isAdmin && !adminPreviewAsGuest) ? enrollment : (adminPreviewAsGuest ? null : enrollment);
+  const isCourseFree = Boolean((course as any)?.is_free);
+  const isModuleFree = Boolean(currentModule?.is_free);
+  const isLessonFree = Boolean(currentLesson?.is_free);
+  const canStudyCurrentLesson = Boolean(effectiveEnrollment || isCourseFree || isModuleFree || isLessonFree);
+
   const completedCount = progress.filter((p: any) => p.is_completed).length;
   const totalLessons = allLessons.length;
   const progressPct = totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
@@ -379,6 +389,43 @@ const LearnPage = () => {
       <div className="relative z-10 flex flex-col lg:flex-row h-full">
         {/* Main content */}
         <div className="flex-1 min-w-0 flex flex-col h-full overflow-hidden bg-transparent">
+          {/* Admin Preview Mode Switcher */}
+          {isAdmin && (
+            <div className="bg-gradient-to-r from-purple-950/90 via-[#181938] to-slate-900 border-b border-purple-500/30 px-4 py-2 flex items-center justify-between text-xs font-bold shrink-0">
+              <div className="flex items-center gap-2 text-purple-200">
+                <Crown className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>
+                  Chế độ Quản trị:{" "}
+                  {adminPreviewAsGuest ? (
+                    <span className="text-amber-400 font-extrabold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/30">
+                      Đang xem thử góc nhìn Học Viên (Chưa Mua)
+                    </span>
+                  ) : (
+                    <span className="text-emerald-400 font-extrabold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30">
+                      Toàn quyền xem tất cả bài học
+                    </span>
+                  )}
+                </span>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setAdminPreviewAsGuest(v => !v)}
+                className="h-7 text-xs font-bold border-purple-400/40 bg-purple-500/20 hover:bg-purple-500/30 text-purple-200 rounded-lg active:scale-95 duration-120"
+              >
+                {adminPreviewAsGuest ? (
+                  <>
+                    <EyeOff className="w-3.5 h-3.5 mr-1 text-purple-300" /> Tắt xem thử (Về Toàn Quyền)
+                  </>
+                ) : (
+                  <>
+                    <Eye className="w-3.5 h-3.5 mr-1 text-amber-400" /> 👁️ Xem thử góc nhìn Học Viên
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
+
           {/* Top Header */}
           <div className="h-16 px-4 lg:px-6 border-b border-cyan-500/20 bg-[#070e1c]/90 backdrop-blur-xl flex items-center justify-between gap-4 shrink-0">
             <div className="flex items-center gap-3 min-w-0">
@@ -415,18 +462,117 @@ const LearnPage = () => {
 
           {/* Scrollable Content Container */}
           <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 bg-transparent">
-            {/* YouTube/PDF Player */}
-            {(isVideoLesson || isPdfLesson) && (
-              <div className="overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-800/80 bg-slate-900 max-w-4xl mx-auto w-full shadow-soft-md">
-                {isVideoLesson && isPdfLesson ? (
-                  <Tabs defaultValue="video" className="w-full">
-                    <div className="bg-card border-b border-border/50 p-2">
-                      <TabsList className="grid w-full max-w-[400px] grid-cols-2">
-                        <TabsTrigger value="video" className="font-bold text-xs sm:text-sm">🎬 Xem Video</TabsTrigger>
-                        <TabsTrigger value="pdf" className="font-bold text-xs sm:text-sm">📄 Đọc Tài liệu PDF</TabsTrigger>
-                      </TabsList>
+            {!canStudyCurrentLesson ? (
+              /* MÀN HÌNH KHÓA NỘI DUNG PRO (PAYWALL LOCK CARD) */
+              <div className="max-w-4xl mx-auto w-full py-4 sm:py-8">
+                <div className="relative rounded-3xl bg-gradient-to-b from-[#181938] via-[#121327] to-[#0c0d1d] border-2 border-amber-500/40 p-6 sm:p-10 text-center shadow-[0_25px_70px_-15px_rgba(0,0,0,0.85),0_0_50px_rgba(245,158,11,0.15)] overflow-hidden">
+                  {/* Glow effect */}
+                  <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-96 h-48 bg-amber-500/20 blur-[90px] rounded-full pointer-events-none" />
+
+                  <div className="relative z-10 space-y-6">
+                    <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/40 text-amber-300 font-extrabold text-xs uppercase tracking-wider">
+                      <Crown className="w-4 h-4 text-amber-400" />
+                      Nội Dung Khóa Học Trả Phí • Gói PRO
                     </div>
-                    <TabsContent value="video" className="m-0 border-none outline-none focus-visible:ring-0">
+
+                    <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-amber-500/25 via-orange-500/15 to-amber-600/25 border-2 border-amber-500/40 flex items-center justify-center mx-auto shadow-lg shadow-amber-500/20">
+                      <Lock className="w-10 h-10 text-amber-400" />
+                    </div>
+
+                    <div className="space-y-2 max-w-xl mx-auto">
+                      <h2 className="text-2xl sm:text-3xl font-black text-white">
+                        Bài Học Này Đang Được Khóa 🔒
+                      </h2>
+                      <p className="text-sm sm:text-base font-semibold text-slate-300 leading-relaxed">
+                        Bài học <span className="text-amber-300 font-bold">"{currentLesson.title}"</span> nằm trong{" "}
+                        <span className="text-white font-bold">{currentModule?.title || "chương trình trả phí"}</span>.
+                        Bạn cần đăng ký khóa học hoặc nâng cấp tài khoản PRO để mở khóa toàn bộ bài học, video và đề thi trực tuyến.
+                      </p>
+                    </div>
+
+                    {/* Feature Highlights */}
+                    <div className="grid sm:grid-cols-3 gap-3 max-w-2xl mx-auto text-left pt-2">
+                      <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-1.5">
+                        <span className="text-2xl block">🎬</span>
+                        <h4 className="text-xs font-bold text-white">Video Độc Quyền</h4>
+                        <p className="text-[11px] text-slate-400">Xem đầy đủ 100% video bài giảng Part 1 - Part 7 không giới hạn thời gian.</p>
+                      </div>
+                      <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-1.5">
+                        <span className="text-2xl block">📝</span>
+                        <h4 className="text-xs font-bold text-white">Thi Online Sát Đề</h4>
+                        <p className="text-[11px] text-slate-400">Đề thi sát cấu trúc thật năm 2026, bấm giờ thực tế và có giải chi tiết.</p>
+                      </div>
+                      <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-1.5">
+                        <span className="text-2xl block">💬</span>
+                        <h4 className="text-xs font-bold text-white">Hỗ Trợ 1-1 Qua Zalo</h4>
+                        <p className="text-[11px] text-slate-400">Được giảng viên và trợ giảng hỗ trợ giải đáp mọi bài tập và thắc mắc.</p>
+                      </div>
+                    </div>
+
+                    {/* CTA Buttons */}
+                    <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
+                      <Button
+                        className="btn-3d w-full sm:w-auto px-8 py-6 text-base font-black bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white shadow-xl shadow-orange-500/25 active:scale-95"
+                        onClick={() => setShowUpgradeModal(true)}
+                      >
+                        <Zap className="w-5 h-5 mr-2 text-yellow-200 fill-yellow-200" />
+                        Nâng Cấp Gói PRO Ngay
+                      </Button>
+
+                      <Button
+                        variant="outline"
+                        className="btn-3d btn-3d-white w-full sm:w-auto px-6 py-6 text-sm font-bold active:scale-95"
+                        onClick={() => {
+                          const firstFreeLesson = allLessons.find((l: any) => {
+                            const modOfLesson = modules.find((m: any) => m.lessons.some((ml: any) => ml.id === l.id));
+                            return modOfLesson?.is_free || l.is_free;
+                          });
+                          if (firstFreeLesson) {
+                            setCurrentLessonId(firstFreeLesson.id);
+                          }
+                        }}
+                      >
+                        ← Quay lại bài học miễn phí (Part 1)
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* YouTube/PDF Player */}
+                {(isVideoLesson || isPdfLesson) && (
+                  <div className="overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-800/80 bg-slate-900 max-w-4xl mx-auto w-full shadow-soft-md">
+                    {isVideoLesson && isPdfLesson ? (
+                      <Tabs defaultValue="video" className="w-full">
+                        <div className="bg-card border-b border-border/50 p-2">
+                          <TabsList className="grid w-full max-w-[400px] grid-cols-2">
+                            <TabsTrigger value="video" className="font-bold text-xs sm:text-sm">🎬 Xem Video</TabsTrigger>
+                            <TabsTrigger value="pdf" className="font-bold text-xs sm:text-sm">📄 Đọc Tài liệu PDF</TabsTrigger>
+                          </TabsList>
+                        </div>
+                        <TabsContent value="video" className="m-0 border-none outline-none focus-visible:ring-0">
+                          <div className="aspect-video bg-black max-h-[70vh]">
+                            <iframe
+                              src={getEmbedUrl(currentLesson.video_url)}
+                              className="w-full h-full"
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              allowFullScreen
+                              title={currentLesson.title}
+                            />
+                          </div>
+                        </TabsContent>
+                        <TabsContent value="pdf" className="m-0 border-none outline-none focus-visible:ring-0">
+                          <div className="w-full h-[75vh] bg-muted">
+                            <iframe
+                              src={`${currentLesson.pdf_url}#toolbar=0`}
+                              className="w-full h-full border-none"
+                              title={currentLesson.title}
+                            />
+                          </div>
+                        </TabsContent>
+                      </Tabs>
+                    ) : isVideoLesson ? (
                       <div className="aspect-video bg-black max-h-[70vh]">
                         <iframe
                           src={getEmbedUrl(currentLesson.video_url)}
@@ -436,8 +582,7 @@ const LearnPage = () => {
                           title={currentLesson.title}
                         />
                       </div>
-                    </TabsContent>
-                    <TabsContent value="pdf" className="m-0 border-none outline-none focus-visible:ring-0">
+                    ) : (
                       <div className="w-full h-[75vh] bg-muted">
                         <iframe
                           src={`${currentLesson.pdf_url}#toolbar=0`}
@@ -445,193 +590,175 @@ const LearnPage = () => {
                           title={currentLesson.title}
                         />
                       </div>
-                    </TabsContent>
-                  </Tabs>
-                ) : isVideoLesson ? (
-                  <div className="aspect-video bg-black max-h-[70vh]">
-                    <iframe
-                      src={getEmbedUrl(currentLesson.video_url)}
-                      className="w-full h-full"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                      title={currentLesson.title}
-                    />
+                    )}
                   </div>
-                ) : (
-                  <div className="w-full h-[75vh] bg-muted">
-                    <iframe
-                      src={`${currentLesson.pdf_url}#toolbar=0`}
-                      className="w-full h-full border-none"
-                      title={currentLesson.title}
+                )}
+
+                {/* Banner for manual practices */}
+                {practices.length > 0 && (
+                  <div className="bg-amber-500/10 border border-amber-500/25 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 max-w-4xl mx-auto w-full shadow-soft-sm">
+                    <div className="flex items-center gap-3">
+                      <span className="text-3xl shrink-0">📝</span>
+                      <div>
+                        <h4 className="text-sm sm:text-base font-extrabold text-amber-700 dark:text-amber-400">Bài tập thực hành đính kèm</h4>
+                        <p className="text-xs sm:text-sm font-semibold text-muted-foreground mt-0.5">Hãy hoàn thành các bài tập này để tự đánh giá mức độ tiếp thu bài học nhé!</p>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-end">
+                      {practices.map((p: any) => (
+                        <Button
+                          key={p.id}
+                          className="btn-3d bg-amber-500 hover:bg-amber-600 text-white text-xs sm:text-sm font-extrabold py-2 px-4 h-10 w-full sm:w-auto shrink-0 shadow-soft-sm active:scale-95"
+                          onClick={() => openPractice(p)}
+                        >
+                          {p.title || "Làm bài tập 🚀"}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {isPracticeLesson && (() => {
+                  const quizId = currentLesson.quiz_id || currentLesson.id;
+                  const latestResult = quizResults.find((r: any) => r.quiz_id === quizId);
+
+                  return (
+                    <div className="p-4 flex items-center justify-center min-h-[40vh] max-w-4xl mx-auto w-full">
+                      <div className="w-full text-center space-y-6 p-6 sm:p-8 bg-card rounded-2xl shadow-soft-md border border-border/70">
+                        <div className="w-20 h-20 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto border border-primary/20 shadow-soft-sm">
+                          <FileQuestion className="w-10 h-10 text-primary" />
+                        </div>
+                        <h2 className="text-xl sm:text-2xl font-extrabold text-foreground">{currentLesson.title}</h2>
+                        <p className="text-muted-foreground font-semibold text-sm sm:text-base">Bài {currentLesson.lesson_type === "exam" ? "thi online 🏆" : "luyện tập 🎯"}</p>
+
+                        {latestResult && (
+                          <div className="flex flex-col items-center justify-center gap-1.5 mb-4">
+                            <span className="text-base font-extrabold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-5 py-2.5 rounded-xl border border-emerald-500/30">
+                              Điểm gần nhất: {latestResult.score}/10 ⭐
+                            </span>
+                            <span className="text-xs font-semibold text-muted-foreground">
+                              Đúng {latestResult.correct_answers}/{latestResult.total_questions} câu
+                            </span>
+                          </div>
+                        )}
+
+                        <Button className="btn-3d btn-3d-primary w-full sm:w-auto text-base px-8 py-4 h-auto" onClick={() => navigate(`/courses/${courseId}/quiz/${quizId}`)}>
+                          {latestResult ? "Làm lại bài thi 🔄" : "Bắt đầu làm bài 🚀"}
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {isDictationLesson && (
+                  <div className="w-full max-w-5xl mx-auto">
+                    <DictationPage
+                      embedded={true}
+                      courseId={String(courseId)}
+                      lessonId={String(currentLesson.id)}
+                      quizId={String(currentLesson.quiz_id || currentLesson.id)}
+                      onLessonComplete={() => completionMutation.mutate()}
+                      onNextLesson={() => {
+                        if (currentIndex < allLessons.length - 1) {
+                          setCurrentLessonId(allLessons[currentIndex + 1].id);
+                        }
+                      }}
                     />
                   </div>
                 )}
-              </div>
-            )}
 
-            {/* Banner for manual practices */}
-            {practices.length > 0 && (
-              <div className="bg-amber-500/10 border border-amber-500/25 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 max-w-4xl mx-auto w-full shadow-soft-sm">
-                <div className="flex items-center gap-3">
-                  <span className="text-3xl shrink-0">📝</span>
-                  <div>
-                    <h4 className="text-sm sm:text-base font-extrabold text-amber-700 dark:text-amber-400">Bài tập thực hành đính kèm</h4>
-                    <p className="text-xs sm:text-sm font-semibold text-muted-foreground mt-0.5">Hãy hoàn thành các bài tập này để tự đánh giá mức độ tiếp thu bài học nhé!</p>
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-end">
-                  {practices.map((p: any) => (
-                    <Button
-                      key={p.id}
-                      className="btn-3d bg-amber-500 hover:bg-amber-600 text-white text-xs sm:text-sm font-extrabold py-2 px-4 h-10 w-full sm:w-auto shrink-0 shadow-soft-sm active:scale-95"
-                      onClick={() => openPractice(p)}
-                    >
-                      {p.title || "Làm bài tập 🚀"}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-            )}
+                {/* Tabs for Description, Materials, Notes */}
+                <div className="max-w-4xl mx-auto w-full">
+                  <Tabs defaultValue="description" className="w-full bg-card rounded-2xl border-2 border-border shadow-sm overflow-hidden">
+                    <TabsList className="flex border-b bg-muted/20 p-0 h-11 rounded-none">
+                      <TabsTrigger value="description" className="flex-1 font-extrabold text-xs sm:text-sm h-full rounded-none border-b-2 border-transparent data-[state=active]:border-[var(--duo-blue)] data-[state=active]:bg-card">
+                        📖 Mô tả
+                      </TabsTrigger>
+                      <TabsTrigger value="materials" className="flex-1 font-extrabold text-xs sm:text-sm h-full rounded-none border-b-2 border-transparent data-[state=active]:border-[var(--duo-blue)] data-[state=active]:bg-card">
+                        📎 Tài liệu ({materials.length})
+                      </TabsTrigger>
+                      <TabsTrigger value="notes" className="flex-1 font-extrabold text-xs sm:text-sm h-full rounded-none border-b-2 border-transparent data-[state=active]:border-[var(--duo-blue)] data-[state=active]:bg-card">
+                        📝 Ghi chú ({savedNotes.length})
+                      </TabsTrigger>
+                    </TabsList>
+                    
+                    <TabsContent value="description" className="p-5 sm:p-6 focus-visible:outline-none">
+                      <p className="text-sm sm:text-base font-semibold text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                        {currentLesson.description || "Chưa có mô tả cho bài học này. 🤫"}
+                      </p>
+                    </TabsContent>
 
-            {isPracticeLesson && (() => {
-              const quizId = currentLesson.quiz_id || currentLesson.id;
-              const latestResult = quizResults.find((r: any) => r.quiz_id === quizId);
+                    <TabsContent value="materials" className="p-5 sm:p-6 focus-visible:outline-none space-y-3">
+                      {materials.length === 0 ? (
+                        <p className="text-xs sm:text-sm font-bold text-muted-foreground text-center py-4">Bài học này chưa đính kèm tài liệu nào. 📁</p>
+                      ) : (
+                        <div className="grid gap-3">
+                          {materials.map((m: any) => (
+                            <a
+                              key={m.id}
+                              href={m.file_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center justify-between p-3.5 rounded-xl border bg-card hover:bg-muted/30 transition-colors"
+                            >
+                              <div className="flex items-center gap-3 min-w-0">
+                                <span className="text-xl shrink-0">
+                                  {m.file_url?.endsWith(".pdf") ? "📄" : m.file_url?.match(/\.(mp3|wav|ogg)$/i) ? "🎵" : "🔗"}
+                                </span>
+                                <div className="min-w-0">
+                                  <p className="font-extrabold text-foreground text-xs sm:text-sm truncate">{m.title || "Tài liệu đính kèm"}</p>
+                                  {m.description && <p className="text-xs sm:text-xs text-muted-foreground font-semibold mt-0.5 truncate">{m.description}</p>}
+                                </div>
+                              </div>
+                              <Button size="sm" variant="outline" className="btn-3d btn-3d-white text-xs px-2.5 py-1 h-7 shrink-0">Tải xuống</Button>
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                    </TabsContent>
 
-              return (
-                <div className="p-4 flex items-center justify-center min-h-[40vh] max-w-4xl mx-auto w-full">
-                  <div className="w-full text-center space-y-6 p-6 sm:p-8 bg-card rounded-2xl shadow-soft-md border border-border/70">
-                    <div className="w-20 h-20 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto border border-primary/20 shadow-soft-sm">
-                      <FileQuestion className="w-10 h-10 text-primary" />
-                    </div>
-                    <h2 className="text-xl sm:text-2xl font-extrabold text-foreground">{currentLesson.title}</h2>
-                    <p className="text-muted-foreground font-semibold text-sm sm:text-base">Bài {currentLesson.lesson_type === "exam" ? "thi online 🏆" : "luyện tập 🎯"}</p>
-
-                    {latestResult && (
-                      <div className="flex flex-col items-center justify-center gap-1.5 mb-4">
-                        <span className="text-base font-extrabold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-5 py-2.5 rounded-xl border border-emerald-500/30">
-                          Điểm gần nhất: {latestResult.score}/10 ⭐
-                        </span>
-                        <span className="text-xs font-semibold text-muted-foreground">
-                          Đúng {latestResult.correct_answers}/{latestResult.total_questions} câu
-                        </span>
+                    <TabsContent value="notes" className="p-5 sm:p-6 focus-visible:outline-none space-y-4">
+                      <div className="space-y-3">
+                        <textarea
+                          value={noteText}
+                          onChange={(e) => handleNoteChange(e.target.value)}
+                          placeholder="Viết ghi chú của bạn cho bài học này tại đây..."
+                          className="w-full min-h-[90px] p-3 rounded-xl border-2 border-border focus:border-[var(--duo-blue)] focus:outline-none font-bold text-xs sm:text-sm bg-background resize-y"
+                        />
+                        <div className="flex justify-end">
+                          <Button
+                            onClick={() => noteMutation.mutate()}
+                            disabled={!noteText.trim() || noteMutation.isPending}
+                            className="btn-3d btn-3d-primary py-2 px-5 h-8 text-xs font-extrabold"
+                          >
+                            {noteMutation.isPending ? "Đang lưu..." : "Lưu ghi chú 💾"}
+                          </Button>
+                        </div>
                       </div>
-                    )}
 
-                    <Button className="btn-3d btn-3d-primary w-full sm:w-auto text-base px-8 py-4 h-auto" onClick={() => navigate(`/courses/${courseId}/quiz/${quizId}`)}>
-                      {latestResult ? "Làm lại bài thi 🔄" : "Bắt đầu làm bài 🚀"}
-                    </Button>
-                  </div>
+                      {savedNotes.length > 0 && (
+                        <div className="space-y-2 border-t pt-3">
+                          <h4 className="text-xs font-extrabold text-foreground">Ghi chú đã lưu:</h4>
+                          <div className="space-y-2.5 max-h-[220px] overflow-y-auto pr-1">
+                            {savedNotes.map((note: any) => (
+                              <div key={note.id} className="p-3 rounded-xl border bg-muted/10 relative group">
+                                <p className="text-xs sm:text-sm font-semibold text-foreground whitespace-pre-wrap">{note.content}</p>
+                                <span className="text-xs text-muted-foreground font-bold mt-1.5 block">
+                                  {new Date(note.created_at).toLocaleDateString("vi-VN", {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </TabsContent>
+                  </Tabs>
                 </div>
-              );
-            })()}
-
-            {isDictationLesson && (
-              <div className="w-full max-w-5xl mx-auto">
-                <DictationPage
-                  embedded={true}
-                  courseId={String(courseId)}
-                  lessonId={String(currentLesson.id)}
-                  quizId={String(currentLesson.quiz_id || currentLesson.id)}
-                  onLessonComplete={() => completionMutation.mutate()}
-                  onNextLesson={() => {
-                    if (currentIndex < allLessons.length - 1) {
-                      setCurrentLessonId(allLessons[currentIndex + 1].id);
-                    }
-                  }}
-                />
-              </div>
+              </>
             )}
-
-            {/* Tabs for Description, Materials, Notes */}
-            <div className="max-w-4xl mx-auto w-full">
-              <Tabs defaultValue="description" className="w-full bg-card rounded-2xl border-2 border-border shadow-sm overflow-hidden">
-                <TabsList className="flex border-b bg-muted/20 p-0 h-11 rounded-none">
-                  <TabsTrigger value="description" className="flex-1 font-extrabold text-xs sm:text-sm h-full rounded-none border-b-2 border-transparent data-[state=active]:border-[var(--duo-blue)] data-[state=active]:bg-card">
-                    📖 Mô tả
-                  </TabsTrigger>
-                  <TabsTrigger value="materials" className="flex-1 font-extrabold text-xs sm:text-sm h-full rounded-none border-b-2 border-transparent data-[state=active]:border-[var(--duo-blue)] data-[state=active]:bg-card">
-                    📎 Tài liệu ({materials.length})
-                  </TabsTrigger>
-                  <TabsTrigger value="notes" className="flex-1 font-extrabold text-xs sm:text-sm h-full rounded-none border-b-2 border-transparent data-[state=active]:border-[var(--duo-blue)] data-[state=active]:bg-card">
-                    📝 Ghi chú ({savedNotes.length})
-                  </TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="description" className="p-5 sm:p-6 focus-visible:outline-none">
-                  <p className="text-sm sm:text-base font-semibold text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                    {currentLesson.description || "Chưa có mô tả cho bài học này. 🤫"}
-                  </p>
-                </TabsContent>
-
-                <TabsContent value="materials" className="p-5 sm:p-6 focus-visible:outline-none space-y-3">
-                  {materials.length === 0 ? (
-                    <p className="text-xs sm:text-sm font-bold text-muted-foreground text-center py-4">Bài học này chưa đính kèm tài liệu nào. 📁</p>
-                  ) : (
-                    <div className="grid gap-3">
-                      {materials.map((m: any) => (
-                        <a
-                          key={m.id}
-                          href={m.file_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center justify-between p-3.5 rounded-xl border bg-card hover:bg-muted/30 transition-colors"
-                        >
-                          <div className="flex items-center gap-3 min-w-0">
-                            <span className="text-xl shrink-0">
-                              {m.file_url?.endsWith(".pdf") ? "📄" : m.file_url?.match(/\.(mp3|wav|ogg)$/i) ? "🎵" : "🔗"}
-                            </span>
-                            <div className="min-w-0">
-                              <p className="font-extrabold text-foreground text-xs sm:text-sm truncate">{m.title || "Tài liệu đính kèm"}</p>
-                              {m.description && <p className="text-xs sm:text-xs text-muted-foreground font-semibold mt-0.5 truncate">{m.description}</p>}
-                            </div>
-                          </div>
-                          <Button size="sm" variant="outline" className="btn-3d btn-3d-white text-xs px-2.5 py-1 h-7 shrink-0">Tải xuống</Button>
-                        </a>
-                      ))}
-                    </div>
-                  )}
-                </TabsContent>
-
-                <TabsContent value="notes" className="p-5 sm:p-6 focus-visible:outline-none space-y-4">
-                  <div className="space-y-3">
-                    <textarea
-                      value={noteText}
-                      onChange={(e) => handleNoteChange(e.target.value)}
-                      placeholder="Viết ghi chú của bạn cho bài học này tại đây..."
-                      className="w-full min-h-[90px] p-3 rounded-xl border-2 border-border focus:border-[var(--duo-blue)] focus:outline-none font-bold text-xs sm:text-sm bg-background resize-y"
-                    />
-                    <div className="flex justify-end">
-                      <Button
-                        onClick={() => noteMutation.mutate()}
-                        disabled={!noteText.trim() || noteMutation.isPending}
-                        className="btn-3d btn-3d-primary py-2 px-5 h-8 text-xs font-extrabold"
-                      >
-                        {noteMutation.isPending ? "Đang lưu..." : "Lưu ghi chú 💾"}
-                      </Button>
-                    </div>
-                  </div>
-
-                  {savedNotes.length > 0 && (
-                    <div className="space-y-2 border-t pt-3">
-                      <h4 className="text-xs font-extrabold text-foreground">Ghi chú đã lưu:</h4>
-                      <div className="space-y-2.5 max-h-[220px] overflow-y-auto pr-1">
-                        {savedNotes.map((note: any) => (
-                          <div key={note.id} className="p-3 rounded-xl border bg-muted/10 relative group">
-                            <p className="text-xs sm:text-sm font-semibold text-foreground whitespace-pre-wrap">{note.content}</p>
-                            <span className="text-xs text-muted-foreground font-bold mt-1.5 block">
-                              {new Date(note.created_at).toLocaleDateString("vi-VN", {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </TabsContent>
-              </Tabs>
-            </div>
           </div>
 
           {/* Sticky Bottom Navigation Bar */}
@@ -650,20 +777,37 @@ const LearnPage = () => {
             <Button
               className={cn(
                 "btn-3d text-xs sm:text-sm font-extrabold h-9 px-4 sm:px-6 transition-all",
-                isCompleted ? "btn-3d-green" : "btn-3d-primary"
+                !canStudyCurrentLesson
+                  ? "bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30"
+                  : isCompleted ? "btn-3d-green" : "btn-3d-primary"
               )}
-              onClick={() => completionMutation.mutate()}
+              onClick={() => {
+                if (!canStudyCurrentLesson) {
+                  setShowUpgradeModal(true);
+                  return;
+                }
+                completionMutation.mutate();
+              }}
             >
-              <Check className="w-4 h-4 mr-1 sm:mr-2" />
-              {isCompleted ? (
+              {!canStudyCurrentLesson ? (
                 <>
-                  <span className="hidden sm:inline">Bài học đã hoàn thành</span>
-                  <span className="sm:hidden">Đã hoàn thành</span>
+                  <Lock className="w-4 h-4 mr-1 sm:mr-2 text-amber-400" />
+                  <span>Mở khóa PRO</span>
                 </>
               ) : (
                 <>
-                  <span className="hidden sm:inline">Hoàn thành bài học</span>
-                  <span className="sm:hidden">Hoàn thành</span>
+                  <Check className="w-4 h-4 mr-1 sm:mr-2" />
+                  {isCompleted ? (
+                    <>
+                      <span className="hidden sm:inline">Bài học đã hoàn thành</span>
+                      <span className="sm:hidden">Đã hoàn thành</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="hidden sm:inline">Hoàn thành bài học</span>
+                      <span className="sm:hidden">Hoàn thành</span>
+                    </>
+                  )}
                 </>
               )}
             </Button>
@@ -672,7 +816,12 @@ const LearnPage = () => {
               variant="outline"
               className="btn-3d btn-3d-white text-xs sm:text-sm font-extrabold h-9 px-3 sm:px-4"
               disabled={currentIndex === allLessons.length - 1}
-              onClick={() => setCurrentLessonId(allLessons[currentIndex + 1].id)}
+              onClick={() => {
+                const nextLesson = allLessons[currentIndex + 1];
+                if (nextLesson) {
+                  setCurrentLessonId(nextLesson.id);
+                }
+              }}
             >
               <span className="hidden sm:inline">Bài tiếp theo</span>
               <span className="sm:hidden">Tiếp</span>
@@ -707,10 +856,25 @@ const LearnPage = () => {
               }, [])}
               className="space-y-4"
             >
-            {modules.map((mod: any, pi: number) => (
+            {modules.map((mod: any, pi: number) => {
+              const isModFree = Boolean(mod.is_free);
+              return (
               <AccordionItem key={mod.id} value={`part-${pi}`} className="border-none bg-card rounded-2xl overflow-hidden shadow-[0_2px_0_var(--border)] border-2">
                 <AccordionTrigger className="py-4 px-5 text-base font-extrabold hover:no-underline hover:bg-muted/30 transition-colors">
-                  <span className="text-left">{mod.title}</span>
+                  <div className="flex items-center justify-between w-full pr-2 text-left">
+                    <span className="truncate">{mod.title}</span>
+                    <span className="ml-2 shrink-0">
+                      {isModFree ? (
+                        <span className="text-[11px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                          🟢 Học thử
+                        </span>
+                      ) : (
+                        <span className="text-[11px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 flex items-center gap-1">
+                          <Lock className="w-3 h-3 text-amber-400" /> PRO
+                        </span>
+                      )}
+                    </span>
+                  </div>
                 </AccordionTrigger>
                 <AccordionContent className="pb-3 px-3">
                   {mod.lessons.length === 0 ? (
@@ -726,50 +890,55 @@ const LearnPage = () => {
                         const isCurrent = currentLessonId === lesson.id;
                         const isVideo = !lesson.lesson_type || lesson.lesson_type === "video";
                         const isDictation = lesson.lesson_type === "dictation";
-                        const canStudy = enrollment || (course as any)?.is_free || mod.is_free || lesson.is_free;
+                        const canStudy = Boolean(effectiveEnrollment || (course as any)?.is_free || mod.is_free || lesson.is_free);
 
                         return (
                           <button
                             key={lesson.id}
                             onClick={() => {
-                              if (canStudy) {
-                                  setCurrentLessonId(lesson.id);
-                              } else {
+                              setCurrentLessonId(lesson.id);
+                              if (!canStudy) {
+                                setShowUpgradeModal(true);
                                 toast({
-                                  title: "Nội dung có phí 🔒",
-                                  description: "Vui lòng đăng ký khóa học để xem bài học này.",
-                                  variant: "destructive"
+                                  title: "Nội dung Pro 🔒",
+                                  description: "Vui lòng nâng cấp tài khoản Pro để xem trọn bộ bài giảng và bài tập phần này.",
                                 });
                               }
                             }}
                             className={`w-full flex items-start gap-3 px-3 py-3.5 rounded-xl text-sm font-bold transition-all text-left border-2 relative z-10 ${isCurrent
                                 ? "bg-[var(--duo-blue)] text-white border-[var(--duo-blue-dark)] shadow-[0_3px_0_var(--duo-blue-dark)] -translate-y-0.5"
-                                : "text-muted-foreground border-transparent hover:bg-muted/50 hover:border-border/60 bg-card"
+                                : !canStudy
+                                  ? "text-muted-foreground/80 border-slate-800/80 hover:border-amber-500/40 bg-slate-900/40 opacity-90"
+                                  : "text-muted-foreground border-transparent hover:bg-muted/50 hover:border-border/60 bg-card"
                               } cursor-pointer`}
                           >
                             <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 mt-0.5 border-2 text-[13px] font-black relative z-10 transition-all ${isCurrent
                                 ? 'bg-white text-[var(--duo-blue)] border-white shadow-[0_2px_0_rgba(0,0,0,0.12)]'
                                 : done
                                   ? 'bg-[var(--duo-correct)] text-white border-[var(--duo-correct-dark)] shadow-[0_2.5px_0_var(--duo-correct-dark)]'
-                                  : 'bg-card border-muted-foreground/35 text-foreground shadow-[0_2.5px_0_var(--border)]'
+                                  : !canStudy
+                                    ? 'bg-slate-900 border-amber-500/40 text-amber-400 shadow-[0_2px_0_rgba(245,158,11,0.2)]'
+                                    : 'bg-card border-muted-foreground/35 text-foreground shadow-[0_2.5px_0_var(--border)]'
                               }`}>
-                              {done ? <Check className="w-4.5 h-4.5" strokeWidth={3.5} /> : (lessonIdx + 1).toString().padStart(2, '0')}
+                              {done ? <Check className="w-4.5 h-4.5" strokeWidth={3.5} /> : !canStudy ? <Lock className="w-4 h-4 text-amber-400" /> : (lessonIdx + 1).toString().padStart(2, '0')}
                             </div>
 
                             <div className="flex-1 min-w-0">
-                              <span className={`block text-[15px] font-extrabold leading-snug truncate ${isCurrent ? 'text-white' : 'text-foreground'}`}>
+                              <span className={`block text-[15px] font-extrabold leading-snug truncate ${isCurrent ? 'text-white' : !canStudy ? 'text-slate-200' : 'text-foreground'}`}>
                                 {lesson.title}
                               </span>
                               <span className={`text-xs uppercase font-extrabold flex items-center gap-1.5 mt-0.5 ${isCurrent ? 'text-white/60' : 'text-muted-foreground'}`}>
                                 {isVideo ? <PlayCircle className="w-3.5 h-3.5" /> : isDictation ? <Headphones className="w-3.5 h-3.5" /> : <FileQuestion className="w-3.5 h-3.5" />}
-                                <span>Bài tổng thể {(globalIdx + 1).toString().padStart(2, '0')}</span>
+                                <span>Bài {(globalIdx + 1).toString().padStart(2, '0')}</span>
                               </span>
                             </div>
 
                             {!canStudy ? (
-                              <Lock className="w-4 h-4 text-amber-500 shrink-0" />
+                              <span className="flex items-center gap-1 text-[11px] font-black px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40 shrink-0">
+                                <Lock className="w-3 h-3 text-amber-400" /> PRO
+                              </span>
                             ) : (
-                              canStudy && !enrollment && <span className="badge-duo text-xs py-0.5 px-1.5 shrink-0" style={{ backgroundColor: 'var(--duo-correct)', color: 'white', borderColor: 'var(--duo-correct-dark)' }}>FREE</span>
+                              !effectiveEnrollment && <span className="badge-duo text-xs py-0.5 px-1.5 shrink-0" style={{ backgroundColor: 'var(--duo-correct)', color: 'white', borderColor: 'var(--duo-correct-dark)' }}>FREE</span>
                             )}
                           </button>
                         );
@@ -778,7 +947,8 @@ const LearnPage = () => {
                   )}
                 </AccordionContent>
               </AccordionItem>
-            ))}
+            );
+            })}
           </Accordion>
           </div>
         </div>
@@ -997,6 +1167,12 @@ const LearnPage = () => {
           </div>
         )}
       </div>
+
+      {/* PRO Upgrade Modal with VietQR & Hotline */}
+      <UpgradeProModal
+        open={showUpgradeModal}
+        onOpenChange={setShowUpgradeModal}
+      />
     </div>
   );
 };

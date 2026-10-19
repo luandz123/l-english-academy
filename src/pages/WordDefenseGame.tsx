@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import StudentLayout from '@/components/StudentLayout';
-import { WordDefenseLobby } from '@/components/game/WordDefense/WordDefenseLobby';
 import { WordDefenseArena } from '@/components/game/WordDefense/WordDefenseArena';
 import { WordDefenseResult } from '@/components/game/WordDefense/WordDefenseResult';
 import { DefenseDifficulty, DefenseGameMode, DefenseStats } from '@/components/game/WordDefense/types';
@@ -11,15 +10,17 @@ import { getCachedVocabPacks } from '@/services/vocabPacksService';
 import { Maximize2, Minimize2, ArrowLeft, Shield, Sparkles, Wrench, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
+import { useGamification } from '@/hooks/useGamification';
 import { useQuery } from '@tanstack/react-query';
 import { getHomepageShowcaseConfig } from '@/services/homepageShowcaseService';
 
-type GameState = 'lobby' | 'playing' | 'result';
+type GameState = 'playing' | 'result';
 
 export default function WordDefenseGame() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
+  const { addXp, recordVocabProgress } = useGamification();
 
   const { data: showcaseConfig } = useQuery({
     queryKey: ['homepage-showcase-config'],
@@ -29,11 +30,22 @@ export default function WordDefenseGame() {
   const gameConfig = showcaseConfig?.arcade_section?.games?.find((g) => g.id === 'word-defense');
   const isGameActive = gameConfig ? gameConfig.is_active : true;
 
-  const [gameState, setGameState] = useState<GameState>('lobby');
-  const [selectedTopic, setSelectedTopic] = useState<VocabTopic>(() => getCachedVocabPacks()[0] || DEFAULT_VOCAB_TOPICS[0]);
-  const [difficulty, setDifficulty] = useState<DefenseDifficulty>('medium');
-  const [gameMode, setGameMode] = useState<DefenseGameMode>('campaign');
-  const [roomId, setRoomId] = useState<string | undefined>(undefined);
+  const difficultyParam = (searchParams.get('difficulty') as DefenseDifficulty) || 'medium';
+  const modeParam = (searchParams.get('mode') as DefenseGameMode) || 'campaign';
+  const topicIdParam = searchParams.get('topic');
+
+  const [gameState, setGameState] = useState<GameState>('playing');
+  const [selectedTopic, setSelectedTopic] = useState<VocabTopic>(() => {
+    const packs = [...getCachedVocabPacks(), ...DEFAULT_VOCAB_TOPICS];
+    if (topicIdParam) {
+      const found = packs.find((p) => p.id === topicIdParam);
+      if (found) return found;
+    }
+    return packs[0] || DEFAULT_VOCAB_TOPICS[0];
+  });
+  const [difficulty, setDifficulty] = useState<DefenseDifficulty>(difficultyParam);
+  const [gameMode, setGameMode] = useState<DefenseGameMode>(modeParam);
+  const [roomId, setRoomId] = useState<string | undefined>(() => searchParams.get('room')?.toUpperCase() || undefined);
   const [isHost, setIsHost] = useState<boolean>(false);
 
   // Result stats
@@ -48,30 +60,24 @@ export default function WordDefenseGame() {
       setRoomId(roomFromUrl.toUpperCase());
       setGameMode('pvp-online');
       setIsHost(false);
+      setGameState('playing');
     }
   }, [searchParams]);
-
-  // Start game handler
-  const handleStartGame = (config: {
-    topic: VocabTopic;
-    difficulty: DefenseDifficulty;
-    mode: DefenseGameMode;
-    roomId?: string;
-    isHost?: boolean;
-  }) => {
-    setSelectedTopic(config.topic);
-    setDifficulty(config.difficulty);
-    setGameMode(config.mode);
-    setRoomId(config.roomId);
-    setIsHost(config.isHost ?? false);
-    setGameState('playing');
-  };
 
   // Game over handler
   const handleGameOver = (stats: DefenseStats, victory: boolean) => {
     setFinalStats(stats);
     setIsVictory(victory);
     setGameState('result');
+
+    // Award Gamification XP & Daily Quest Progress
+    try {
+      const earnedXp = Math.max(20, Math.min(150, Math.floor((stats.score || 50) / 15 + (victory ? 35 : 10))));
+      addXp(earnedXp, `Chiến trường Thủ Thành Từ Vựng (${victory ? 'Chiến Thắng!' : 'Hoàn thành'})`);
+      recordVocabProgress(Math.min(5, Math.max(1, Math.floor((stats.wordsDestroyed || 3) / 3))));
+    } catch (e) {
+      console.warn('Gamification reward error:', e);
+    }
   };
 
   // Replay
@@ -80,8 +86,7 @@ export default function WordDefenseGame() {
   };
 
   const handleBackToLobby = () => {
-    setGameState('lobby');
-    setFinalStats(null);
+    navigate('/games');
   };
 
   const toggleFullscreen = () => {
@@ -148,17 +153,11 @@ export default function WordDefenseGame() {
           <Button
             size="sm"
             variant="ghost"
-            onClick={() => {
-              if (gameState !== 'lobby') {
-                handleBackToLobby();
-              } else {
-                navigate('/games');
-              }
-            }}
+            onClick={handleBackToLobby}
             className="text-slate-400 hover:text-white hover:bg-slate-900 text-xs font-bold"
           >
             <ArrowLeft className="w-4 h-4 mr-1.5" />
-            {gameState !== 'lobby' ? 'Về Sảnh Thủ Thành' : 'Kho Game'}
+            Về Sảnh Game
           </Button>
 
           <div className="flex items-center gap-2 hidden sm:flex">
@@ -184,10 +183,6 @@ export default function WordDefenseGame() {
 
       {/* Main Dynamic View */}
       <div className="flex-1 flex items-center justify-center p-2 sm:p-4">
-        {gameState === 'lobby' && (
-          <WordDefenseLobby onStartGame={handleStartGame} initialRoomId={roomId} />
-        )}
-
         {gameState === 'playing' && (
           <WordDefenseArena
             topic={selectedTopic}

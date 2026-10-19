@@ -171,6 +171,17 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
   const [waveNotice, setWaveNotice] = useState<string | null>(null);
   const [comboCallout, setComboCallout] = useState<{ text: string; color: string; id: number } | null>(null);
 
+  // 3-2-1 Match Start Countdown State
+  const [startCountdown, setStartCountdown] = useState<number | null>(3);
+  const startCountdownRef = useRef<number | null>(3);
+  useEffect(() => { startCountdownRef.current = startCountdown; }, [startCountdown]);
+
+  // Missed Word Learning Notification
+  const [missedWordNotice, setMissedWordNotice] = useState<{ word: string; phonetic?: string | null; def: string } | null>(null);
+
+  // Consecutive typos tracking for graceful typo tolerance
+  const consecutiveTyposRef = useRef<number>(0);
+
   // Keystrokes & Performance Tracking
   const statsRef = useRef<{
     totalKeystrokes: number;
@@ -330,13 +341,14 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
     }
   }, []);
 
-  // Fire DUAL PLASMA LASERS from Jet Left & Right Cannons
+  // Fire DUAL PLASMA LASERS from Jet Left & Right Cannons (Reads jetXRef to avoid 60fps re-binds)
   const fireDualLaser = useCallback((targetX: number, targetY: number, color: string = '#00f2fe') => {
     const beamLeftId = `beam_${Date.now()}_L`;
     const beamRightId = `beam_${Date.now()}_R`;
 
-    const leftCannonX = jetX - 3.2;
-    const rightCannonX = jetX + 3.2;
+    const currentJetX = jetXRef.current;
+    const leftCannonX = currentJetX - 3.2;
+    const rightCannonX = currentJetX + 3.2;
 
     const leftBeam: LaserBeam = {
       id: beamLeftId,
@@ -365,7 +377,7 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
         ...prev,
         {
           id: counterLaserId,
-          startX: jetX,
+          startX: currentJetX,
           startY: 91,
           targetX: opponentJetXRef.current,
           targetY: 10,
@@ -386,7 +398,7 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
     setTimeout(() => {
       setLaserBeams((prev) => prev.filter((b) => b.id !== beamLeftId && b.id !== beamRightId));
     }, 130);
-  }, [jetX, isPvP]);
+  }, [isPvP]);
 
   // Opponent Sniped Word on Shared Battlefield
   const opponentDestroyWord = useCallback((word: GameWord) => {
@@ -1004,9 +1016,34 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
     return () => clearInterval(timer);
   }, [isPvP]);
 
-  // Spawn interval timer (strictly controlled interval, boosted in PvP)
+  // 3-2-1 Match Start Countdown Effect
   useEffect(() => {
-    if (isPaused) return;
+    if (startCountdown === null) return;
+    if (startCountdown > 0) {
+      gameSound.playLaserSound();
+      const timer = setTimeout(() => {
+        setStartCountdown((c) => (c !== null && c > 1 ? c - 1 : 0));
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else if (startCountdown === 0) {
+      gameSound.playReadySound();
+      const timer = setTimeout(() => {
+        setStartCountdown(null);
+      }, 700);
+      return () => clearTimeout(timer);
+    }
+  }, [startCountdown]);
+
+  // Auto-dismiss missed word flashcard
+  useEffect(() => {
+    if (!missedWordNotice) return;
+    const timer = setTimeout(() => setMissedWordNotice(null), 3800);
+    return () => clearTimeout(timer);
+  }, [missedWordNotice]);
+
+  // Spawn interval timer (strictly controlled interval, boosted in PvP, waits for countdown)
+  useEffect(() => {
+    if (isPaused || startCountdown !== null) return;
     spawnWord();
     if (isPvP) {
       setTimeout(() => spawnWord(), 400);
@@ -1021,7 +1058,7 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
     return () => {
       clearInterval(timer);
     };
-  }, [isPaused, diffConfig.spawnInterval, spawnWord, isPvP]);
+  }, [isPaused, startCountdown, diffConfig.spawnInterval, spawnWord, isPvP]);
 
   // Freeze effect countdown timer
   useEffect(() => {
@@ -1047,7 +1084,11 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
     let lastTime = performance.now();
 
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
+      if (document.visibilityState === 'hidden') {
+        if (!isOnlinePvP && !isGameOverRef.current) {
+          setIsPaused(true);
+        }
+      } else if (document.visibilityState === 'visible') {
         lastTime = performance.now();
       }
     };
@@ -1059,7 +1100,7 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
       const delta = Math.min((currentTime - lastTime) / 1000, 0.08);
       lastTime = currentTime;
 
-      if (!isPausedRef.current) {
+      if (!isPausedRef.current && startCountdownRef.current === null) {
         const sourceWords = activeWordsRef.current;
         const updated: GameWord[] = [];
         let lostLife = false;
@@ -1100,6 +1141,13 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
               });
               spawnExplosionParticles(word.x, 90, '#f43f5e', 22);
               gameSound.playMissLetterSound();
+              // Auto-pronounce missed word and trigger flashcard toast so player learns
+              gameSound.speakWord(word.word, word.audioUrl);
+              setMissedWordNotice({
+                word: word.word,
+                phonetic: word.phonetic,
+                def: word.definition_vi,
+              });
             }
 
             if (word.instanceId === targetedInstanceIdRef.current) {
@@ -1321,6 +1369,7 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
         const expectedChar = currentTarget.word[currentIdx]?.toLowerCase();
         if (key.toLowerCase() === expectedChar) {
           statsRef.current.correctKeystrokes += 1;
+          consecutiveTyposRef.current = 0; // Reset typo counter on success
           let nextLettersTyped = currentIdx + 1;
 
           // Auto-advance over any trailing spaces or hyphens (e.g. "abide by" -> after 'e', auto-skip ' ')
@@ -1346,9 +1395,18 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
           }
           return;
         } else {
-          // Miss on current target - combo reset but keep progress intact
+          // Miss on current target: Graceful typo forgiveness!
           gameSound.playMissLetterSound();
-          setCombo(0);
+          consecutiveTyposRef.current += 1;
+          if (consecutiveTyposRef.current >= 2) {
+            // Second consecutive miss resets combo
+            comboRef.current = 0;
+            setCombo(0);
+          } else {
+            // 1st typo warning: mild penalty (-1 combo), keeps progress intact
+            comboRef.current = Math.max(0, comboRef.current - 1);
+            setCombo(comboRef.current);
+          }
           return;
         }
       } else {
@@ -1365,6 +1423,7 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
     if (matchingCandidates.length > 0) {
       const bestTarget = matchingCandidates[0];
       statsRef.current.correctKeystrokes += 1;
+      consecutiveTyposRef.current = 0;
 
       targetedInstanceIdRef.current = bestTarget.instanceId;
       setTargetedInstanceId(bestTarget.instanceId);
@@ -1395,8 +1454,9 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
         setActiveWords(nextWords);
       }
     } else {
+      // Pressed a key that does not match any current word on screen:
+      // Play subtle miss sound, but DO NOT punish or wipe out combo when waiting for words!
       gameSound.playMissLetterSound();
-      setCombo(0);
     }
   }, [fireDualLaser]);
 
@@ -1488,10 +1548,14 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
       specialType: word.specialType,
     });
 
-    // Combo streak logic
-    const newCombo = combo + 1;
+    // Combo streak logic (Synchronous ref updates to avoid stale closure)
+    comboRef.current += 1;
+    const newCombo = comboRef.current;
     setCombo(newCombo);
-    if (newCombo > maxCombo) setMaxCombo(newCombo);
+    if (newCombo > maxComboRef.current) {
+      maxComboRef.current = newCombo;
+      setMaxCombo(newCombo);
+    }
     if (newCombo > 1) {
       gameSound.playComboSound(newCombo);
     }
@@ -1518,17 +1582,20 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
     const baseWordScore = word.word.length * 15 * diffConfig.scoreMultiplier * (word.isBoss ? 2.5 : 1.0);
     const comboBonus = Math.min(newCombo * 10, 120);
     const addedScore = Math.round(baseWordScore + comboBonus);
-    setScore((prev) => prev + addedScore);
+    scoreRef.current += addedScore;
+    setScore(scoreRef.current);
 
     // Wave Progression Checker (every 8 words cleared advances wave)
     const newHitTotal = statsRef.current.hitCount;
-    if (newHitTotal >= wave * 8) {
-      const nextWave = wave + 1;
+    if (newHitTotal >= waveRef.current * 8) {
+      waveRef.current += 1;
+      const nextWave = waveRef.current;
       setWave(nextWave);
       const waveBonus = nextWave * 120;
-      setScore((s) => s + waveBonus);
+      scoreRef.current += waveBonus;
+      setScore(scoreRef.current);
       gameSound.playWaveClearSound();
-      setWaveNotice(`🎉 VƯỢT QUA WAVE ${wave}! TIẾN VÀO WAVE ${nextWave} (+${waveBonus} ĐIỂM)`);
+      setWaveNotice(`🎉 VƯỢT QUA WAVE ${nextWave - 1}! TIẾN VÀO WAVE ${nextWave} (+${waveBonus} ĐIỂM)`);
       setTimeout(() => setWaveNotice(null), 3500);
     }
 
@@ -2265,8 +2332,87 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
           </div>
         </div>
       </div>
+      {/* 3-2-1 Start Countdown Overlay */}
+      {startCountdown !== null && (
+        <div className="absolute inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex flex-col items-center justify-center pointer-events-auto select-none">
+          <div className="text-center space-y-4 animate-in fade-in zoom-in duration-200">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-black uppercase tracking-widest animate-pulse">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>CHUẨN BỊ BÀN PHÍM • SẴN SÀNG CHIẾN ĐẤU</span>
+            </div>
+            <div className="text-7xl sm:text-9xl font-black font-display tracking-tight text-transparent bg-clip-text bg-gradient-to-b from-cyan-300 via-blue-400 to-indigo-500 drop-shadow-[0_0_50px_rgba(6,182,212,0.8)]">
+              {startCountdown === 0 ? 'CHIẾN!' : startCountdown}
+            </div>
+            <p className="text-xs sm:text-sm text-slate-400 max-w-xs mx-auto font-medium">
+              {startCountdown === 0 ? '🚀 BẮN HẠ TỪ VỰNG NGAY!' : 'Đặt tay sẵn lên các phím gõ chính (A S D F - J K L ;)'}
+            </p>
+          </div>
+        </div>
+      )}
 
+      {/* Missed Word Learning Notification Flashcard */}
+      {missedWordNotice && (
+        <div className="absolute bottom-28 left-1/2 -translate-x-1/2 z-40 px-5 py-2.5 rounded-2xl bg-[#0c1322]/95 border-2 border-rose-500/70 shadow-[0_0_30px_rgba(244,63,94,0.4)] backdrop-blur-md flex items-center gap-3 animate-bounce max-w-md w-auto">
+          <div className="w-8 h-8 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center text-sm font-bold shrink-0">
+            💡
+          </div>
+          <div className="space-y-0.5 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold text-rose-300 uppercase tracking-wider">Vừa bỏ lỡ:</span>
+              <span className="font-mono text-sm font-black text-white">{missedWordNotice.word}</span>
+              {missedWordNotice.phonetic && (
+                <span className="text-xs text-slate-400 font-mono">({missedWordNotice.phonetic})</span>
+              )}
+            </div>
+            <p className="text-xs text-slate-300 font-medium truncate">
+              Nghĩa: <span className="text-amber-300 font-bold">{missedWordNotice.def}</span>
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => gameSound.speakWord(missedWordNotice.word)}
+            className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-300 transition-colors cursor-pointer shrink-0"
+            title="Nghe lại phát âm"
+          >
+            <Volume2 className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
+      {/* Game Paused Overlay */}
+      {isPaused && !isGameOverRef.current && (
+        <div className="absolute inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex flex-col items-center justify-center p-6 select-none">
+          <div className="max-w-sm w-full p-6 rounded-3xl bg-[#0a1224] border border-cyan-500/40 shadow-[0_0_40px_rgba(6,182,212,0.3)] text-center space-y-5">
+            <div className="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 flex items-center justify-center text-3xl mx-auto">
+              ⏸️
+            </div>
+            <div className="space-y-1.5">
+              <h3 className="text-xl font-black text-white uppercase tracking-wider font-display">
+                TRÒ CHƠI ĐANG TẠM DỪNG
+              </h3>
+              <p className="text-xs text-slate-400 font-medium">
+                Nghỉ tay một chút hoặc đổi tư thế ngồi thoải mái trước khi tiếp tục nhé!
+              </p>
+            </div>
+            <div className="space-y-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setIsPaused(false)}
+                className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black text-xs transition-all shadow-lg cursor-pointer"
+              >
+                TIẾP TỤC CHIẾN ĐẤU (HOẶC NHẤN ESC)
+              </button>
+              <button
+                type="button"
+                onClick={onExit}
+                className="w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 font-bold text-xs transition-all cursor-pointer"
+              >
+                Về Sảnh Game
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Tutorial Modal */}
       <WordShooterTutorialModal

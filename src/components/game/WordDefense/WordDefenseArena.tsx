@@ -362,18 +362,18 @@ export const WordDefenseArena: React.FC<WordDefenseArenaProps> = ({
       };
     }
 
-    // Dynamic wave-based spawn interval (giving player ample time to read words!):
-    // Wave 1: 13-16s between zombies
-    // Wave 2: 10-12s between zombies
-    // Wave 3: 8-10s between zombies
-    const baseInterval = wave === 1 ? 13000 : wave === 2 ? 10000 : 8000;
-    const diffMultiplier = difficulty === 'easy' ? 1.3 : difficulty === 'medium' ? 1.0 : 0.8;
+    // Dynamic wave-based spawn interval (balanced pacing for engaging action):
+    // Wave 1: ~7.5s between zombies
+    // Wave 2: ~6.0s between zombies
+    // Wave 3: ~4.8s between zombies
+    const baseInterval = wave === 1 ? 7500 : wave === 2 ? 6000 : 4800;
+    const diffMultiplier = difficulty === 'easy' ? 1.25 : difficulty === 'medium' ? 1.0 : 0.82;
     const actualInterval = Math.round((baseInterval * diffMultiplier) / gameSpeed);
 
     const zombieTimer = setInterval(() => {
       spawnZombie();
       setWaveProgress((prev) => {
-        const increment = wave === 1 ? 12 : wave === 2 ? 9 : 7;
+        const increment = wave === 1 ? 10 : wave === 2 ? 8 : 6;
         const next = prev + increment;
         if (next >= 100) {
           if (wave < totalWaves) {

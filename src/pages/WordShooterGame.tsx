@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import StudentLayout from '@/components/StudentLayout';
-import { WordShooterLobby } from '@/components/game/WordShooter/WordShooterLobby';
 import { WordShooterArena } from '@/components/game/WordShooter/WordShooterArena';
 import { WordShooterResult } from '@/components/game/WordShooter/WordShooterResult';
 import { 
@@ -17,17 +16,19 @@ import { Maximize2, Minimize2, ArrowLeft, HelpCircle, Trophy, ShieldAlert, Wrenc
 import { Button } from '@/components/ui/button';
 import { WordShooterTutorialModal } from '@/components/game/WordShooter/WordShooterTutorialModal';
 import { WordShooterLeaderboardModal } from '@/components/game/WordShooter/WordShooterLeaderboardModal';
-import { MatchedRankedOpponent } from '@/services/wordShooterRankService';
+import { MatchedRankedOpponent, generateFairRankedOpponent, getPlayerRank } from '@/services/wordShooterRankService';
 import { useAuth } from '@/hooks/useAuth';
+import { useGamification } from '@/hooks/useGamification';
 import { useQuery } from '@tanstack/react-query';
 import { getHomepageShowcaseConfig } from '@/services/homepageShowcaseService';
 
-type GameState = 'lobby' | 'playing' | 'result';
+type GameState = 'playing' | 'result';
 
 export default function WordShooterGame() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
+  const { addXp, recordVocabProgress } = useGamification();
 
   const { data: showcaseConfig } = useQuery({
     queryKey: ['homepage-showcase-config'],
@@ -37,13 +38,29 @@ export default function WordShooterGame() {
   const gameConfig = showcaseConfig?.arcade_section?.games?.find((g) => g.id === 'word-shooter');
   const isGameActive = gameConfig ? gameConfig.is_active : true;
 
-  const [gameState, setGameState] = useState<GameState>('lobby');
-  const [selectedTopic, setSelectedTopic] = useState<VocabTopic>(() => getCachedVocabPacks()[0] || DEFAULT_VOCAB_TOPICS[0]);
-  const [difficulty, setDifficulty] = useState<GameDifficulty>('medium');
-  const [gameMode, setGameMode] = useState<GameMode>('solo');
-  const [roomId, setRoomId] = useState<string | undefined>(undefined);
+  const modeParam = (searchParams.get('mode') as GameMode) || 'solo';
+  const difficultyParam = (searchParams.get('difficulty') as GameDifficulty) || 'medium';
+  const topicIdParam = searchParams.get('topic');
+
+  const [gameState, setGameState] = useState<GameState>('playing');
+  const [selectedTopic, setSelectedTopic] = useState<VocabTopic>(() => {
+    const packs = [...getCachedVocabPacks(), ...DEFAULT_VOCAB_TOPICS];
+    if (topicIdParam) {
+      const found = packs.find((p) => p.id === topicIdParam);
+      if (found) return found;
+    }
+    return packs[0] || DEFAULT_VOCAB_TOPICS[0];
+  });
+  const [difficulty, setDifficulty] = useState<GameDifficulty>(difficultyParam);
+  const [gameMode, setGameMode] = useState<GameMode>(modeParam);
+  const [roomId, setRoomId] = useState<string | undefined>(() => searchParams.get('room')?.toUpperCase() || undefined);
   const [isHost, setIsHost] = useState<boolean>(false);
-  const [matchedOpponent, setMatchedOpponent] = useState<MatchedRankedOpponent | undefined>(undefined);
+  const [matchedOpponent, setMatchedOpponent] = useState<MatchedRankedOpponent | undefined>(() => {
+    if (modeParam === 'ranked') {
+      return generateFairRankedOpponent(getPlayerRank());
+    }
+    return undefined;
+  });
 
   // Result stats
   const [finalStats, setFinalStats] = useState<GameStats | null>(null);
@@ -53,7 +70,7 @@ export default function WordShooterGame() {
   const [isTutorialOpen, setIsTutorialOpen] = useState<boolean>(false);
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState<boolean>(false);
 
-  // Read ?room= query param on mount
+  // Read ?room= query param on mount or update
   useEffect(() => {
     const roomFromUrl = searchParams.get('room');
     if (roomFromUrl) {
@@ -61,26 +78,9 @@ export default function WordShooterGame() {
       setRoomId(code);
       setGameMode(code.startsWith('R-') ? 'ranked' : 'casual');
       setIsHost(false);
+      setGameState('playing');
     }
   }, [searchParams]);
-
-  // Start game handler
-  const handleStartGame = (config: {
-    topic: VocabTopic;
-    difficulty: GameDifficulty;
-    mode: GameMode;
-    roomId?: string;
-    isHost?: boolean;
-    matchedOpponent?: MatchedRankedOpponent;
-  }) => {
-    setSelectedTopic(config.topic);
-    setDifficulty(config.difficulty);
-    setGameMode(config.mode);
-    setRoomId(config.roomId);
-    setIsHost(config.isHost ?? false);
-    setMatchedOpponent(config.matchedOpponent);
-    setGameState('playing');
-  };
 
   // Game over handler
   const handleGameOver = (stats: GameStats, victory: boolean, pvpData?: any) => {
@@ -88,10 +88,24 @@ export default function WordShooterGame() {
     setIsVictory(victory);
     setPvpResultData(pvpData);
     setGameState('result');
+
+    // Award Gamification XP & Daily Quest Progress
+    try {
+      const earnedXp = Math.max(15, Math.min(120, Math.floor(stats.hitCount * 3 + (victory ? 25 : 5))));
+      addXp(earnedXp, `Chiến trường Phi Cơ Từ Vựng (${victory ? 'Chiến Thắng!' : 'Hoàn thành'})`);
+      if (stats.hitCount > 0) {
+        recordVocabProgress(Math.min(5, Math.max(1, Math.floor(stats.hitCount / 3))));
+      }
+    } catch (e) {
+      console.warn('Gamification reward error:', e);
+    }
   };
 
   // Replay same setup
   const handlePlayAgain = () => {
+    if (gameMode === 'ranked') {
+      setMatchedOpponent(generateFairRankedOpponent(getPlayerRank()));
+    }
     setGameState('playing');
   };
 
@@ -115,8 +129,7 @@ export default function WordShooterGame() {
   };
 
   const handleBackToLobby = () => {
-    setGameState('lobby');
-    setFinalStats(null);
+    navigate('/games');
   };
 
   const toggleFullscreen = () => {
@@ -183,17 +196,11 @@ export default function WordShooterGame() {
           <Button
             size="sm"
             variant="ghost"
-            onClick={() => {
-              if (gameState !== 'lobby') {
-                handleBackToLobby();
-              } else {
-                navigate('/');
-              }
-            }}
+            onClick={handleBackToLobby}
             className="text-slate-400 hover:text-white hover:bg-slate-900 text-xs font-bold"
           >
             <ArrowLeft className="w-4 h-4 mr-1.5" />
-            {gameState !== 'lobby' ? 'Về Sảnh Game' : 'Trang chủ'}
+            Về Sảnh Game
           </Button>
 
           <span className="text-xs font-black text-slate-500 uppercase tracking-wider hidden sm:inline">
@@ -233,10 +240,6 @@ export default function WordShooterGame() {
 
       {/* Main Dynamic View */}
       <div className="flex-1 flex items-center justify-center p-2 sm:p-4">
-        {gameState === 'lobby' && (
-          <WordShooterLobby onStartGame={handleStartGame} initialRoomId={roomId} />
-        )}
-
         {gameState === 'playing' && (
           <WordShooterArena
             topic={selectedTopic}
