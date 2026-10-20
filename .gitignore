@@ -34,6 +34,7 @@ dist-ssr
 *.bak
 *.backup
 *.sql
+!supabase/migrations/*.sql
 supabase/.temp/
 
 # Scripts and scrapers (if any created locally)

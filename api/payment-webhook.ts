@@ -118,49 +118,33 @@ export default async function handler(request: Request) {
 
     console.log(`[Payment Webhook] Extracted: Code=${orderCode}, Amount=${transferAmount}, Content="${transactionContent}"`);
 
-    // 3. Nếu không tìm thấy mã đơn dạng LEA trong nội dung:
-    // Kiểm tra xem hệ thống có đơn PENDING nào mới tạo trong 2 giờ qua không để gán tự động
+    // 3. Nếu không tìm thấy mã đơn trong nội dung:
+    // Thử truy vấn đơn pending mới nhất qua REST hoặc giao cho Stored Procedure tự động khớp
     if (!orderCode) {
-      const { data: latestPending } = await supabase
-        .from('payment_orders')
-        .select('order_code')
-        .eq('status', 'pending')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      try {
+        const { data: latestPending } = await supabase
+          .from('payment_orders')
+          .select('order_code')
+          .eq('status', 'pending')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
 
-      if (latestPending?.order_code) {
-        orderCode = latestPending.order_code;
-        console.log(`[Payment Webhook] Auto-mapped to latest pending order: ${orderCode}`);
+        if (latestPending?.order_code) {
+          orderCode = latestPending.order_code;
+          console.log(`[Payment Webhook] Auto-mapped to latest pending order via REST: ${orderCode}`);
+        }
+      } catch (err: any) {
+        console.warn('[Payment Webhook] Error querying latest pending:', err?.message);
       }
     }
 
-    // Nếu vẫn không có mã đơn hàng hợp lệ:
-    if (!orderCode) {
-      // Ghi nhận giao dịch chưa gán vào payment_orders để Admin xem và duyệt thủ công
-      await supabase.from('payment_orders').insert({
-        order_code: `SEPAY_${bankTxId || Date.now()}`,
-        amount: transferAmount,
-        status: 'pending',
-        bank_transaction_id: bankTxId || null,
-        transaction_content: transactionContent || 'Chuyển khoản SePay không có mã đơn',
-      });
-
-      return new Response(
-        JSON.stringify({
-          success: true,
-          message: 'Đã nhận giao dịch SePay (Lưu vào danh sách chờ Admin đối soát)',
-          bankTxId,
-          transferAmount,
-          content: transactionContent,
-        }),
-        { status: 200, headers }
-      );
-    }
+    // Gán mã đơn hàng mục tiêu: nếu không có mã đơn, truyền cờ 'AUTO_MATCH_LATEST' cho Stored Procedure
+    const targetOrderCode = orderCode || 'AUTO_MATCH_LATEST';
 
     // 4. Gọi Stored Procedure để hoàn tất đơn và tự động nâng cấp VIP PRO
     const { data: rpcResult, error: rpcError } = await supabase.rpc('complete_payment_order', {
-      p_order_code: orderCode,
+      p_order_code: targetOrderCode,
       p_transfer_amount: transferAmount,
       p_bank_tx_id: bankTxId || null,
       p_transaction_content: transactionContent || null,
@@ -168,12 +152,24 @@ export default async function handler(request: Request) {
 
     if (rpcError) {
       console.error('[Payment Webhook] RPC Error:', rpcError);
+      
+      // Nếu RPC báo lỗi, lưu lại giao dịch để admin không bị sót
+      try {
+        await supabase.from('payment_orders').insert({
+          order_code: `SEPAY_${bankTxId || Date.now()}`,
+          amount: transferAmount,
+          status: 'pending',
+          bank_transaction_id: bankTxId || null,
+          transaction_content: transactionContent || 'Lỗi RPC webhook SePay',
+        });
+      } catch {}
+
       return new Response(
         JSON.stringify({
           success: false,
           message: 'Lỗi thực thi Stored Procedure kích hoạt đơn hàng',
           error: rpcError.message,
-          orderCode,
+          orderCode: targetOrderCode,
         }),
         { status: 200, headers }
       );

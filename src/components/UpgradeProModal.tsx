@@ -217,7 +217,23 @@ export const UpgradeProCard: React.FC<UpgradeProCardProps> = ({
     if (!orderCode) return;
     setIsCheckingPayment(true);
     try {
-      // 1. Kiểm tra trực tiếp trong Supabase (hoạt động 100% trên cả localhost và production)
+      // 1. Kiểm tra trực tiếp qua RPC (bypasses RLS hoàn toàn 100%)
+      try {
+        const { data: rpcData } = await supabase.rpc("check_payment_order_status", {
+          p_order_code: orderCode,
+        });
+        if (rpcData && (rpcData as any).completed) {
+          setIsPaymentSuccess(true);
+          await refreshUserData();
+          toast({
+            title: "🎉 Xác nhận thành công!",
+            description: "Đơn hàng đã được thanh toán và kích hoạt VIP PRO!",
+          });
+          return;
+        }
+      } catch {}
+
+      // 2. Kiểm tra trực tiếp từ bảng payment_orders
       const { data: orderData } = await supabase
         .from("payment_orders")
         .select("status")

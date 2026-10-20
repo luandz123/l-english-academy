@@ -35,10 +35,33 @@ export default async function handler(request: Request) {
   }
 
   try {
+    const cleanCode = orderCode.toUpperCase().trim();
+
+    // 1. Thử gọi RPC check_payment_order_status (bypasses RLS hoàn toàn)
+    try {
+      const { data: rpcData } = await supabase.rpc('check_payment_order_status', {
+        p_order_code: cleanCode,
+      });
+
+      if (rpcData && rpcData.found) {
+        return new Response(
+          JSON.stringify({
+            order_code: rpcData.order_code,
+            status: rpcData.status,
+            completed: rpcData.completed === true,
+            amount: rpcData.amount,
+            paid_at: rpcData.paid_at,
+          }),
+          { status: 200, headers }
+        );
+      }
+    } catch {}
+
+    // 2. Dự phòng: Truy vấn trực tiếp từ bảng payment_orders
     const { data: order, error } = await supabase
       .from('payment_orders')
       .select('id, order_code, status, amount, plan_type, paid_at, created_at')
-      .eq('order_code', orderCode.toUpperCase().trim())
+      .eq('order_code', cleanCode)
       .maybeSingle();
 
     if (error) {
