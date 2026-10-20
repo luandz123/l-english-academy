@@ -103,19 +103,6 @@ const AdminCourseDetail = () => {
 
   const handleCategorySelect = (catIdStr: string) => {
     setCategoryId(catIdStr);
-    const cat = categories.find((c) => String(c.id) === catIdStr);
-    if (cat) {
-      const slug = (cat.slug || "").toLowerCase();
-      if (slug.includes("fulltest") || slug.includes("thi-thu")) {
-        setCourseType("fulltest");
-      } else if (slug.includes("listening") || slug.includes("nghe") || slug.includes("chep")) {
-        setCourseType("listening");
-      } else if (slug.includes("vocab") || slug.includes("flashcard") || slug.includes("tu-vung")) {
-        setCourseType("flashcard");
-      } else if (slug.includes("speaking") || slug.includes("noi")) {
-        setCourseType("speaking");
-      }
-    }
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {

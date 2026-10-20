@@ -49,7 +49,6 @@ import { useToast } from "@/hooks/use-toast";
 import {
   getHomepageShowcaseConfig,
   parseCategoryIconAndDesc,
-  generateVietQrUrl,
   calculateSavings,
   DEFAULT_HOMEPAGE_CONFIG,
   HomepageShowcaseConfig,
@@ -241,7 +240,7 @@ export const CourseShowcase = () => {
 
   const isLoading = isLoadingCats || isLoadingCourses;
 
-  // 4. Nhóm các khóa học theo từng Danh mục
+  // 4. Nhóm các khóa học theo từng Danh mục (courses.category_id là nguồn sự thật duy nhất)
   const categorizedClusters = useMemo(() => {
     return categories
       .map((cat, index) => {
@@ -259,7 +258,7 @@ export const CourseShowcase = () => {
       .filter((cluster) => cluster.courses.length > 0);
   }, [categories, activeCourses]);
 
-  // 5. Các khóa học chưa được gắn danh mục (nếu có)
+  // 5. Các khóa học chưa được gắn danh mục hoặc danh mục đang tắt (nếu có)
   const uncategorizedCourses = useMemo(() => {
     const knownCatIds = new Set(categories.map((c) => c.id));
     return activeCourses.filter((c) => !c.category_id || !knownCatIds.has(c.category_id));
@@ -308,6 +307,9 @@ export const CourseShowcase = () => {
                   ? "section-video"
                   : `category-${cat.slug}`;
 
+              // Badge: dùng "bộ đề" chỉ khi MỌI khóa trong section đều là course_type fulltest; còn lại dùng "khóa học"
+              const isAllFullTest = courses.length > 0 && courses.every((c) => c.course_type === "fulltest");
+
               return (
                 <section
                   key={cat.id}
@@ -337,7 +339,7 @@ export const CourseShowcase = () => {
                             {cat.name.toUpperCase()}
                           </h2>
                           <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full border ${theme.badgeClass}`}>
-                            {courses.length} {theme.isFullTest ? "bộ đề" : "khóa học"}
+                            {courses.length} {isAllFullTest ? "bộ đề" : "khóa học"}
                           </span>
                         </div>
                         {catDesc ? (

@@ -86,7 +86,7 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
 
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, profile, signOut, isAdmin } = useAuth();
+  const { user, profile, signOut, isAdmin, isPro } = useAuth();
 
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
   const [upgradeInitialStep, setUpgradeInitialStep] = useState<"details" | "checkout">("details");
@@ -277,8 +277,33 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
           )}
         </nav>
 
-        {/* VIP Upgrade Banner (Dynamic từ cấu hình hệ thống & mẫu reference) */}
-        {!isCollapsed ? (
+        {/* VIP Upgrade Banner hoặc Thẻ Học Viên VIP PRO */}
+        {isPro ? (
+          !isCollapsed ? (
+            <div className="mx-3 my-2 p-3.5 rounded-2xl bg-gradient-to-br from-emerald-950/40 via-[#15162d]/90 to-[#0e0f20]/90 border border-emerald-500/40 text-left relative overflow-hidden shadow-md">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="w-6 h-6 rounded-lg bg-emerald-500/20 border border-emerald-500/50 flex items-center justify-center text-emerald-400 shrink-0">
+                  <Crown className="w-3.5 h-3.5 text-amber-300 fill-amber-300" />
+                </div>
+                <span className="text-xs font-black text-emerald-300 uppercase tracking-wider font-serif">
+                  THÀNH VIÊN VIP PRO
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-300 leading-snug font-medium">
+                Đã mở khóa trọn đời toàn bộ khóa học, đề thi ETS & tính năng cao cấp!
+              </p>
+            </div>
+          ) : (
+            <div className="py-2 flex justify-center">
+              <div
+                title="Học viên VIP PRO Trọn Đời"
+                className="w-10 h-10 rounded-xl bg-emerald-950/40 border border-emerald-500/40 flex items-center justify-center text-amber-300 shadow-sm"
+              >
+                <Crown className="w-4 h-4 text-amber-300 fill-amber-300" />
+              </div>
+            </div>
+          )
+        ) : !isCollapsed ? (
           <div className="mx-3 my-2 p-3.5 rounded-2xl bg-gradient-to-br from-[#1c1d3b]/90 via-[#15162d]/90 to-[#0e0f20]/90 border border-[#2e3160] text-left relative overflow-hidden group shadow-md">
             <div className="absolute -right-4 -bottom-4 w-16 h-16 bg-[#5452ee]/20 rounded-full blur-xl pointer-events-none group-hover:scale-125 transition-transform" />
             <div className="flex items-center justify-between gap-2 mb-1.5">
@@ -305,7 +330,10 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
             </p>
             <button
               type="button"
-              onClick={() => setUpgradeModalOpen(true)}
+              onClick={() => {
+                setUpgradeInitialStep("details");
+                setUpgradeModalOpen(true);
+              }}
               className="inline-flex items-center justify-center w-full py-2.5 px-3 rounded-xl bg-[#5452ee] hover:bg-[#4745dc] text-white font-bold text-xs shadow-md shadow-[#5452ee]/25 transition-all active:scale-95 cursor-pointer gap-1.5"
             >
               <span>
@@ -318,7 +346,10 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
           <div className="py-2 flex justify-center">
             <button
               type="button"
-              onClick={() => setUpgradeModalOpen(true)}
+              onClick={() => {
+                setUpgradeInitialStep("details");
+                setUpgradeModalOpen(true);
+              }}
               title={vipComboConfig?.price ? `Nâng cấp VIP (${vipComboConfig.price.toLocaleString("vi-VN")}đ)` : "Nâng cấp VIP"}
               className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#1c1d3b] to-[#121327] border border-[#2e3160] hover:border-[#5452ee] flex items-center justify-center text-[#797af5] hover:text-white shadow-sm transition-all active:scale-95 cursor-pointer relative group"
             >
@@ -402,18 +433,25 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
           </div>
           
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            {/* Upgrade PRO Quick Button */}
-            <button
-              type="button"
-              onClick={() => {
-                setUpgradeDefaultPlan("yearly");
-                setUpgradeModalOpen(true);
-              }}
-              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-[#5452ee]/20 to-purple-600/20 hover:from-[#5452ee]/30 hover:to-purple-600/30 border border-[#5452ee]/40 text-indigo-200 hover:text-white text-xs font-bold transition-all shadow-[0_0_15px_rgba(84,82,238,0.2)] active:scale-95 cursor-pointer"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-[#797af5]" />
-              <span>Nâng Cấp PRO</span>
-            </button>
+            {/* Nút Nâng cấp PRO hoặc Huy hiệu VIP PRO */}
+            {!isPro ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setUpgradeInitialStep("details");
+                  setUpgradeModalOpen(true);
+                }}
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-[#5452ee]/20 to-purple-600/20 hover:from-[#5452ee]/30 hover:to-purple-600/30 border border-[#5452ee]/40 text-indigo-200 hover:text-white text-xs font-bold transition-all shadow-[0_0_15px_rgba(84,82,238,0.2)] active:scale-95 cursor-pointer"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-[#797af5]" />
+                <span>Nâng Cấp PRO</span>
+              </button>
+            ) : (
+              <div className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-bold shadow-[0_0_12px_rgba(16,185,129,0.2)]">
+                <Crown className="w-3.5 h-3.5 text-amber-300 fill-amber-300" />
+                <span>VIP PRO</span>
+              </div>
+            )}
 
             <GamificationChips />
 
@@ -436,16 +474,23 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
                   <p className="text-xs text-slate-400 font-normal truncate mt-0.5">{email}</p>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator className="bg-slate-800" />
-                <DropdownMenuItem
-                  onClick={() => {
-                    setUpgradeDefaultPlan("yearly");
-                    setUpgradeModalOpen(true);
-                  }}
-                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-[#797af5] hover:bg-[#5452ee]/15 cursor-pointer font-bold"
-                >
-                  <Crown className="w-4 h-4 text-[#797af5]" />
-                  Nâng cấp gói PRO (-40%)
-                </DropdownMenuItem>
+                {isPro ? (
+                  <div className="flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-emerald-400 bg-emerald-950/30 rounded-lg">
+                    <Crown className="w-4 h-4 text-amber-300 fill-amber-300" />
+                    <span>Học viên VIP PRO Trọn Đời</span>
+                  </div>
+                ) : (
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setUpgradeInitialStep("details");
+                      setUpgradeModalOpen(true);
+                    }}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-[#797af5] hover:bg-[#5452ee]/15 cursor-pointer font-bold"
+                  >
+                    <Crown className="w-4 h-4 text-[#797af5]" />
+                    Nâng cấp gói PRO
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem asChild>
                   <Link to="/profile" className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-slate-200 hover:bg-slate-800/80 cursor-pointer">
                     <User className="w-4 h-4 text-slate-400" />

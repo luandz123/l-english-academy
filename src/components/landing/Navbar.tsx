@@ -89,6 +89,30 @@ const Navbar = ({ onOpenSidebar }: NavbarProps) => {
     }
   };
 
+  const handleNavClick = (
+    e: React.MouseEvent,
+    targetId: string,
+    eventName: string,
+    fallbackRoute?: string
+  ) => {
+    e.preventDefault();
+    trackEvent("click_nav_item", { name: eventName });
+
+    const targetEl = document.getElementById(targetId);
+    if (targetEl) {
+      targetEl.scrollIntoView({ behavior: "smooth", block: "start" });
+      window.history.pushState(null, "", `#${targetId}`);
+    } else {
+      if (window.location.pathname !== "/") {
+        navigate(`/#${targetId}`);
+      } else if (fallbackRoute) {
+        navigate(fallbackRoute);
+      } else {
+        window.location.hash = `#${targetId}`;
+      }
+    }
+  };
+
   const displayName =
     profile?.full_name ||
     user?.user_metadata?.full_name ||
@@ -121,8 +145,8 @@ const Navbar = ({ onOpenSidebar }: NavbarProps) => {
         <nav className="hidden lg:flex items-center gap-1 xl:gap-1.5 font-medium">
           {/* 1. Thi thử */}
           <a
-            href="#section-fulltest"
-            onClick={() => trackEvent("click_nav_item", { name: "thi_thu" })}
+            href="/#section-fulltest"
+            onClick={(e) => handleNavClick(e, "section-fulltest", "thi_thu", "/fulltests")}
             className="px-3 py-2 rounded-xl text-xs xl:text-sm font-bold text-slate-200 hover:text-emerald-400 hover:bg-emerald-500/10 border border-transparent hover:border-emerald-500/30 transition-all duration-150 flex items-center gap-1.5 whitespace-nowrap cursor-pointer select-none active:scale-95"
           >
             <img src={iconFulltest} alt="" className="w-4 h-4 object-contain inline-block shrink-0" />
@@ -131,8 +155,8 @@ const Navbar = ({ onOpenSidebar }: NavbarProps) => {
 
           {/* 2. Luyện nghe từng bước */}
           <a
-            href="#section-listening"
-            onClick={() => trackEvent("click_nav_item", { name: "luyen_nghe" })}
+            href="/#section-listening"
+            onClick={(e) => handleNavClick(e, "section-listening", "luyen_nghe", "/listening")}
             className="px-3 py-2 rounded-xl text-xs xl:text-sm font-bold text-slate-200 hover:text-purple-400 hover:bg-purple-500/10 border border-transparent hover:border-purple-500/30 transition-all duration-150 flex items-center gap-1.5 whitespace-nowrap cursor-pointer select-none active:scale-95"
           >
             <img src={iconDictation} alt="" className="w-4 h-4 object-contain inline-block shrink-0" />
@@ -141,8 +165,8 @@ const Navbar = ({ onOpenSidebar }: NavbarProps) => {
 
           {/* 3. Nghe - Đọc 700+ */}
           <a
-            href="#section-video"
-            onClick={() => trackEvent("click_nav_item", { name: "khoa_hoc" })}
+            href="/#section-video"
+            onClick={(e) => handleNavClick(e, "section-video", "khoa_hoc", "/#section-video")}
             className="px-3 py-2 rounded-xl text-xs xl:text-sm font-bold text-slate-200 hover:text-blue-400 hover:bg-blue-500/10 border border-transparent hover:border-blue-500/30 transition-all duration-150 flex items-center gap-1.5 whitespace-nowrap cursor-pointer select-none active:scale-95"
           >
             <img src={iconVideo} alt="" className="w-4 h-4 object-contain inline-block shrink-0" />
@@ -151,8 +175,8 @@ const Navbar = ({ onOpenSidebar }: NavbarProps) => {
 
           {/* 4. Game Từ Vựng */}
           <a
-            href="#section-games"
-            onClick={() => trackEvent("click_nav_item", { name: "tro_choi" })}
+            href="/#section-games"
+            onClick={(e) => handleNavClick(e, "section-games", "tro_choi", "/games")}
             className="px-3 py-2 rounded-xl text-xs xl:text-sm font-bold text-slate-200 hover:text-cyan-400 hover:bg-cyan-500/10 border border-transparent hover:border-cyan-500/30 transition-all duration-150 flex items-center gap-1.5 whitespace-nowrap cursor-pointer select-none active:scale-95"
           >
             <img src={iconArcade} alt="" className="w-4 h-4 object-contain inline-block shrink-0" />
@@ -161,8 +185,8 @@ const Navbar = ({ onOpenSidebar }: NavbarProps) => {
 
           {/* 5. Nâng Cấp VIP */}
           <a
-            href="#combos"
-            onClick={() => trackEvent("click_combo", { location: "navbar" })}
+            href="/#combos"
+            onClick={(e) => handleNavClick(e, "combos", "vip_combos", "/#combos")}
             className="px-3.5 py-2 rounded-xl text-xs xl:text-sm font-black text-amber-300 hover:text-amber-200 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 hover:border-amber-400 transition-all duration-150 flex items-center gap-1.5 whitespace-nowrap shadow-[0_0_15px_rgba(245,158,11,0.2)] cursor-pointer select-none active:scale-95"
           >
             <img src={iconFlame} alt="" className="w-4 h-4 object-contain inline-block shrink-0 animate-pulse" />
@@ -331,8 +355,11 @@ const Navbar = ({ onOpenSidebar }: NavbarProps) => {
                 </p>
                 <div className="space-y-1">
                   <a
-                    href="#section-fulltest"
-                    onClick={() => setMobileMenuOpen(false)}
+                    href="/#section-fulltest"
+                    onClick={(e) => {
+                      setMobileMenuOpen(false);
+                      handleNavClick(e, "section-fulltest", "thi_thu", "/fulltests");
+                    }}
                     className="flex items-center justify-between px-3 py-2.5 rounded-xl font-bold text-xs text-slate-200 hover:bg-emerald-500/10 hover:text-emerald-400 transition-colors"
                   >
                     <div className="flex items-center gap-3">
@@ -343,8 +370,11 @@ const Navbar = ({ onOpenSidebar }: NavbarProps) => {
                   </a>
 
                   <a
-                    href="#section-listening"
-                    onClick={() => setMobileMenuOpen(false)}
+                    href="/#section-listening"
+                    onClick={(e) => {
+                      setMobileMenuOpen(false);
+                      handleNavClick(e, "section-listening", "luyen_nghe", "/listening");
+                    }}
                     className="flex items-center justify-between px-3 py-2.5 rounded-xl font-bold text-xs text-slate-200 hover:bg-purple-500/10 hover:text-purple-400 transition-colors"
                   >
                     <div className="flex items-center gap-3">
@@ -355,8 +385,11 @@ const Navbar = ({ onOpenSidebar }: NavbarProps) => {
                   </a>
 
                   <a
-                    href="#section-video"
-                    onClick={() => setMobileMenuOpen(false)}
+                    href="/#section-video"
+                    onClick={(e) => {
+                      setMobileMenuOpen(false);
+                      handleNavClick(e, "section-video", "khoa_hoc", "/#section-video");
+                    }}
                     className="flex items-center justify-between px-3 py-2.5 rounded-xl font-bold text-xs text-slate-200 hover:bg-blue-500/10 hover:text-blue-400 transition-colors"
                   >
                     <div className="flex items-center gap-3">
@@ -367,8 +400,11 @@ const Navbar = ({ onOpenSidebar }: NavbarProps) => {
                   </a>
 
                   <a
-                    href="#section-games"
-                    onClick={() => setMobileMenuOpen(false)}
+                    href="/#section-games"
+                    onClick={(e) => {
+                      setMobileMenuOpen(false);
+                      handleNavClick(e, "section-games", "tro_choi", "/games");
+                    }}
                     className="flex items-center justify-between px-3 py-2.5 rounded-xl font-bold text-xs text-slate-200 hover:bg-cyan-500/10 hover:text-cyan-400 transition-colors"
                   >
                     <div className="flex items-center gap-3">
@@ -379,8 +415,11 @@ const Navbar = ({ onOpenSidebar }: NavbarProps) => {
                   </a>
 
                   <a
-                    href="#combos"
-                    onClick={() => setMobileMenuOpen(false)}
+                    href="/#combos"
+                    onClick={(e) => {
+                      setMobileMenuOpen(false);
+                      handleNavClick(e, "combos", "vip_combos", "/#combos");
+                    }}
                     className="flex items-center justify-between px-3 py-2.5 rounded-xl font-bold text-xs text-amber-300 hover:bg-amber-500/15 transition-colors"
                   >
                     <div className="flex items-center gap-3">

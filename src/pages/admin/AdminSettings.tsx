@@ -9,8 +9,10 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
+import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
+import { cn } from "@/lib/utils";
 import {
   Database,
   Download,
@@ -30,6 +32,14 @@ import {
   MessageSquare,
   HelpCircle,
   Trophy,
+  CreditCard,
+  Copy,
+  CheckCircle2,
+  ExternalLink,
+  RefreshCw,
+  Check,
+  Crown,
+  AlertCircle
 } from "lucide-react";
 import {
   getHomepageShowcaseConfig,
@@ -37,12 +47,72 @@ import {
   calculateSavings,
   DEFAULT_HOMEPAGE_CONFIG,
   HomepageShowcaseConfig,
-  generateVietQrUrl,
+  generateSepayQrUrl,
 } from "@/services/homepageShowcaseService";
+
+const POPULAR_BANKS = [
+  { name: "MBBank (Quân Đội)", bin: "970422", shortName: "MBBank" },
+  { name: "Vietcombank (Ngoại Thương)", bin: "970436", shortName: "Vietcombank" },
+  { name: "Techcombank (Kỹ Thương)", bin: "970407", shortName: "Techcombank" },
+  { name: "ACB (Á Châu)", bin: "970416", shortName: "ACB" },
+  { name: "VPBank (Việt Nam Thịnh Vượng)", bin: "970432", shortName: "VPBank" },
+  { name: "BIDV (Đầu Tư & Phát Triển)", bin: "970418", shortName: "BIDV" },
+  { name: "TPBank (Tiên Phong)", bin: "970423", shortName: "TPBank" },
+  { name: "VietinBank (Công Thương)", bin: "970415", shortName: "VietinBank" },
+  { name: "VIB (Quốc Tế)", bin: "970441", shortName: "VIB" },
+  { name: "Sacombank (Sài Gòn Thương Tín)", bin: "970403", shortName: "Sacombank" },
+  { name: "HDBank (Phát Triển TP.HCM)", bin: "970437", shortName: "HDBank" },
+  { name: "MSB (Hàng Hải)", bin: "970426", shortName: "MSB" },
+  { name: "OCB (Phương Đông)", bin: "970448", shortName: "OCB" },
+  { name: "SHB (Sài Gòn - Hà Nội)", bin: "970443", shortName: "SHB" },
+];
 
 const AdminSettings = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") || "payment";
+  const [copiedWebhook, setCopiedWebhook] = useState(false);
+  const [testingWebhook, setTestingWebhook] = useState(false);
+
+  const webhookUrl = typeof window !== "undefined" ? `${window.location.origin}/api/payment-webhook` : "/api/payment-webhook";
+
+  const handleCopyWebhook = () => {
+    navigator.clipboard.writeText(webhookUrl);
+    setCopiedWebhook(true);
+    toast({
+      title: "Đã sao chép link Webhook!",
+      description: webhookUrl,
+    });
+    setTimeout(() => setCopiedWebhook(false), 2000);
+  };
+
+  const handleTestWebhook = async () => {
+    setTestingWebhook(true);
+    try {
+      const res = await fetch("/api/payment-webhook");
+      const data = await res.json();
+      if (data.status === "online") {
+        toast({
+          title: "✅ Webhook đang hoạt động tốt!",
+          description: `Endpoint sẵn sàng kết nối SePay & VietQR Napas 24/7.`,
+        });
+      } else {
+        toast({
+          title: "Phản hồi webhook",
+          description: JSON.stringify(data),
+        });
+      }
+    } catch (err: any) {
+      toast({
+        title: "Lỗi kết nối Webhook",
+        description: err?.message || "Kiểm tra endpoint",
+        variant: "destructive",
+      });
+    } finally {
+      setTestingWebhook(false);
+    }
+  };
 
   // 1. Cài đặt hệ thống chung
   const { data: settings = {}, isLoading: isLoadingPlatform } = useQuery({
@@ -165,8 +235,15 @@ const AdminSettings = () => {
           </Button>
         </div>
 
-        <Tabs defaultValue="showcase">
-          <TabsList className="bg-muted/60 p-1 rounded-2xl border border-border/60 h-auto grid grid-cols-2 sm:grid-cols-4 max-w-2xl">
+        <Tabs value={activeTab} onValueChange={(val) => setSearchParams({ tab: val })}>
+          <TabsList className="bg-muted/60 p-1 rounded-2xl border border-border/60 h-auto grid grid-cols-2 sm:grid-cols-5 max-w-3xl">
+            <TabsTrigger
+              value="payment"
+              className="rounded-xl font-bold py-2 px-3 text-xs sm:text-sm data-[state=active]:bg-card data-[state=active]:shadow-soft-xs flex items-center justify-center gap-1.5"
+            >
+              <CreditCard className="w-4 h-4 text-emerald-500" />
+              <span>Thanh Toán &amp; QR</span>
+            </TabsTrigger>
             <TabsTrigger
               value="showcase"
               className="rounded-xl font-bold py-2 px-3 text-xs sm:text-sm data-[state=active]:bg-card data-[state=active]:shadow-soft-xs"
@@ -192,6 +269,334 @@ const AdminSettings = () => {
               Sao lưu
             </TabsTrigger>
           </TabsList>
+
+          {/* TAB 0: CẤU HÌNH CỔNG THANH TOÁN VIETQR & SEPAY WEBHOOK */}
+          <TabsContent value="payment" className="mt-4 space-y-6">
+            {/* Header Thao tác */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-cyan-500/5 to-transparent border border-emerald-500/30">
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2">
+                  <CreditCard className="w-5 h-5 text-emerald-500" />
+                  <h3 className="text-base font-bold text-foreground">Cổng Thanh Toán Tự Động SePay Webhook 24/7</h3>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Cấu hình tài khoản ngân hàng nhận tiền, giá bán gói VIP và liên kết SePay Webhook để tự động duyệt đơn 24/7.
+                </p>
+              </div>
+              <Button
+                onClick={() => saveShowcaseMutation.mutate()}
+                disabled={saveShowcaseMutation.isPending}
+                className="rounded-xl font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md flex items-center gap-2 cursor-pointer"
+              >
+                <Save className="w-4 h-4" />
+                <span>{saveShowcaseMutation.isPending ? "Đang lưu..." : "Lưu Cài Đặt Thanh Toán"}</span>
+              </Button>
+            </div>
+
+            {/* KHỐI 1: CẤU HÌNH WEBHOOK TỰ ĐỘNG DUYỆT ĐƠN (SEPAY) */}
+            <div className="bg-card rounded-2xl border border-border/70 p-6 shadow-soft-sm space-y-4">
+              <div className="flex items-center justify-between pb-2 border-b border-border/60">
+                <div className="flex items-center gap-2.5">
+                  <Zap className="w-5 h-5 text-amber-500" />
+                  <h3 className="text-base font-black text-foreground">1. Cấu Hình Webhook Tự Động (SePay / Casso)</h3>
+                </div>
+                <Badge variant="outline" className="text-xs font-mono bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30">
+                  Endpoint Online
+                </Badge>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="font-bold text-xs">URL Webhook Nhận Tiền (Copy dán vào SePay)</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    readOnly
+                    value={webhookUrl}
+                    className="font-mono text-xs bg-muted/50 rounded-xl"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleCopyWebhook}
+                    className="rounded-xl shrink-0 gap-1.5 font-bold cursor-pointer"
+                  >
+                    {copiedWebhook ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+                    <span>{copiedWebhook ? "Đã chép" : "Sao chép"}</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={handleTestWebhook}
+                    disabled={testingWebhook}
+                    className="rounded-xl shrink-0 gap-1.5 font-bold cursor-pointer"
+                  >
+                    <RefreshCw className={cn("w-4 h-4", testingWebhook && "animate-spin")} />
+                    <span>Kiểm tra</span>
+                  </Button>
+                </div>
+              </div>
+
+              {/* Hướng dẫn 3 bước cực kỳ rõ ràng */}
+              <div className="p-4 rounded-xl bg-muted/40 border border-border/60 space-y-2.5 text-xs text-muted-foreground">
+                <div className="font-bold text-foreground flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                  <span>3 Bước cài đặt Webhook trên SePay để tự động duyệt:</span>
+                </div>
+                <ol className="list-decimal list-inside space-y-1.5 pl-1 leading-relaxed">
+                  <li>
+                    Truy cập trang quản lý SePay tại{" "}
+                    <a href="https://my.sepay.vn" target="_blank" rel="noreferrer" className="text-primary font-bold underline inline-flex items-center gap-0.5">
+                      my.sepay.vn <ExternalLink className="w-3 h-3" />
+                    </a>{" "}
+                    và thêm tài khoản ngân hàng của bạn.
+                  </li>
+                  <li>
+                    Vào menu <strong>Webhooks</strong> &gt; Bấm <strong>Thêm Webhook mới</strong> &gt; Dán đường link ở trên vào ô <strong>URL Webhook</strong>.
+                  </li>
+                  <li>
+                    Chọn Phương thức: <strong>POST</strong> &bull; Kiểu dữ liệu: <strong>JSON</strong> &gt; Bấm <strong>Lưu Webhook</strong>.
+                  </li>
+                </ol>
+              </div>
+            </div>
+
+            {/* KHỐI 2: TÀI KHOẢN NGÂN HÀNG NHẬN TIỀN */}
+            <div className="bg-card rounded-2xl border border-border/70 p-6 shadow-soft-sm space-y-4">
+              <div className="flex items-center gap-2.5 pb-2 border-b border-border/60">
+                <CreditCard className="w-5 h-5 text-primary" />
+                <h3 className="text-base font-black text-foreground">2. Thông Tin Tài Khoản Ngân Hàng Nhận Tiền</h3>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="font-bold text-xs">Chọn Ngân Hàng (Tự động điền Mã BIN)</Label>
+                  <select
+                    value={showcaseConfig.vip_combo.bank_bin}
+                    onChange={(e) => {
+                      const sel = POPULAR_BANKS.find((b) => b.bin === e.target.value);
+                      if (sel) {
+                        setShowcaseConfig({
+                          ...showcaseConfig,
+                          vip_combo: {
+                            ...showcaseConfig.vip_combo,
+                            bank_name: sel.shortName,
+                            bank_bin: sel.bin,
+                          },
+                        });
+                      }
+                    }}
+                    className="w-full h-10 px-3 rounded-xl border border-input bg-background text-xs font-bold focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    {POPULAR_BANKS.map((b) => (
+                      <option key={b.bin} value={b.bin}>
+                        {b.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="font-bold text-xs">Tên Viết Tắt Ngân Hàng</Label>
+                  <Input
+                    value={showcaseConfig.vip_combo.bank_name}
+                    onChange={(e) =>
+                      setShowcaseConfig({
+                        ...showcaseConfig,
+                        vip_combo: { ...showcaseConfig.vip_combo, bank_name: e.target.value },
+                      })
+                    }
+                    placeholder="VD: MBBank, VCB..."
+                    className="text-xs font-bold rounded-xl"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="font-bold text-xs">Số Tài Khoản Nhận Tiền</Label>
+                  <Input
+                    value={showcaseConfig.vip_combo.bank_account}
+                    onChange={(e) =>
+                      setShowcaseConfig({
+                        ...showcaseConfig,
+                        vip_combo: { ...showcaseConfig.vip_combo, bank_account: e.target.value.replace(/\s+/g, "") },
+                      })
+                    }
+                    placeholder="VD: 0334729066"
+                    className="text-xs font-mono font-bold rounded-xl text-primary"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="font-bold text-xs">Chủ Tài Khoản (In hoa không dấu)</Label>
+                  <Input
+                    value={showcaseConfig.vip_combo.account_holder}
+                    onChange={(e) =>
+                      setShowcaseConfig({
+                        ...showcaseConfig,
+                        vip_combo: { ...showcaseConfig.vip_combo, account_holder: e.target.value.toUpperCase() },
+                      })
+                    }
+                    placeholder="VD: HOANG CONG LUAN"
+                    className="text-xs font-bold uppercase rounded-xl"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="font-bold text-xs">Mã BIN Napas Ngân Hàng (MB: 970422)</Label>
+                  <Input
+                    value={showcaseConfig.vip_combo.bank_bin}
+                    onChange={(e) =>
+                      setShowcaseConfig({
+                        ...showcaseConfig,
+                        vip_combo: { ...showcaseConfig.vip_combo, bank_bin: e.target.value },
+                      })
+                    }
+                    placeholder="VD: 970422"
+                    className="text-xs font-mono rounded-xl"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="font-bold text-xs">Số Zalo / Hotline Hỗ Trợ Kích Hoạt</Label>
+                  <Input
+                    value={showcaseConfig.vip_combo.zalo_hotline || ""}
+                    onChange={(e) =>
+                      setShowcaseConfig({
+                        ...showcaseConfig,
+                        vip_combo: { ...showcaseConfig.vip_combo, zalo_hotline: e.target.value },
+                      })
+                    }
+                    placeholder="VD: 0334729066"
+                    className="text-xs font-mono rounded-xl"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* KHỐI 3: CÀI ĐẶT GÓI VIP & MỨC GIÁ */}
+            <div className="bg-card rounded-2xl border border-border/70 p-6 shadow-soft-sm space-y-4">
+              <div className="flex items-center gap-2.5 pb-2 border-b border-border/60">
+                <Crown className="w-5 h-5 text-amber-500" />
+                <h3 className="text-base font-black text-foreground">3. Cài Đặt Gói VIP &amp; Giá Bán</h3>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="font-bold text-xs">Giá Bán Ưu Đãi (VNĐ) - Số tiền khách quét trả</Label>
+                  <Input
+                    type="number"
+                    value={showcaseConfig.vip_combo.price}
+                    onChange={(e) =>
+                      setShowcaseConfig({
+                        ...showcaseConfig,
+                        vip_combo: { ...showcaseConfig.vip_combo, price: Number(e.target.value) || 0 },
+                      })
+                    }
+                    className="text-sm font-mono font-black rounded-xl text-emerald-500"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="font-bold text-xs">Giá Gốc Niêm Yết (VNĐ) - Hiển thị gạch ngang</Label>
+                  <Input
+                    type="number"
+                    value={showcaseConfig.vip_combo.original_price}
+                    onChange={(e) =>
+                      setShowcaseConfig({
+                        ...showcaseConfig,
+                        vip_combo: { ...showcaseConfig.vip_combo, original_price: Number(e.target.value) || 0 },
+                      })
+                    }
+                    className="text-sm font-mono rounded-xl text-muted-foreground"
+                  />
+                </div>
+
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label className="font-bold text-xs">Tiêu Đề Gói VIP</Label>
+                  <Input
+                    value={showcaseConfig.vip_combo.title}
+                    onChange={(e) =>
+                      setShowcaseConfig({
+                        ...showcaseConfig,
+                        vip_combo: { ...showcaseConfig.vip_combo, title: e.target.value },
+                      })
+                    }
+                    placeholder="VD: NÂNG CẤP VIP TRỌN ĐỜI"
+                    className="text-xs font-bold rounded-xl"
+                  />
+                </div>
+
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label className="font-bold text-xs">Mô Tả Gói (Subtitle)</Label>
+                  <Input
+                    value={showcaseConfig.vip_combo.subtitle}
+                    onChange={(e) =>
+                      setShowcaseConfig({
+                        ...showcaseConfig,
+                        vip_combo: { ...showcaseConfig.vip_combo, subtitle: e.target.value },
+                      })
+                    }
+                    placeholder="VD: Mở khóa vĩnh viễn toàn bộ kho đề thi ETS 200 câu..."
+                    className="text-xs rounded-xl"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* KHỐI 4: TRÌNH QUÉT THỬ MÃ QR TRỰC TIẾP */}
+            <div className="bg-card rounded-2xl border border-border/70 p-6 shadow-soft-sm space-y-4">
+              <div className="flex items-center justify-between pb-2 border-b border-border/60">
+                <div className="flex items-center gap-2.5">
+                  <QrCode className="w-5 h-5 text-emerald-500" />
+                  <h3 className="text-base font-black text-foreground">4. Kiểm Tra &amp; Quét Thử Mã QR SePay Thật</h3>
+                </div>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-xs font-bold">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>Chuẩn SePay Webhook Auto-Fill</span>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center gap-6 p-4 rounded-xl bg-muted/40 border border-border/60">
+                <div className="w-52 h-52 bg-white p-2 rounded-xl border border-slate-300 flex items-center justify-center shrink-0 shadow-sm">
+                  <img
+                    src={generateSepayQrUrl(
+                      showcaseConfig.vip_combo.bank_name || "MBBank",
+                      showcaseConfig.vip_combo.bank_account || "0334729066",
+                      showcaseConfig.vip_combo.price || 1750000,
+                      "LEATEST"
+                    )}
+                    alt="SePay QR Live Test Preview"
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+
+                <div className="space-y-2 text-xs text-muted-foreground text-center sm:text-left">
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-bold">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Mã QR Chuẩn Napas 24/7 Hoạt Động</span>
+                  </div>
+                  <p className="text-foreground font-semibold leading-relaxed">
+                    👉 Bạn có thể mở App ngân hàng (MB, Vietcombank, Techcombank, MoMo...) trên điện thoại để quét thử ngay khung hình QR bên cạnh.
+                  </p>
+                  <div className="p-2.5 rounded-lg bg-background border border-border/60 space-y-1 font-mono text-[11px]">
+                    <div>Ngân hàng: <strong>{showcaseConfig.vip_combo.bank_name}</strong> (BIN: {showcaseConfig.vip_combo.bank_bin})</div>
+                    <div>Số tài khoản: <strong className="text-primary">{showcaseConfig.vip_combo.bank_account}</strong></div>
+                    <div>Chủ tài khoản: <strong>{showcaseConfig.vip_combo.account_holder}</strong></div>
+                    <div>Số tiền: <strong className="text-emerald-500">{showcaseConfig.vip_combo.price.toLocaleString("vi-VN")} đ</strong></div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-2">
+                <Button
+                  onClick={() => saveShowcaseMutation.mutate()}
+                  disabled={saveShowcaseMutation.isPending}
+                  className="rounded-xl font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md flex items-center gap-2 cursor-pointer"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>{saveShowcaseMutation.isPending ? "Đang lưu..." : "Lưu Cài Đặt Thanh Toán"}</span>
+                </Button>
+              </div>
+            </div>
+          </TabsContent>
 
           {/* TAB 1: KỆ TRANG CHỦ & CÁC MỤC TRƯNG BÀY (DYNAMIC) */}
           <TabsContent value="showcase" className="mt-4 space-y-6">
@@ -559,27 +964,26 @@ const AdminSettings = () => {
                   </div>
                 </div>
 
-                {/* PREVIEW MÃ VIETQR TỰ ĐỘNG */}
+                {/* PREVIEW MÃ SEPAY QR TỰ ĐỘNG */}
                 <div className="p-4 rounded-xl bg-muted/40 border border-border/70 flex flex-col sm:flex-row items-center gap-4">
                   <div className="w-28 h-28 bg-white p-2 rounded-lg border border-slate-300 flex items-center justify-center shrink-0">
                     <img
-                      src={generateVietQrUrl(
-                        showcaseConfig.vip_combo.bank_bin,
-                        showcaseConfig.vip_combo.bank_account,
-                        showcaseConfig.vip_combo.account_holder,
-                        showcaseConfig.vip_combo.price,
-                        showcaseConfig.vip_combo.transfer_syntax
+                      src={generateSepayQrUrl(
+                        showcaseConfig.vip_combo.bank_name || "MBBank",
+                        showcaseConfig.vip_combo.bank_account || "0334729066",
+                        showcaseConfig.vip_combo.price || 1750000,
+                        "LEAPRO"
                       )}
-                      alt="VietQR Preview"
+                      alt="SePay QR Preview"
                       className="w-full h-full object-contain"
                     />
                   </div>
                   <div className="space-y-1 text-center sm:text-left">
                     <div className="text-xs font-bold text-foreground">
-                      Mã VietQR Tự Động Tạo Hợp Lệ
+                      Mã SePay QR Tự Động Tạo Hợp Lệ
                     </div>
                     <p className="text-[11px] text-muted-foreground leading-relaxed">
-                      Mã QR được tự động tạo theo chuẩn VietQR NAPAS 24/7 với số tiền{" "}
+                      Mã QR được tự động tạo theo chuẩn SePay với số tiền{" "}
                       <strong className="text-emerald-500 font-mono">
                         {showcaseConfig.vip_combo.price.toLocaleString("vi-VN")} đ
                       </strong>{" "}

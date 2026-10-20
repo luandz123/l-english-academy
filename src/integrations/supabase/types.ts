@@ -584,6 +584,54 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_orders: {
+        Row: {
+          id: string
+          order_code: string
+          user_id: string
+          amount: number
+          plan_type: string | null
+          status: string
+          payment_gateway: string | null
+          bank_transaction_id: string | null
+          transaction_content: string | null
+          paid_at: string | null
+          metadata: Json | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          order_code: string
+          user_id: string
+          amount: number
+          plan_type?: string | null
+          status?: string
+          payment_gateway?: string | null
+          bank_transaction_id?: string | null
+          transaction_content?: string | null
+          paid_at?: string | null
+          metadata?: Json | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          order_code?: string
+          user_id?: string
+          amount?: number
+          plan_type?: string | null
+          status?: string
+          payment_gateway?: string | null
+          bank_transaction_id?: string | null
+          transaction_content?: string | null
+          paid_at?: string | null
+          metadata?: Json | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -591,6 +639,9 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
+          is_pro: boolean | null
+          pro_plan: string | null
+          pro_activated_at: string | null
           updated_at: string | null
           user_id: string
         }
@@ -600,6 +651,9 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          is_pro?: boolean | null
+          pro_plan?: string | null
+          pro_activated_at?: string | null
           updated_at?: string | null
           user_id: string
         }
@@ -609,6 +663,9 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          is_pro?: boolean | null
+          pro_plan?: string | null
+          pro_activated_at?: string | null
           updated_at?: string | null
           user_id?: string
         }

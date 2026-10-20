@@ -21,6 +21,15 @@ export const HeroCarousel = () => {
 
   const contactInfo = showcaseConfig.contact_info || DEFAULT_HOMEPAGE_CONFIG.contact_info;
 
+  const handleScrollTo = (id: string) => (e: React.MouseEvent) => {
+    const el = document.getElementById(id);
+    if (el) {
+      e.preventDefault();
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+      window.history.pushState(null, "", `#${id}`);
+    }
+  };
+
   return (
     <section className="relative w-full">
       {/* Hidden SEO heading for semantic structure & accessibility */}
@@ -50,8 +59,11 @@ export const HeroCarousel = () => {
           {/* Interactive Clickable Hotspots mapped directly over banner elements */}
           {/* 1. Hotspot: THI THỬ capsule */}
           <a
-            href="#section-fulltest"
-            onClick={() => trackEvent("hero_click_pill_fulltest", { location: "hero_banner" })}
+            href="/#section-fulltest"
+            onClick={(e) => {
+              trackEvent("hero_click_pill_fulltest", { location: "hero_banner" });
+              handleScrollTo("section-fulltest")(e);
+            }}
             title="Đến phòng thi thử chuẩn ETS 120 phút"
             className="absolute left-[5.4%] top-[43.8%] w-[48%] h-[11%] rounded-xl cursor-pointer hover:bg-cyan-400/10 active:bg-cyan-400/20 transition-all duration-200"
             aria-label="Thi thử ETS 120 phút"
@@ -68,8 +80,11 @@ export const HeroCarousel = () => {
 
           {/* 3. Hotspot: NGHE NÓI capsule */}
           <a
-            href="#section-listening"
-            onClick={() => trackEvent("hero_click_pill_listening", { location: "hero_banner" })}
+            href="/#section-listening"
+            onClick={(e) => {
+              trackEvent("hero_click_pill_listening", { location: "hero_banner" });
+              handleScrollTo("section-listening")(e);
+            }}
             title="Nghe chép chính tả & Luyện nghe từng bước"
             className="absolute left-[5.4%] top-[69.5%] w-[48%] h-[11%] rounded-xl cursor-pointer hover:bg-cyan-400/10 active:bg-cyan-400/20 transition-all duration-200"
             aria-label="Nghe chép chính tả & Luyện nghe từng bước"
@@ -77,8 +92,11 @@ export const HeroCarousel = () => {
 
           {/* 4. Hotspot: Nút BẮT ĐẦU THI THỬ NGAY */}
           <a
-            href="#section-fulltest"
-            onClick={() => trackEvent("hero_click_fulltest", { location: "hero_banner_cta" })}
+            href="/#section-fulltest"
+            onClick={(e) => {
+              trackEvent("hero_click_fulltest", { location: "hero_banner_cta" });
+              handleScrollTo("section-fulltest")(e);
+            }}
             title="Bắt đầu thi thử ngay"
             className="absolute left-[5.4%] top-[85.2%] w-[27%] h-[10.5%] rounded-full cursor-pointer hover:ring-2 hover:ring-cyan-300 hover:ring-offset-2 hover:ring-offset-slate-900 active:scale-95 transition-all duration-200 shadow-[0_0_20px_rgba(6,182,212,0.4)]"
             aria-label="Bắt đầu thi thử ngay"
@@ -86,8 +104,11 @@ export const HeroCarousel = () => {
 
           {/* 5. Hotspot: Nút Xem gói VIP & Lộ trình */}
           <a
-            href="#combos"
-            onClick={() => trackEvent("hero_click_combos", { location: "hero_banner_cta" })}
+            href="/#combos"
+            onClick={(e) => {
+              trackEvent("hero_click_combos", { location: "hero_banner_cta" });
+              handleScrollTo("combos")(e);
+            }}
             title="Xem gói VIP & Lộ trình"
             className="absolute left-[33%] top-[85.2%] w-[20%] h-[10.5%] rounded-full cursor-pointer hover:bg-white/10 active:scale-95 transition-all duration-200"
             aria-label="Xem gói VIP & Lộ trình"

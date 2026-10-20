@@ -52,6 +52,7 @@ import { Link } from "react-router-dom";
 import {
   parseCategoryIconAndDesc,
   formatCategoryIconAndDesc,
+  getCategoryCourseStats,
 } from "@/services/homepageShowcaseService";
 
 interface Category {
@@ -124,7 +125,7 @@ const AdminCategories = () => {
     },
   });
 
-  // Lấy danh sách khóa học để đếm số lượng khóa học trong từng danh mục
+  // Lấy danh sách khóa học để đếm số lượng khóa học trong từng danh mục (category_id là nguồn sự thật duy nhất)
   const { data: courses = [] } = useQuery({
     queryKey: ["admin-courses-category-count"],
     queryFn: async () => {
@@ -134,14 +135,7 @@ const AdminCategories = () => {
     },
   });
 
-  const courseCountByCat = courses.reduce<Record<number, { total: number; active: number }>>((acc, c) => {
-    if (c.category_id) {
-      if (!acc[c.category_id]) acc[c.category_id] = { total: 0, active: 0 };
-      acc[c.category_id].total++;
-      if (c.is_active) acc[c.category_id].active++;
-    }
-    return acc;
-  }, {});
+  const courseCountByCat = getCategoryCourseStats(courses);
 
   const saveMutation = useMutation({
     mutationFn: async (cat: Partial<Category>) => {
@@ -366,12 +360,19 @@ const AdminCategories = () => {
                           </Link>
                         </td>
                         <td className="px-4 py-4 text-center">
-                          <Switch
-                            checked={cat.is_active || false}
-                            onCheckedChange={(checked) =>
-                              toggleStatusMutation.mutate({ id: cat.id, is_active: checked })
-                            }
-                          />
+                          <div className="flex flex-col items-center gap-1">
+                            <Switch
+                              checked={cat.is_active || false}
+                              onCheckedChange={(checked) =>
+                                toggleStatusMutation.mutate({ id: cat.id, is_active: checked })
+                              }
+                            />
+                            {cat.is_active && stats.active === 0 && (
+                              <span className="text-[10px] text-amber-500 dark:text-amber-400 font-semibold leading-tight max-w-[130px] text-center">
+                                Ẩn ngoài trang chủ vì chưa có khóa học
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="px-4 py-4 text-right">
                           <div className="flex items-center justify-end gap-2">
@@ -383,41 +384,49 @@ const AdminCategories = () => {
                             >
                               <Pencil className="w-3.5 h-3.5 mr-1" /> Sửa
                             </Button>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
+                            {stats.total > 0 ? (
+                              <span title="Chuyển các khóa học sang danh mục khác trước khi xóa" className="inline-block">
                                 <Button
                                   variant="destructive"
                                   size="sm"
-                                  className="font-bold h-8 bg-destructive/10 text-destructive hover:bg-destructive/20 active:scale-95 duration-120 rounded-lg border-none cursor-pointer"
+                                  disabled
+                                  className="font-bold h-8 bg-muted text-muted-foreground/50 opacity-50 cursor-not-allowed rounded-lg border-none"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
                                 </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent className="border border-border/80 shadow-soft-xl rounded-2xl">
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle className="font-black text-lg">
-                                    Xác nhận xóa danh mục?
-                                  </AlertDialogTitle>
-                                  <AlertDialogDescription className="text-muted-foreground">
-                                    Bạn có chắc muốn xóa danh mục <strong>"{cat.name}"</strong>?{" "}
-                                    {stats.total > 0 && (
-                                      <span className="text-amber-500 block mt-2 font-semibold">
-                                        ⚠️ Hiện có {stats.total} khóa học đang thuộc danh mục này. Xóa danh mục sẽ khiến các khóa học này mất phân nhóm trên trang chủ!
-                                      </span>
-                                    )}
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel className="rounded-xl font-bold">Hủy</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() => deleteMutation.mutate(cat.id)}
-                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-xl font-bold active:scale-95 duration-120"
+                              </span>
+                            ) : (
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    className="font-bold h-8 bg-destructive/10 text-destructive hover:bg-destructive/20 active:scale-95 duration-120 rounded-lg border-none cursor-pointer"
                                   >
-                                    Xóa danh mục
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent className="border border-border/80 shadow-soft-xl rounded-2xl">
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle className="font-black text-lg">
+                                      Xác nhận xóa danh mục?
+                                    </AlertDialogTitle>
+                                    <AlertDialogDescription className="text-muted-foreground">
+                                      Bạn có chắc muốn xóa danh mục <strong>"{cat.name}"</strong>?
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel className="rounded-xl font-bold">Hủy</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => deleteMutation.mutate(cat.id)}
+                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-xl font-bold active:scale-95 duration-120"
+                                    >
+                                      Xóa danh mục
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            )}
                           </div>
                         </td>
                       </tr>

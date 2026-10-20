@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { 
   Check, 
@@ -11,10 +11,14 @@ import {
   Zap, 
   Crown,
   MessageCircle,
-  ExternalLink
+  ExternalLink,
+  Loader2,
+  Sparkles,
+  RefreshCw,
+  AlertCircle
 } from "lucide-react";
 import { 
-  generateVietQrUrl, 
+  generateSepayQrUrl,
   getHomepageShowcaseConfig, 
   DEFAULT_HOMEPAGE_CONFIG,
   calculateSavings,
@@ -22,7 +26,9 @@ import {
 } from "@/services/homepageShowcaseService";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
 
 export interface UpgradeProCardProps {
   className?: string;
@@ -47,8 +53,21 @@ export const UpgradeProCard: React.FC<UpgradeProCardProps> = ({
   const [step, setStep] = useState<"details" | "checkout">(initialStep);
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
-  const { user } = useAuth();
+  // Quản lý đơn hàng SePay & Realtime (Khởi tạo sẵn mã đơn ngay lập tức)
+  const [orderCode, setOrderCode] = useState<string>(() => {
+    const randomDigits = Math.floor(10000 + Math.random() * 90000);
+    return `LEA${randomDigits}`;
+  });
+  const [orderId, setOrderId] = useState<string | null>(null);
+  const [isCreatingOrder, setIsCreatingOrder] = useState<boolean>(false);
+  const [isCheckingPayment, setIsCheckingPayment] = useState<boolean>(false);
+  const [isPaymentSuccess, setIsPaymentSuccess] = useState<boolean>(false);
+  const [isSimulating, setIsSimulating] = useState<boolean>(false);
+
+  const { user, isAdmin, refreshUserData } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const channelRef = useRef<any>(null);
 
   // Tự động nạp dữ liệu động từ database / config hệ thống nếu props chưa truyền
   useEffect(() => {
@@ -63,10 +82,116 @@ export const UpgradeProCard: React.FC<UpgradeProCardProps> = ({
     }
   }, [vipCombo]);
 
-  // Cú pháp chuyển khoản tự động kèm định danh học viên
-  const userIdentifier = user?.phone || user?.email?.split("@")[0] || "HOCVIEN";
-  const rawSyntax = data.transfer_syntax || "VIP [SĐT]";
-  const transferSyntax = rawSyntax.replace(/\[.*?\]/g, userIdentifier.toUpperCase());
+  // Tạo hoặc lấy đơn hàng PENDING khi chuyển sang bước checkout
+  useEffect(() => {
+    if (step !== "checkout" || !user) return;
+
+    let isMounted = true;
+
+    async function initOrder() {
+      setIsCreatingOrder(true);
+      try {
+        // 1. Kiểm tra xem user đã có đơn pending nào mới tạo trong 30 phút qua không
+        const thirtyMinsAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+        const { data: existingOrders } = await supabase
+          .from("payment_orders")
+          .select("id, order_code, amount, status")
+          .eq("user_id", user!.id)
+          .eq("status", "pending")
+          .gte("created_at", thirtyMinsAgo)
+          .order("created_at", { ascending: false })
+          .limit(1);
+
+        if (existingOrders && existingOrders.length > 0 && isMounted) {
+          const current = existingOrders[0];
+          setOrderCode(current.order_code);
+          setOrderId(current.id);
+          setIsCreatingOrder(false);
+          return;
+        }
+
+        // 2. Nếu chưa có, dùng mã orderCode đã khởi tạo sẵn hoặc sinh mới
+        const targetCode = orderCode || `LEA${Math.floor(10000 + Math.random() * 90000)}`;
+
+        const { data: created, error } = await supabase
+          .from("payment_orders")
+          .insert({
+            user_id: user!.id,
+            order_code: targetCode,
+            amount: data.price,
+            plan_type: "vip_combo",
+            status: "pending",
+          })
+          .select()
+          .single();
+
+        if (error) {
+          console.warn("[UpgradeProModal] Could not insert order into Supabase:", error.message);
+          if (isMounted) setOrderCode(targetCode);
+        } else if (created && isMounted) {
+          setOrderCode(created.order_code);
+          setOrderId(created.id);
+        }
+      } catch (err) {
+        console.error("[UpgradeProModal] Order init error:", err);
+      } finally {
+        if (isMounted) setIsCreatingOrder(false);
+      }
+    }
+
+    initOrder();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [step, user, data.price]);
+
+  // Lắng nghe Realtime trạng thái đơn hàng từ Supabase
+  useEffect(() => {
+    if (!orderCode) return;
+
+    // Hủy channel cũ nếu có
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
+    }
+
+    const channelName = `realtime-order-${orderCode}`;
+    const channel = supabase
+      .channel(channelName)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "payment_orders",
+          filter: `order_code=eq.${orderCode}`,
+        },
+        async (payload: any) => {
+          if (payload.new && payload.new.status === "completed") {
+            setIsPaymentSuccess(true);
+            await refreshUserData();
+            toast({
+              title: "🎉 Thanh toán thành công!",
+              description: "Tài khoản của bạn đã được nâng cấp lên VIP PRO trọn đời!",
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    channelRef.current = channel;
+
+    return () => {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+    };
+  }, [orderCode, refreshUserData, toast]);
+
+  // Nội dung chuyển khoản chuẩn cho SePay (chỉ chứa chữ và số, không khoảng trắng, không ký tự lạ)
+  const transferSyntax = (orderCode || "LEAPRO").replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
 
   // Tính toán số tiền tiết kiệm và badge giảm giá
   const savings = calculateSavings(data.original_price, data.price);
@@ -87,11 +212,107 @@ export const UpgradeProCard: React.FC<UpgradeProCardProps> = ({
     setTimeout(() => setCopiedField(null), 2000);
   };
 
-  const handleTransferDone = () => {
-    toast({
-      title: "Cảm ơn bạn đã đăng ký VIP!",
-      description: "Hệ thống đang đối soát và sẽ kích hoạt tài khoản trong ít phút. Bạn cũng có thể nhắn Zalo để được duyệt tức thì.",
-    });
+  // Nút kiểm tra trạng thái thủ công (đối soát trực tiếp với Supabase)
+  const handleManualCheck = async () => {
+    if (!orderCode) return;
+    setIsCheckingPayment(true);
+    try {
+      // 1. Kiểm tra trực tiếp trong Supabase (hoạt động 100% trên cả localhost và production)
+      const { data: orderData } = await supabase
+        .from("payment_orders")
+        .select("status")
+        .eq("order_code", orderCode)
+        .maybeSingle();
+
+      if (orderData && orderData.status === "completed") {
+        setIsPaymentSuccess(true);
+        await refreshUserData();
+        toast({
+          title: "🎉 Xác nhận thành công!",
+          description: "Đơn hàng đã được thanh toán và kích hoạt VIP PRO!",
+        });
+        return;
+      }
+
+      // 2. Thử gọi API endpoint nếu có
+      try {
+        const res = await fetch(`/api/check-payment?order_code=${orderCode}`);
+        if (res.ok) {
+          const result = await res.json();
+          if (result.completed) {
+            setIsPaymentSuccess(true);
+            await refreshUserData();
+            toast({
+              title: "🎉 Xác nhận thành công!",
+              description: "Đơn hàng đã được thanh toán và kích hoạt VIP PRO!",
+            });
+            return;
+          }
+        }
+      } catch {}
+
+      toast({
+        title: "Chưa ghi nhận biến động",
+        description: `Hệ thống chưa thấy tiền vào cho mã ${orderCode}. Nếu bạn vừa chuyển khoản trên App MBBank, vui lòng đợi 5–15 giây rồi kiểm tra lại.`,
+      });
+    } catch {
+      toast({
+        title: "Đang kiểm tra...",
+        description: "Hệ thống vẫn đang liên tục lắng nghe biến động tài khoản qua SePay.",
+      });
+    } finally {
+      setIsCheckingPayment(false);
+    }
+  };
+
+  // Nút giả lập thanh toán (Gọi thẳng stored procedure complete_payment_order trong Supabase)
+  // Giúp người dùng/Admin kiểm chứng tận mắt luồng tự động nâng VIP 100% mà không cần chuyển tiền thật!
+  const handleSimulatePayment = async () => {
+    if (!orderCode) return;
+    if (!user) {
+      toast({
+        title: "Cần đăng nhập",
+        description: "Vui lòng đăng nhập tài khoản trước khi thử nghiệm nâng VIP.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSimulating(true);
+    try {
+      // Gọi trực tiếp Stored Procedure của Supabase
+      const { data: rpcResult, error: rpcError } = await supabase.rpc("complete_payment_order", {
+        p_order_code: orderCode,
+        p_transfer_amount: data.price,
+        p_bank_tx_id: `SEPAY_SIM_${Date.now()}`,
+        p_transaction_content: `TEST_SIMULATE ${orderCode}`,
+      });
+
+      if (rpcError) {
+        throw new Error(rpcError.message);
+      }
+
+      setIsPaymentSuccess(true);
+      await refreshUserData();
+      toast({
+        title: "🎉 Giả lập thành công 100%!",
+        description: "Tài khoản của bạn đã được nâng cấp lên VIP PRO trọn đời và mở khóa toàn bộ khóa học!",
+      });
+    } catch (err: any) {
+      console.error("[Simulate Payment] Error:", err);
+      toast({
+        title: "Lỗi giả lập",
+        description: err?.message || "Kiểm tra kết nối Supabase",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSimulating(false);
+    }
+  };
+
+  const handleFinishSuccess = () => {
+    if (onClose) onClose();
+    navigate("/dashboard");
   };
 
   return (
@@ -120,9 +341,61 @@ export const UpgradeProCard: React.FC<UpgradeProCardProps> = ({
         </div>
       )}
 
-      {step === "details" ? (
+      {/* ========================================================================= */}
+      {/* TRƯỜNG HỢP: THANH TOÁN THÀNH CÔNG (TỰ ĐỘNG KÍCH HOẠT PRO)                 */}
+      {/* ========================================================================= */}
+      {isPaymentSuccess ? (
+        <div className="relative z-10 space-y-6 py-4 text-center animate-in fade-in zoom-in-95 duration-300">
+          <div className="relative mx-auto w-20 h-20 rounded-full bg-gradient-to-tr from-emerald-500 to-green-400 p-0.5 shadow-[0_0_40px_rgba(16,185,129,0.5)]">
+            <div className="w-full h-full rounded-full bg-[#121327] flex items-center justify-center">
+              <Crown className="w-10 h-10 text-amber-300 animate-bounce" />
+            </div>
+            <div className="absolute -top-1 -right-1 w-7 h-7 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-md">
+              <Check className="w-4 h-4 stroke-[3]" />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-bold uppercase tracking-wider">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Nâng Cấp Thành Công!</span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-white font-serif tracking-tight">
+              Chào Mừng Bạn Đến Với VIP PRO!
+            </h2>
+            <p className="text-xs sm:text-sm text-[#9597be] max-w-sm mx-auto leading-relaxed">
+              Tài khoản của bạn đã được kích hoạt trọn đời. Toàn bộ kho đề ETS 200 câu, video bài giảng và lộ trình độc quyền đã được mở khóa.
+            </p>
+          </div>
+
+          {/* Quick list of unlocked perks */}
+          <div className="p-4 rounded-2xl bg-[#171833] border border-emerald-500/30 text-left space-y-2 text-xs">
+            <div className="flex items-center gap-2.5 text-slate-200">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span>Mở khóa toàn bộ khóa học & đề thi Full Test 200 câu</span>
+            </div>
+            <div className="flex items-center gap-2.5 text-slate-200">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span>Luyện nghe Dictation 8 bước không giới hạn</span>
+            </div>
+            <div className="flex items-center gap-2.5 text-slate-200">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span>Hỗ trợ cố vấn 1-1 qua Zalo độc quyền ({zaloNumber})</span>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleFinishSuccess}
+            className="w-full py-4 rounded-xl text-sm sm:text-base font-bold text-white bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 active:scale-[0.98] shadow-[0_4px_25px_rgba(16,185,129,0.45)] flex items-center justify-center gap-2 transition-all cursor-pointer"
+          >
+            <span>Bắt Đầu Trải Nghiệm Ngay</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+      ) : step === "details" ? (
         /* ========================================================================= */
-        /* MÀN HÌNH 1: CHI TIẾT GÓI VIP & QUYỀN LỢI (CHUẨN THIẾT KẾ MẪU MỚI)        */
+        /* MÀN HÌNH 1: CHI TIẾT GÓI VIP & QUYỀN LỢI                                  */
         /* ========================================================================= */
         <div className="relative z-10 space-y-6 animate-in fade-in zoom-in-95 duration-200">
           {/* Header Title in classic serif font */}
@@ -143,7 +416,7 @@ export const UpgradeProCard: React.FC<UpgradeProCardProps> = ({
             )}
           </div>
 
-          {/* Feature Checklist (Dấu check tròn trắng `● ✓` thanh lịch theo mẫu) */}
+          {/* Feature Checklist */}
           <div className="space-y-3.5 sm:space-y-4 pt-1">
             {data.features && data.features.length > 0 ? (
               data.features.map((feat, idx) => (
@@ -168,7 +441,7 @@ export const UpgradeProCard: React.FC<UpgradeProCardProps> = ({
             )}
           </div>
 
-          {/* Pricing Ticket Card (Thẻ giá nổi bật theo mẫu Good Deal) */}
+          {/* Pricing Ticket Card */}
           <div className="rounded-2xl bg-[#161732]/95 border-2 border-[#5452ee] p-4 sm:p-5 flex flex-col items-center text-center space-y-2 relative shadow-[0_0_25px_rgba(84,82,238,0.25)]">
             <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-36 h-12 bg-[#5452ee]/30 rounded-full blur-xl pointer-events-none" />
 
@@ -217,7 +490,7 @@ export const UpgradeProCard: React.FC<UpgradeProCardProps> = ({
         </div>
       ) : (
         /* ========================================================================= */
-        /* MÀN HÌNH 2: QUÉT MÃ VIETQR THANH TOÁN (KÍCH HOẠT TỰ ĐỘNG)                 */
+        /* MÀN HÌNH 2: QUÉT MÃ QR SEPAY THANH TOÁN (KÍCH HOẠT PRO TỰ ĐỘNG)           */
         /* ========================================================================= */
         <div className="relative z-10 space-y-4 animate-in fade-in slide-in-from-right-3 duration-200">
           {/* Back button */}
@@ -231,12 +504,61 @@ export const UpgradeProCard: React.FC<UpgradeProCardProps> = ({
           </button>
 
           <div className="text-center space-y-1">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 text-[11px] font-bold uppercase tracking-wider mb-0.5">
+              <Zap className="w-3 h-3 fill-cyan-400 text-cyan-400" />
+              <span>Cổng SePay Tự Động 24/7</span>
+            </div>
             <h3 className="text-xl sm:text-2xl font-bold text-white font-serif">
-              Quét Mã VietQR Thanh Toán
+              Quét Mã QR Chuyển Khoản
             </h3>
             <p className="text-xs text-[#9597be]">
-              Hệ thống tự động kích hoạt tài khoản ngay khi nhận được chuyển khoản
+              Hệ thống SePay tự động ghi nhận giao dịch &amp; nâng cấp VIP PRO ngay tức thì
             </p>
+          </div>
+
+          {/* Xác thực tài khoản người dùng */}
+          {user ? (
+            <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span className="text-slate-300">Kích hoạt cho tài khoản:</span>
+                <span className="font-bold text-white font-mono">{user.email}</span>
+              </div>
+              <span className="text-[10px] bg-emerald-500/20 px-2 py-0.5 rounded text-emerald-300 font-semibold uppercase">
+                Đã kết nối
+              </span>
+            </div>
+          ) : (
+            <div className="p-3.5 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-300 text-xs space-y-2">
+              <div className="flex items-start gap-2.5">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
+                <div>
+                  <p className="font-bold text-white">Bạn chưa đăng nhập tài khoản</p>
+                  <p className="text-amber-200/80 mt-0.5 leading-relaxed">
+                    Vui lòng đăng nhập trước khi quét mã để hệ thống tự động gán gói VIP PRO vào đúng tài khoản của bạn ngay khi tiền về.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate("/auth")}
+                className="w-full py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <span>Đăng Nhập / Đăng Ký Tài Khoản Ngay</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+
+          {/* Trạng thái Realtime Radar SePay */}
+          <div className="flex items-center justify-center">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs shadow-[0_0_15px_rgba(6,182,212,0.15)]">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+              </span>
+              <span>Đang lắng nghe biến động tài khoản qua SePay...</span>
+            </div>
           </div>
 
           {/* Selected Plan Summary Banner */}
@@ -249,7 +571,7 @@ export const UpgradeProCard: React.FC<UpgradeProCardProps> = ({
                 {data.title || "Gói VIP Toàn Diện TOEIC"}
               </h4>
               <span className="text-xs text-[#797b9e] block">
-                {data.price_note || "Học trọn đời"}
+                Mã đơn: <span className="font-mono text-cyan-300 font-bold">{orderCode}</span>
               </span>
             </div>
             <div className="text-right">
@@ -259,22 +581,35 @@ export const UpgradeProCard: React.FC<UpgradeProCardProps> = ({
             </div>
           </div>
 
-          {/* VietQR Code Box */}
-          <div className="flex flex-col items-center justify-center p-4 rounded-2xl bg-white border border-slate-700 shadow-md">
-            <img
-              src={generateVietQrUrl(
-                data.bank_bin || "970422",
-                data.bank_account || "0334729066",
-                data.account_holder || "HOANG CONG LUAN",
-                data.price,
-                transferSyntax
-              )}
-              alt="VietQR Chuyển Khoản Nâng Cấp VIP"
-              className="w-44 h-44 object-contain"
-            />
-            <span className="text-[11px] text-slate-600 font-medium mt-1 text-center">
-              Mở App Ngân hàng bất kỳ (MB, VCB, BIDV, Techcombank...) để quét mã
-            </span>
+          {/* SePay QR Code Box */}
+          <div className="flex flex-col items-center justify-center p-4 rounded-2xl bg-white border border-slate-700 shadow-md relative min-h-[220px]">
+            {isCreatingOrder ? (
+              <div className="flex flex-col items-center justify-center space-y-2 py-8 text-slate-600">
+                <Loader2 className="w-8 h-8 animate-spin text-[#5452ee]" />
+                <span className="text-xs font-medium">Đang tạo mã thanh toán SePay...</span>
+              </div>
+            ) : (
+              <>
+                <img
+                  src={generateSepayQrUrl(
+                    data.bank_name || "MBBank",
+                    data.bank_account || "0334729066",
+                    data.price,
+                    transferSyntax
+                  )}
+                  alt="Mã QR SePay Chuyển Khoản Nâng Cấp VIP"
+                  className="w-56 h-56 object-contain"
+                />
+                <div className="mt-2 text-center space-y-0.5">
+                  <span className="text-[11px] text-slate-700 font-bold block">
+                    Mở App Ngân hàng bất kỳ (MB, VCB, Techcombank, BIDV...) quét mã
+                  </span>
+                  <span className="text-[10px] text-emerald-600 font-semibold block">
+                    ✓ SePay tự động điền Số Tiền &amp; Mã Đơn Hàng vào app của bạn
+                  </span>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Bank Details Table with 1-Click Copy */}
@@ -332,13 +667,18 @@ export const UpgradeProCard: React.FC<UpgradeProCardProps> = ({
             </div>
 
             <div className="flex items-center justify-between pt-1 border-t border-white/5">
-              <span className="text-slate-400">Nội dung CK:</span>
+              <div className="space-y-0.5">
+                <span className="text-slate-400 block font-semibold">Nội dung CK:</span>
+                <span className="text-[10px] text-amber-400/80 block">(Mã định danh SePay riêng của bạn)</span>
+              </div>
               <div className="flex items-center gap-1.5">
-                <span className="font-mono font-bold text-amber-300">{transferSyntax}</span>
+                <span className="font-mono font-bold text-amber-300 text-sm bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                  {transferSyntax}
+                </span>
                 <button
                   type="button"
                   onClick={() => handleCopy(transferSyntax, "Nội dung")}
-                  className="p-1 rounded bg-white/5 hover:bg-white/15 text-slate-300 cursor-pointer transition-colors"
+                  className="p-1.5 rounded bg-white/5 hover:bg-white/15 text-slate-300 cursor-pointer transition-colors"
                   title="Sao chép nội dung"
                 >
                   {copiedField === "Nội dung" ? (
@@ -349,22 +689,54 @@ export const UpgradeProCard: React.FC<UpgradeProCardProps> = ({
                 </button>
               </div>
             </div>
+
+            {/* Chú thích quan trọng cho khách hàng */}
+            <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-200/90 leading-relaxed">
+              💡 <span className="font-bold text-amber-300">Lưu ý:</span> Khi quét mã, App ngân hàng sẽ tự điền nội dung. Nếu App để trống, bạn vui lòng dán đúng mã <span className="font-mono font-bold text-white bg-black/40 px-1 py-0.5 rounded">{transferSyntax}</span> vào ô Lời nhắn chuyển tiền để SePay tự động kích hoạt VIP trong 3–10 giây.
+            </div>
           </div>
 
           {/* Action Buttons */}
           <div className="space-y-2 pt-1">
             <button
               type="button"
-              onClick={handleTransferDone}
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(16,185,129,0.35)] transition-all cursor-pointer"
+              onClick={handleManualCheck}
+              disabled={isCheckingPayment}
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(16,185,129,0.35)] transition-all cursor-pointer disabled:opacity-60"
             >
-              <Check className="w-4 h-4 stroke-[3]" />
-              <span>Tôi Đã Chuyển Khoản Thành Công</span>
+              {isCheckingPayment ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Đang kiểm tra giao dịch qua SePay...</span>
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="w-4 h-4" />
+                  <span>Tôi Đã Chuyển Khoản (Kiểm Tra Ngay)</span>
+                </>
+              )}
             </button>
+
+            {/* Test Simulation Button (Dành cho Admin hoặc Kiểm chứng tính năng) */}
+            {user && (
+              <button
+                type="button"
+                onClick={handleSimulatePayment}
+                disabled={isSimulating}
+                className="w-full py-2.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/35 text-amber-300 font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm"
+              >
+                {isSimulating ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                )}
+                <span>[Thử Nghiệm] Giả Lập Thanh Toán Tự Động (Xem Nâng VIP Thật 100%)</span>
+              </button>
+            )}
 
             <a
               href={`https://zalo.me/${zaloNumber}?text=${encodeURIComponent(
-                `Chào Thầy Luận, em vừa chuyển khoản đăng ký gói VIP: ${transferSyntax} (${data.price.toLocaleString("vi-VN")}đ)`
+                `Chào Thầy Luận, em vừa chuyển khoản SePay gói VIP: ${transferSyntax} (${data.price.toLocaleString("vi-VN")}đ)`
               )}`}
               target="_blank"
               rel="noopener noreferrer"

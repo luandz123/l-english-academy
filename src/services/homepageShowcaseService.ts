@@ -151,7 +151,7 @@ export const DEFAULT_HOMEPAGE_CONFIG: HomepageShowcaseConfig = {
     bank_bin: "970422",
     bank_account: "0334729066",
     account_holder: "HOANG CONG LUAN",
-    transfer_syntax: "VIP [SĐT Của Bạn]",
+    transfer_syntax: "LEA [Mã Đơn Tự Động]",
     zalo_hotline: "0334729066",
   },
   testimonials: [
@@ -268,22 +268,89 @@ export function formatCategoryIconAndDesc(icon: string, description?: string): s
   return `${cleanIcon}:::${cleanDesc}`;
 }
 
+export interface CategoryCourseStats {
+  total: number;
+  active: number;
+}
+
 /**
- * Sinh link ảnh mã VietQR tự động theo cấu hình
+ * Thống kê số lượng khóa học (tổng số và số khóa đang bật) theo từng category_id.
+ * courses.category_id là nguồn sự thật duy nhất.
+ */
+export function getCategoryCourseStats(
+  courses: Array<{ category_id: number | null; is_active: boolean | null }>
+): Record<number, CategoryCourseStats> {
+  return courses.reduce<Record<number, CategoryCourseStats>>((acc, c) => {
+    if (c.category_id) {
+      if (!acc[c.category_id]) acc[c.category_id] = { total: 0, active: 0 };
+      acc[c.category_id].total++;
+      if (c.is_active) acc[c.category_id].active++;
+    }
+    return acc;
+  }, {});
+}
+
+/**
+ * Gom nhóm khóa học thuần theo category_id (nguồn sự thật duy nhất).
+ */
+export function groupCoursesByCategoryId<T extends { category_id: number | null }>(
+  categories: Array<{ id: number }>,
+  courses: T[]
+): Map<number, T[]> {
+  const map = new Map<number, T[]>();
+  for (const cat of categories) {
+    map.set(cat.id, []);
+  }
+  for (const course of courses) {
+    if (course.category_id && map.has(course.category_id)) {
+      map.get(course.category_id)!.push(course);
+    }
+  }
+  return map;
+}
+
+/**
+ * Sinh link ảnh mã VietQR tự động theo chuẩn Napas 24/7 (hoặc SePay QR)
  */
 export function generateVietQrUrl(
   bankBin: string,
   bankAccount: string,
   accountHolder: string,
   amount: number,
+  syntax: string,
+  template: "compact2" | "compact" | "qr_only" = "compact2"
+): string {
+  const bin = (bankBin || "970422").trim();
+  const acc = (bankAccount || "0334729066").replace(/\s+/g, "").trim();
+  const name = encodeURIComponent((accountHolder || "HOANG CONG LUAN").trim());
+  const amt = Math.round(Number(amount) || 1750000);
+  // Loại bỏ các ký tự đặc biệt có thể làm ứng dụng ngân hàng từ chối quét
+  const cleanSyntax = (syntax || "VIP LENGLISH").replace(/[^a-zA-Z0-9_\-\s]/g, "").trim();
+  const desc = encodeURIComponent(cleanSyntax);
+
+  // Link chính thức chuẩn VietQR NAPAS 24/7 (tương thích 100% tất cả app ngân hàng)
+  return `https://img.vietqr.io/image/${bin}-${acc}-${template}.png?amount=${amt}&addInfo=${desc}&accountName=${name}`;
+}
+
+/**
+ * Sinh link ảnh SePay QR (chuyên dụng cho cổng SePay Webhook)
+ * Tương thích 100% với toàn bộ App Ngân hàng Việt Nam (MB, VCB, BIDV, Techcombank...)
+ * Tự động điền: Ngân hàng, STK, Số tiền, và Nội dung chuyển khoản
+ */
+export function generateSepayQrUrl(
+  bankShortName: string,
+  bankAccount: string,
+  amount: number,
   syntax: string
 ): string {
-  const bin = bankBin || "970422";
-  const acc = bankAccount || "0334729066";
-  const name = encodeURIComponent(accountHolder || "HOANG CONG LUAN");
-  const amt = amount || 1750000;
-  const desc = encodeURIComponent(syntax || "VIP LENGLISH");
-  return `https://api.vietqr.io/image/${bin}-${acc}-qj9Rj0t.jpg?accountName=${name}&amount=${amt}&addInfo=${desc}`;
+  const bank = (bankShortName || "MBBank").replace(/\s+/g, "").trim();
+  const acc = (bankAccount || "0334729066").replace(/\s+/g, "").trim();
+  const amt = Math.round(Number(amount) || 1750000);
+  // Loại bỏ khoảng trắng và ký tự đặc biệt, chuẩn hóa viết hoa (ví dụ: LEA83921)
+  const cleanSyntax = (syntax || "LEAPRO").replace(/[^a-zA-Z0-9_\-]/g, "").trim().toUpperCase();
+  const desc = encodeURIComponent(cleanSyntax);
+
+  return `https://qr.sepay.vn/img?bank=${bank}&acc=${acc}&template=compact&amount=${amt}&des=${desc}`;
 }
 
 /**

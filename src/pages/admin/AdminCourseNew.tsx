@@ -46,28 +46,9 @@ const AdminCourseNew = () => {
   const update = (key: string, value: any) => setForm((f) => ({ ...f, [key]: value }));
 
   const handleCategorySelect = (catIdStr: string) => {
-    const cat = categories.find((c) => String(c.id) === catIdStr);
-    let inferredType = form.course_type;
-
-    if (cat) {
-      const slug = (cat.slug || "").toLowerCase();
-      if (slug.includes("fulltest") || slug.includes("thi-thu")) {
-        inferredType = "fulltest";
-      } else if (slug.includes("listening") || slug.includes("nghe") || slug.includes("chep")) {
-        inferredType = "listening";
-      } else if (slug.includes("vocab") || slug.includes("flashcard") || slug.includes("tu-vung")) {
-        inferredType = "flashcard";
-      } else if (slug.includes("speaking") || slug.includes("noi")) {
-        inferredType = "speaking";
-      } else {
-        inferredType = "video_quiz";
-      }
-    }
-
     setForm((f) => ({
       ...f,
       category_id: catIdStr,
-      course_type: inferredType,
     }));
   };
 
