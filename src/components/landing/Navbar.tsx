@@ -4,7 +4,6 @@ import { trackEvent } from "@/lib/analytics";
 import {
   Menu,
   Search,
-  BookOpen,
   Flame,
   Zap,
   LogOut,
@@ -13,8 +12,6 @@ import {
   GraduationCap,
   LayoutGrid,
   ChevronDown,
-  FileCheck2,
-  Headphones,
   ShieldCheck,
   ArrowRight,
   Sparkles,
@@ -23,13 +20,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import Logo from "@/components/Logo";
-import iconFulltest from "@/assets/icons/icon-fulltest-3d.webp";
-import iconDictation from "@/assets/icons/icon-dictation-3d.webp";
-import iconReflex from "@/assets/icons/icon-reflex.webp";
-import iconArcade from "@/assets/icons/icon-arcade-3d.webp";
-import iconVideo from "@/assets/icons/icon-video-3d.webp";
-import iconFlame from "@/assets/icons/icon-vip-crown-3d.webp";
-import iconGradcap from "@/assets/icons/icon-gradcap.webp";
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -142,14 +133,13 @@ const Navbar = ({ onOpenSidebar }: NavbarProps) => {
         </div>
 
         {/* Center Section: 5 Clean Nav Items Chuẩn Thực Tế */}
-        <nav className="hidden lg:flex items-center gap-1 xl:gap-1.5 font-medium">
+        <nav className="hidden lg:flex items-center gap-1 xl:gap-2 p-1 rounded-2xl bg-slate-900/40 border border-slate-800/80 backdrop-blur-md">
           {/* 1. Thi thử */}
           <a
             href="/#section-fulltest"
             onClick={(e) => handleNavClick(e, "section-fulltest", "thi_thu", "/fulltests")}
-            className="px-3 py-2 rounded-xl text-xs xl:text-sm font-bold text-slate-200 hover:text-emerald-400 hover:bg-emerald-500/10 border border-transparent hover:border-emerald-500/30 transition-all duration-150 flex items-center gap-1.5 whitespace-nowrap cursor-pointer select-none active:scale-95"
+            className="px-3.5 py-1.5 rounded-xl text-xs xl:text-[13px] font-bold text-slate-300 hover:text-emerald-300 hover:bg-emerald-500/10 border border-transparent hover:border-emerald-500/30 hover:shadow-[0_0_14px_rgba(16,185,129,0.2)] transition-all duration-200 whitespace-nowrap cursor-pointer select-none active:scale-95"
           >
-            <img src={iconFulltest} alt="" className="w-4 h-4 object-contain inline-block shrink-0" />
             <span>Phòng Thi Thử</span>
           </a>
 
@@ -157,9 +147,8 @@ const Navbar = ({ onOpenSidebar }: NavbarProps) => {
           <a
             href="/#section-listening"
             onClick={(e) => handleNavClick(e, "section-listening", "luyen_nghe", "/listening")}
-            className="px-3 py-2 rounded-xl text-xs xl:text-sm font-bold text-slate-200 hover:text-purple-400 hover:bg-purple-500/10 border border-transparent hover:border-purple-500/30 transition-all duration-150 flex items-center gap-1.5 whitespace-nowrap cursor-pointer select-none active:scale-95"
+            className="px-3.5 py-1.5 rounded-xl text-xs xl:text-[13px] font-bold text-slate-300 hover:text-purple-300 hover:bg-purple-500/10 border border-transparent hover:border-purple-500/30 hover:shadow-[0_0_14px_rgba(168,85,247,0.2)] transition-all duration-200 whitespace-nowrap cursor-pointer select-none active:scale-95"
           >
-            <img src={iconDictation} alt="" className="w-4 h-4 object-contain inline-block shrink-0" />
             <span>Luyện Nghe Từng Bước</span>
           </a>
 
@@ -167,9 +156,8 @@ const Navbar = ({ onOpenSidebar }: NavbarProps) => {
           <a
             href="/#section-video"
             onClick={(e) => handleNavClick(e, "section-video", "khoa_hoc", "/#section-video")}
-            className="px-3 py-2 rounded-xl text-xs xl:text-sm font-bold text-slate-200 hover:text-blue-400 hover:bg-blue-500/10 border border-transparent hover:border-blue-500/30 transition-all duration-150 flex items-center gap-1.5 whitespace-nowrap cursor-pointer select-none active:scale-95"
+            className="px-3.5 py-1.5 rounded-xl text-xs xl:text-[13px] font-bold text-slate-300 hover:text-sky-300 hover:bg-sky-500/10 border border-transparent hover:border-sky-500/30 hover:shadow-[0_0_14px_rgba(14,165,233,0.2)] transition-all duration-200 whitespace-nowrap cursor-pointer select-none active:scale-95"
           >
-            <img src={iconVideo} alt="" className="w-4 h-4 object-contain inline-block shrink-0" />
             <span>Nghe - Đọc 700+</span>
           </a>
 
@@ -177,9 +165,8 @@ const Navbar = ({ onOpenSidebar }: NavbarProps) => {
           <a
             href="/#section-games"
             onClick={(e) => handleNavClick(e, "section-games", "tro_choi", "/games")}
-            className="px-3 py-2 rounded-xl text-xs xl:text-sm font-bold text-slate-200 hover:text-cyan-400 hover:bg-cyan-500/10 border border-transparent hover:border-cyan-500/30 transition-all duration-150 flex items-center gap-1.5 whitespace-nowrap cursor-pointer select-none active:scale-95"
+            className="px-3.5 py-1.5 rounded-xl text-xs xl:text-[13px] font-bold text-slate-300 hover:text-cyan-300 hover:bg-cyan-500/10 border border-transparent hover:border-cyan-500/30 hover:shadow-[0_0_14px_rgba(6,182,212,0.2)] transition-all duration-200 whitespace-nowrap cursor-pointer select-none active:scale-95"
           >
-            <img src={iconArcade} alt="" className="w-4 h-4 object-contain inline-block shrink-0" />
             <span>Game Từ Vựng</span>
           </a>
 
@@ -187,9 +174,8 @@ const Navbar = ({ onOpenSidebar }: NavbarProps) => {
           <a
             href="/#combos"
             onClick={(e) => handleNavClick(e, "combos", "vip_combos", "/#combos")}
-            className="px-3.5 py-2 rounded-xl text-xs xl:text-sm font-black text-amber-300 hover:text-amber-200 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 hover:border-amber-400 transition-all duration-150 flex items-center gap-1.5 whitespace-nowrap shadow-[0_0_15px_rgba(245,158,11,0.2)] cursor-pointer select-none active:scale-95"
+            className="px-4 py-1.5 rounded-xl text-xs xl:text-[13px] font-black text-amber-300 hover:text-amber-100 bg-gradient-to-r from-amber-500/15 via-orange-500/15 to-amber-500/20 hover:from-amber-500/25 hover:via-orange-500/25 hover:to-amber-500/30 border border-amber-400/40 hover:border-amber-300 shadow-[0_0_16px_rgba(245,158,11,0.25)] hover:shadow-[0_0_24px_rgba(245,158,11,0.45)] transition-all duration-200 whitespace-nowrap cursor-pointer select-none active:scale-95"
           >
-            <img src={iconFlame} alt="" className="w-4 h-4 object-contain inline-block shrink-0 animate-pulse" />
             <span>Nâng Cấp VIP</span>
           </a>
         </nav>
@@ -201,13 +187,13 @@ const Navbar = ({ onOpenSidebar }: NavbarProps) => {
             onSubmit={handleSearchSubmit}
             className="relative w-36 lg:w-44 xl:w-52 hidden xl:block shrink"
           >
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 dark:text-zinc-500" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Tìm khóa học, đề..."
-              className="w-full pl-8 pr-2.5 py-1.5 rounded-full text-xs bg-slate-100 dark:bg-zinc-800/80 text-foreground border border-transparent focus:border-blue-500 focus:bg-white dark:focus:bg-zinc-900 outline-none transition-all placeholder:text-muted-foreground/70"
+              className="w-full pl-9 pr-3 py-1.5 rounded-full text-xs bg-slate-900/80 text-slate-100 border border-slate-800 focus:border-cyan-400/60 focus:bg-slate-900 focus:shadow-[0_0_12px_rgba(6,182,212,0.25)] outline-none transition-all placeholder:text-slate-400/80"
             />
           </form>
 
@@ -217,9 +203,8 @@ const Navbar = ({ onOpenSidebar }: NavbarProps) => {
               {/* NÚT VÀO BÀN HỌC - REDIRECT VÀO BÀN HỌC TỔNG QUAN (/dashboard) */}
               <Link
                 to="/dashboard"
-                className="flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold text-white bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-500 shadow-md shadow-blue-500/20 hover:shadow-blue-500/30 transition-all duration-200 transform hover:-translate-y-0.5 active:translate-y-0 shrink-0"
+                className="flex items-center justify-center px-4 py-1.5 rounded-full text-xs xl:text-sm font-extrabold text-white bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 hover:from-cyan-400 hover:via-blue-500 hover:to-indigo-500 shadow-[0_0_20px_rgba(6,182,212,0.35)] hover:shadow-[0_0_28px_rgba(6,182,212,0.55)] border border-cyan-400/30 hover:border-cyan-300/60 transition-all duration-200 transform hover:-translate-y-0.5 active:translate-y-0 shrink-0 select-none tracking-tight"
               >
-                <img src={iconGradcap} alt="" className="w-5 h-5 object-contain shrink-0 drop-shadow-xs" />
                 <span className="hidden sm:inline">Vào bàn học</span>
                 <span className="sm:hidden">Bàn học</span>
               </Link>
@@ -227,19 +212,19 @@ const Navbar = ({ onOpenSidebar }: NavbarProps) => {
               {/* User Dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="flex items-center gap-2 p-1 pl-1.5 pr-2.5 rounded-full border border-slate-200 dark:border-zinc-700 hover:border-blue-500 bg-white dark:bg-zinc-900 shadow-xs transition-colors cursor-pointer outline-none shrink-0">
+                  <button className="flex items-center gap-2 p-1 pl-1.5 pr-2.5 rounded-full border border-slate-700/60 hover:border-cyan-400/60 bg-slate-900/80 hover:bg-slate-800 text-slate-200 shadow-xs transition-all cursor-pointer outline-none shrink-0">
                     {profile?.avatar_url ? (
                       <img
                         src={profile.avatar_url}
                         alt={displayName}
-                        className="w-7 h-7 rounded-full object-cover border border-slate-200 dark:border-zinc-700"
+                        className="w-7 h-7 rounded-full object-cover border border-slate-700"
                       />
                     ) : (
-                      <div className="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">
+                      <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-cyan-600 to-blue-600 text-white flex items-center justify-center text-xs font-bold">
                         {initials}
                       </div>
                     )}
-                    <span className="text-xs font-bold text-foreground hidden xl:inline max-w-[100px] truncate">
+                    <span className="text-xs font-bold text-slate-200 hidden xl:inline max-w-[100px] truncate">
                       {displayName}
                     </span>
                   </button>
@@ -253,27 +238,6 @@ const Navbar = ({ onOpenSidebar }: NavbarProps) => {
                     <p className="text-xs text-muted-foreground truncate font-normal mt-0.5">{email}</p>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={() => navigate("/library")}
-                    className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold cursor-pointer text-blue-600 dark:text-blue-400"
-                  >
-                    <BookOpen className="w-4 h-4" />
-                    <span>Kho khóa học của tôi</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => navigate("/fulltests")}
-                    className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium cursor-pointer"
-                  >
-                    <FileCheck2 className="w-4 h-4 text-emerald-600" />
-                    <span>Phòng thi Full Test ETS</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => navigate("/listening")}
-                    className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium cursor-pointer"
-                  >
-                    <Headphones className="w-4 h-4 text-purple-600" />
-                    <span>Nghe chép chính tả</span>
-                  </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => navigate("/profile")}
                     className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium cursor-pointer"
@@ -353,19 +317,16 @@ const Navbar = ({ onOpenSidebar }: NavbarProps) => {
                 <p className="text-xs font-bold uppercase text-cyan-400/80 tracking-wider mb-2">
                   5 Chuyên Mục Luyện Thi
                 </p>
-                <div className="space-y-1">
+                <div className="space-y-1.5">
                   <a
                     href="/#section-fulltest"
                     onClick={(e) => {
                       setMobileMenuOpen(false);
                       handleNavClick(e, "section-fulltest", "thi_thu", "/fulltests");
                     }}
-                    className="flex items-center justify-between px-3 py-2.5 rounded-xl font-bold text-xs text-slate-200 hover:bg-emerald-500/10 hover:text-emerald-400 transition-colors"
+                    className="flex items-center justify-between px-3.5 py-2.5 rounded-xl font-bold text-xs text-slate-200 hover:bg-emerald-500/10 hover:text-emerald-400 border border-transparent hover:border-emerald-500/20 transition-all"
                   >
-                    <div className="flex items-center gap-3">
-                      <img src={iconFulltest} alt="" className="w-5 h-5 object-contain" />
-                      <span>Phòng Thi Thử (Format ETS)</span>
-                    </div>
+                    <span>Phòng Thi Thử (Format ETS)</span>
                     <ArrowRight className="w-3.5 h-3.5 text-slate-500" />
                   </a>
 
@@ -375,12 +336,9 @@ const Navbar = ({ onOpenSidebar }: NavbarProps) => {
                       setMobileMenuOpen(false);
                       handleNavClick(e, "section-listening", "luyen_nghe", "/listening");
                     }}
-                    className="flex items-center justify-between px-3 py-2.5 rounded-xl font-bold text-xs text-slate-200 hover:bg-purple-500/10 hover:text-purple-400 transition-colors"
+                    className="flex items-center justify-between px-3.5 py-2.5 rounded-xl font-bold text-xs text-slate-200 hover:bg-purple-500/10 hover:text-purple-400 border border-transparent hover:border-purple-500/20 transition-all"
                   >
-                    <div className="flex items-center gap-3">
-                      <img src={iconDictation} alt="" className="w-5 h-5 object-contain" />
-                      <span>Luyện Nghe Từng Bước</span>
-                    </div>
+                    <span>Luyện Nghe Từng Bước</span>
                     <ArrowRight className="w-3.5 h-3.5 text-slate-500" />
                   </a>
 
@@ -390,12 +348,9 @@ const Navbar = ({ onOpenSidebar }: NavbarProps) => {
                       setMobileMenuOpen(false);
                       handleNavClick(e, "section-video", "khoa_hoc", "/#section-video");
                     }}
-                    className="flex items-center justify-between px-3 py-2.5 rounded-xl font-bold text-xs text-slate-200 hover:bg-blue-500/10 hover:text-blue-400 transition-colors"
+                    className="flex items-center justify-between px-3.5 py-2.5 rounded-xl font-bold text-xs text-slate-200 hover:bg-sky-500/10 hover:text-sky-400 border border-transparent hover:border-sky-500/20 transition-all"
                   >
-                    <div className="flex items-center gap-3">
-                      <img src={iconVideo} alt="" className="w-5 h-5 object-contain" />
-                      <span>Nghe - Đọc 700+</span>
-                    </div>
+                    <span>Nghe - Đọc 700+</span>
                     <ArrowRight className="w-3.5 h-3.5 text-slate-500" />
                   </a>
 
@@ -405,12 +360,9 @@ const Navbar = ({ onOpenSidebar }: NavbarProps) => {
                       setMobileMenuOpen(false);
                       handleNavClick(e, "section-games", "tro_choi", "/games");
                     }}
-                    className="flex items-center justify-between px-3 py-2.5 rounded-xl font-bold text-xs text-slate-200 hover:bg-cyan-500/10 hover:text-cyan-400 transition-colors"
+                    className="flex items-center justify-between px-3.5 py-2.5 rounded-xl font-bold text-xs text-slate-200 hover:bg-cyan-500/10 hover:text-cyan-400 border border-transparent hover:border-cyan-500/20 transition-all"
                   >
-                    <div className="flex items-center gap-3">
-                      <img src={iconArcade} alt="" className="w-5 h-5 object-contain" />
-                      <span>Game Từ Vựng (Arcade)</span>
-                    </div>
+                    <span>Game Từ Vựng (Arcade)</span>
                     <ArrowRight className="w-3.5 h-3.5 text-slate-500" />
                   </a>
 
@@ -420,12 +372,9 @@ const Navbar = ({ onOpenSidebar }: NavbarProps) => {
                       setMobileMenuOpen(false);
                       handleNavClick(e, "combos", "vip_combos", "/#combos");
                     }}
-                    className="flex items-center justify-between px-3 py-2.5 rounded-xl font-bold text-xs text-amber-300 hover:bg-amber-500/15 transition-colors"
+                    className="flex items-center justify-between px-3.5 py-2.5 rounded-xl font-bold text-xs text-amber-300 bg-amber-500/10 hover:bg-amber-500/15 border border-amber-500/30 transition-all"
                   >
-                    <div className="flex items-center gap-3">
-                      <img src={iconFlame} alt="" className="w-5 h-5 object-contain" />
-                      <span>Nâng Cấp VIP (Tiết Kiệm 50%)</span>
-                    </div>
+                    <span>Nâng Cấp VIP (Tiết Kiệm 50%)</span>
                     <ArrowRight className="w-3.5 h-3.5 text-amber-400" />
                   </a>
                 </div>
@@ -440,9 +389,8 @@ const Navbar = ({ onOpenSidebar }: NavbarProps) => {
                 <Link
                   to="/dashboard"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-xs text-white bg-gradient-to-r from-blue-600 to-indigo-600 shadow-sm"
+                  className="w-full flex items-center justify-center py-2.5 rounded-xl font-extrabold text-xs text-white bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 shadow-[0_0_15px_rgba(6,182,212,0.3)] transition-all"
                 >
-                  <img src={iconGradcap} alt="" className="w-5 h-5 object-contain" />
                   <span>Vào Bàn Học (Tổng Quan)</span>
                 </Link>
 

@@ -31,6 +31,8 @@ import {
   GraduationCap,
   Timer,
   TrendingUp,
+  Camera,
+  Upload,
 } from "lucide-react";
 import {
   Dialog,
@@ -536,7 +538,122 @@ const Profile = () => {
   }, [allSubmissions, submissionTab]);
 
   // =========================================================================
-  // 6. PROFILE UPDATE ACTION (Edit Modal)
+  // 6. XỬ LÝ TẢI ẢNH TRỰC TIẾP TỪ MÁY TÍNH (AVATAR & COVER)
+  // =========================================================================
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [isUploadingCover, setIsUploadingCover] = useState(false);
+
+  // Helper đọc và lưu file ảnh (Ưu tiên Supabase storage bucket 'materials', fallback Base64)
+  const processImageFile = async (file: File, folder: "avatars" | "covers"): Promise<string> => {
+    if (!file.type.startsWith("image/")) {
+      throw new Error("Vui lòng chọn tệp hình ảnh hợp lệ (PNG, JPG, WebP, GIF...)");
+    }
+    if (file.size > 15 * 1024 * 1024) {
+      throw new Error("Dung lượng ảnh tối đa là 15MB");
+    }
+
+    const fileExt = file.name.split(".").pop() || "jpg";
+    const fileName = `${user?.id || "user"}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
+    const filePath = `profiles/${folder}/${fileName}`;
+
+    // 1. Thử tải lên Supabase storage
+    try {
+      const { error: uploadError } = await supabase.storage
+        .from("materials")
+        .upload(filePath, file, { upsert: true, contentType: file.type });
+
+      if (!uploadError) {
+        const { data } = supabase.storage.from("materials").getPublicUrl(filePath);
+        if (data?.publicUrl) {
+          return data.publicUrl;
+        }
+      }
+    } catch (err) {
+      console.warn("Storage upload error, fallback to data url:", err);
+    }
+
+    // 2. Fallback Base64 Data URL (luôn thành công 100% trên mọi máy tính)
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => reject(new Error("Không thể đọc tệp ảnh từ máy tính"));
+      reader.readAsDataURL(file);
+    });
+  };
+
+  // Upload ảnh đại diện trực tiếp từ máy tính
+  const handleDirectAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    setIsUploadingAvatar(true);
+
+    try {
+      const newUrl = await processImageFile(file, "avatars");
+
+      await supabase
+        .from("profiles")
+        .update({ avatar_url: newUrl })
+        .eq("user_id", user.id);
+
+      await supabase.auth.updateUser({
+        data: { avatar_url: newUrl },
+      });
+
+      setEditAvatarUrl(newUrl);
+      await queryClient.invalidateQueries();
+
+      toast({
+        title: "Tải ảnh đại diện thành công! 🎉",
+        description: "Ảnh đại diện mới đã được cập nhật từ máy tính.",
+      });
+    } catch (err: any) {
+      toast({
+        title: "Tải ảnh thất bại",
+        description: err.message || "Không thể tải ảnh từ máy tính lên.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploadingAvatar(false);
+      e.target.value = "";
+    }
+  };
+
+  // Upload ảnh bìa trực tiếp từ máy tính
+  const handleDirectCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    setIsUploadingCover(true);
+
+    try {
+      const newUrl = await processImageFile(file, "covers");
+
+      await supabase.auth.updateUser({
+        data: { cover_url: newUrl },
+      });
+
+      localStorage.setItem(coverStorageKey, newUrl);
+      setCoverUrl(newUrl);
+      setEditCoverUrl(newUrl);
+      await queryClient.invalidateQueries();
+
+      toast({
+        title: "Tải ảnh bìa thành công! 🎉",
+        description: "Ảnh bìa mới đã được cập nhật từ máy tính.",
+      });
+    } catch (err: any) {
+      toast({
+        title: "Tải ảnh bìa thất bại",
+        description: err.message || "Không thể tải ảnh từ máy tính lên.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploadingCover(false);
+      e.target.value = "";
+    }
+  };
+
+  // =========================================================================
+  // 7. PROFILE UPDATE ACTION (Edit Modal)
   // =========================================================================
   const handleSaveProfile = async () => {
     if (!user) return;
@@ -608,54 +725,74 @@ const Profile = () => {
 
   return (
     <StudentLayout>
-      <div className="max-w-6xl mx-auto space-y-6 pb-24 px-2 sm:px-4">
+      <div className="max-w-6xl mx-auto pb-24 px-2 sm:px-4">
         {/* ================================================================ */}
-        {/* 1. COVER BANNER (ẢNH NỀN PROFILE)                                */}
+        {/* 1. COVER BANNER (ẢNH BÌA PROFILE NẰM PHÍA SAU AVATAR)             */}
         {/* ================================================================ */}
-        <div className="relative w-full h-44 sm:h-56 md:h-64 rounded-2xl overflow-hidden border border-border/70 shadow-sm group">
+        <div className="relative w-full h-56 sm:h-64 md:h-72 rounded-3xl overflow-hidden border border-border/70 shadow-md group">
           <img
             src={coverUrl}
             alt="Profile Cover"
             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/30 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/25 to-transparent" />
 
-          <button
-            onClick={() => {
-              setEditFullName(displayName);
-              setEditAvatarUrl(profile?.avatar_url || "");
-              setEditCoverUrl(coverUrl);
-              setEditBio(bio);
-              setIsEditOpen(true);
-            }}
-            className="absolute top-4 right-4 bg-slate-900/75 hover:bg-slate-900 text-white backdrop-blur-md px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 border border-white/20 shadow-md transition-all cursor-pointer"
-          >
-            <ImageIcon className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Thay đổi ảnh bìa</span>
-          </button>
+          {/* Cụm nút thay đổi ảnh bìa: Cho phép tải trực tiếp từ máy tính hoặc chọn mẫu */}
+          <div className="absolute top-4 right-4 flex items-center gap-2 z-20">
+            <label className="bg-slate-900/80 hover:bg-slate-900 text-white backdrop-blur-md px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 border border-white/20 shadow-md transition-all cursor-pointer select-none">
+              {isUploadingCover ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-cyan-400" />
+              ) : (
+                <Camera className="w-3.5 h-3.5 text-cyan-400" />
+              )}
+              <span className="hidden sm:inline">Thay đổi ảnh bìa</span>
+              <span className="sm:hidden">Đổi bìa</span>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleDirectCoverUpload}
+                className="hidden"
+                disabled={isUploadingCover}
+              />
+            </label>
+            <button
+              onClick={() => {
+                setEditFullName(displayName);
+                setEditAvatarUrl(profile?.avatar_url || "");
+                setEditCoverUrl(coverUrl);
+                setEditBio(bio);
+                setIsEditOpen(true);
+              }}
+              className="bg-slate-900/60 hover:bg-slate-900 text-slate-200 backdrop-blur-md p-1.5 rounded-xl text-xs border border-white/10 shadow-md transition-all cursor-pointer"
+              title="Bộ sưu tập ảnh mẫu"
+            >
+              <ImageIcon className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {/* ================================================================ */}
-        {/* 2. MAIN 2-COLUMN LAYOUT (LEETCODE ARCHITECTURE)                  */}
+        {/* 2. MAIN 2-COLUMN LAYOUT (AVATAR NẰM ĐÈ LÊN ẢNH BÌA)              */}
         {/* ================================================================ */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start -mt-16 sm:-mt-20 relative z-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start relative z-10 -mt-20 sm:-mt-24">
           {/* -------------------------------------------------------------- */}
           {/* CỘT TRÁI (LEFT SIDEBAR): THÔNG TIN HỌC VIÊN & CHỈ SỐ THỰC TẾ   */}
           {/* -------------------------------------------------------------- */}
           <div className="lg:col-span-4 space-y-5">
             {/* USER CARD */}
-            <div className="bg-card rounded-2xl border border-border/80 p-5 shadow-sm space-y-5">
+            <div className="bg-card rounded-3xl border border-border/80 p-5 pt-0 shadow-xl space-y-5">
               {/* Avatar + Basic Meta */}
               <div className="flex flex-col items-center text-center">
-                <div className="relative -mt-14 mb-3">
+                {/* AVATAR: NẰM ĐÈ LÊN ẢNH BÌA, ẢNH BÌA Ở PHÍA SAU AVATAR */}
+                <div className="relative -mt-16 sm:-mt-20 mb-3 group/avatar">
                   {profile?.avatar_url ? (
                     <img
                       src={profile.avatar_url}
                       alt={displayName}
-                      className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl object-cover border-4 border-card shadow-xl ring-2 ring-blue-500/20"
+                      className="w-28 h-28 sm:w-32 sm:h-32 rounded-3xl object-cover border-4 border-card shadow-2xl ring-4 ring-black/40"
                     />
                   ) : (
-                    <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-cyan-500 text-white flex items-center justify-center text-3xl font-black border-4 border-card shadow-xl">
+                    <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-3xl bg-gradient-to-br from-blue-600 via-indigo-600 to-cyan-500 text-white flex items-center justify-center text-3xl font-black border-4 border-card shadow-2xl">
                       {initials}
                     </div>
                   )}
@@ -663,10 +800,32 @@ const Profile = () => {
                   {/* Level Badge icon */}
                   <div
                     title={`Cấp độ: ${levelInfo.title}`}
-                    className="absolute -bottom-1 -right-1 w-8 h-8 rounded-xl bg-amber-500 text-amber-950 flex items-center justify-center font-black text-xs border-2 border-card shadow-md"
+                    className="absolute -bottom-1 -right-1 w-8 h-8 rounded-xl bg-amber-500 text-amber-950 flex items-center justify-center font-black text-xs border-2 border-card shadow-md z-10"
                   >
                     {levelInfo.level}
                   </div>
+
+                  {/* Nút bấm tải ảnh đại diện trực tiếp từ máy tính */}
+                  <label
+                    title="Nhấn để tải ảnh đại diện từ máy tính"
+                    className="absolute inset-0 rounded-3xl bg-black/60 opacity-0 group-hover/avatar:opacity-100 flex flex-col items-center justify-center text-white transition-all duration-200 cursor-pointer backdrop-blur-xs select-none"
+                  >
+                    {isUploadingAvatar ? (
+                      <Loader2 className="w-6 h-6 animate-spin text-cyan-400" />
+                    ) : (
+                      <>
+                        <Camera className="w-6 h-6 mb-1 text-cyan-300" />
+                        <span className="text-[10px] font-bold">Đổi ảnh</span>
+                      </>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleDirectAvatarUpload}
+                      className="hidden"
+                      disabled={isUploadingAvatar}
+                    />
+                  </label>
                 </div>
 
                 <div className="space-y-1 w-full">
@@ -856,7 +1015,7 @@ const Profile = () => {
           {/* -------------------------------------------------------------- */}
           {/* CỘT PHẢI (RIGHT MAIN): TIẾN ĐỘ + HUY HIỆU + HEATMAP + LỊCH SỬ  */}
           {/* -------------------------------------------------------------- */}
-          <div className="lg:col-span-8 space-y-6">
+          <div className="lg:col-span-8 space-y-6 pt-20 sm:pt-24 lg:pt-24">
             {/* ROW 1: SOLVED CIRCULAR GAUGE + BADGES (2-BENTO GRID) */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
               {/* BENTO 1: VÒNG TRÒN SOLVED QUESTIONS (LeetCode Solved Style) */}
@@ -1217,7 +1376,30 @@ const Profile = () => {
           <div className="space-y-5 py-2">
             {/* 1. COVER PHOTO SELECTION */}
             <div className="space-y-2">
-              <Label className="text-xs font-bold text-foreground">Ảnh bìa cá nhân (Cover Banner)</Label>
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-bold text-foreground">Ảnh bìa cá nhân (Cover Banner)</Label>
+                <label className="text-[11px] font-bold text-cyan-400 hover:text-cyan-300 flex items-center gap-1.5 cursor-pointer bg-cyan-500/10 hover:bg-cyan-500/20 px-2.5 py-1 rounded-lg border border-cyan-500/30 transition-all select-none">
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>Tải ảnh từ máy tính</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      try {
+                        const url = await processImageFile(file, "covers");
+                        setEditCoverUrl(url);
+                        toast({ title: "Đã chọn ảnh bìa từ máy tính!", description: "Nhớ bấm 'Lưu thay đổi' để áp dụng." });
+                      } catch (err: any) {
+                        toast({ title: "Lỗi tải ảnh", description: err.message, variant: "destructive" });
+                      }
+                      e.target.value = "";
+                    }}
+                    className="hidden"
+                  />
+                </label>
+              </div>
               <div className="w-full h-24 rounded-xl overflow-hidden border border-border relative">
                 <img
                   src={editCoverUrl || PRESET_COVERS[0].url}
@@ -1257,7 +1439,30 @@ const Profile = () => {
 
             {/* 2. AVATAR SELECTION */}
             <div className="space-y-2">
-              <Label className="text-xs font-bold text-foreground">Ảnh đại diện (Avatar)</Label>
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-bold text-foreground">Ảnh đại diện (Avatar)</Label>
+                <label className="text-[11px] font-bold text-cyan-400 hover:text-cyan-300 flex items-center gap-1.5 cursor-pointer bg-cyan-500/10 hover:bg-cyan-500/20 px-2.5 py-1 rounded-lg border border-cyan-500/30 transition-all select-none">
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>Tải ảnh từ máy tính</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      try {
+                        const url = await processImageFile(file, "avatars");
+                        setEditAvatarUrl(url);
+                        toast({ title: "Đã chọn ảnh đại diện từ máy tính!", description: "Nhớ bấm 'Lưu thay đổi' để áp dụng." });
+                      } catch (err: any) {
+                        toast({ title: "Lỗi tải ảnh", description: err.message, variant: "destructive" });
+                      }
+                      e.target.value = "";
+                    }}
+                    className="hidden"
+                  />
+                </label>
+              </div>
               <div className="flex items-center gap-3">
                 {editAvatarUrl ? (
                   <img
