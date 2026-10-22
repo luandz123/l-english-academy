@@ -115,6 +115,11 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
   const displayName = profile?.full_name || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Học viên";
   const initials = displayName.charAt(0).toUpperCase();
   const email = user?.email || "";
+  const avatarUrl =
+    profile?.avatar_url ||
+    (user?.user_metadata?.avatar_url as string) ||
+    (user?.user_metadata?.picture as string) ||
+    null;
 
   const handleSignOut = async () => {
     await signOut();
@@ -190,8 +195,8 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
         {/* User preview */}
         {!isCollapsed ? (
           <div className="p-3 mx-3 my-3 rounded-xl bg-[#030712]/70 border border-slate-800/80 flex items-center gap-3">
-            {profile?.avatar_url ? (
-              <img src={profile.avatar_url} alt={displayName} className="w-10 h-10 rounded-full object-cover border border-cyan-500/30" />
+            {avatarUrl ? (
+              <img src={avatarUrl} alt={displayName} className="w-10 h-10 rounded-full object-cover border border-cyan-500/30" />
             ) : (
               <div className="w-10 h-10 rounded-full bg-cyan-500/15 text-cyan-400 font-bold text-sm flex items-center justify-center border border-cyan-500/30">
                 {initials}
@@ -204,8 +209,8 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
           </div>
         ) : (
           <div className="py-4 flex justify-center">
-            {profile?.avatar_url ? (
-              <img src={profile.avatar_url} alt={displayName} className="w-10 h-10 rounded-full object-cover border border-cyan-500/30" title={`${displayName} (${email})`} />
+            {avatarUrl ? (
+              <img src={avatarUrl} alt={displayName} className="w-10 h-10 rounded-full object-cover border border-cyan-500/30" title={`${displayName} (${email})`} />
             ) : (
               <div className="w-10 h-10 rounded-full bg-cyan-500/15 text-cyan-400 font-bold text-sm flex items-center justify-center border border-cyan-500/30" title={`${displayName} (${email})`}>
                 {initials}
@@ -459,8 +464,8 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-2 p-1 rounded-full hover:ring-2 hover:ring-primary/20 transition-all outline-none cursor-pointer">
-                  {profile?.avatar_url ? (
-                    <img src={profile.avatar_url} alt={displayName} className="w-8 h-8 rounded-full object-cover border border-slate-700" />
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt={displayName} className="w-8 h-8 rounded-full object-cover border border-slate-700" />
                   ) : (
                     <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground font-semibold text-xs flex items-center justify-center shadow-sm">
                       {initials}

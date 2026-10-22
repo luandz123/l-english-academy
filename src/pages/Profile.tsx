@@ -172,6 +172,11 @@ const Profile = () => {
 
   const displayName = profile?.full_name || user?.user_metadata?.full_name || "Học viên L-English";
   const initials = displayName.charAt(0).toUpperCase();
+  const userAvatar =
+    profile?.avatar_url ||
+    (user?.user_metadata?.avatar_url as string) ||
+    (user?.user_metadata?.picture as string) ||
+    null;
 
   // =========================================================================
   // 1. SYSTEM DATABASE STATS (Kho dữ liệu thật từ bảng questions & full_tests)
@@ -785,9 +790,9 @@ const Profile = () => {
               <div className="flex flex-col items-center text-center">
                 {/* AVATAR: NẰM ĐÈ LÊN ẢNH BÌA, ẢNH BÌA Ở PHÍA SAU AVATAR */}
                 <div className="relative -mt-16 sm:-mt-20 mb-3 group/avatar">
-                  {profile?.avatar_url ? (
+                  {userAvatar ? (
                     <img
-                      src={profile.avatar_url}
+                      src={userAvatar}
                       alt={displayName}
                       className="w-28 h-28 sm:w-32 sm:h-32 rounded-3xl object-cover border-4 border-card shadow-2xl ring-4 ring-black/40"
                     />

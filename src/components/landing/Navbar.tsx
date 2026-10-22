@@ -111,6 +111,11 @@ const Navbar = ({ onOpenSidebar }: NavbarProps) => {
     "Học viên";
   const initials = displayName.charAt(0).toUpperCase();
   const email = user?.email || "";
+  const userAvatar =
+    profile?.avatar_url ||
+    (user?.user_metadata?.avatar_url as string) ||
+    (user?.user_metadata?.picture as string) ||
+    null;
 
   return (
     <header className="sticky top-0 z-40 bg-[#070e1c]/85 backdrop-blur-xl border-b border-cyan-500/20 shadow-[0_4px_30px_rgba(0,0,0,0.7)] relative before:absolute before:top-0 before:left-0 before:right-0 before:h-[1px] before:bg-gradient-to-r before:from-transparent before:via-cyan-500/50 before:to-transparent">
@@ -213,9 +218,9 @@ const Navbar = ({ onOpenSidebar }: NavbarProps) => {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="flex items-center gap-2 p-1 pl-1.5 pr-2.5 rounded-full border border-slate-700/60 hover:border-cyan-400/60 bg-slate-900/80 hover:bg-slate-800 text-slate-200 shadow-xs transition-all cursor-pointer outline-none shrink-0">
-                    {profile?.avatar_url ? (
+                    {userAvatar ? (
                       <img
-                        src={profile.avatar_url}
+                        src={userAvatar}
                         alt={displayName}
                         className="w-7 h-7 rounded-full object-cover border border-slate-700"
                       />

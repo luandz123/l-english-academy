@@ -149,8 +149,15 @@ const PageLoader = () => (
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: 1,
-      staleTime: 1000 * 60 * 5, // 5 minutes
+      retry: (failureCount, error: any) => {
+        // Tự động retry khi gặp lỗi 401 để bộ interceptor kịp hoàn tất làm mới session token
+        if (error?.status === 401 || error?.code === "PGRST301") {
+          return failureCount < 2;
+        }
+        return failureCount < 1;
+      },
+      staleTime: 1000 * 60 * 5, // 5 phút cache
+      refetchOnWindowFocus: false, // Tránh bắn dồn dập hàng loạt query khi chuyển tab; focus handler chủ động lo refresh session
     },
   },
 });
