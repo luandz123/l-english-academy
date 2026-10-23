@@ -178,12 +178,12 @@ const AdminCourseDetail = () => {
       const userIds = [...new Set(data.map(d => d.user_id))];
       const { data: profiles } = await supabase
         .from("profiles")
-        .select("id, full_name")
-        .in("id", userIds);
+        .select("user_id, full_name")
+        .in("user_id", userIds);
 
       return data.map(d => ({
         ...d,
-        profiles: profiles?.find(p => p.id === d.user_id) || null
+        profiles: profiles?.find(p => p.user_id === d.user_id) || null
       }));
     },
   });

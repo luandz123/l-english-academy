@@ -140,6 +140,7 @@ const AdminFullTestManager = () => {
       });
       resetForm();
       queryClient.invalidateQueries({ queryKey: ["admin-fulltests"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-course-fulltests"] });
     },
     onError: (err: any) => {
       toast({
@@ -173,6 +174,7 @@ const AdminFullTestManager = () => {
     onSuccess: () => {
       toast({ title: "Đã xóa đề thi thành công" });
       queryClient.invalidateQueries({ queryKey: ["admin-fulltests"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-course-fulltests"] });
     },
     onError: (err: any) => {
       toast({ title: "Lỗi", description: err.message, variant: "destructive" });
@@ -203,6 +205,7 @@ const AdminFullTestManager = () => {
       toast({ title: "Đã xóa các đề thi thành công" });
       setSelectedTestIds([]);
       queryClient.invalidateQueries({ queryKey: ["admin-fulltests"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-course-fulltests"] });
     },
     onError: (err: any) => {
       toast({ title: "Lỗi xóa nhiều đề thi", description: err.message, variant: "destructive" });

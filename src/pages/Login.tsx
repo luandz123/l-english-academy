@@ -66,7 +66,7 @@ export const Login = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data: authData, error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) {
       setShakeError(true);
@@ -74,7 +74,21 @@ export const Login = () => {
       toast({ title: "Đăng nhập không thành công", description: getFriendlyErrorMessage(error), variant: "destructive" });
     } else {
       toast({ title: "Đăng nhập thành công!", description: "Chào mừng bạn quay lại L-English." });
-      const destination = getDestination(safeFrom, isAdmin);
+      let userIsAdmin = isAdmin;
+      if (authData?.user) {
+        try {
+          const { data: roleData } = await supabase
+            .from("user_roles")
+            .select("role")
+            .eq("user_id", authData.user.id)
+            .eq("role", "admin")
+            .maybeSingle();
+          if (roleData) {
+            userIsAdmin = true;
+          }
+        } catch {}
+      }
+      const destination = getDestination(safeFrom, userIsAdmin);
       navigate(destination, { replace: true });
     }
   };

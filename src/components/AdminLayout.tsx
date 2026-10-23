@@ -105,7 +105,14 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
         {/* Navigation */}
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
-            const active = location.pathname.startsWith(item.to);
+            const hasQuery = item.to.includes("?");
+            const [basePath, searchPart] = hasQuery ? item.to.split("?") : [item.to, ""];
+            const active = hasQuery
+              ? location.pathname === basePath && location.search.includes(searchPart)
+              : item.to === "/admin/settings"
+              ? location.pathname === "/admin/settings" && !location.search.includes("tab=payment")
+              : location.pathname.startsWith(item.to);
+
             return (
               <Link
                 key={item.to}

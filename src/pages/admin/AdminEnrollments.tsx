@@ -79,7 +79,7 @@ const AdminEnrollments = () => {
       const { data: profiles } = await supabase
         .from("profiles")
         .select("id, user_id, full_name")
-        .in("id", userIds);
+        .in("user_id", userIds);
 
       return enrollmentsData.map((e: any) => {
         const now = new Date();

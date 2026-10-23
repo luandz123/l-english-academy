@@ -257,15 +257,16 @@ const AdminBackup: React.FC = () => {
     try {
       const { data: profiles, error } = await supabase
         .from("profiles")
-        .select("user_id, full_name, avatar_url, updated_at")
+        .select("user_id, full_name, email, avatar_url, updated_at")
         .order("updated_at", { ascending: false });
 
       if (error) throw error;
 
-      const headers = ["ID Học Viên (UUID)", "Họ và Tên", "Ảnh đại diện", "Cập nhật lần cuối"];
-      const rows = (profiles || []).map((p) => [
+      const headers = ["ID Học Viên (UUID)", "Họ và Tên", "Email", "Ảnh đại diện", "Cập nhật lần cuối"];
+      const rows = (profiles || []).map((p: any) => [
         `"${p.user_id || ""}"`,
         `"${(p.full_name || "").replace(/"/g, '""')}"`,
+        `"${p.email || ""}"`,
         `"${p.avatar_url || ""}"`,
         `"${p.updated_at || ""}"`,
       ]);

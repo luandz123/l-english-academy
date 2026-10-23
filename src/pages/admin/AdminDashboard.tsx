@@ -47,12 +47,12 @@ const AdminDashboard = () => {
       const userIds = [...new Set(data.map(d => d.user_id))];
       const { data: profiles } = await supabase
         .from("profiles")
-        .select("id, full_name")
-        .in("id", userIds);
+        .select("user_id, full_name")
+        .in("user_id", userIds);
         
       return data.map(d => ({
         ...d,
-        profiles: profiles?.find(p => p.id === d.user_id) || null
+        profiles: profiles?.find(p => p.user_id === d.user_id) || null
       }));
     },
   });
@@ -71,12 +71,12 @@ const AdminDashboard = () => {
       const userIds = [...new Set(data.map(d => d.user_id))];
       const { data: profiles } = await supabase
         .from("profiles")
-        .select("id, full_name")
-        .in("id", userIds);
+        .select("user_id, full_name")
+        .in("user_id", userIds);
         
       return data.map(d => ({
         ...d,
-        profiles: profiles?.find(p => p.id === d.user_id) || null
+        profiles: profiles?.find(p => p.user_id === d.user_id) || null
       }));
     },
   });
@@ -158,7 +158,7 @@ const AdminDashboard = () => {
               <BarChart data={partScores}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="quiz" stroke="hsl(var(--muted-foreground))" fontSize={11} />
-                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} domain={[0, 10]} />
+                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} domain={[0, (dataMax: number) => Math.max(10, Math.ceil(dataMax))]} />
                 <Tooltip />
                 <Bar dataKey="score" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} name="Điểm TB" />
               </BarChart>

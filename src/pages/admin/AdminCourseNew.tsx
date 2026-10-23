@@ -8,13 +8,14 @@ import { Switch } from "@/components/ui/switch";
 import { useNavigate, Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Upload, Plus, Layers, ArrowLeft } from "lucide-react";
 
 const AdminCourseNew = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [isUploading, setIsUploading] = useState(false);
   const [form, setForm] = useState({
     title: "",
@@ -96,6 +97,8 @@ const AdminCourseNew = () => {
       if (error) throw error;
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-courses"] });
+      queryClient.invalidateQueries({ queryKey: ["homepage-active-courses"] });
       toast({ title: "Đã tạo khóa học thành công" });
       navigate("/admin/courses");
     },

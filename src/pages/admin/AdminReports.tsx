@@ -39,9 +39,18 @@ const AdminReports = () => {
       const { data: questions } = await supabase.from("questions").select("id, question_text").in("id", qIds);
       const qTextMap: Record<number, string> = {};
       (questions ?? []).forEach((q) => { qTextMap[q.id] = q.question_text; });
-      return sorted.map((s) => ({ ...s, text: qTextMap[s.id]?.substring(0, 50) ?? `Q#${s.id}` }));
+      return sorted.map((s) => {
+        let rawText = qTextMap[s.id] ?? "";
+        rawText = rawText.replace(/\[PASSAGE\][\s\S]*?\[ENDPASSAGE\]/gi, "").trim();
+        return {
+          ...s,
+          text: rawText ? rawText.substring(0, 70) : `Câu hỏi #${s.id}`,
+        };
+      });
     },
   });
+
+  const totalEnrollments = courseStats.reduce((sum: number, c: any) => sum + (c.value || 0), 0);
 
   return (
     <AdminLayout>
@@ -62,15 +71,27 @@ const AdminReports = () => {
             {loadingCourses ? <Skeleton className="h-64 w-full rounded-2xl" /> : (
               <div className="bg-card rounded-2xl border border-border/70 p-6 shadow-soft-sm">
                 <h3 className="font-bold text-foreground mb-4 text-base">Phân bố học viên theo khóa</h3>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie data={courseStats} cx="50%" cy="50%" outerRadius={100} dataKey="value"
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
-                      {courseStats.map((_: any, i: number) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
+                {totalEnrollments === 0 ? (
+                  <div className="text-center py-16 text-muted-foreground font-semibold text-sm">
+                    Chưa có học viên nào ghi danh khóa học trên hệ thống.
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie 
+                        data={courseStats.filter((c: any) => c.value > 0)} 
+                        cx="50%" 
+                        cy="50%" 
+                        outerRadius={100} 
+                        dataKey="value"
+                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      >
+                        {courseStats.map((_: any, i: number) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                )}
               </div>
             )}
           </TabsContent>

@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, CheckCircle, Loader2 } from "lucide-react";
@@ -22,6 +22,7 @@ type LogLine = { type: "info" | "ok" | "warn" | "error"; text: string };
 
 const AdminCourseJsonImport = () => {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [courseId, setCourseId] = useState("");
@@ -271,6 +272,8 @@ const AdminCourseJsonImport = () => {
       }
 
       log("ok", `🎉 Import hoàn tất! ${exams.length} bài thi đã được tạo trong module "${partTitle}".`);
+      queryClient.invalidateQueries({ queryKey: ["admin-course-modules", cid] });
+      queryClient.invalidateQueries({ queryKey: ["admin-courses"] });
       setDone(true);
       toast({ title: "Import thành công!" });
     } catch (err: any) {

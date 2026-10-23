@@ -70,6 +70,18 @@ export default function AdminLessonVocab({ lessonId, lessonTitle, questionId }: 
     enabled: !!selectedLessonId
   });
 
+  const { data: allQuestions } = useQuery({
+    queryKey: ["all-questions-for-vocab", quiz?.id],
+    queryFn: async () => {
+      if (!quiz?.id) return [];
+      const { data: lesson } = await supabase.from("lessons").select("quiz_id").eq("id", lessonId).single();
+      if (!lesson?.quiz_id) return [];
+      const { data } = await supabase.from("questions").select("id, question_text, display_order").eq("quiz_id", lesson.quiz_id).order("display_order");
+      return data || [];
+    },
+    enabled: !!quiz?.id && !questionId
+  });
+
   const getOrCreateQuiz = async () => {
     if (quiz) return quiz;
     const { data, error } = await supabase.from("vocab_quizzes").insert({
@@ -263,19 +275,6 @@ export default function AdminLessonVocab({ lessonId, lessonTitle, questionId }: 
     }
   });
 
-  const { data: allQuestions } = useQuery({
-    queryKey: ["all-questions-for-vocab", quiz?.id],
-    queryFn: async () => {
-      if (!quiz?.id) return [];
-      // Need to find the quiz (the real one, not vocab_quiz) to get its questions
-      const { data: lesson } = await supabase.from("lessons").select("quiz_id").eq("id", lessonId).single();
-      if (!lesson?.quiz_id) return [];
-      const { data } = await supabase.from("questions").select("id, question_text, display_order").eq("quiz_id", lesson.quiz_id).order("display_order");
-      return data || [];
-    },
-    enabled: !!quiz?.id && !questionId
-  });
-
   const updateWordQuestion = useMutation({
     mutationFn: async ({ id, question_id }: { id: number, question_id: number | null }) => {
       const { error } = await supabase.from("vocab_questions").update({ question_id }).eq("id", id);
@@ -319,7 +318,8 @@ export default function AdminLessonVocab({ lessonId, lessonTitle, questionId }: 
     if (!words || words.length === 0) return toast({ title: "Không có dữ liệu để export" });
     const header = ["Word", "Definition", "Phonetic", "Audio URL", "Example Sentence", "Question #"].join(",");
     const rows = words.map(w => {
-      const qNum = w.question_id ? (allQuestions?.find(q => q.id === w.question_id)?.display_order + 1 || "") : "";
+      const match = w.question_id && allQuestions ? allQuestions.find(q => q.id === w.question_id) : null;
+      const qNum = match && match.display_order != null ? String(match.display_order + 1) : "";
       return [
         `"${w.word}"`,
         `"${w.definition_vi}"`,

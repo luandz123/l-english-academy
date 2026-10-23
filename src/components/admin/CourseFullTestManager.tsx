@@ -196,6 +196,7 @@ export const CourseFullTestManager = ({ courseId, courseTitle }: CourseFullTestM
       resetForm();
       setIsCreateOpen(false);
       queryClient.invalidateQueries({ queryKey: ["admin-course-fulltests", courseId] });
+      queryClient.invalidateQueries({ queryKey: ["admin-fulltests"] });
     },
     onError: (err: any) => {
       toast({
@@ -265,6 +266,7 @@ export const CourseFullTestManager = ({ courseId, courseTitle }: CourseFullTestM
     onSuccess: () => {
       toast({ title: "Đã xóa đề thi thành công" });
       queryClient.invalidateQueries({ queryKey: ["admin-course-fulltests", courseId] });
+      queryClient.invalidateQueries({ queryKey: ["admin-fulltests"] });
     },
     onError: (err: any) => {
       toast({ title: "Lỗi xóa đề thi", description: err.message, variant: "destructive" });
