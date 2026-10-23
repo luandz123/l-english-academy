@@ -126,6 +126,7 @@ const AdminGamesConfig = lazyWithRetry(() => import("./pages/admin/AdminGamesCon
 const WordShooterGame = lazyWithRetry(() => import("./pages/WordShooterGame"));
 const WordDefenseGame = lazyWithRetry(() => import("./pages/WordDefenseGame"));
 const GamesHub = lazyWithRetry(() => import("./pages/GamesHub"));
+const SpeakingRoomsPage = lazyWithRetry(() => import("./pages/SpeakingRoomsPage"));
 
 
 const PageLoader = () => (
@@ -231,6 +232,8 @@ const App = () => {
                 <Route path="/games/word-defense" element={<WordDefenseGame />} />
                 <Route path="/word-defense" element={<Navigate to="/games/word-defense" replace />} />
                 <Route path="/game" element={<Navigate to="/games" replace />} />
+                <Route path="/speaking" element={<ProtectedRoute><SpeakingRoomsPage /></ProtectedRoute>} />
+                <Route path="/speaking-rooms" element={<Navigate to="/speaking" replace />} />
 
                 {/* Admin (role-protected) */}
                 <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />

@@ -71,6 +71,10 @@ const Navbar = ({ onOpenSidebar }: NavbarProps) => {
         navigate("/games");
         return;
       }
+      if (q.includes("nói") || q.includes("speak") || q.includes("voice") || q.includes("thoại")) {
+        navigate("/speaking");
+        return;
+      }
       const el = document.getElementById("section-video") || document.getElementById("combos");
       if (el) {
         el.scrollIntoView({ behavior: "smooth" });
@@ -358,6 +362,15 @@ const Navbar = ({ onOpenSidebar }: NavbarProps) => {
                     <span>Nghe - Đọc 700+</span>
                     <ArrowRight className="w-3.5 h-3.5 text-slate-500" />
                   </a>
+
+                  <Link
+                    to="/speaking"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center justify-between px-3.5 py-2.5 rounded-xl font-bold text-xs text-emerald-300 hover:bg-emerald-500/10 border border-transparent hover:border-emerald-500/20 transition-all"
+                  >
+                    <span>Phòng Luyện Nói (Speaking Voice)</span>
+                    <ArrowRight className="w-3.5 h-3.5 text-emerald-400" />
+                  </Link>
 
                   <a
                     href="/#section-games"

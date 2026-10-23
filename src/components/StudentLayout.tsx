@@ -19,7 +19,8 @@ import {
   PanelLeftOpen,
   Home,
   Crown,
-  ArrowRight
+  ArrowRight,
+  Mic2
 } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
@@ -44,6 +45,7 @@ import GamificationChips from "@/components/GamificationChips";
 
 const primaryNavItems = [
   { to: "/dashboard", label: "Bàn học", icon: LayoutDashboard },
+  { to: "/speaking", label: "Phòng Luyện Nói", icon: Mic2 },
   { to: "/library", label: "Kho khóa học", icon: BookOpen },
   { to: "/my-courses", label: "Khóa học của tôi", icon: GraduationCap },
   { to: "/fulltests", label: "Luyện đề", icon: FileCheck2 },
