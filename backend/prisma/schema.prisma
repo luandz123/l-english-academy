@@ -1,0 +1,506 @@
+// Schema baseline: introspect từ DB Supabase production (2026-10-25), làm sạch:
+// - Model PascalCase số ít, field camelCase; @map/@@map giữ nguyên tên bảng/cột cũ.
+// - auth.users (Supabase) thay bằng bảng users riêng (ADR 0002). Hàm handle_new_user → AuthService.
+// - Trigger update_updated_at_column (profiles, user_notes) → @updatedAt.
+// - CHECK constraints không biểu diễn được trong Prisma: thêm tay trong migration baseline.
+// - vocab_questions.question_id, vocab_quizzes.lesson_id: BigInt → Int (cùng kiểu với khóa được tham chiếu).
+
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "cjs"
+  importFileExtension = ""
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// Thay cho auth.users của Supabase. Dữ liệu tài khoản cũ không chuyển (DECISIONS D-05).
+model User {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email           String    @unique
+  passwordHash    String?   @map("password_hash")
+  googleId        String?   @unique @map("google_id")
+  emailVerifiedAt DateTime? @map("email_verified_at") @db.Timestamptz(6)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  profile           Profile?
+  roles             UserRole[]
+  enrollments       Enrollment[]
+  paymentOrders     PaymentOrder[]
+  lessonProgress    UserLessonProgress[]
+  notes             UserNote[]
+  favorites         UserFavorite[]
+  quizResults       UserQuizResult[]
+  fullTestResults   UserFullTestResult[]
+  adminActivityLogs AdminActivityLog[]
+  adminNotesWritten AdminStudentNote[]   @relation("AdminStudentNoteAdmin")
+  adminNotesAboutMe AdminStudentNote[]   @relation("AdminStudentNoteStudent")
+
+  @@map("users")
+}
+
+model AdminActivityLog {
+  id         Int       @id @default(autoincrement())
+  adminId    String?   @map("admin_id") @db.Uuid
+  action     String
+  entityType String?   @map("entity_type")
+  entityId   String?   @map("entity_id")
+  details    Json?
+  createdAt  DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+  admin      User?     @relation(fields: [adminId], references: [id], onUpdate: NoAction)
+
+  @@map("admin_activity_log")
+}
+
+model AdminStudentNote {
+  id        Int       @id @default(autoincrement())
+  adminId   String    @map("admin_id") @db.Uuid
+  studentId String    @map("student_id") @db.Uuid
+  content   String
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+  admin     User      @relation("AdminStudentNoteAdmin", fields: [adminId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  student   User      @relation("AdminStudentNoteStudent", fields: [studentId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("admin_student_notes")
+}
+
+model Answer {
+  id                    Int                    @id @default(autoincrement())
+  questionId            Int?                   @map("question_id")
+  answerText            String?                @map("answer_text")
+  isCorrect             Boolean?               @default(false) @map("is_correct")
+  explanation           String?
+  displayOrder          Int                    @default(0) @map("display_order")
+  question              Question?              @relation(fields: [questionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  fullTestAnswerDetails FullTestAnswerDetail[]
+  userAnswers           UserAnswer[]
+
+  @@index([questionId], map: "idx_answers_question_id")
+  @@map("answers")
+}
+
+model CourseCategory {
+  id           BigInt    @id @default(autoincrement())
+  name         String
+  slug         String    @unique
+  icon         String?
+  displayOrder Int?      @default(0) @map("display_order")
+  isActive     Boolean?  @default(true) @map("is_active")
+  createdAt    DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+  courses      Course[]
+
+  @@map("course_categories")
+}
+
+model Course {
+  id              Int             @id @default(autoincrement())
+  title           String
+  subtitle        String?
+  description     String?
+  courseType      String          @map("course_type")
+  price           Int?            @default(0)
+  durationMonths  Int?            @default(6) @map("duration_months")
+  thumbnailUrl    String?         @map("thumbnail_url")
+  instructor      String?         @default("Cô Mai Phương")
+  isActive        Boolean?        @default(true) @map("is_active")
+  displayOrder    Int?            @default(0) @map("display_order")
+  createdAt       DateTime?       @default(now()) @map("created_at") @db.Timestamptz(6)
+  isFree          Boolean?        @default(false) @map("is_free")
+  categoryId      BigInt?         @map("category_id")
+  courseCategory  CourseCategory? @relation(fields: [categoryId], references: [id], onUpdate: NoAction)
+  enrollments     Enrollment[]
+  fullTests       FullTest[]
+  materials       Material[]
+  modules         Module[]
+  vocabCategories VocabCategory[]
+
+  @@map("courses")
+}
+
+model Enrollment {
+  id         Int       @id @default(autoincrement())
+  userId     String    @map("user_id") @db.Uuid
+  courseId   Int       @map("course_id")
+  enrolledAt DateTime? @default(now()) @map("enrolled_at") @db.Timestamptz(6)
+  expiresAt  DateTime? @map("expires_at") @db.Timestamptz(6)
+  course     Course    @relation(fields: [courseId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([userId, courseId])
+  @@index([userId, courseId], map: "idx_enrollments_user_course")
+  @@map("enrollments")
+}
+
+model FullTestAnswerDetail {
+  id                 Int                @id @default(autoincrement())
+  resultId           Int                @map("result_id")
+  questionId         Int                @map("question_id")
+  selectedAnswerId   Int?               @map("selected_answer_id")
+  isCorrect          Boolean?           @default(false) @map("is_correct")
+  partNumber         Int?               @map("part_number")
+  question           Question           @relation(fields: [questionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  userFullTestResult UserFullTestResult @relation(fields: [resultId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  answer             Answer?            @relation(fields: [selectedAnswerId], references: [id], onUpdate: NoAction)
+
+  @@map("full_test_answer_details")
+}
+
+model FullTestSection {
+  id         Int       @id @default(autoincrement())
+  testId     Int?      @map("test_id")
+  partNumber Int       @map("part_number")
+  quizId     Int?      @map("quiz_id")
+  quiz       Quiz?     @relation(fields: [quizId], references: [id], onUpdate: NoAction)
+  fullTest   FullTest? @relation(fields: [testId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("full_test_sections")
+}
+
+model FullTest {
+  id                  Int                  @id @default(autoincrement())
+  courseId            Int?                 @map("course_id")
+  category            String               @default("general")
+  title               String
+  totalQuestions      Int?                 @default(200) @map("total_questions")
+  releaseDate         DateTime?            @map("release_date") @db.Timestamptz(6)
+  displayOrder        Int                  @default(0) @map("display_order")
+  createdAt           DateTime?            @default(now()) @map("created_at") @db.Timestamptz(6)
+  audioUrl            String?              @map("audio_url")
+  description         String?
+  totalAttempts       Int?                 @default(10) @map("total_attempts")
+  fullTestSections    FullTestSection[]
+  course              Course?              @relation(fields: [courseId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  userFullTestResults UserFullTestResult[]
+
+  @@map("full_tests")
+}
+
+model LessonPractice {
+  id               Int       @id @default(autoincrement())
+  lessonId         Int       @map("lesson_id")
+  quizId           Int?      @map("quiz_id")
+  triggerAtSeconds Int       @default(0) @map("trigger_at_seconds")
+  title            String?   @default("")
+  displayOrder     Int       @default(0) @map("display_order")
+  createdAt        DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+  lesson           Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  quiz             Quiz?     @relation(fields: [quizId], references: [id], onUpdate: NoAction)
+
+  @@map("lesson_practices")
+}
+
+model Lesson {
+  id                 Int                  @id @default(autoincrement())
+  moduleId           Int?                 @map("module_id")
+  title              String
+  videoUrl           String?              @map("video_url")
+  durationSeconds    Int?                 @default(0) @map("duration_seconds")
+  displayOrder       Int                  @default(0) @map("display_order")
+  isLive             Boolean?             @default(false) @map("is_live")
+  liveTime           DateTime?            @map("live_time") @db.Timestamptz(6)
+  lessonType         String               @default("video") @map("lesson_type")
+  quizId             Int?                 @map("quiz_id")
+  pdfUrl             String?              @map("pdf_url")
+  isFree             Boolean?             @default(false) @map("is_free")
+  isPublished        Boolean              @default(true) @map("is_published")
+  lessonPractices    LessonPractice[]
+  module             Module?              @relation(fields: [moduleId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  quiz               Quiz?                @relation(fields: [quizId], references: [id], onUpdate: NoAction)
+  materials          Material[]
+  userFavorites      UserFavorite[]
+  userLessonProgress UserLessonProgress[]
+  userNotes          UserNote[]
+  vocabQuizzes       VocabQuiz[]
+
+  @@index([quizId], map: "idx_lessons_quiz_id")
+  @@map("lessons")
+}
+
+model Material {
+  id           Int       @id @default(autoincrement())
+  lessonId     Int?      @map("lesson_id")
+  quizId       Int?      @map("quiz_id")
+  courseId     Int?      @map("course_id")
+  title        String
+  fileUrl      String    @map("file_url")
+  fileType     String?   @default("pdf") @map("file_type")
+  displayOrder Int       @default(0) @map("display_order")
+  createdAt    DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+  folderPath   String?   @default("/") @map("folder_path")
+  course       Course?   @relation(fields: [courseId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  lesson       Lesson?   @relation(fields: [lessonId], references: [id], onUpdate: NoAction)
+  quiz         Quiz?     @relation(fields: [quizId], references: [id], onUpdate: NoAction)
+
+  @@index([folderPath], map: "idx_materials_folder_path")
+  @@map("materials")
+}
+
+model Module {
+  id           Int      @id @default(autoincrement())
+  courseId     Int?     @map("course_id")
+  title        String
+  description  String?
+  displayOrder Int      @default(0) @map("display_order")
+  isFree       Boolean? @default(false) @map("is_free")
+  isPublished  Boolean  @default(true) @map("is_published")
+  lessons      Lesson[]
+  course       Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  quizzes      Quiz[]
+
+  @@map("modules")
+}
+
+model PaymentOrder {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orderCode          String    @unique @map("order_code")
+  userId             String    @map("user_id") @db.Uuid
+  amount             Decimal   @db.Decimal
+  planType           String?   @default("vip_combo") @map("plan_type")
+  status             String?   @default("pending")
+  paymentGateway     String?   @default("vietqr_sepay") @map("payment_gateway")
+  bankTransactionId  String?   @map("bank_transaction_id")
+  transactionContent String?   @map("transaction_content")
+  paidAt             DateTime? @map("paid_at") @db.Timestamptz(6)
+  metadata           Json?     @default("{}")
+  createdAt          DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime? @default(now()) @map("updated_at") @db.Timestamptz(6)
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([orderCode], map: "idx_payment_orders_order_code")
+  @@index([status], map: "idx_payment_orders_status")
+  @@index([userId], map: "idx_payment_orders_user_id")
+  @@map("payment_orders")
+}
+
+model PlatformSetting {
+  key       String    @id
+  value     String
+  updatedAt DateTime? @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  @@map("platform_settings")
+}
+
+model Profile {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String    @unique @map("user_id") @db.Uuid
+  fullName       String?   @map("full_name")
+  avatarUrl      String?   @map("avatar_url")
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  email          String?
+  isPro          Boolean?  @default(false) @map("is_pro")
+  proPlan        String?   @default("free") @map("pro_plan")
+  proActivatedAt DateTime? @map("pro_activated_at") @db.Timestamptz(6)
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("profiles")
+}
+
+model Question {
+  id                    Int                    @id @default(autoincrement())
+  quizId                Int?                   @map("quiz_id")
+  questionText          String?                @map("question_text")
+  questionType          String?                @default("multiple_choice") @map("question_type")
+  imageUrl              String?                @map("image_url")
+  audioUrl              String?                @map("audio_url")
+  displayOrder          Int                    @default(0) @map("display_order")
+  translation           String?
+  dictationKeywords     String?                @map("dictation_keywords")
+  explanation           String?
+  transcript            String?
+  knowledgeTag          String?                @map("knowledge_tag")
+  passageText           String?                @map("passage_text")
+  groupId               String?                @map("group_id")
+  answers               Answer[]
+  fullTestAnswerDetails FullTestAnswerDetail[]
+  quiz                  Quiz?                  @relation(fields: [quizId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  userAnswers           UserAnswer[]
+  vocabQuestions        VocabQuestion[]
+
+  @@index([quizId], map: "idx_questions_quiz_id")
+  @@map("questions")
+}
+
+model Quiz {
+  id               Int               @id @default(autoincrement())
+  moduleId         Int?              @map("module_id")
+  title            String
+  totalQuestions   Int               @default(0) @map("total_questions")
+  timeLimitSeconds Int?              @default(0) @map("time_limit_seconds")
+  displayOrder     Int               @default(0) @map("display_order")
+  audioUrl         String?           @map("audio_url")
+  isFree           Boolean?          @default(false) @map("is_free")
+  fullTestSections FullTestSection[]
+  lessonPractices  LessonPractice[]
+  lessons          Lesson[]
+  materials        Material[]
+  questions        Question[]
+  module           Module?           @relation(fields: [moduleId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  userQuizResults  UserQuizResult[]
+
+  @@map("quizzes")
+}
+
+model UserAnswer {
+  id               Int            @id @default(autoincrement())
+  resultId         Int            @map("result_id")
+  questionId       Int            @map("question_id")
+  selectedAnswerId Int?           @map("selected_answer_id")
+  isCorrect        Boolean?       @map("is_correct")
+  question         Question       @relation(fields: [questionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  userQuizResult   UserQuizResult @relation(fields: [resultId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  answer           Answer?        @relation(fields: [selectedAnswerId], references: [id], onUpdate: NoAction)
+
+  @@index([questionId], map: "idx_user_answers_question_id")
+  @@index([resultId], map: "idx_user_answers_result_id")
+  @@map("user_answers")
+}
+
+model UserFavorite {
+  id        Int       @id @default(autoincrement())
+  userId    String    @map("user_id") @db.Uuid
+  lessonId  Int       @map("lesson_id")
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+  lesson    Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([userId, lessonId])
+  @@map("user_favorites")
+}
+
+model UserFullTestResult {
+  id                    Int                    @id @default(autoincrement())
+  userId                String                 @map("user_id") @db.Uuid
+  testId                Int                    @map("test_id")
+  totalScore            Int?                   @map("total_score")
+  listeningScore        Int?                   @map("listening_score")
+  readingScore          Int?                   @map("reading_score")
+  correctAnswers        Int?                   @map("correct_answers")
+  timeSpentSeconds      Int?                   @map("time_spent_seconds")
+  completedAt           DateTime?              @default(now()) @map("completed_at") @db.Timestamptz(6)
+  totalQuestions        Int?                   @default(200) @map("total_questions")
+  listeningCorrect      Int?                   @default(0) @map("listening_correct")
+  readingCorrect        Int?                   @default(0) @map("reading_correct")
+  pauseCount            Int?                   @default(0) @map("pause_count")
+  testMode              String?                @default("exam") @map("test_mode")
+  answersDetail         Json?                  @map("answers_detail")
+  fullTestAnswerDetails FullTestAnswerDetail[]
+  fullTest              FullTest               @relation(fields: [testId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("user_full_test_results")
+}
+
+model UserLessonProgress {
+  id                   Int       @id @default(autoincrement())
+  userId               String    @map("user_id") @db.Uuid
+  lessonId             Int       @map("lesson_id")
+  isCompleted          Boolean?  @default(false) @map("is_completed")
+  lastWatchedAt        DateTime? @default(now()) @map("last_watched_at") @db.Timestamptz(6)
+  watchDurationSeconds Int?      @default(0) @map("watch_duration_seconds")
+  lesson               Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([userId, lessonId])
+  @@map("user_lesson_progress")
+}
+
+model UserNote {
+  id        Int       @id @default(autoincrement())
+  userId    String    @map("user_id") @db.Uuid
+  lessonId  Int       @map("lesson_id")
+  content   String
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  lesson    Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("user_notes")
+}
+
+model UserQuizResult {
+  id               Int          @id @default(autoincrement())
+  userId           String       @map("user_id") @db.Uuid
+  quizId           Int          @map("quiz_id")
+  score            Decimal?     @db.Decimal(5, 2)
+  correctAnswers   Int?         @map("correct_answers")
+  totalQuestions   Int?         @map("total_questions")
+  timeSpentSeconds Int?         @map("time_spent_seconds")
+  completedAt      DateTime?    @default(now()) @map("completed_at") @db.Timestamptz(6)
+  userAnswers      UserAnswer[]
+  quiz             Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([completedAt(sort: Desc)], map: "idx_user_quiz_results_completed")
+  @@index([userId, quizId], map: "idx_user_quiz_results_user_quiz")
+  @@map("user_quiz_results")
+}
+
+model UserRole {
+  id     String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId String  @map("user_id") @db.Uuid
+  role   AppRole @default(student)
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([userId, role])
+  @@map("user_roles")
+}
+
+model VocabCategory {
+  id           Int         @id @default(autoincrement())
+  courseId     Int?        @map("course_id")
+  title        String
+  displayOrder Int         @default(0) @map("display_order")
+  course       Course?     @relation(fields: [courseId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  vocabQuizzes VocabQuiz[]
+
+  @@map("vocab_categories")
+}
+
+model VocabQuestion {
+  id              Int        @id @default(autoincrement())
+  vocabQuizId     Int?       @map("vocab_quiz_id")
+  word            String
+  phonetic        String?
+  definitionEn    String?    @map("definition_en")
+  definitionVi    String?    @map("definition_vi")
+  exampleSentence String?    @map("example_sentence")
+  imageUrl        String?    @map("image_url")
+  audioMaleUrl    String?    @map("audio_male_url")
+  audioFemaleUrl  String?    @map("audio_female_url")
+  wrongAnswer1    String?    @map("wrong_answer_1")
+  wrongAnswer2    String?    @map("wrong_answer_2")
+  wrongAnswer3    String?    @map("wrong_answer_3")
+  displayOrder    Int        @default(0) @map("display_order")
+  questionId      Int?       @map("question_id")
+  question        Question?  @relation(fields: [questionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  vocabQuiz       VocabQuiz? @relation(fields: [vocabQuizId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([questionId], map: "idx_vocab_questions_question")
+  @@index([vocabQuizId], map: "idx_vocab_questions_quiz")
+  @@map("vocab_questions")
+}
+
+model VocabQuiz {
+  id             Int             @id @default(autoincrement())
+  categoryId     Int?            @map("category_id")
+  title          String
+  totalQuestions Int             @default(0) @map("total_questions")
+  displayOrder   Int             @default(0) @map("display_order")
+  lessonId       Int?            @map("lesson_id")
+  vocabQuestions VocabQuestion[]
+  vocabCategory  VocabCategory?  @relation(fields: [categoryId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  lesson         Lesson?         @relation(fields: [lessonId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("vocab_quizzes")
+}
+
+enum AppRole {
+  admin
+  student
+
+  @@map("app_role")
+}

@@ -56,7 +56,7 @@
 | ID | Quyết định | Lý do | Nếu chọn khác |
 |---|---|---|---|
 | C-01 | **Không chạy strangler trên production.** Làm toàn bộ trên `refactor/nestjs-backend`; `main` (Supabase) tiếp tục là bản live; cutover một lần khi lõi đạt parity. Rollback = trỏ lại `main`. | Auth tự làm khiến module chưa chuyển gọi Supabase bị RLS chặn (`auth.uid()` = null). Chưa có người dùng thật nên không cần chạy song song. | Giữ strangler thật → làm Auth cuối, NestJS tạm verify JWT Supabase; đi ngược thứ tự HLD. |
-| C-02 | DB production: **Neon free, Singapore**. Fallback: Supabase làm Postgres thuần nếu DB > ~0,4GB. Claude sẽ đo kích thước khi lập kế hoạch. | Managed, có branching, restore 6h; Postgres free của Render hết hạn sau 30 ngày; Supabase free tạm dừng sau 1 tuần không hoạt động và không có backup. | Postgres trên VPS → tự lo backup/nâng cấp. |
+| C-02 | DB production: **Neon free, Singapore**. ✅ Xác nhận: DB 62 MB ≪ 0,5 GB. Fallback: Supabase làm Postgres thuần nếu DB > ~0,4GB. Claude sẽ đo kích thước khi lập kế hoạch. | Managed, có branching, restore 6h; Postgres free của Render hết hạn sau 30 ngày; Supabase free tạm dừng sau 1 tuần không hoạt động và không có backup. | Postgres trên VPS → tự lo backup/nâng cấp. |
 | C-03 | Email prod: **Gmail SMTP + App Password** (~500 email/ngày). Khi có domain chuyển sang Resend SMTP bằng `.env`. | Resend không có domain chỉ gửi được tới email chủ tài khoản. | Dùng domain hiện có → Resend được ngay. |
 | C-04 | Xác nhận email khi đăng ký: **coi như đang bật**. | Code hỗ trợ cả hai chế độ; không xác định được từ repo. | Kiểm tra dashboard Supabase → Authentication → Providers → Email → "Confirm email" rồi sửa. |
 | C-05 | **Speaking: giữ WebRTC mesh**, thay kênh signaling Supabase Broadcast (`src/hooks/useVoiceRoom.ts:334`) bằng **Socket.IO gateway chỉ làm relay** (chuyển tiếp offer/answer/ICE theo phòng). Nhánh LiveKit vẫn giữ, tự bật khi có key. Trạng thái phòng (`postgres_changes` ở `SpeakingRoomsPage.tsx:102`) cũng qua Socket.IO. Làm cuối giai đoạn 1. | Chưa có `LIVEKIT_API_KEY` → **production đang chạy mesh**, bỏ mesh là đổi hành vi. Frontend đã có sẵn logic WebRTC, chỉ thay kênh vận chuyển nên khối lượng nhỏ (trước đây tôi ước lượng quá cao). Vì vậy HLD "bỏ mesh, LiveKit 100%" chuyển sang Phase 2. | Đăng ký LiveKit Cloud free, dùng 100% SFU → nâng chất lượng nhưng là thay đổi hành vi. |
@@ -67,6 +67,12 @@
 ## 3. Việc cần làm NGAY (ngoài refactor, trên bản live `main`)
 
 1. **Webhook SePay đang ở chế độ xác thực "None".** `api/payment-webhook.ts:69` chỉ kiểm tra token khi có biến `SEPAY_WEBHOOK_API_KEY`/`PAYMENT_WEBHOOK_SECRET`, mà hiện chưa cấu hình → ai biết URL có thể gửi request giả để tự nâng PRO. Cách sửa không cần code: tạo key ngẫu nhiên → SePay webhook bước Bảo mật chọn **API Key** → đặt cùng giá trị vào `SEPAY_WEBHOOK_API_KEY` trên Vercel (Production) → redeploy → thử 1 đơn nhỏ. Chủ dự án làm (đã nhận hướng dẫn 2026-10-25).
+2. **Học viên tự bật PRO được bằng DevTools.** Policy `Users update own profile` trên `profiles` là `UPDATE USING (auth.uid() = user_id)` không giới hạn cột → người dùng đăng nhập có thể `update({ is_pro: true })` cho chính mình. Sửa nhanh trên Supabase (cần chủ dự án duyệt, Claude không tự chạy trên production): trigger chặn đổi `is_pro`/`pro_plan`/`pro_activated_at` khi người gọi không phải `service_role`/admin.
+3. **Hàm `complete_payment_order` có 3 lỗi** (đọc định nghĩa trên DB thật):
+   - `anon` và `authenticated` đều có quyền `EXECUTE` (SECURITY DEFINER) → ai cũng gọi được qua `supabase.rpc`.
+   - Không tìm thấy mã đơn → lấy **đơn pending mới nhất của bất kỳ ai**; chấp nhận chuyển **≥ 5.000đ** dù giá gói cao hơn.
+   - Bước ghi danh lọc `courses.is_published` — **cột này không tồn tại** → hàm luôn lỗi và rollback. Hệ quả: hiện tại **không đơn nào kích hoạt được** (4 đơn đều `pending`), đồng thời lỗ hổng ở trên tạm thời không khai thác được qua hàm này.
+   - Đề xuất: không vá hàm trên production (vá cột sẽ mở lại lỗ hổng); nếu cần nhận tiền trước cutover thì vá đồng thời cả 3 điểm. Backend mới (P4) viết lại đúng: khớp mã đơn chính xác, số tiền ≥ giá, chỉ webhook đã xác thực được gọi. Chi tiết: OPEN_QUESTIONS #9–#10.
 
 ---
 
@@ -77,8 +83,8 @@
 | O-01 | SSE trạng thái đơn thanh toán đi qua rewrite của Vercel có ổn định không (timeout, buffering). Phương án dự phòng: SSE kết nối thẳng onrender.com bằng vé ngắn hạn, hoặc polling. Hành vi cũ là Supabase Realtime (`UpgradeProModal.tsx:163`). | Khi làm module Payments, có thử nghiệm thật. |
 | O-02 | Vercel Hobby chỉ cho phép phi thương mại; thu tiền là thương mại. Khi có doanh thu: chuyển frontend sang Cloudflare Pages hoặc Vercel Pro. | Trước khi có doanh thu. |
 | O-03 | Pháp lý (Nghị định 13/2023, thuế cá nhân kinh doanh online, trang Điều khoản/Chính sách). Chủ dự án hoãn vì chưa có người dùng và doanh thu. | Trước khi mở bán cho người dùng thật. |
-| O-04 | HLD ghi 31 bảng, PROGRESS ghi backup 27 bảng. Cần đối chiếu với DB thật trước khi viết schema Prisma. | Phiên đầu tiên. |
-| O-05 | Kích thước DB và media hiện tại (quyết định C-02 và hạn mức R2). | Khi lập kế hoạch. |
+| O-04 | ✅ **Đã đóng (2026-10-25, đo trên DB thật)**: 28 bảng trong `public`, 61 policy RLS, 4 hàm (`complete_payment_order`, `handle_new_user`, `has_role`, `update_updated_at_column`). HLD (31 bảng / 31 policy) và PROGRESS (27 bảng) đều lệch. | — |
+| O-05 | ✅ **Đã đóng**: DB 62 MB (lớn nhất `questions` 22 MB, `answers` 22 MB); storage chỉ có bucket `materials` (public) 18 MB / 13 file. Đa số URL media trong DB trỏ ra ngoài Supabase Storage — cần kiểm khi viết script copy media (P7). | — |
 | O-06 | Domain hiện có: nếu dùng (`app.`/`api.`) thì C-03 và D-12 đơn giản hơn. | Bất cứ lúc nào. |
 
 ---

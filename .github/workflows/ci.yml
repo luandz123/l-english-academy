@@ -27,8 +27,63 @@ jobs:
         run: npm run lint
         continue-on-error: true
 
+      # 40 lỗi type có sẵn từ code cũ (chủ yếu kiểu Supabase), sẽ hết khi gỡ Supabase.
+      # Bật chặn khi về 0 — theo dõi trong docs/PROGRESS.md.
+      - name: Typecheck (non-blocking)
+        run: npm run typecheck
+        continue-on-error: true
+
       - name: Unit tests
         run: npm run test
 
       - name: Build
         run: npm run build
+
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies (chạy prisma generate qua postinstall)
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test
+
+      - name: E2E tests (Postgres thật qua Testcontainers)
+        run: npm run test:e2e
+
+      - name: Build
+        run: npm run build
+
+  ui-diff:
+    # Chặn thay đổi JSX/className/câu chữ/queryKey trong PR (REFACTOR_PLAN §5)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check UI diff
+        run: node scripts/check-ui-diff.mjs origin/${{ github.base_ref }} HEAD
