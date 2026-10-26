@@ -1,0 +1,6 @@
+export * from './course-category.dto';
+export * from './course.dto';
+export * from './course-count.dto';
+export * from './list-categories-query.dto';
+export * from './list-courses-query.dto';
+export * from './count-courses-query.dto';
