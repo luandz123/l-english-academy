@@ -15,13 +15,15 @@ Một người làm, ngân sách 0đ/tháng, chưa có domain, người dùng �
 |---|---|---|
 | Frontend | Vercel (đã có), rewrite `/api/*` → backend | Vite `:8082` |
 | Backend | Render free, Singapore, build từ `Dockerfile`; UptimeRobot gọi `/api/health` ~10 phút/lần | `npm run start:dev` `:3000` |
-| Database | Neon free, Singapore (pooled connection) | `postgres:16-alpine` `:5433` |
+| Database | Neon free, Singapore, Postgres 18 — project `royal-water-29084351`, branch `production`. App dùng `DATABASE_URL` (pooled), Prisma CLI dùng `DATABASE_URL_UNPOOLED` | `postgres:18-alpine` `:5433` (test: Testcontainers cùng image) |
 | Object storage | Cloudflare R2 (S3 API) | SeaweedFS `chrislusf/seaweedfs:4.48` `:8333` |
 | Email | Gmail SMTP qua Nodemailer | Mailpit SMTP `:1025`, UI `:8025` |
 | Giám sát | Sentry free, UptimeRobot | — |
 | Backup | `pg_dump` hằng đêm (GitHub Actions) → R2, giữ 14 ngày | — |
 
 **Thay đổi trong phiên 1**: dev dùng SeaweedFS thay MinIO vì MinIO đã ngừng phát hành Docker image (repo community archive 04/2026; `minio/minio` không còn kéo được từ Docker Hub, quay.io yêu cầu đăng nhập). R2 ở production không đổi; code chỉ dùng API S3 chung.
+
+**Neon (2026-10-26)**: liên kết bằng `neon init` (file `neon.ts` ở root, `.neon` git-ignored); `neon deploy` ghi `DATABASE_URL`, `DATABASE_URL_UNPOOLED`, `NEON_BRANCH` vào `.env` root. Migration baseline đã áp lên branch `production`. Dev/test nâng từ Postgres 16 lên 18 để cùng major với Neon (Supabase cũ là 17).
 
 ## 3. Hệ Quả
 - **Tích cực**: 0đ/tháng; mọi thành phần thay được bằng bản trả phí/VPS mà không sửa code (qua biến môi trường, đã Docker hóa). 62 MB nằm thoải mái trong 0,5 GB của Neon free.

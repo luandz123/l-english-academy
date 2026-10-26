@@ -7,7 +7,7 @@ import { PostgreSqlContainer } from '@testcontainers/postgresql';
  * vì ConfigModule.forRoot validate env ngay lúc module được nạp.
  */
 export default async function globalSetup(): Promise<void> {
-  const container = await new PostgreSqlContainer('postgres:16-alpine').start();
+  const container = await new PostgreSqlContainer('postgres:18-alpine').start();
   process.env.DATABASE_URL = container.getConnectionUri();
   process.env.NODE_ENV = 'test';
   process.env.LOG_LEVEL = 'warn';

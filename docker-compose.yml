@@ -1,7 +1,8 @@
 # Hạ tầng cho môi trường dev. Chạy: docker compose up -d
 services:
   postgres:
-    image: postgres:16-alpine
+    # Cùng major với Neon production (Postgres 18)
+    image: postgres:18-alpine
     environment:
       POSTGRES_USER: lenglish
       POSTGRES_PASSWORD: lenglish
@@ -9,7 +10,7 @@ services:
     ports:
       - "5433:5432" # 5433 để không đụng Postgres cài sẵn trên máy
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql # Postgres 18 tự tạo thư mục con theo phiên bản
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U lenglish -d lenglish"]
       interval: 5s
