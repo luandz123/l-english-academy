@@ -2,6 +2,7 @@ import StudentLayout from "@/components/StudentLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { useGamification } from "@/hooks/useGamification";
 import { supabase } from "@/integrations/supabase/client";
+import { authClient, updateMyProfile } from "@/lib/api/auth";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useMemo } from "react";
@@ -595,12 +596,9 @@ const Profile = () => {
     try {
       const newUrl = await processImageFile(file, "avatars");
 
-      await supabase
-        .from("profiles")
-        .update({ avatar_url: newUrl })
-        .eq("user_id", user.id);
+      await updateMyProfile({ avatar_url: newUrl });
 
-      await supabase.auth.updateUser({
+      await authClient.updateUser({
         data: { avatar_url: newUrl },
       });
 
@@ -632,7 +630,7 @@ const Profile = () => {
     try {
       const newUrl = await processImageFile(file, "covers");
 
-      await supabase.auth.updateUser({
+      await authClient.updateUser({
         data: { cover_url: newUrl },
       });
 
@@ -666,18 +664,15 @@ const Profile = () => {
 
     try {
       // 1. Cập nhật bảng profiles
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({
-          full_name: editFullName,
-          avatar_url: editAvatarUrl || null,
-        })
-        .eq("user_id", user.id);
+      const { error: profileError } = await updateMyProfile({
+        full_name: editFullName,
+        avatar_url: editAvatarUrl || null,
+      });
 
       if (profileError) throw profileError;
 
       // 2. Cập nhật Auth metadata
-      await supabase.auth.updateUser({
+      await authClient.updateUser({
         data: {
           full_name: editFullName,
           avatar_url: editAvatarUrl || null,

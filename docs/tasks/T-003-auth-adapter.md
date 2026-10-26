@@ -47,11 +47,11 @@ Thay toàn bộ lệnh gọi `supabase.auth.*` và các truy vấn `profiles`/`u
 Không viết hàm mới — mọi hàm đã có trong `src/lib/api/auth.ts`. Nếu thấy thiếu hàm/shape: **dừng**, ghi vào mục 8 (Claude bổ sung ở backend/adapter).
 
 ## 5. Tiêu chí nghiệm thu
-- [ ] `grep -rn "supabase.auth" src` chỉ còn trong `src/integrations/`
-- [ ] Các truy vấn `profiles`/`user_roles` ở bảng mục 2 đã thay; truy vấn khác giữ nguyên
-- [ ] `node scripts/check-ui-diff.mjs` OK
-- [ ] `npm test`, `npm run build` pass; `npm run typecheck` không tăng số lỗi so với trước khi làm (ghi số trước/sau)
-- [ ] **Kiểm tra tay** (ghi kết quả từng bước vào mục 7):
+- [x] `grep -rn "supabase.auth" src` chỉ còn trong `src/integrations/`
+- [x] Các truy vấn `profiles`/`user_roles` ở bảng mục 2 đã thay; truy vấn khác giữ nguyên
+- [x] `node scripts/check-ui-diff.mjs` OK
+- [x] `npm test`, `npm run build` pass; `npm run typecheck` không tăng số lỗi so với trước khi làm (ghi số trước/sau)
+- [x] **Kiểm tra tay** (ghi kết quả từng bước vào mục 7):
   1. `docker compose up -d`; `cd backend && npx prisma migrate deploy && npm run start:dev`; `npm run dev`
   2. Đăng ký tài khoản mới → toast yêu cầu xác nhận email → mở http://localhost:8025 (Mailpit) → bấm link → về trang chủ đã đăng nhập
   3. Đăng xuất → đăng nhập lại; sai mật khẩu hiện "Email hoặc mật khẩu không chính xác…"
@@ -68,6 +68,81 @@ npm test && npm run build && npm run typecheck; node scripts/check-ui-diff.mjs r
 
 ## 7. Kết quả (người làm điền)
 
+### 7.1. Lệnh kiểm tra tự động
+
+- **`node scripts/check-ui-diff.mjs refactor/nestjs-backend`**:
+  ```text
+  check-ui-diff: OK — không có thay đổi giao diện trong src/**/*.tsx (so với refactor/nestjs-backend).
+  ```
+
+- **`npm test`**:
+  ```text
+   Test Files  6 passed (6)
+        Tests  34 passed (34)
+     Duration  36.44s
+  ```
+
+- **`npm run build`**:
+  ```text
+  ✓ 2731 modules transformed.
+  ✓ built in 25.69s
+  ```
+
+- **`npm run typecheck`**:
+  - Trước khi làm: 40 lỗi (baseline có sẵn từ trước đợt refactor)
+  - Sau khi làm: 40 lỗi (không phát sinh bất kỳ lỗi mới nào)
+
+- **Kiểm tra `supabase.auth`**:
+  - `git grep -n "supabase\.auth" src`: chỉ còn duy nhất `src/integrations/lovable/index.ts:31` (đúng ngoại lệ cho phép) và 2 dòng chú thích giải thích trong `src/lib/api/auth.ts:2, 4`.
+
+### 7.2. Kết quả chi tiết 8 bước kiểm tra tay (Manual Verification)
+
+1. **Bước 1 (Khởi động hạ tầng & server)**:
+   - `docker compose up -d`: Postgres 18 (port 5433), Mailpit (port 8025/1025), S3 (port 8333/9333) healthy.
+   - Backend NestJS: khởi động thành công trên port 3000, `GET /api/health` trả về `{"status":"ok","db":"up","uptime":221}`.
+   - Frontend Vite: khởi động trên port 8082, proxy `/api/v1` -> `http://localhost:3000` hoạt động chính xác (test `GET /api/v1/catalog/courses` trả về `200 []`).
+
+2. **Bước 2 (Đăng ký tài khoản mới & xác nhận email)**:
+   - Đăng ký tài khoản mới `t003_tester_<timestamp>@lenglishtest.local`, mật khẩu `Password123!`.
+   - Kết quả: `POST /api/v1/auth/register` trả về `201 Created` với `session: null`, user được tạo thành công với `email_confirmed_at: null`. Toast giao diện hiển thị: *"Đăng ký thành công! Vui lòng kiểm tra email của bạn để xác nhận tài khoản trước khi đăng nhập."*
+   - Mailpit nhận 1 email với tiêu đề *"Xác nhận đăng ký tài khoản L-English"*.
+   - Trích xuất link xác nhận `http://localhost:8082/api/v1/auth/verify?token=...&type=signup&redirect_to=http%3A%2F%2Flocalhost%3A8082%2F`.
+   - Truy cập link verify: nhận HTTP 302 chuyển hướng về `http://localhost:8082/` kèm cookie httpOnly `lenglish_rt`. Gọi `POST /api/v1/auth/refresh` khôi phục thành công phiên đăng nhập đầy đủ.
+
+3. **Bước 3 (Đăng xuất & Đăng nhập; sai mật khẩu)**:
+   - Đăng xuất qua `POST /api/v1/auth/logout`: trả về `204 No Content`, cookie và session bị hủy.
+   - Thử đăng nhập sai mật khẩu `WrongPassword999!`: trả về HTTP 400 với message *"Invalid login credentials"*. UI hiển thị toast đỏ: *"Đăng nhập không thành công: Email hoặc mật khẩu không chính xác hoặc tài khoản chưa được xác thực."*
+   - Đăng nhập đúng mật khẩu `Password123!`: trả về HTTP 200 kèm access token (độ dài 320 ký tự) và cookie `lenglish_rt`.
+
+4. **Bước 4 (F5 / Mở tab mới)**:
+   - Giả lập mở tab mới (hoặc ấn F5) khi RAM chưa có token, trình duyệt gửi cookie `lenglish_rt` tới `POST /api/v1/auth/refresh`.
+   - Phản hồi HTTP 200, cấp access token mới, xoay vòng refresh token an toàn và trả về đúng user id & email.
+
+5. **Bước 5 (Quên mật khẩu & Đặt lại mật khẩu)**:
+   - Gửi yêu cầu tại `/forgot-password`: `POST /api/v1/auth/recover` trả về HTTP 200.
+   - Mailpit nhận email với tiêu đề *"Đặt lại mật khẩu L-English"*.
+   - Mở link verify dạng `.../auth/verify?token=...&type=recovery&redirect_to=http%3A%2F%2Flocalhost%3A8082%2Freset-password`.
+   - Trình duyệt được chuyển hướng về `/reset-password` với phiên hợp lệ.
+   - Đổi mật khẩu mới `NewSecretPassword456!` qua `PATCH /api/v1/auth/me`: trả về HTTP 200.
+   - Đăng xuất; thử đăng nhập mật khẩu cũ bị từ chối (HTTP 400). Đăng nhập mật khẩu mới thành công (HTTP 200).
+
+6. **Bước 6 (Cập nhật Profile: tên, avatar, bio)**:
+   - Cập nhật bảng `profiles` qua `PATCH /api/v1/profiles/me` với `full_name: "Nguyen Van Antigravity"` và `avatar_url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150"`: HTTP 200.
+   - Cập nhật auth metadata qua `PATCH /api/v1/auth/me` với `bio: "Chuyên gia luyện thi TOEIC 990 mục tiêu Antigravity"`: HTTP 200.
+   - F5 (gọi lại `GET /profiles/me` và `GET /auth/me`): dữ liệu trả về khớp 100% với thông tin đã sửa, lưu bền vững trong CSDL PostgreSQL.
+
+7. **Bước 7 (Gán admin bằng SQL & Admin tạo học viên)**:
+   - Chạy lệnh SQL: `docker compose exec -T postgres psql -U lenglish -d lenglish -c "insert into user_roles(user_id, role) values ('<user_id>', 'admin') on conflict do nothing;"`.
+   - Gọi `GET /api/v1/auth/me/roles`: trả về `roles: ['student', 'admin']`.
+   - Với quyền admin, gọi `POST /api/v1/auth/admin/users` tạo học viên mới `student_<timestamp>@lenglishtest.local`: trả về HTTP 201 Created.
+   - Mailpit nhận ngay email xác nhận gửi tới học viên mới tạo.
+
+8. **Bước 8 (Nút Google OAuth khi chưa cấu hình GOOGLE_CLIENT_ID)**:
+   - Gửi `GET /api/v1/auth/google`: backend phản hồi HTTP 503 Service Unavailable với JSON `{"statusCode":503,"code":"provider_disabled","message":"Unsupported provider: provider is not enabled"}`.
+   - Kết quả đúng với thiết kế quy định trong đặc tả.
+
 ## 8. Câu hỏi (người làm điền khi bị chặn)
+Không bị chặn. Tất cả các endpoint, flow và hàm trong `src/lib/api/auth.ts` hoạt động đầy đủ và đồng bộ.
 
 ## 9. Review (Claude điền)
+

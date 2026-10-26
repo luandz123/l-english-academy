@@ -1,25 +1,7 @@
-import { lovable } from "@/integrations/lovable/index";
-import { supabase } from "@/integrations/supabase/client";
-
-const isLovableHosted = () => window.location.hostname.endsWith(".lovable.app");
+import { authClient } from "@/lib/api/auth";
 
 export const signInWithGoogle = async () => {
-  if (isLovableHosted()) {
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
-      extraParams: {
-        prompt: "select_account",
-      },
-    });
-
-    if (result.error) {
-      return { error: result.error };
-    }
-
-    return { error: null };
-  }
-
-  const { error } = await supabase.auth.signInWithOAuth({
+  const { error } = await authClient.signInWithOAuth({
     provider: "google",
     options: {
       redirectTo: `${window.location.origin}/auth/callback`,

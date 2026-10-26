@@ -6,7 +6,7 @@ import { Link } from "react-router-dom";
 import { Search, Eye } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { createClient } from "@supabase/supabase-js";
+import { adminCreateStudent } from "@/lib/api/auth";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -26,16 +26,7 @@ const AdminStudents = () => {
 
   const createStudentMutation = useMutation({
     mutationFn: async () => {
-      // Create a temporary client that doesn't persist session
-      // This allows the Admin to register a user without being logged out themselves
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-      
-      const tempSupabase = createClient(supabaseUrl, supabaseAnonKey, {
-        auth: { persistSession: false }
-      });
-
-      const { data, error } = await tempSupabase.auth.signUp({
+      const { data, error } = await adminCreateStudent({
         email,
         password,
         options: {

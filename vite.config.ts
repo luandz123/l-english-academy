@@ -7,14 +7,14 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8082,
     allowedHosts: true,
-    hmr: {
-      overlay: false,
-    },
     proxy: {
       "/api/v1": {
         target: "http://localhost:3000",
         changeOrigin: true,
       },
+    },
+    hmr: {
+      overlay: false,
     },
   },
   plugins: [
