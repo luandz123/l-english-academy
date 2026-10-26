@@ -118,4 +118,11 @@ Ran all test suites.
 Không có. Đã hoàn thành toàn bộ yêu cầu kỹ thuật của T-001.
 
 ## 9. Review (Claude điền)
+- **Kết quả: PASS (lần 1/2)** — 2026-10-27, merge vào `refactor/nestjs-backend` (commit `e982a58`).
+- Claude tự chạy lại trên nhánh đã merge: lint 0, typecheck 0, unit 16/16, e2e 9/9, build OK — khớp báo cáo.
+- Đạt: đúng phạm vi file; controller → service → repository; mapper riêng (BigInt → number, Date → ISO, giữ null); `courses/count` khai báo trước `courses/:id`; thứ tự sắp xếp và lọc `is_active` khớp PostgREST (NULL bị loại như `.eq(true)`); 404 `COURSE_NOT_FOUND`; Swagger đủ; e2e có test gọi không token.
+- Góp ý không chặn (để lần sau):
+  1. Hàm `@Transform` cho `active` lặp ở 3 DTO → nên tách `toOptionalBoolean` dùng chung trong `src/common`.
+  2. `CatalogRepository.countCourses(filter: CategoryFilter)` dùng nhầm tên kiểu (nên là `CourseFilter` hoặc kiểu riêng).
+  3. `@Controller` công khai: khi có route ghi (admin) trong module này phải gắn `@UseGuards(JwtAuthGuard, RolesGuard)` theo từng route, không để mặc định.
 
