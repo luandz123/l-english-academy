@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate, useSearchParams, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { getCourse } from "@/lib/api/catalog";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/useAuth";
@@ -34,11 +35,7 @@ const CourseDetailRedirect = () => {
   const { data: course, isLoading } = useQuery({
     queryKey: ["course-detail-redirect", cId],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("courses")
-        .select("course_type")
-        .eq("id", cId)
-        .maybeSingle();
+      const { data } = await getCourse(cId);
       return data;
     },
     enabled: !isNaN(cId) && cId > 0,

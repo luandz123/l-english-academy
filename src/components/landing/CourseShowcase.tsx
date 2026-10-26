@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { listCategories, listCourses } from "@/lib/api/catalog";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -206,12 +206,7 @@ export const CourseShowcase = () => {
   const { data: categories = [], isLoading: isLoadingCats } = useQuery<CategoryRow[]>({
     queryKey: ["homepage-categories"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("course_categories")
-        .select("*")
-        .eq("is_active", true)
-        .order("display_order", { ascending: true })
-        .order("id", { ascending: true });
+      const { data, error } = await listCategories({ active: true });
       if (error) {
         console.error("Error fetching categories:", error);
         return [];
@@ -224,12 +219,7 @@ export const CourseShowcase = () => {
   const { data: activeCourses = [], isLoading: isLoadingCourses } = useQuery<CourseRow[]>({
     queryKey: ["homepage-active-courses"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("courses")
-        .select("*")
-        .eq("is_active", true)
-        .order("display_order", { ascending: true })
-        .order("id", { ascending: false });
+      const { data, error } = await listCourses({ active: true });
       if (error) {
         console.error("Error fetching courses:", error);
         return [];

@@ -2,6 +2,7 @@ import React, { useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { listCourses } from "@/lib/api/catalog";
 import { useAuth } from "@/hooks/useAuth";
 import StudentLayout from "@/components/StudentLayout";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -58,12 +59,7 @@ export const MyCoursesPage: React.FC = () => {
   const { data: allActiveCourses = [], isLoading: isCoursesLoading } = useQuery({
     queryKey: ["my-courses-all-active"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("courses")
-        .select("*")
-        .eq("is_active", true)
-        .order("display_order", { ascending: true })
-        .order("id", { ascending: false });
+      const { data, error } = await listCourses({ active: true });
       if (error) throw error;
       return data || [];
     },

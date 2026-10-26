@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { getCourse } from "@/lib/api/catalog";
 import { useAuth } from "@/hooks/useAuth";
 import {
   Loader2,
@@ -320,11 +321,7 @@ const FullTestExam = () => {
     queryKey: ["fulltest-enrollment", courseId, user?.id, isAdmin],
     queryFn: async () => {
       if (isAdmin) return { enrolled: true };
-      const { data: course } = await supabase
-        .from("courses")
-        .select("is_free")
-        .eq("id", Number(courseId))
-        .maybeSingle();
+      const { data: course } = await getCourse(Number(courseId));
       if (course?.is_free) return { enrolled: true };
       const { data } = await supabase
         .from("enrollments")
