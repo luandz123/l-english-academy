@@ -16,7 +16,10 @@ Frontend dùng `supabase.auth` ở 25 chỗ (đăng ký, đăng nhập, Google O
 - Đăng ký tạo `users` + `profiles` + `user_roles('student')` trong một transaction (thay `handle_new_user`, giữ quy tắc `full_name` = `full_name` → `name` → phần trước `@` của email).
 - Google OAuth bằng `passport-google-oauth20`. Bỏ nhánh Lovable (chỉ chạy trên `*.lovable.app`).
 - Email xác nhận/đặt lại mật khẩu qua Nodemailer (Mailpit khi dev, Gmail SMTP khi production).
-- `JwtAuthGuard` + `RolesGuard` (`@Roles('admin')`) thay các policy RLS dựa trên `has_role`.
+- `JwtAuthGuard` + `RolesGuard` (`@Roles('admin')`) thay các policy RLS dựa trên `has_role`. Vai trò đọc từ DB mỗi request (không nhét vào JWT) để thu hồi quyền có hiệu lực ngay.
+- **Grace 10 giây** cho refresh token vừa dùng: hai tab refresh cùng lúc không bị coi là đánh cắp (Supabase có cơ chế tương tự). Quá 10 giây → thu hồi cả family.
+- Hồ sơ của chính mình qua `GET/PATCH /profiles/me`; PATCH chỉ nhận `full_name`, `avatar_url` (vá OPEN_QUESTIONS #10 — policy cũ cho tự bật `is_pro`).
+- Frontend: `src/lib/api/auth.ts` có `authClient` cùng chữ ký với `supabase.auth`; access token chỉ trong bộ nhớ, khôi phục phiên khi tải trang bằng `POST /auth/refresh`.
 
 ## 3. Hệ Quả
 - **Tích cực**: gỡ hẳn Supabase; kiểm soát toàn bộ vòng đời phiên; mỗi quy tắc phân quyền có test.
