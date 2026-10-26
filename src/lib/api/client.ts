@@ -31,6 +31,21 @@ export interface RequestOptions {
   body?: unknown;
   headers?: Record<string, string>;
   signal?: AbortSignal;
+  /** false: không gắn access token, không tự refresh (dùng cho chính các route auth). */
+  auth?: boolean;
+}
+
+/** Do src/lib/api/auth.ts đăng ký, để client không phụ thuộc vòng vào auth. */
+interface AuthHooks {
+  getAccessToken: () => Promise<string | null>;
+  /** Gọi khi access token hết hạn; true nếu đã lấy được token mới. */
+  refreshAccessToken: () => Promise<boolean>;
+}
+
+let authHooks: AuthHooks | null = null;
+
+export function configureAuth(hooks: AuthHooks): void {
+  authHooks = hooks;
 }
 
 function buildUrl(path: string, query?: RequestOptions["query"]): string {
@@ -48,9 +63,10 @@ function buildUrl(path: string, query?: RequestOptions["query"]): string {
   return qs ? `${url}?${qs}` : url;
 }
 
-async function request<T>(method: string, path: string, options: RequestOptions = {}): Promise<T> {
-  const { query, body, headers, signal } = options;
+async function request<T>(method: string, path: string, options: RequestOptions = {}, retried = false): Promise<T> {
+  const { query, body, headers, signal, auth = true } = options;
   const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
+  const token = auth && authHooks ? await authHooks.getAccessToken() : null;
 
   let res: Response;
   try {
@@ -61,6 +77,7 @@ async function request<T>(method: string, path: string, options: RequestOptions 
       headers: {
         Accept: "application/json",
         ...(body !== undefined && !isFormData ? { "Content-Type": "application/json" } : {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...headers,
       },
       body: body === undefined ? undefined : isFormData ? body : JSON.stringify(body),
@@ -78,7 +95,13 @@ async function request<T>(method: string, path: string, options: RequestOptions 
 
   if (!res.ok) {
     const p = (payload ?? {}) as { code?: string; message?: string; details?: unknown };
-    throw new ApiError(res.status, p.code ?? String(res.status), p.message ?? res.statusText, p.details);
+    const error = new ApiError(res.status, p.code ?? String(res.status), p.message ?? res.statusText, p.details);
+
+    // Access token hết hạn giữa chừng → làm mới một lần rồi gửi lại
+    if (res.status === 401 && token && !retried && authHooks && error.code === "bad_jwt") {
+      if (await authHooks.refreshAccessToken()) return request<T>(method, path, options, true);
+    }
+    throw error;
   }
   return payload as T;
 }

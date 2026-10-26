@@ -4,6 +4,7 @@ import { AppRole, AuthTokenType } from '../../generated/prisma/enums';
 import { PrismaService } from '../../prisma/prisma.service';
 
 export type UserRecord = Prisma.UserGetPayload<object>;
+export type ProfileRecord = Prisma.ProfileGetPayload<object>;
 
 export interface NewUser {
   email: string;
@@ -82,6 +83,19 @@ export class AuthRepository {
       select: { role: true },
     });
     return rows.map((r) => r.role);
+  }
+
+  // --- Profile của chính người dùng ---
+
+  findProfileByUserId(userId: string): Promise<ProfileRecord | null> {
+    return this.prisma.profile.findUnique({ where: { userId } });
+  }
+
+  updateProfile(
+    userId: string,
+    data: { fullName?: string; avatarUrl?: string | null },
+  ): Promise<ProfileRecord> {
+    return this.prisma.profile.update({ where: { userId }, data });
   }
 
   // --- Refresh token ---

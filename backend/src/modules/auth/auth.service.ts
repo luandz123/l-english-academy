@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as argon2 from 'argon2';
 import { Prisma } from '../../generated/prisma/client';
@@ -7,7 +7,8 @@ import type { Env } from '../../config/env.schema';
 import { MailService } from '../../mail/mail.service';
 import { AuthErrors } from './auth-errors';
 import { recoveryMail, verificationMail } from './auth-mail';
-import { toAuthSession, toAuthUser } from './auth.mapper';
+import { toAuthSession, toAuthUser, toProfileDto } from './auth.mapper';
+import type { ProfileDto, UpdateProfileDto } from './dto/profile.dto';
 import { AuthRepository, type UserRecord } from './auth.repository';
 import type { AuthResultDto, AuthUserDto } from './dto/auth-response.dto';
 import type { UpdateMeDto, UserMetadataDto } from './dto/auth-request.dto';
@@ -185,6 +186,34 @@ export class AuthService {
       } as Prisma.InputJsonObject;
     }
     return toAuthUser(await this.repo.updateUser(userId, data));
+  }
+
+  getRoles(userId: string): Promise<AppRole[]> {
+    return this.repo.getRoles(userId);
+  }
+
+  async getMyProfile(userId: string): Promise<ProfileDto> {
+    const profile = await this.repo.findProfileByUserId(userId);
+    if (!profile) {
+      throw new NotFoundException({
+        code: 'PROFILE_NOT_FOUND',
+        message: 'Không tìm thấy hồ sơ',
+      });
+    }
+    return toProfileDto(profile);
+  }
+
+  /** Chỉ tên + ảnh đại diện; is_pro/pro_plan chỉ đổi qua luồng thanh toán (OPEN_QUESTIONS #10). */
+  async updateMyProfile(
+    userId: string,
+    dto: UpdateProfileDto,
+  ): Promise<ProfileDto> {
+    await this.getMyProfile(userId);
+    const updated = await this.repo.updateProfile(userId, {
+      fullName: dto.full_name,
+      avatarUrl: dto.avatar_url,
+    });
+    return toProfileDto(updated);
   }
 
   async hasRole(userId: string, role: AppRole): Promise<boolean> {

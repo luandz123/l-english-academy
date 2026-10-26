@@ -466,6 +466,63 @@ describe('Auth (e2e)', () => {
       .expect(403);
   });
 
+  // --- Hồ sơ & vai trò của chính mình ---
+
+  it('GET /auth/me/roles trả vai trò của chính mình (policy "Users can view own roles")', async () => {
+    await registerAndVerify('a@x.com');
+    const { token } = await login('a@x.com');
+    const res = await http()
+      .get('/api/v1/auth/me/roles')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    expect(res.body).toEqual({ roles: ['student'] });
+    await http().get('/api/v1/auth/me/roles').expect(401);
+  });
+
+  it('GET /profiles/me trả hàng profiles snake_case', async () => {
+    await registerAndVerify('a@x.com', 'Học Viên A');
+    const { token } = await login('a@x.com');
+    const res = await http()
+      .get('/api/v1/profiles/me')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    expect(res.body).toMatchObject({
+      full_name: 'Học Viên A',
+      email: 'a@x.com',
+      is_pro: false,
+      pro_plan: 'free',
+    });
+  });
+
+  it('PATCH /profiles/me sửa được tên/ảnh nhưng KHÔNG tự bật PRO được (vá OPEN_QUESTIONS #10)', async () => {
+    await registerAndVerify('a@x.com');
+    const { token } = await login('a@x.com');
+    const auth = { Authorization: `Bearer ${token}` };
+
+    const ok = await http()
+      .patch('/api/v1/profiles/me')
+      .set(auth)
+      .send({ full_name: 'Tên Mới', avatar_url: null })
+      .expect(200);
+    expect(ok.body).toMatchObject({ full_name: 'Tên Mới', avatar_url: null });
+
+    for (const body of [
+      { is_pro: true },
+      { pro_plan: 'vip_combo' },
+      { user_id: '00000000-0000-0000-0000-000000000000' },
+    ]) {
+      await http()
+        .patch('/api/v1/profiles/me')
+        .set(auth)
+        .send(body)
+        .expect(400);
+    }
+    const profile = await prisma.profile.findFirstOrThrow({
+      where: { email: 'a@x.com' },
+    });
+    expect(profile.isPro).toBe(false);
+  });
+
   // --- Google ---
 
   it('chưa cấu hình Google → /auth/google trả 503 thay vì lỗi 500', async () => {

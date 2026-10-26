@@ -1,4 +1,5 @@
-import type { UserRecord } from './auth.repository';
+import type { ProfileRecord, UserRecord } from './auth.repository';
+import type { ProfileDto } from './dto/profile.dto';
 import type { IssuedAccessToken } from './token.service';
 import type { AuthSessionDto, AuthUserDto } from './dto/auth-response.dto';
 
@@ -38,5 +39,21 @@ export function toAuthSession(
     expires_in: token.expiresIn,
     expires_at: token.expiresAt,
     user,
+  };
+}
+
+/** Hàng profiles → đúng cột snake_case như PostgREST trả về. */
+export function toProfileDto(p: ProfileRecord): ProfileDto {
+  return {
+    id: p.id,
+    user_id: p.userId,
+    full_name: p.fullName,
+    avatar_url: p.avatarUrl,
+    email: p.email,
+    is_pro: p.isPro,
+    pro_plan: p.proPlan,
+    pro_activated_at: p.proActivatedAt?.toISOString() ?? null,
+    created_at: p.createdAt?.toISOString() ?? null,
+    updated_at: p.updatedAt?.toISOString() ?? null,
   };
 }

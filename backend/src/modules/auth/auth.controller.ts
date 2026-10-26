@@ -49,6 +49,7 @@ import {
   VerifyQueryDto,
 } from './dto/auth-request.dto';
 import { AuthResultDto, AuthUserResultDto } from './dto/auth-response.dto';
+import { RolesDto } from './dto/profile.dto';
 import { decodeState, GoogleAuthGuard } from './google/google-auth.guard';
 import { type AuthenticatedUser, JwtAuthGuard } from './guards/jwt-auth.guard';
 
@@ -156,6 +157,17 @@ export class AuthController {
   @ApiOkResponse({ type: AuthUserResultDto })
   async me(@CurrentUser() user: AuthenticatedUser): Promise<AuthUserResultDto> {
     return { user: await this.auth.getUser(user.id) };
+  }
+
+  // Người dùng đăng nhập: thay policy "Users can view own roles"
+  // (useAuth.tsx:106, Login.tsx:81, AuthCallback.tsx:44 kiểm role admin)
+  @Get('me/roles')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Vai trò của người dùng hiện tại' })
+  @ApiOkResponse({ type: RolesDto })
+  async myRoles(@CurrentUser() user: AuthenticatedUser): Promise<RolesDto> {
+    return { roles: await this.auth.getRoles(user.id) };
   }
 
   // Người dùng đăng nhập: thay supabase.auth.updateUser({ password, data })

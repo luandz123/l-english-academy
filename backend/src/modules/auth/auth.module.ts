@@ -5,6 +5,7 @@ import { PassportModule } from '@nestjs/passport';
 import type { Env } from '../../config/env.schema';
 import { AuthAdminController } from './auth-admin.controller';
 import { AuthController } from './auth.controller';
+import { ProfilesController } from './profiles.controller';
 import { AuthRepository } from './auth.repository';
 import { AuthService } from './auth.service';
 import { GoogleAuthGuard } from './google/google-auth.guard';
@@ -29,7 +30,7 @@ import { TokenService } from './token.service';
       }),
     }),
   ],
-  controllers: [AuthController, AuthAdminController],
+  controllers: [AuthController, AuthAdminController, ProfilesController],
   providers: [
     AuthRepository,
     AuthService,
