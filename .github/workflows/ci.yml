@@ -109,6 +109,8 @@ jobs:
 
     steps:
       - name: Kiểm tra secrets
+        # Chạy trước checkout nên thư mục backend/ (working-directory mặc định) chưa tồn tại
+        working-directory: ${{ github.workspace }}
         run: |
           if [ -z "$DATABASE_URL_UNPOOLED" ] || [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
             echo "::warning::Chưa cấu hình secret STAGING_DATABASE_URL_UNPOOLED / RENDER_DEPLOY_HOOK_URL (environment 'staging') — bỏ qua deploy"
