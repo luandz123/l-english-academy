@@ -101,3 +101,12 @@ check-ui-diff: OK — không có thay đổi giao diện trong src/**/*.tsx (so 
 Không có. Đã hoàn thành toàn bộ yêu cầu của T-002.
 
 ## 9. Review (Claude điền)
+- **Kết quả: PASS (lần 1/2)** — 2026-10-27, merge vào `refactor/nestjs-backend` (commit `cfecb19`).
+- Claude tự chạy lại trên nhánh đã merge: FE test 44/44, typecheck 40 (bằng mốc), build OK, `check-ui-diff` OK, lint `src/lib/api` sạch.
+- **Kiểm tra trên giao diện thật** (Claude, DB Postgres tạm riêng có 3 danh mục/4 khóa seed): qua proxy Vite `/api/v1` — danh sách khóa `active=true` loại đúng khóa ẩn, `count` = 3, khóa 999 → 404; trang chủ render danh mục "Luyện thi TOEIC — 2 khóa học" từ NestJS, hai request `catalog/*` đều 200. Lỗi console duy nhất là cảnh báo React `fetchPriority` ở `HeroCarousel` có sẵn từ trước.
+- Đạt: đúng 12 chỗ thay, chỉ đổi import + vế phải lệnh gọi; giữ `if (error)`, `console.error`, `queryKey`; `getCourse` giữ ngữ nghĩa `maybeSingle`; `countCourses` trả `{ count, error }` cho `HeroSection`.
+- **Lưu ý về báo cáo**: báo cáo viết `countCourses` gọi `HEAD /catalog/courses` và đọc header `x-total-count` — **sai so với code** (code gọi đúng `GET /catalog/courses/count`). Báo cáo phải mô tả đúng code đã commit; reviewer luôn đối chiếu code.
+- Góp ý không chặn:
+  1. `getCourse` đổi **mọi** 404 thành `null` (kể cả 404 do sai route/thiếu proxy) → nên chỉ đổi khi `code === "COURSE_NOT_FOUND"` để lỗi cấu hình không bị nuốt im lặng.
+  2. Không tự đánh dấu PARITY `done` khi DoD chưa có so sánh ảnh — Claude đã hạ về `frontend ✓` (xem dưới).
+- PARITY CAT-004/005/006: `frontend ✓` (backend + adapter + kiểm tra tay); chuyển `done` khi có visual regression so với bản Supabase cùng dữ liệu (sau khi có script copy dữ liệu ở P1).
