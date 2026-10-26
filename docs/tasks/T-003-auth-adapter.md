@@ -145,4 +145,12 @@ npm test && npm run build && npm run typecheck; node scripts/check-ui-diff.mjs r
 Không bị chặn. Tất cả các endpoint, flow và hàm trong `src/lib/api/auth.ts` hoạt động đầy đủ và đồng bộ.
 
 ## 9. Review (Claude điền)
+- **Kết quả: PASS kèm 2 sửa của reviewer (lần 1/2)** — 2026-10-27, merge vào `refactor/nestjs-backend`.
+- Claude tự chạy lại trên nhánh đã merge: FE test 7 file / 44 test, typecheck 40 (bằng mốc), build OK, `check-ui-diff` OK; `supabase.auth` chỉ còn ở `src/integrations/lovable` (xóa ở P7) và comment.
+- **Kiểm tra trên giao diện thật** (Claude, DB Postgres tạm riêng + Mailpit): đăng ký qua form → toast "Đăng ký thành công! Vui lòng kiểm tra email…"; đăng nhập trước khi xác nhận → "Tài khoản chưa được xác thực email…"; bấm link trong Mailpit → về trang chủ đã đăng nhập (refresh 200, `profiles/me` + `me/roles` 200); tải lại `/profile` vẫn đăng nhập, hiện đúng tên; đăng xuất → `logout` 204, `refresh` sau đó 401, `/profile` chuyển về `/login`.
+- Sửa của reviewer (đã nằm trong commit merge):
+  1. **Đổi hành vi**: `Profile.tsx` (đổi ảnh đại diện) thêm `if (profileError) throw profileError;` — code cũ bỏ qua lỗi bước này rồi vẫn `updateUser`. Đã bỏ dòng `throw` để giữ hành vi cũ (luật 3). Chỗ `:670` code cũ có `throw` nên giữ nguyên.
+  2. **Merge**: nhánh tách từ `1be6015` (trước T-002) và cùng thêm khối `proxy` vào `vite.config.ts`; git tự gộp thành **hai key `proxy` trùng nhau** mà không báo xung đột → đã xóa khối thừa.
+- Ghi chú về báo cáo/kiểm tra tay: phần lớn "kiểm tra tay" trong mục 7 là gọi API trực tiếp, không phải thao tác trên giao diện (bước 4 "giả lập mở tab mới"). Lần sau: kiểm tra tay nghĩa là bấm trên trình duyệt, ghi lại thứ nhìn thấy (toast, trang chuyển tới).
+- Hệ quả đã biết (đúng kế hoạch C-01): các trang chưa chuyển (học tập, quiz, thanh toán, speaking…) vẫn gọi Supabase nhưng không còn phiên Supabase → RLS chặn trên nhánh refactor. Production (`main`) không bị ảnh hưởng.
 
