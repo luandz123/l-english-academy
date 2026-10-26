@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { authClient } from "@/lib/api/auth";
 import { getFriendlyErrorMessage } from "@/lib/errorHandler";
 import { Loader2, ArrowLeft, KeyRound, Eye, EyeOff } from "lucide-react";
 import { PasswordStrengthIndicator, analyzePassword } from "@/components/auth/PasswordStrengthIndicator";
@@ -34,13 +34,13 @@ const ResetPassword = () => {
 
     setLoading(true);
     // User is already authenticated via the recovery link token
-    const { error } = await supabase.auth.updateUser({ password });
+    const { error } = await authClient.updateUser({ password });
     setLoading(false);
 
     if (error) {
       toast({ title: "Đặt lại mật khẩu thất bại", description: getFriendlyErrorMessage(error), variant: "destructive" });
     } else {
-      await supabase.auth.signOut();
+      await authClient.signOut();
       toast({ title: "Thành công!", description: "Mật khẩu đã được đặt lại thành công. Vui lòng đăng nhập lại." });
       navigate("/login", { replace: true });
     }

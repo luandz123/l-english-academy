@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { authClient } from "@/lib/api/auth";
 import { 
   EnglishLevel, 
   RoomVisibility, 
@@ -194,7 +195,7 @@ export async function fetchRoomDetails(roomId: string): Promise<SpeakingRoom | n
  */
 export async function createSpeakingRoom(input: CreateRoomInput): Promise<{ success: boolean; room?: SpeakingRoom; error?: string }> {
   try {
-    const { data: authData } = await supabase.auth.getUser();
+    const { data: authData } = await authClient.getUser();
     if (!authData.user) {
       return { success: false, error: "Vui lòng đăng nhập để tạo phòng" };
     }
@@ -246,7 +247,7 @@ export async function joinSpeakingRoom(
   passcode?: string
 ): Promise<{ success: boolean; member_id?: string; session_id?: string; error?: string; role?: string }> {
   try {
-    const { data: authData } = await supabase.auth.getUser();
+    const { data: authData } = await authClient.getUser();
     if (!authData.user) {
       return { success: false, error: "Vui lòng đăng nhập để tham gia phòng" };
     }
@@ -355,7 +356,7 @@ export async function joinSpeakingRoom(
  */
 export async function leaveSpeakingRoom(roomId: string, sessionId?: string): Promise<boolean> {
   try {
-    const { data: authData } = await supabase.auth.getUser();
+    const { data: authData } = await authClient.getUser();
     if (!authData.user) return false;
 
     // Try RPC first
@@ -397,7 +398,7 @@ export async function leaveSpeakingRoom(roomId: string, sessionId?: string): Pro
  */
 export async function closeSpeakingRoom(roomId: string): Promise<boolean> {
   try {
-    const { data: authData } = await supabase.auth.getUser();
+    const { data: authData } = await authClient.getUser();
     if (!authData.user) return false;
 
     const { error } = await supabase
@@ -420,7 +421,7 @@ export async function matchSpeakingRoom(
   topics: string[]
 ): Promise<{ matched: boolean; room?: SpeakingRoom; error?: string }> {
   try {
-    const { data: authData } = await supabase.auth.getUser();
+    const { data: authData } = await authClient.getUser();
     if (!authData.user) {
       return { matched: false, error: "Vui lòng đăng nhập để bắt đầu ghép cặp" };
     }
@@ -534,7 +535,7 @@ export async function updateUserEnglishLevel(userId: string, level: EnglishLevel
  * Request voice room token from /api/speaking-token
  */
 export async function getVoiceToken(roomId: string, passcode?: string) {
-  const { data: sessionData } = await supabase.auth.getSession();
+  const { data: sessionData } = await authClient.getSession();
   const token = sessionData?.session?.access_token;
 
   if (!token) {
