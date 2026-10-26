@@ -3,6 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import heroImg from "@/assets/hero-student.webp";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { countCourses } from "@/lib/api/catalog";
 import { CheckCircle2, FileCheck2, Headphones, ChevronRight, ArrowRight, BookOpen, Sparkles } from "lucide-react";
 
 const HeroSection = () => {
@@ -14,7 +15,7 @@ const HeroSection = () => {
     queryFn: async () => {
       const [usersRes, coursesRes] = await Promise.all([
         supabase.from("profiles").select("user_id", { count: "exact", head: true }),
-        supabase.from("courses").select("id", { count: "exact", head: true }).eq("is_active", true),
+        countCourses({ active: true }),
       ]);
       return {
         users: usersRes.count || 0,

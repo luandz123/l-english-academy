@@ -6,6 +6,7 @@ import { PlayCircle, CheckCircle, ChevronLeft, ChevronRight, Check, Loader2, Fil
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { getCourse } from "@/lib/api/catalog";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -40,7 +41,7 @@ const LearnPage = () => {
   const { data: course, isError: isCourseError, refetch: refetchCourse } = useQuery({
     queryKey: ["learn-course", cId],
     queryFn: async () => {
-      const { data } = await supabase.from("courses").select("*").eq("id", cId).maybeSingle();
+      const { data } = await getCourse(cId);
       return data;
     },
   });
