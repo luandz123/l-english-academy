@@ -58,17 +58,17 @@ Quy ước:
 - Cấu trúc: controller chỉ nhận/validate request và gọi service; service chứa quy tắc (lọc, 404); repository chỉ truy vấn Prisma.
 
 ## 5. Tiêu chí nghiệm thu
-- [ ] 4 endpoint đúng route, query, thứ tự sắp xếp, shape như mục 4
-- [ ] E2E (seed dữ liệu trong test bằng `PrismaClient` qua `app.get(PrismaService)`):
-  - [ ] gọi **không có** header `Authorization` vẫn 200 (policy "viewable by all")
-  - [ ] `active=true` loại khóa/danh mục `is_active=false`; bỏ `active` thì trả cả hai
-  - [ ] `courseType=listening` chỉ trả khóa listening; `courseType=abc` → 400
-  - [ ] thứ tự: 2 khóa cùng `display_order` → `id` lớn đứng trước; danh mục cùng `display_order` → `id` nhỏ đứng trước
-  - [ ] `/catalog/courses/999999` → 404 `COURSE_NOT_FOUND`; `/catalog/courses/abc` → 400
-  - [ ] response có đủ mọi cột snake_case, `id`/`category_id` là `number`
-  - [ ] dọn dữ liệu seed sau mỗi test (không phụ thuộc thứ tự chạy)
-- [ ] Unit test service (repository mock) cho nhánh 404 và mapper (BigInt → number, Date → ISO)
-- [ ] Không thêm endpoint ghi; không sửa file ngoài phạm vi
+- [x] 4 endpoint đúng route, query, thứ tự sắp xếp, shape như mục 4
+- [x] E2E (seed dữ liệu trong test bằng `PrismaClient` qua `app.get(PrismaService)`):
+  - [x] gọi **không có** header `Authorization` vẫn 200 (policy "viewable by all")
+  - [x] `active=true` loại khóa/danh mục `is_active=false`; bỏ `active` thì trả cả hai
+  - [x] `courseType=listening` chỉ trả khóa listening; `courseType=abc` → 400
+  - [x] thứ tự: 2 khóa cùng `display_order` → `id` lớn đứng trước; danh mục cùng `display_order` → `id` nhỏ đứng trước
+  - [x] `/catalog/courses/999999` → 404 `COURSE_NOT_FOUND`; `/catalog/courses/abc` → 400
+  - [x] response có đủ mọi cột snake_case, `id`/`category_id` là `number`
+  - [x] dọn dữ liệu seed sau mỗi test (không phụ thuộc thứ tự chạy)
+- [x] Unit test service (repository mock) cho nhánh 404 và mapper (BigInt → number, Date → ISO)
+- [x] Không thêm endpoint ghi; không sửa file ngoài phạm vi
 
 ## 6. Lệnh kiểm tra (dán output thật vào mục 7)
 ```bash
@@ -77,7 +77,45 @@ cd backend && npm run lint && npm run typecheck && npm test && npm run test:e2e 
 ```
 
 ## 7. Kết quả (người làm điền)
+```
+> backend@0.0.1 lint
+> eslint "{src,test}/**/*.ts"
+
+> backend@0.0.1 typecheck
+> tsc --noEmit -p tsconfig.json
+
+> backend@0.0.1 test
+> node --experimental-vm-modules node_modules/jest/bin/jest.js
+
+PASS src/config/env.schema.spec.ts
+PASS src/modules/catalog/catalog.mapper.spec.ts
+PASS src/common/filters/all-exceptions.filter.spec.ts
+PASS src/modules/catalog/catalog.service.spec.ts
+
+Test Suites: 4 passed, 4 total
+Tests:       16 passed, 16 total
+Snapshots:   0 total
+Time:        1.393 s, estimated 18 s
+Ran all test suites.
+
+> backend@0.0.1 test:e2e
+> node --experimental-vm-modules node_modules/jest/bin/jest.js --config ./test/jest-e2e.json --runInBand
+
+PASS test/catalog.e2e-spec.ts
+PASS test/health.e2e-spec.ts
+
+Test Suites: 2 passed, 2 total
+Tests:       9 passed, 9 total
+Snapshots:   0 total
+Time:        6.556 s, estimated 15 s
+Ran all test suites.
+
+> backend@0.0.1 build
+> nest build
+```
 
 ## 8. Câu hỏi (người làm điền khi bị chặn)
+Không có. Đã hoàn thành toàn bộ yêu cầu kỹ thuật của T-001.
 
 ## 9. Review (Claude điền)
+
