@@ -87,3 +87,52 @@ jobs:
 
       - name: Check UI diff
         run: node scripts/check-ui-diff.mjs origin/${{ github.base_ref }} HEAD
+
+  deploy-staging:
+    # Chỉ khi push lên nhánh refactor và cả frontend + backend đều xanh.
+    # Áp migration lên Neon trước; migration lỗi → không gọi Render, bản đang chạy giữ nguyên.
+    # (Không dùng workflow_run: nó chỉ kích hoạt khi file workflow nằm trên nhánh mặc định.)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/refactor/nestjs-backend'
+    needs: [quality-check, backend]
+    runs-on: ubuntu-latest
+    environment: staging
+    concurrency:
+      group: deploy-staging
+      cancel-in-progress: false
+    env:
+      # Neon direct (không -pooler): prisma migrate cần advisory lock
+      DATABASE_URL_UNPOOLED: ${{ secrets.STAGING_DATABASE_URL_UNPOOLED }}
+      RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Kiểm tra secrets
+        run: |
+          if [ -z "$DATABASE_URL_UNPOOLED" ] || [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
+            echo "::warning::Chưa cấu hình secret STAGING_DATABASE_URL_UNPOOLED / RENDER_DEPLOY_HOOK_URL (environment 'staging') — bỏ qua deploy"
+            echo "SKIP_DEPLOY=1" >> "$GITHUB_ENV"
+          fi
+
+      - uses: actions/checkout@v4
+        if: env.SKIP_DEPLOY != '1'
+
+      - uses: actions/setup-node@v4
+        if: env.SKIP_DEPLOY != '1'
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Cài dependency (prisma generate qua postinstall)
+        if: env.SKIP_DEPLOY != '1'
+        run: npm ci
+
+      - name: Áp migration lên Neon
+        if: env.SKIP_DEPLOY != '1'
+        run: npx prisma migrate deploy
+
+      - name: Gọi Render Deploy Hook
+        if: env.SKIP_DEPLOY != '1'
+        run: curl -fsS -X POST "$RENDER_DEPLOY_HOOK_URL" > /dev/null

@@ -25,6 +25,8 @@ Một người làm, ngân sách 0đ/tháng, chưa có domain, người dùng �
 
 **Neon (2026-10-26)**: liên kết bằng `neon init` (file `neon.ts` ở root, `.neon` git-ignored); `neon deploy` ghi `DATABASE_URL`, `DATABASE_URL_UNPOOLED`, `NEON_BRANCH` vào `.env` root. Migration baseline đã áp lên branch `production`. Dev/test nâng từ Postgres 16 lên 18 để cùng major với Neon (Supabase cũ là 17).
 
+**Staging (2026-10-27)**: `backend/Dockerfile` multi-stage (~526MB, user `node`, tini). Migration **không** chạy lúc khởi động container mà ở job `deploy-staging` trong CI (migration lỗi → không deploy; image không cần Prisma CLI ~240MB). `render.yaml` khai báo service (`autoDeploy: false`). `workflow_run` và `schedule` chỉ kích hoạt với file trên nhánh mặc định nên deploy được đặt làm job trong `ci.yml`. Backup hằng đêm **chưa bật**: repo public, không lưu dump thô ở artifact (OPEN_QUESTIONS #17). Hướng dẫn: `docs/STAGING.md`.
+
 ## 3. Hệ Quả
 - **Tích cực**: 0đ/tháng; mọi thành phần thay được bằng bản trả phí/VPS mà không sửa code (qua biến môi trường, đã Docker hóa). 62 MB nằm thoải mái trong 0,5 GB của Neon free.
 - **Đánh đổi**:

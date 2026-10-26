@@ -1,0 +1,50 @@
+# Render Blueprint — backend staging (ADR 0003). Render → New → Blueprint → chọn repo này.
+# Deploy KHÔNG tự động theo git: job deploy-staging trong .github/workflows/ci.yml chạy migration
+# lên Neon rồi mới gọi Deploy Hook, để migration lỗi thì không deploy.
+services:
+  - type: web
+    name: lenglish-api
+    runtime: docker
+    region: singapore
+    plan: free
+    branch: refactor/nestjs-backend
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    autoDeploy: false
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: LOG_LEVEL
+        value: info
+      # Vercel rewrite + Render proxy
+      - key: TRUST_PROXY_HOPS
+        value: "2"
+      - key: AUTH_REQUIRE_EMAIL_CONFIRMATION
+        value: "true"
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      # Các biến dưới đây nhập tay trên Render (sync: false = không lưu giá trị trong repo)
+      - key: DATABASE_URL # Neon pooled (host có -pooler), sslmode=verify-full
+        sync: false
+      - key: FRONTEND_URL # https://<preview Vercel của nhánh refactor>
+        sync: false
+      - key: CORS_ORIGINS # cùng giá trị FRONTEND_URL
+        sync: false
+      - key: SMTP_HOST
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: "465"
+      - key: SMTP_SECURE
+        value: "true"
+      - key: SMTP_USER # địa chỉ Gmail gửi thư
+        sync: false
+      - key: SMTP_PASS # Gmail App Password (16 ký tự)
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
