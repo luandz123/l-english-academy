@@ -1,8 +1,11 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
 import { validateEnv, type Env } from './config/env.schema';
 import { HealthModule } from './health/health.module';
+import { MailModule } from './mail/mail.module';
+import { AuthModule } from './modules/auth/auth.module';
 import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
@@ -29,8 +32,18 @@ import { PrismaModule } from './prisma/prisma.module';
         };
       },
     }),
+    // Giới hạn chỉ áp lên route gắn ThrottlerGuard (đăng nhập, đăng ký, quên mật khẩu)
+    ThrottlerModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService<Env, true>) => ({
+        throttlers: [{ ttl: 60_000, limit: 60 }],
+        skipIf: () => config.get('NODE_ENV', { infer: true }) === 'test',
+      }),
+    }),
     PrismaModule,
+    MailModule,
     HealthModule,
+    AuthModule,
   ],
 })
 export class AppModule {}

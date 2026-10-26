@@ -11,6 +11,11 @@ export default async function globalSetup(): Promise<void> {
   process.env.DATABASE_URL = container.getConnectionUri();
   process.env.NODE_ENV = 'test';
   process.env.LOG_LEVEL = 'warn';
+  process.env.JWT_ACCESS_SECRET = 'test-secret-'.padEnd(48, 'x');
+  process.env.FRONTEND_URL = 'http://localhost:8082';
+  process.env.CORS_ORIGINS = 'http://localhost:8082';
+  process.env.AUTH_REQUIRE_EMAIL_CONFIRMATION = 'true';
+  delete process.env.GOOGLE_CLIENT_ID;
 
   execSync('npx prisma migrate deploy', {
     cwd: `${__dirname}/../..`,

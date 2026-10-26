@@ -23,9 +23,15 @@ model User {
   passwordHash    String?   @map("password_hash")
   googleId        String?   @unique @map("google_id")
   emailVerifiedAt DateTime? @map("email_verified_at") @db.Timestamptz(6)
+  /// Tương đương raw_user_meta_data của Supabase: full_name, avatar_url, bio, cover_url…
+  /// Frontend đọc qua user.user_metadata (Profile.tsx dùng updateUser({ data })).
+  userMetadata    Json      @default("{}") @map("user_metadata")
+  lastSignInAt    DateTime? @map("last_sign_in_at") @db.Timestamptz(6)
   createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  refreshTokens     RefreshToken[]
+  authTokens        AuthToken[]
   profile           Profile?
   roles             UserRole[]
   enrollments       Enrollment[]
@@ -40,6 +46,46 @@ model User {
   adminNotesAboutMe AdminStudentNote[]   @relation("AdminStudentNoteStudent")
 
   @@map("users")
+}
+
+/// Refresh token xoay vòng (ADR 0002). Chỉ lưu SHA-256 của token.
+/// Mỗi lần đăng nhập mở một family; token đã dùng mà bị dùng lại → thu hồi cả family.
+model RefreshToken {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  familyId  String    @map("family_id") @db.Uuid
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz(6)
+  usedAt    DateTime? @map("used_at") @db.Timestamptz(6)
+  revokedAt DateTime? @map("revoked_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([familyId])
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+enum AuthTokenType {
+  email_verification
+  password_recovery
+
+  @@map("auth_token_type")
+}
+
+/// Token một lần trong link email (xác nhận đăng ký, đặt lại mật khẩu). Chỉ lưu SHA-256.
+model AuthToken {
+  id        String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String        @map("user_id") @db.Uuid
+  type      AuthTokenType
+  tokenHash String        @unique @map("token_hash")
+  expiresAt DateTime      @map("expires_at") @db.Timestamptz(6)
+  usedAt    DateTime?     @map("used_at") @db.Timestamptz(6)
+  createdAt DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
+  @@map("auth_tokens")
 }
 
 model AdminActivityLog {
