@@ -1,8 +1,22 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { AuthService } from '../auth/auth.service';
 import type { AuthenticatedUser } from '../auth/guards/jwt-auth.guard';
 import { CatalogService } from '../catalog/catalog.service';
-import { CurriculumModuleDto, EnrollmentResponseDto, MaterialDto } from './dto';
+import {
+  CreateNoteDto,
+  CurriculumModuleDto,
+  EnrollmentResponseDto,
+  FavoriteDto,
+  LessonProgressDto,
+  MaterialDto,
+  NoteDto,
+  PracticeDto,
+  UpdateLessonProgressDto,
+} from './dto';
 import {
   canStudyLesson,
   isEnrollmentActive,
@@ -101,6 +115,124 @@ export class LearningService {
 
     const materials = await this.repo.findMaterialsByLesson(lessonId);
     return materials.map((m) => this.mapper.toMaterialDto(m));
+  }
+
+  /**
+   * Thay `LearnPage.tsx:71-80`. Lấy danh sách tiến độ bài học của người dùng hiện tại.
+   * Order `last_watched_at desc nulls last, id desc`.
+   */
+  async getMyProgress(userId: string): Promise<LessonProgressDto[]> {
+    const list = await this.repo.findProgressByUser(userId);
+    return list.map((p) => this.mapper.toLessonProgressDto(p));
+  }
+
+  /**
+   * Thay `LearnPage.tsx:229-239`. Đánh dấu hoàn thành / chưa hoàn thành bài học.
+   * Upsert theo (userId, lessonId), ghi is_completed client gửi.
+   * Không đổi last_watched_at, watch_duration_seconds khi update.
+   */
+  async updateProgress(
+    userId: string,
+    lessonId: number,
+    dto: UpdateLessonProgressDto,
+  ): Promise<LessonProgressDto> {
+    const exists = await this.repo.lessonExists(lessonId);
+    if (!exists) {
+      throw new NotFoundException({
+        code: 'LESSON_NOT_FOUND',
+        message: `Bài học với ID ${lessonId} không tồn tại`,
+      });
+    }
+
+    const progress = await this.repo.upsertProgress(
+      userId,
+      lessonId,
+      dto.is_completed,
+    );
+    return this.mapper.toLessonProgressDto(progress);
+  }
+
+  /**
+   * Thay `LearnPage.tsx:82-90`. Lấy danh sách bài học yêu thích của tôi.
+   * Order `id asc`.
+   */
+  async getMyFavorites(userId: string): Promise<FavoriteDto[]> {
+    const list = await this.repo.findFavoritesByUser(userId);
+    return list.map((f) => this.mapper.toFavoriteDto(f));
+  }
+
+  /**
+   * Thay `LearnPage.tsx:255-263`. Thêm bài học vào danh sách yêu thích.
+   * Idempotent (đã có → trả bản ghi cũ, 200).
+   */
+  async addFavorite(userId: string, lessonId: number): Promise<FavoriteDto> {
+    const exists = await this.repo.lessonExists(lessonId);
+    if (!exists) {
+      throw new NotFoundException({
+        code: 'LESSON_NOT_FOUND',
+        message: `Bài học với ID ${lessonId} không tồn tại`,
+      });
+    }
+
+    const favorite = await this.repo.upsertFavorite(userId, lessonId);
+    return this.mapper.toFavoriteDto(favorite);
+  }
+
+  /**
+   * Thay `LearnPage.tsx:255-263`. Xóa bài học khỏi danh sách yêu thích.
+   * Idempotent (không có cũng thành công).
+   */
+  async removeFavorite(userId: string, lessonId: number): Promise<void> {
+    await this.repo.deleteFavorite(userId, lessonId);
+  }
+
+  /**
+   * Thay `LearnPage.tsx:106-114`. Lấy danh sách ghi chú của tôi trong bài học.
+   * Order `created_at desc, id desc`. Bài không tồn tại → [].
+   */
+  async getLessonNotes(userId: string, lessonId: number): Promise<NoteDto[]> {
+    const notes = await this.repo.findNotes(userId, lessonId);
+    return notes.map((n) => this.mapper.toNoteDto(n));
+  }
+
+  /**
+   * Thay `LearnPage.tsx:295-299`. Tạo ghi chú mới.
+   * Trim nội dung, nếu rỗng → 400 VALIDATION_FAILED. Lưu bản đã trim.
+   * Bài không tồn tại → 404 LESSON_NOT_FOUND.
+   */
+  async createNote(
+    userId: string,
+    lessonId: number,
+    dto: CreateNoteDto,
+  ): Promise<NoteDto> {
+    const trimmed = dto.content ? dto.content.trim() : '';
+    if (trimmed.length === 0) {
+      throw new BadRequestException({
+        code: 'VALIDATION_FAILED',
+        message: 'Nội dung ghi chú không được để trống',
+      });
+    }
+
+    const exists = await this.repo.lessonExists(lessonId);
+    if (!exists) {
+      throw new NotFoundException({
+        code: 'LESSON_NOT_FOUND',
+        message: `Bài học với ID ${lessonId} không tồn tại`,
+      });
+    }
+
+    const note = await this.repo.createNote(userId, lessonId, trimmed);
+    return this.mapper.toNoteDto(note);
+  }
+
+  /**
+   * Thay `LearnPage.tsx:128-139`. Lấy danh sách popup luyện tập trong bài.
+   * Công khai, không cần đăng nhập. Order `trigger_at_seconds asc, id asc`.
+   * Bài không tồn tại → [].
+   */
+  async getLessonPractices(lessonId: number): Promise<PracticeDto[]> {
+    const practices = await this.repo.findPracticesByLesson(lessonId);
+    return practices.map((p) => this.mapper.toPracticeDto(p));
   }
 
   private async isAdmin(user: AuthenticatedUser | undefined): Promise<boolean> {
