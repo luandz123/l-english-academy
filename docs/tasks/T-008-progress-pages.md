@@ -44,31 +44,38 @@ Thêm vào `src/lib/api/learning.ts`:
 ```ts
 /** Dòng tiến độ cho Dashboard/MyCourses/Profile (OPEN_QUESTIONS #19). */
 export interface LegacyProgressRow extends LessonProgressRow { // kiểu dòng mà listMyProgress() của T-007 trả; đổi tên cho khớp nếu T-007 đặt khác
-  created_at: null;
-  completed_at: null;
+  created_at: string | null;   // = last_watched_at
+  completed_at: string | null; // = last_watched_at
   updated_at: null;
 }
 export async function listMyProgressRows(): Promise<{ data: LegacyProgressRow[] | null; error: ApiError | null }>
 ```
-- Gọi lại `listMyProgress()` của T-007 rồi map từng dòng thành `{ ...row, created_at: null, completed_at: null, updated_at: null }`. Lỗi → trả nguyên `{ data: null, error }`.
-- Lý do phải có 3 khóa `null` (không được bỏ): 3 trang đọc `p.created_at` / `p.completed_at`. Thiếu khóa → `undefined` → `new Date(undefined)` là `Invalid Date` (NaN) làm hỏng phép sắp ở `MyCoursesPage.tsx:201-212`; có khóa `null` → `new Date(null)` = 0, sắp ổn định. Chủ dự án đã quyết "trường không tồn tại để null".
+- Gọi lại `listMyProgress()` của T-007 rồi map từng dòng thành `{ ...row, created_at: row.last_watched_at, completed_at: row.last_watched_at, updated_at: null }`. Lỗi → trả nguyên `{ data: null, error }`.
+- Chủ dự án quyết (OPEN_QUESTIONS #19, bổ sung 2026-10-28): `created_at` và `completed_at` lấy từ `last_watched_at`; `updated_at` luôn `null` (không trang nào đọc). Giữ nguyên chuỗi ISO server trả, không đổi múi giờ hay định dạng.
+- `last_watched_at` có `DEFAULT now()` và không chỗ nào cập nhật → thực chất là lúc dòng tiến độ được tạo (lần đầu đánh dấu hoàn thành). Có thể `null` với dữ liệu cũ → 2 khóa kia cũng `null`.
+- Phải luôn có đủ 3 khóa (kể cả khi giá trị `null`): thiếu khóa → `undefined` → `new Date(undefined)` là NaN, làm hỏng phép sắp ở `MyCoursesPage.tsx:201-212`; `null` → `new Date(null)` = 0, sắp ổn định.
 - Giữ thứ tự server trả, không sắp lại ở client.
 
-## 5. Hệ quả đã biết (ghi đúng vào mục 7, **không tự sửa**)
-Với `created_at`/`completed_at` luôn `null`:
-- Dashboard: số bài hoàn thành, % khóa, "bài tiếp theo" (`:160-180`) **bắt đầu có dữ liệu**. Ô "đã học" trong tuần (`:389`) vẫn không tính bài học (chỉ quiz/full test).
-- Profile: bản đồ nhiệt (`:414`) vẫn bỏ qua tiến độ bài học (`if (p.created_at)`).
-- MyCourses: n/N, %, trạng thái, bài tiếp theo **bắt đầu có dữ liệu**. Khi sắp "Gần đây", khóa có tiến độ nhận `lastActivityTime = 0` (`:209`) nên đứng **sau** khóa cùng trạng thái chưa học (khóa `in_progress` vẫn lên đầu nhờ `:263`).
+## 5. Hành vi mới (ghi đúng vào mục 8, **không tự sửa** component)
+- Dashboard: số bài hoàn thành, % khóa, "bài tiếp theo" (`:160-180`) có dữ liệu; ô ngày trong tuần (`:389`) tính là đã học nếu có dòng tiến độ tạo ngày đó.
+- Profile: bản đồ nhiệt (`:414`) cộng 1 cho mỗi dòng tiến độ vào ngày tạo dòng.
+- MyCourses: n/N, %, trạng thái, bài tiếp theo có dữ liệu; sắp "Gần đây" (`:201-212`, `:266`) dùng lúc tạo dòng tiến độ mới nhất của khóa.
+- Giới hạn chấp nhận (từ dữ liệu, không phải lỗi adapter):
+  - Ngày là lúc **lần đầu** đánh dấu hoàn thành; bỏ rồi đánh dấu lại không dời ngày.
+  - Dòng đã bỏ hoàn thành (`is_completed = false`) vẫn được lịch tuần và bản đồ nhiệt tính, vì 2 chỗ đó không lọc `is_completed`.
+  - So ngày bằng `startsWith`/`split("T")` trên chuỗi UTC, giống cách các trang này đang làm với `completed_at` của quiz/full test.
 
 ## 6. Tiêu chí nghiệm thu
 - [ ] `grep -n "user_lesson_progress" src/pages/DashboardPage.tsx src/pages/MyCoursesPage.tsx src/pages/Profile.tsx` không còn kết quả (dán output)
-- [ ] `learning.test.ts`: `listMyProgressRows` gọi GET `learning/progress`; mỗi dòng có đủ 3 khóa `null` và giữ các trường gốc; giữ thứ tự; lỗi 401/500 trả `{ data: null, error }`, không ném
+- [ ] `learning.test.ts`: `listMyProgressRows` gọi GET `learning/progress`; `created_at` = `completed_at` = `last_watched_at` (cả trường hợp `null`), `updated_at` = `null`, giữ các trường gốc; giữ thứ tự; lỗi 401/500 trả `{ data: null, error }`, không ném
 - [ ] `node scripts/check-ui-diff.mjs refactor/nestjs-backend` OK; `git diff refactor/nestjs-backend -- src/pages` chỉ đổi dòng `import` và thân 3 `queryFn`
 - [ ] Số `queryKey` mỗi trang trước/sau bằng nhau
-- [ ] Chạy tay local (backend + `npm run dev`, tài khoản test trong `.env`), đánh dấu hoàn thành 2 bài khóa 1 ở `LearnPage` rồi kiểm, ghi kết quả vào mục 7:
+- [ ] Chạy tay local (backend + `npm run dev`, tài khoản test trong `.env`), đánh dấu hoàn thành 2 bài khóa 1 ở `LearnPage` rồi kiểm, ghi kết quả vào mục 8:
   - [ ] Dashboard: % khóa và bài tiếp theo đổi theo 2 bài đã hoàn thành
   - [ ] Khóa của tôi: khóa 1 hiện 2/N, bài tiếp theo là bài chưa hoàn thành đầu tiên
-  - [ ] Hồ sơ: trang mở bình thường, không lỗi console
+  - [ ] Dashboard: ô hôm nay trong lịch tuần hiện đã học
+  - [ ] Hồ sơ: ô hôm nay trên bản đồ nhiệt tăng 2; không lỗi console
+  - [ ] Khóa của tôi, sắp "Gần đây": khóa 1 đứng trên các khóa cùng trạng thái chưa học
   - [ ] Đăng xuất: 3 trang không gọi `learning/progress` (do `enabled: !!user`)
 
 ## 7. Lệnh kiểm tra — dán **nguyên văn** output vào mục 8
