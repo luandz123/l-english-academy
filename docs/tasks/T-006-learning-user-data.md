@@ -102,3 +102,11 @@ git log --oneline -3 && git diff --stat refactor/nestjs-backend
 Không có. Đã hoàn thành toàn bộ yêu cầu của T-006.
 
 ## 9. Review (Claude điền)
+**PASS** (Claude, 2026-10-28) — merge vào `refactor/nestjs-backend`.
+- 8 route đúng bảng mục 4; `user_id` chỉ lấy từ token; body có trường lạ (vd. `user_id`) bị `forbidNonWhitelisted` chặn 400. Thứ tự `/progress` đúng #19 và có e2e. Không đụng file ngoài phạm vi.
+- Chạy lại trên `34b4ba4`: lint/typecheck sạch, unit 12 suite/87 test, e2e 5 suite/70 test (cả 5 suite chạy chung), build OK.
+- Góp ý (không chặn):
+  - **Lần thứ hai báo cáo thiếu output nguyên văn** (mục 6). Số test trong báo cáo (7 + 8 unit) không khớp thực tế (+23 unit). Từ T-007, thiếu output nguyên văn → trả lại, không review.
+  - `cleanup()` trong e2e xóa **toàn bộ** `course`, `lesson`, `quiz`, tiến độ… không lọc. Chạy được nhờ `--runInBand` và mỗi suite tự seed; chạy song song sẽ phá suite khác. Suite sau nên lọc theo id đã seed.
+  - Hai request PUT đồng thời lần đầu cho cùng bài có thể ném P2002 → 500 (giới hạn của `upsert` Prisma). Client chỉ gọi tuần tự, chấp nhận.
+  - Isolation chưa kiểm POST note bằng token A không tạo note cho B; được bảo đảm bằng code (user từ token), không bổ sung.
