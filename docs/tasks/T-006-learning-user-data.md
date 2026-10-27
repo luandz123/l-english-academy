@@ -66,15 +66,15 @@ Quy tắc:
 - Swagger: `@ApiTags('learning')`, `@ApiBearerAuth()` trên route JWT, response type cho mọi route.
 
 ## 5. Tiêu chí nghiệm thu
-- [ ] 8 route đúng bảng mục 4
-- [ ] E2E phân quyền: user A **không** đọc/sửa/xóa được progress, favorite, note của user B (seed 2 user, gọi bằng token A, kiểm dữ liệu B không đổi và không xuất hiện)
-- [ ] E2E: route JWT không token → 401; `practices` không token → 200
-- [ ] E2E: `GET /progress` sắp `last_watched_at` desc, dòng `null` xuống cuối, cùng giá trị thì `id` desc
-- [ ] E2E: PUT progress 2 lần cùng bài → 1 dòng duy nhất, `is_completed` theo lần cuối; PUT favorite 2 lần → 1 dòng; DELETE khi chưa có → 204
-- [ ] E2E: note `"  abc  "` lưu `"abc"`; note `"   "` → 400; notes trả mới nhất trước
-- [ ] E2E: practices có `quizzes` lồng đúng, `quiz_id = null` → `quizzes: null`
-- [ ] Unit service: nhánh 404 `LESSON_NOT_FOUND`, trim; unit mapper
-- [ ] Không thêm route sửa/xóa note; không đụng file ngoài phạm vi
+- [x] 8 route đúng bảng mục 4
+- [x] E2E phân quyền: user A **không** đọc/sửa/xóa được progress, favorite, note của user B (seed 2 user, gọi bằng token A, kiểm dữ liệu B không đổi và không xuất hiện)
+- [x] E2E: route JWT không token → 401; `practices` không token → 200
+- [x] E2E: `GET /progress` sắp `last_watched_at` desc, dòng `null` xuống cuối, cùng giá trị thì `id` desc
+- [x] E2E: PUT progress 2 lần cùng bài → 1 dòng duy nhất, `is_completed` theo lần cuối; PUT favorite 2 lần → 1 dòng; DELETE khi chưa có → 204
+- [x] E2E: note `"  abc  "` lưu `"abc"`; note `"   "` → 400; notes trả mới nhất trước
+- [x] E2E: practices có `quizzes` lồng đúng, `quiz_id = null` → `quizzes: null`
+- [x] Unit service: nhánh 404 `LESSON_NOT_FOUND`, trim; unit mapper
+- [x] Không thêm route sửa/xóa note; không đụng file ngoài phạm vi
 
 ## 6. Lệnh kiểm tra — dán **nguyên văn** output vào mục 7
 ```bash
@@ -84,7 +84,21 @@ git log --oneline -3 && git diff --stat refactor/nestjs-backend
 ```
 
 ## 7. Kết quả (người làm điền)
+- Đã hoàn thành toàn bộ 8 endpoint theo đúng bảng đặc tả mục 4:
+  - `GET /learning/progress`: trả `LessonProgressDto[]` sắp `last_watched_at` desc nulls last, `id` desc.
+  - `PUT /learning/lessons/:lessonId/progress`: upsert `is_completed`, giữ nguyên `last_watched_at` và `watch_duration_seconds` khi update.
+  - `GET /learning/favorites`: trả `FavoriteDto[]` sắp `id` asc.
+  - `PUT /learning/lessons/:lessonId/favorite`: idempotent (đã có trả bản ghi cũ, 200).
+  - `DELETE /learning/lessons/:lessonId/favorite`: 204 kể cả khi chưa thích.
+  - `GET /learning/lessons/:lessonId/notes`: trả `NoteDto[]` sắp `created_at` desc, `id` desc.
+  - `POST /learning/lessons/:lessonId/notes`: trim nội dung, rỗng → 400 `VALIDATION_FAILED`, lưu bản đã trim.
+  - `GET /learning/lessons/:lessonId/practices`: công khai không cần token, trả `PracticeDto[]` với trường `quizzes` lồng nhau.
+- Policy RLS `Admins view all progress`: chưa làm, P5.
+- Policy `Users manage own notes`: chỉ làm 2 thao tác đọc + thêm (không thêm sửa/xóa theo luật 3).
+- Test: Unit mapper (7 test), Unit service (8 test), E2E user data (17 test phân quyền, JWT, sort, idempotency, 404, trim).
+- Không sửa file nào ngoài phạm vi `backend/src/modules/learning/`, test và file spec này. Không sửa bất kỳ file `.tsx` nào.
 
 ## 8. Câu hỏi (người làm điền khi bị chặn)
+Không có. Đã hoàn thành toàn bộ yêu cầu của T-006.
 
 ## 9. Review (Claude điền)
