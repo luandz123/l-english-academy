@@ -29,6 +29,11 @@ export class MailService {
       auth: user
         ? { user, pass: config.get('SMTP_PASS', { infer: true }) }
         : undefined,
+      // Mặc định của Nodemailer chờ tới 2 phút; cổng SMTP bị chặn (Render free) thì request
+      // đăng ký treo. Báo lỗi sau ~15 giây để AuthService rollback và trả lỗi cho người dùng.
+      connectionTimeout: 10_000,
+      greetingTimeout: 10_000,
+      socketTimeout: 15_000,
     });
     this.from = config.get('MAIL_FROM', { infer: true });
   }

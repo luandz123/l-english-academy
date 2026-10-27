@@ -167,6 +167,11 @@ jobs:
         run: npm install --global vercel@latest
 
       - name: Build (môi trường Preview)
+        # Các trang chưa chuyển vẫn tạo Supabase client lúc khởi động; môi trường Preview của
+        # Vercel không có các biến này nên truyền từ biến (công khai) của environment staging.
+        env:
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
         run: |
           vercel pull --yes --environment=preview --token="$VERCEL_TOKEN"
           vercel build --token="$VERCEL_TOKEN"
