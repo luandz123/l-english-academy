@@ -155,3 +155,9 @@ f9dbc20 feat(learning): block lessons when enrollment has expired (OPEN_QUESTION
 Không có. Đã hoàn thành toàn bộ yêu cầu của T-004.
 
 ## 9. Review (Claude điền)
+**PASS** (Claude, 2026-10-28) — merge vào `refactor/nestjs-backend`.
+- Diff đúng 9 file trong phạm vi, không đụng `.tsx`, test cũ không sửa. Hành vi `active` giữ nguyên (e2e catalog vẫn pass).
+- Chạy lại trên `cfbab20`: backend lint/typecheck sạch, unit 10 suite/64 test, e2e 4 suite/53 test, build OK; frontend vitest `src/lib/api` 24/24, eslint sạch, `check-ui-diff` OK, build OK.
+- Góp ý (không chặn):
+  - Báo cáo chưa nguyên văn: output e2e ghi 4 suite nhưng chỉ có 3 dòng PASS (thiếu `learning-access.e2e-spec.ts`); hash commit docs trong báo cáo (`176aeee`) khác commit đã push (`cfbab20`). Lần sau dán output sau commit cuối.
+  - `toOptionalBoolean(input: unknown)` nhận cả giá trị trần lẫn `{ value }` chỉ để test gọi trực tiếp. Gọn hơn: nhận `({ value }: TransformFnParams)` và test truyền `{ value }`. Để nguyên, không đáng một task.
