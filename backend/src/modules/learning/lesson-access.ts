@@ -1,6 +1,6 @@
 export interface LessonAccessContext {
   isAdmin: boolean;
-  /** Có dòng enrollments(user, course). Bỏ qua `expires_at` như client cũ — OPEN_QUESTIONS #18. */
+  /** Có dòng enrollments(user, course) còn hạn (OPEN_QUESTIONS #18). */
   enrolled: boolean;
   courseIsFree: boolean;
   moduleIsFree: boolean;
@@ -23,19 +23,34 @@ export function canStudyLesson(ctx: LessonAccessContext): boolean {
 }
 
 /**
+ * Ghi danh còn hạn: `expires_at` null (vĩnh viễn) hoặc chưa qua. Client cũ bỏ qua
+ * `expires_at`; chủ dự án quyết chặn khi `expires_at < now()` (OPEN_QUESTIONS #18).
+ */
+export function isEnrollmentActive(
+  enrollment: { expiresAt: Date | null },
+  now: Date,
+): boolean {
+  return enrollment.expiresAt === null || enrollment.expiresAt >= now;
+}
+
+/**
  * Dựng ngữ cảnh từ dữ liệu có thể thiếu: bài không có module → không biết khóa,
  * nên `moduleIsFree = enrolled = courseIsFree = false`; khách không có enrollment.
  */
 export function lessonAccessContext(input: {
   isAdmin: boolean;
-  hasEnrollment: boolean;
+  enrollment: { expiresAt: Date | null } | null;
+  now: Date;
   course: { is_free: boolean | null } | null;
   module: { isFree: boolean | null } | null;
   lesson: { isFree: boolean | null };
 }): LessonAccessContext {
   return {
     isAdmin: input.isAdmin,
-    enrolled: input.module !== null && input.hasEnrollment,
+    enrolled:
+      input.module !== null &&
+      input.enrollment !== null &&
+      isEnrollmentActive(input.enrollment, input.now),
     courseIsFree: input.module !== null && Boolean(input.course?.is_free),
     moduleIsFree: Boolean(input.module?.isFree),
     lessonIsFree: Boolean(input.lesson.isFree),

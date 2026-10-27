@@ -3,7 +3,11 @@ import { AuthService } from '../auth/auth.service';
 import type { AuthenticatedUser } from '../auth/guards/jwt-auth.guard';
 import { CatalogService } from '../catalog/catalog.service';
 import { CurriculumModuleDto, EnrollmentResponseDto, MaterialDto } from './dto';
-import { canStudyLesson, lessonAccessContext } from './lesson-access';
+import {
+  canStudyLesson,
+  isEnrollmentActive,
+  lessonAccessContext,
+} from './lesson-access';
 import { LearningMapper } from './learning.mapper';
 import { LearningRepository } from './learning.repository';
 
@@ -36,7 +40,8 @@ export class LearningService {
         canStudyLesson(
           lessonAccessContext({
             isAdmin,
-            hasEnrollment: enrollment !== null,
+            enrollment,
+            now: new Date(),
             course,
             module,
             lesson,
@@ -46,14 +51,19 @@ export class LearningService {
     );
   }
 
-  /** Thay `LearnPage.tsx:29-39`. user id luôn lấy từ token (RLS "Users view own enrollments"). */
+  /**
+   * Thay `LearnPage.tsx:29-39`. user id luôn lấy từ token (RLS "Users view own enrollments").
+   * Hết hạn → `null`: LearnPage chỉ dùng enrollment làm cờ mở khóa (`:224`, `:894`),
+   * trả bản ghi hết hạn sẽ hiện player với URL rỗng thay vì màn hình khóa (#18).
+   */
   async getMyEnrollment(
     userId: string,
     courseId: number,
   ): Promise<EnrollmentResponseDto> {
     const enrollment = await this.repo.findEnrollment(userId, courseId);
+    const active = enrollment && isEnrollmentActive(enrollment, new Date());
     return {
-      enrollment: enrollment ? this.mapper.toEnrollmentDto(enrollment) : null,
+      enrollment: active ? this.mapper.toEnrollmentDto(enrollment) : null,
     };
   }
 
@@ -80,7 +90,8 @@ export class LearningService {
     const allowed = canStudyLesson(
       lessonAccessContext({
         isAdmin,
-        hasEnrollment: enrollment !== null,
+        enrollment,
+        now: new Date(),
         course,
         module: lesson.module,
         lesson,

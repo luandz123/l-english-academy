@@ -69,7 +69,8 @@ cd backend && npm run lint && npm run typecheck && npm test && npm run test:e2e 
 Nhánh `task/T-005-learning-access` (Claude, 2026-10-27).
 - `OptionalJwtAuthGuard` (sửa module Auth tối thiểu: file guard mới + export trong `auth.module.ts`); `CatalogService.findCourseById` (không ném 404).
 - `LearningModule`: 3 endpoint theo §4. Quyền gom ở `lesson-access.ts` (`canStudyLesson`, `lessonAccessContext`).
-- `lint` sạch, `typecheck` sạch, `npm test` 9 suite / 45 test pass, `npm run test:e2e` 4 suite / 51 test pass (learning-access: 17), `npm run build` pass.
+- 2026-10-28, OPEN_QUESTIONS #18 đã quyết: ghi danh `expires_at < now()` không mở bài (`isEnrollmentActive`); endpoint enrollment trả `null` khi hết hạn.
+- `lint` sạch, `typecheck` sạch, `npm test` 9 suite / 48 test pass, `npm run test:e2e` 4 suite / 53 test pass (learning-access: 19), `npm run build` pass.
 
 ## 8. Câu hỏi
 

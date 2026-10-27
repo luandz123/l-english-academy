@@ -37,7 +37,13 @@ describe('LearningModule — quyền xem bài (e2e)', () => {
     freeModuleLesson: 0,
     freeCourseLesson: 0,
   };
-  const tokens = { enrolled: '', other: '', admin: '' };
+  const tokens = {
+    enrolled: '',
+    other: '',
+    admin: '',
+    expired: '',
+    notYet: '',
+  };
   let enrolledUserId = '';
 
   const http = () => request(app.getHttpServer());
@@ -185,6 +191,26 @@ describe('LearningModule — quyền xem bài (e2e)', () => {
     await prisma.enrollment.create({
       data: { userId: other.id, courseId: freeCourse.id },
     });
+
+    // OPEN_QUESTIONS #18: ghi danh hết hạn không mở bài; còn hạn thì mở
+    const expired = await userWithToken('expired@learn.test');
+    const notYet = await userWithToken('notyet@learn.test');
+    tokens.expired = expired.token;
+    tokens.notYet = notYet.token;
+    await prisma.enrollment.create({
+      data: {
+        userId: expired.id,
+        courseId: paidCourse.id,
+        expiresAt: new Date(Date.now() - 60_000),
+      },
+    });
+    await prisma.enrollment.create({
+      data: {
+        userId: notYet.id,
+        courseId: paidCourse.id,
+        expiresAt: new Date(Date.now() + 86_400_000),
+      },
+    });
   });
 
   afterAll(async () => {
@@ -325,6 +351,35 @@ describe('LearningModule — quyền xem bài (e2e)', () => {
       .set(bearer(tokens.other))
       .expect(200);
     expect((res.body as EnrollmentResponseDto).enrollment).toBeNull();
+  });
+
+  it('ghi danh hết hạn (#18): enrollment null, bài trả phí và tài liệu bị khóa', async () => {
+    const res = await http()
+      .get(`/api/v1/learning/courses/${ids.paidCourse}/enrollment`)
+      .set(bearer(tokens.expired))
+      .expect(200);
+    expect((res.body as EnrollmentResponseDto).enrollment).toBeNull();
+
+    const tree = await curriculum(ids.paidCourse, tokens.expired);
+    expect(lessonIn(tree, ids.paidLesson)!.video_url).toBeNull();
+    // Bài free vẫn mở
+    expect(lessonIn(tree, ids.freeLesson)!.video_url).toBe(
+      'https://video.test/free',
+    );
+    expect(await materials(ids.paidLesson, tokens.expired)).toEqual([]);
+  });
+
+  it('ghi danh còn hạn (expires_at tương lai): mở bài và trả bản ghi', async () => {
+    const res = await http()
+      .get(`/api/v1/learning/courses/${ids.paidCourse}/enrollment`)
+      .set(bearer(tokens.notYet))
+      .expect(200);
+    expect((res.body as EnrollmentResponseDto).enrollment).not.toBeNull();
+
+    const tree = await curriculum(ids.paidCourse, tokens.notYet);
+    expect(lessonIn(tree, ids.paidLesson)!.video_url).toBe(
+      'https://video.test/paid',
+    );
   });
 
   it('không có route tự ghi danh cho học viên', async () => {
