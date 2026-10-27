@@ -8,6 +8,7 @@ import { MailModule } from './mail/mail.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { CatalogModule } from './modules/catalog/catalog.module';
+import { LearningModule } from './modules/learning/learning.module';
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { CatalogModule } from './modules/catalog/catalog.module';
     HealthModule,
     AuthModule,
     CatalogModule,
+    LearningModule,
   ],
 })
 export class AppModule {}

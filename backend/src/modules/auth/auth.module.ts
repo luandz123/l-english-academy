@@ -11,6 +11,7 @@ import { AuthService } from './auth.service';
 import { GoogleAuthGuard } from './google/google-auth.guard';
 import { GoogleStrategy } from './google/google.strategy';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from './guards/optional-jwt-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
 import { TokenService } from './token.service';
 
@@ -36,10 +37,17 @@ import { TokenService } from './token.service';
     AuthService,
     TokenService,
     JwtAuthGuard,
+    OptionalJwtAuthGuard,
     RolesGuard,
     GoogleStrategy,
     GoogleAuthGuard,
   ],
-  exports: [AuthService, TokenService, JwtAuthGuard, RolesGuard],
+  exports: [
+    AuthService,
+    TokenService,
+    JwtAuthGuard,
+    OptionalJwtAuthGuard,
+    RolesGuard,
+  ],
 })
 export class AuthModule {}

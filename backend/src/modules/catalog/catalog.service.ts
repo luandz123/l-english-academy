@@ -51,4 +51,10 @@ export class CatalogService {
     }
     return this.catalogMapper.toCourseDto(course);
   }
+
+  /** Cho module khác (Learning): không ném 404, khóa không tồn tại → null. */
+  async findCourseById(id: number): Promise<CourseDto | null> {
+    const course = await this.catalogRepository.findCourseById(id);
+    return course ? this.catalogMapper.toCourseDto(course) : null;
+  }
 }
