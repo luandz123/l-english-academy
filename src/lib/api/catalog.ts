@@ -84,10 +84,7 @@ export async function getCourse(
   const result = await toResult(
     apiClient.get<CourseRow>(`catalog/courses/${id}`),
   );
-  if (
-    result.error &&
-    (result.error.status === 404 || result.error.code === "COURSE_NOT_FOUND")
-  ) {
+  if (result.error && result.error.code === "COURSE_NOT_FOUND") {
     return { data: null, error: null };
   }
   return result;
