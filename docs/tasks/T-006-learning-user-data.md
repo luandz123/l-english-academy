@@ -43,7 +43,7 @@ Mọi route dưới `/api/v1/learning`. `user_id` **luôn** lấy từ `@Current
 
 | Method | Route | Guard | Body | Trả về |
 |---|---|---|---|---|
-| GET | `/progress` | JWT | — | `LessonProgressDto[]` order `id` asc |
+| GET | `/progress` | JWT | — | `LessonProgressDto[]` order `last_watched_at` desc **nulls last**, `id` desc (OPEN_QUESTIONS #19; T-008 dùng lại route này) |
 | PUT | `/lessons/:lessonId/progress` | JWT | `{ is_completed: boolean }` | `LessonProgressDto` |
 | GET | `/favorites` | JWT | — | `FavoriteDto[]` order `id` asc |
 | PUT | `/lessons/:lessonId/favorite` | JWT | — | `FavoriteDto` |
@@ -69,6 +69,7 @@ Quy tắc:
 - [ ] 8 route đúng bảng mục 4
 - [ ] E2E phân quyền: user A **không** đọc/sửa/xóa được progress, favorite, note của user B (seed 2 user, gọi bằng token A, kiểm dữ liệu B không đổi và không xuất hiện)
 - [ ] E2E: route JWT không token → 401; `practices` không token → 200
+- [ ] E2E: `GET /progress` sắp `last_watched_at` desc, dòng `null` xuống cuối, cùng giá trị thì `id` desc
 - [ ] E2E: PUT progress 2 lần cùng bài → 1 dòng duy nhất, `is_completed` theo lần cuối; PUT favorite 2 lần → 1 dòng; DELETE khi chưa có → 204
 - [ ] E2E: note `"  abc  "` lưu `"abc"`; note `"   "` → 400; notes trả mới nhất trước
 - [ ] E2E: practices có `quizzes` lồng đúng, `quiz_id = null` → `quizzes: null`

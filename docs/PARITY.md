@@ -71,6 +71,9 @@
 | **LRN-012** | Learning | Thêm ghi chú bài học mới vào `user_notes` | [src/pages/LearnPage.tsx:297](file:///c:/Users/lenovo/l-english-academy/src/pages/LearnPage.tsx#L297) | | | `todo` | Lưu `content`, `lesson_id`, `user_id` |
 | **LRN-013** | Learning | Lưu nháp ghi chú tạm trong `localStorage` | [src/pages/LearnPage.tsx:272](file:///c:/Users/lenovo/l-english-academy/src/pages/LearnPage.tsx#L272) | | | `todo` | `lenglish_draft_note_${lessonId}_${userId}` |
 | **LRN-014** | Learning | Lưu trạng thái thu gọn thanh bên `learnpage-sidebar-collapsed` | [src/pages/LearnPage.tsx:151](file:///c:/Users/lenovo/l-english-academy/src/pages/LearnPage.tsx#L151) | | | `todo` | Lưu boolean vào localStorage |
+| **LRN-015** | Learning | Dashboard: tiến độ bài học ("học tiếp", % khóa) | [src/pages/DashboardPage.tsx:92](file:///c:/Users/lenovo/l-english-academy/src/pages/DashboardPage.tsx#L92) | `GET /api/v1/learning/progress` | | `todo` | **Đổi hành vi có chủ đích** (OPEN_QUESTIONS #19): cũ luôn `[]`; mới trả dữ liệu thật, `created_at`/`completed_at`/`updated_at` = `null`. Spec T-008 |
+| **LRN-016** | Learning | Khóa của tôi: n/N bài, bài tiếp theo, hoạt động gần nhất | [src/pages/MyCoursesPage.tsx:116](file:///c:/Users/lenovo/l-english-academy/src/pages/MyCoursesPage.tsx#L116) | `GET /api/v1/learning/progress` | | `todo` | Như LRN-015. Spec T-008 |
+| **LRN-017** | Learning | Hồ sơ: tiến độ bài học trong thống kê | [src/pages/Profile.tsx:258](file:///c:/Users/lenovo/l-english-academy/src/pages/Profile.tsx#L258) | `GET /api/v1/learning/progress` | | `todo` | Như LRN-015. Spec T-008 |
 
 ---
 
