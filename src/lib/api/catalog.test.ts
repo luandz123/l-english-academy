@@ -171,6 +171,21 @@ describe("catalog adapter", () => {
       expect(error).toBeNull();
     });
 
+    it("trả về { data: null, error: ApiError } khi 404 với code khác (ví dụ NOT_FOUND do sai route)", async () => {
+      mockFetch(404, {
+        statusCode: 404,
+        code: "NOT_FOUND",
+        message: "Cannot GET /api/v1/catalog/courses/999",
+      });
+
+      const { data, error } = await getCourse(999);
+
+      expect(data).toBeNull();
+      expect(error).toBeInstanceOf(ApiError);
+      expect(error?.status).toBe(404);
+      expect(error?.code).toBe("NOT_FOUND");
+    });
+
     it("trả về { data: null, error: ApiError } khi gặp lỗi khác 404 (ví dụ 500)", async () => {
       mockFetch(500, {
         statusCode: 500,

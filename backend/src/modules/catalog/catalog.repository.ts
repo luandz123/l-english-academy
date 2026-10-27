@@ -36,7 +36,7 @@ export class CatalogRepository {
     });
   }
 
-  async countCourses(filter: CategoryFilter): Promise<number> {
+  async countCourses(filter: Pick<CourseFilter, 'isActive'>): Promise<number> {
     return this.prisma.course.count({
       where: {
         ...(filter.isActive !== undefined ? { isActive: filter.isActive } : {}),
