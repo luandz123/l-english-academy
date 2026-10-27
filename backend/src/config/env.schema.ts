@@ -41,15 +41,42 @@ export const envSchema = z
     MAIL_FROM: z
       .string()
       .default('L-English Academy <no-reply@lenglish.local>'),
+    // smtp: Mailpit/SMTP thường. gmail_api: Render free chặn cổng SMTP → gửi qua HTTPS
+    MAIL_PROVIDER: z.enum(['smtp', 'gmail_api']).default('smtp'),
+    GMAIL_CLIENT_ID: z.string().optional(),
+    GMAIL_CLIENT_SECRET: z.string().optional(),
+    GMAIL_REFRESH_TOKEN: z.string().optional(),
   })
   .refine(
     (env) =>
+      env.NODE_ENV !== 'production' || env.FRONTEND_URL.startsWith('https://'),
+    {
+      message: 'Production cần FRONTEND_URL dạng https:// (cookie Secure)',
+      path: ['FRONTEND_URL'],
+    },
+  )
+  .refine(
+    (env) =>
+      env.MAIL_PROVIDER !== 'smtp' ||
       env.NODE_ENV !== 'production' ||
-      (env.FRONTEND_URL.startsWith('https://') && Boolean(env.SMTP_USER)),
+      Boolean(env.SMTP_USER),
+    {
+      message: 'Production dùng MAIL_PROVIDER=smtp thì cần SMTP_USER',
+      path: ['SMTP_USER'],
+    },
+  )
+  .refine(
+    (env) =>
+      env.MAIL_PROVIDER !== 'gmail_api' ||
+      Boolean(
+        env.GMAIL_CLIENT_ID &&
+        env.GMAIL_CLIENT_SECRET &&
+        env.GMAIL_REFRESH_TOKEN,
+      ),
     {
       message:
-        'Production cần FRONTEND_URL dạng https:// (cookie Secure) và SMTP_USER',
-      path: ['FRONTEND_URL'],
+        'MAIL_PROVIDER=gmail_api cần GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN',
+      path: ['GMAIL_REFRESH_TOKEN'],
     },
   );
 

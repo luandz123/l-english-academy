@@ -32,17 +32,17 @@ services:
         sync: false
       - key: CORS_ORIGINS # cùng giá trị FRONTEND_URL
         sync: false
-      - key: SMTP_HOST
-        value: smtp.gmail.com
-      - key: SMTP_PORT
-        value: "465"
-      - key: SMTP_SECURE
-        value: "true"
-      - key: SMTP_USER # địa chỉ Gmail gửi thư
+      # Render free chặn mọi cổng SMTP ra ngoài (từ 26/09/2025) → gửi thư qua Gmail API (HTTPS).
+      # Cách tạo client + refresh token: docs/STAGING.md §2.5
+      - key: MAIL_PROVIDER
+        value: gmail_api
+      - key: GMAIL_CLIENT_ID
         sync: false
-      - key: SMTP_PASS # Gmail App Password (16 ký tự)
+      - key: GMAIL_CLIENT_SECRET
         sync: false
-      - key: MAIL_FROM
+      - key: GMAIL_REFRESH_TOKEN
+        sync: false
+      - key: MAIL_FROM # L-English Academy <gmail-đã-cấp-quyền@gmail.com>
         sync: false
       - key: GOOGLE_CLIENT_ID
         sync: false

@@ -17,7 +17,7 @@ Một người làm, ngân sách 0đ/tháng, chưa có domain, người dùng �
 | Backend | Render free, Singapore, build từ `Dockerfile`; UptimeRobot gọi `/api/health` ~10 phút/lần | `npm run start:dev` `:3000` |
 | Database | Neon free, Singapore, Postgres 18 — project `royal-water-29084351`, branch `production`. App dùng `DATABASE_URL` (pooled), Prisma CLI dùng `DATABASE_URL_UNPOOLED` | `postgres:18-alpine` `:5433` (test: Testcontainers cùng image) |
 | Object storage | Cloudflare R2 (S3 API) | SeaweedFS `chrislusf/seaweedfs:4.48` `:8333` |
-| Email | Gmail SMTP qua Nodemailer | Mailpit SMTP `:1025`, UI `:8025` |
+| Email | **Gmail API qua HTTPS** (`MAIL_PROVIDER=gmail_api`) — Render free chặn SMTP | Mailpit SMTP `:1025`, UI `:8025` |
 | Giám sát | Sentry free, UptimeRobot | — |
 | Backup | `pg_dump` hằng đêm (GitHub Actions) → R2, giữ 14 ngày | — |
 

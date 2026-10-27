@@ -39,4 +39,25 @@ describe('validateEnv', () => {
       }),
     ).toThrow(/FRONTEND_URL/);
   });
+
+  it('MAIL_PROVIDER=gmail_api bắt buộc đủ 3 biến GMAIL_*', () => {
+    expect(() =>
+      validateEnv({
+        ...BASE,
+        MAIL_PROVIDER: 'gmail_api',
+        GMAIL_CLIENT_ID: 'x',
+      }),
+    ).toThrow(/GMAIL_REFRESH_TOKEN/);
+    expect(
+      validateEnv({
+        ...BASE,
+        NODE_ENV: 'production',
+        FRONTEND_URL: 'https://x.vercel.app',
+        MAIL_PROVIDER: 'gmail_api',
+        GMAIL_CLIENT_ID: 'a',
+        GMAIL_CLIENT_SECRET: 'b',
+        GMAIL_REFRESH_TOKEN: 'c',
+      }).MAIL_PROVIDER,
+    ).toBe('gmail_api');
+  });
 });
