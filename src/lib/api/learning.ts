@@ -105,6 +105,25 @@ export interface PracticeRow {
   quizzes: PracticeQuizRow | null;
 }
 
+export interface SaveLessonPayload {
+  title: string;
+  lesson_type: string;
+  video_url?: string | null;
+  pdf_url?: string | null;
+  duration_seconds: number;
+}
+
+export interface PatchLessonPayload {
+  is_free?: boolean;
+  is_published?: boolean;
+}
+
+export interface SavePracticePayload {
+  quiz_id?: number | null;
+  trigger_at_seconds: number;
+  title: string;
+}
+
 export async function getCurriculum(
   courseId: number,
 ): Promise<{ data: CurriculumModuleRow[] | null; error: ApiError | null }> {
@@ -262,6 +281,93 @@ export async function removeEnrollment(
 ): Promise<{ data: null; error: ApiError | null }> {
   const result = await toResult(
     apiClient.delete<void>(`learning/admin/enrollments/${enrollmentId}`),
+  );
+  if (result.error) {
+    return { data: null, error: result.error };
+  }
+  return { data: null, error: null };
+}
+
+export async function createLesson(
+  moduleId: number,
+  body: SaveLessonPayload,
+): Promise<{ data: LessonRow | null; error: ApiError | null }> {
+  return toResult(
+    apiClient.post<LessonRow>(`learning/admin/modules/${moduleId}/lessons`, body),
+  );
+}
+
+export async function updateLesson(
+  id: number,
+  body: SaveLessonPayload,
+): Promise<{ data: LessonRow | null; error: ApiError | null }> {
+  return toResult(
+    apiClient.put<LessonRow>(`learning/admin/lessons/${id}`, body),
+  );
+}
+
+export async function patchLesson(
+  id: number,
+  body: PatchLessonPayload,
+): Promise<{ data: LessonRow | null; error: ApiError | null }> {
+  return toResult(
+    apiClient.patch<LessonRow>(`learning/admin/lessons/${id}`, body),
+  );
+}
+
+export async function deleteLesson(
+  id: number,
+): Promise<{ data: null; error: ApiError | null }> {
+  const result = await toResult(
+    apiClient.delete<void>(`learning/admin/lessons/${id}`),
+  );
+  if (result.error) {
+    return { data: null, error: result.error };
+  }
+  return { data: null, error: null };
+}
+
+export async function reorderLessons(
+  moduleId: number,
+  lessonIds: number[],
+): Promise<{ data: null; error: ApiError | null }> {
+  const result = await toResult(
+    apiClient.put<void>(`learning/admin/modules/${moduleId}/lesson-order`, {
+      lesson_ids: lessonIds,
+    }),
+  );
+  if (result.error) {
+    return { data: null, error: result.error };
+  }
+  return { data: null, error: null };
+}
+
+export async function createPractice(
+  lessonId: number,
+  body: SavePracticePayload,
+): Promise<{ data: PracticeRow | null; error: ApiError | null }> {
+  return toResult(
+    apiClient.post<PracticeRow>(
+      `learning/admin/lessons/${lessonId}/practices`,
+      body,
+    ),
+  );
+}
+
+export async function updatePractice(
+  id: number,
+  body: SavePracticePayload,
+): Promise<{ data: PracticeRow | null; error: ApiError | null }> {
+  return toResult(
+    apiClient.put<PracticeRow>(`learning/admin/practices/${id}`, body),
+  );
+}
+
+export async function deletePractice(
+  id: number,
+): Promise<{ data: null; error: ApiError | null }> {
+  const result = await toResult(
+    apiClient.delete<void>(`learning/admin/practices/${id}`),
   );
   if (result.error) {
     return { data: null, error: result.error };

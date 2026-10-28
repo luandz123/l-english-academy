@@ -1,18 +1,27 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   countCourses,
+  createModule,
+  deleteModule,
+  getAdminCourseModules,
   getCourse,
   listCategories,
   listCourses,
+  patchModule,
+  reorderModules,
+  setFreeModule,
+  updateModule,
 } from "./catalog";
 import { ApiError } from "./client";
 
 function mockFetch(status: number, body?: unknown) {
-  const fn = vi.fn().mockResolvedValue(
-    new Response(body === undefined ? null : JSON.stringify(body), {
-      status,
-      headers: { "Content-Type": "application/json" },
-    }),
+  const fn = vi.fn().mockImplementation(() =>
+    Promise.resolve(
+      new Response(body === undefined ? null : JSON.stringify(body), {
+        status,
+        headers: { "Content-Type": "application/json" },
+      }),
+    ),
   );
   vi.stubGlobal("fetch", fn);
   return fn;
@@ -198,6 +207,182 @@ describe("catalog adapter", () => {
       expect(data).toBeNull();
       expect(error).toBeInstanceOf(ApiError);
       expect(error?.status).toBe(500);
+    });
+  });
+
+  describe("admin modules", () => {
+    it("getAdminCourseModules gọi GET catalog/admin/courses/:id/modules và trả về modules kèm lessons, quizzes", async () => {
+      const modules = [
+        {
+          id: 1,
+          course_id: 5,
+          title: "Part 1",
+          description: null,
+          display_order: 0,
+          is_free: true,
+          is_published: true,
+          lessons: [],
+          quizzes: [],
+        },
+      ];
+      const fetchMock = mockFetch(200, modules);
+
+      const { data, error } = await getAdminCourseModules(5);
+
+      expect(error).toBeNull();
+      expect(data).toEqual(modules);
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("/api/v1/catalog/admin/courses/5/modules");
+      expect(init?.method).toBe("GET");
+    });
+
+    it("createModule gọi POST catalog/admin/courses/:id/modules không gửi display_order, course_id", async () => {
+      const created = {
+        id: 2,
+        course_id: 5,
+        title: "Part 2",
+        description: "Mô tả",
+        display_order: 1,
+        is_free: false,
+        is_published: true,
+      };
+      const fetchMock = mockFetch(201, created);
+
+      const { data, error } = await createModule(5, {
+        title: "Part 2",
+        description: "Mô tả",
+        is_free: false,
+      });
+
+      expect(error).toBeNull();
+      expect(data).toEqual(created);
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("/api/v1/catalog/admin/courses/5/modules");
+      expect(init?.method).toBe("POST");
+      const parsed = JSON.parse(init?.body as string);
+      expect(parsed).toEqual({
+        title: "Part 2",
+        description: "Mô tả",
+        is_free: false,
+      });
+      expect(parsed.display_order).toBeUndefined();
+      expect(parsed.course_id).toBeUndefined();
+    });
+
+    it("updateModule gọi PUT catalog/admin/modules/:id không gửi display_order, course_id", async () => {
+      const updated = {
+        id: 2,
+        course_id: 5,
+        title: "Part 2 Updated",
+        description: null,
+        display_order: 1,
+        is_free: true,
+        is_published: true,
+      };
+      const fetchMock = mockFetch(200, updated);
+
+      const { data, error } = await updateModule(2, {
+        title: "Part 2 Updated",
+        description: null,
+        is_free: true,
+      });
+
+      expect(error).toBeNull();
+      expect(data).toEqual(updated);
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("/api/v1/catalog/admin/modules/2");
+      expect(init?.method).toBe("PUT");
+      const parsed = JSON.parse(init?.body as string);
+      expect(parsed).toEqual({
+        title: "Part 2 Updated",
+        description: null,
+        is_free: true,
+      });
+      expect(parsed.display_order).toBeUndefined();
+      expect(parsed.course_id).toBeUndefined();
+    });
+
+    it("patchModule gọi PATCH catalog/admin/modules/:id", async () => {
+      const patched = {
+        id: 2,
+        course_id: 5,
+        title: "Part 2",
+        description: null,
+        display_order: 1,
+        is_free: true,
+        is_published: false,
+      };
+      const fetchMock = mockFetch(200, patched);
+
+      const { data, error } = await patchModule(2, { is_published: false });
+
+      expect(error).toBeNull();
+      expect(data).toEqual(patched);
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("/api/v1/catalog/admin/modules/2");
+      expect(init?.method).toBe("PATCH");
+      expect(JSON.parse(init?.body as string)).toEqual({ is_published: false });
+    });
+
+    it("deleteModule gọi DELETE catalog/admin/modules/:id", async () => {
+      const fetchMock = mockFetch(204);
+
+      const { data, error } = await deleteModule(2);
+
+      expect(error).toBeNull();
+      expect(data).toBeNull();
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("/api/v1/catalog/admin/modules/2");
+      expect(init?.method).toBe("DELETE");
+    });
+
+    it("reorderModules gọi PUT catalog/admin/courses/:id/module-order với { module_ids }", async () => {
+      const fetchMock = mockFetch(204);
+
+      const { data, error } = await reorderModules(5, [3, 1, 2]);
+
+      expect(error).toBeNull();
+      expect(data).toBeNull();
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("/api/v1/catalog/admin/courses/5/module-order");
+      expect(init?.method).toBe("PUT");
+      expect(JSON.parse(init?.body as string)).toEqual({
+        module_ids: [3, 1, 2],
+      });
+    });
+
+    it("setFreeModule gọi PUT catalog/admin/courses/:id/free-module với { module_id }", async () => {
+      const fetchMock = mockFetch(204);
+
+      const { data, error } = await setFreeModule(5, 1);
+
+      expect(error).toBeNull();
+      expect(data).toBeNull();
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("/api/v1/catalog/admin/courses/5/free-module");
+      expect(init?.method).toBe("PUT");
+      expect(JSON.parse(init?.body as string)).toEqual({ module_id: 1 });
+    });
+
+    it("các hàm admin module trả về { data: null, error } khi lỗi, không ném ngoại lệ", async () => {
+      mockFetch(500, {
+        statusCode: 500,
+        code: "INTERNAL_ERROR",
+        message: "Server error",
+      });
+      expect((await getAdminCourseModules(5)).error).toBeInstanceOf(ApiError);
+      expect(
+        (await createModule(5, { title: "A" })).error,
+      ).toBeInstanceOf(ApiError);
+      expect(
+        (await updateModule(1, { title: "A" })).error,
+      ).toBeInstanceOf(ApiError);
+      expect(
+        (await patchModule(1, { is_free: true })).error,
+      ).toBeInstanceOf(ApiError);
+      expect((await deleteModule(1)).error).toBeInstanceOf(ApiError);
+      expect((await reorderModules(5, [1])).error).toBeInstanceOf(ApiError);
+      expect((await setFreeModule(5, 1)).error).toBeInstanceOf(ApiError);
     });
   });
 });
