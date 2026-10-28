@@ -48,3 +48,7 @@ services:
         sync: false
       - key: GOOGLE_CLIENT_SECRET
         sync: false
+      - key: SEPAY_WEBHOOK_API_KEY # >= 16 ký tự, khai cùng giá trị ở SePay > Webhooks > API Key
+        sync: false
+      - key: PAYMENT_SIMULATION_ENABLED # service này là staging: cho nút giả lập thanh toán
+        value: "true"
