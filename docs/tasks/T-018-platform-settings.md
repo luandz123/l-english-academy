@@ -40,9 +40,9 @@
 Adapter trong `src/lib/api/admin.ts`: `getPublicSetting(key)` (bóc `.setting`), `listAdminSettings()`, `saveSetting(key, value)`; trả `{ data, error }`, không ném.
 
 ## 6. Tiêu chí nghiệm thu
-- [ ] E2E: khách đọc được `homepage_showcase_config`; khách đọc key không công khai (vd. `secret_x` đã seed) → `{ setting: null }`; admin đọc tất cả; học viên gọi route admin → 403; không token → 401; PUT tạo mới rồi PUT lại cập nhật (1 dòng); key sai định dạng → 400
-- [ ] Sau PUT `homepage_showcase_config` với giá mới, `POST /payments/orders` của user mới dùng giá đó (chứng minh cùng nguồn)
-- [ ] Adapter test; `grep -rn "platform_settings" src --include=*.ts --include=*.tsx | grep -v "integrations/supabase/types.ts\|AdminBackup"` rỗng; `check-ui-diff` OK
+- [x] E2E: khách đọc được `homepage_showcase_config`; khách đọc key không công khai (vd. `secret_x` đã seed) → `{ setting: null }`; admin đọc tất cả; học viên gọi route admin → 403; không token → 401; PUT tạo mới rồi PUT lại cập nhật (1 dòng); key sai định dạng → 400
+- [x] Sau PUT `homepage_showcase_config` với giá mới, `POST /payments/orders` của user mới dùng giá đó (chứng minh cùng nguồn)
+- [x] Adapter test; `grep -rn "platform_settings" src --include=*.ts --include=*.tsx | grep -v "integrations/supabase/types.ts\|AdminBackup"` rỗng; `check-ui-diff` OK
 
 ## 7. Lệnh kiểm tra — dán **nguyên văn** output vào mục 8, chạy **sau commit cuối**
 ```bash
@@ -54,6 +54,138 @@ git log --oneline -3 && git diff --stat refactor/nestjs-backend
 ```
 
 ## 8. Kết quả (người làm điền)
+```text
+$ docker compose up -d postgres
+ Container l-english-academy-postgres-1  Running
+
+$ cd backend && npm run lint && npm run typecheck && npm test && npm run test:e2e && npm run build
+> backend@0.0.1 lint
+> eslint "{src,test}/**/*.ts"
+
+
+> backend@0.0.1 typecheck
+> tsc --noEmit -p tsconfig.json
+
+
+> backend@0.0.1 test
+> node --experimental-vm-modules node_modules/jest/bin/jest.js
+
+PASS src/modules/assessment/quiz-grading.spec.ts
+PASS src/mail/gmail-api.transport.spec.ts
+PASS src/config/env.schema.spec.ts
+PASS src/modules/payments/payment-rules.spec.ts
+PASS src/modules/assessment/toeic-scoring.spec.ts
+PASS src/modules/learning/lesson-access.spec.ts
+PASS src/modules/catalog/catalog.mapper.spec.ts
+PASS src/common/filters/all-exceptions.filter.spec.ts
+PASS src/modules/learning/learning.mapper.spec.ts
+PASS src/common/transforms/to-optional-boolean.spec.ts
+PASS src/modules/auth/auth.mapper.spec.ts
+PASS src/modules/auth/guards/optional-jwt-auth.guard.spec.ts
+PASS src/modules/auth/guards/jwt-auth.guard.spec.ts
+PASS src/modules/catalog/catalog-admin.service.spec.ts
+PASS src/modules/admin/admin.service.spec.ts
+PASS src/modules/payments/payments.service.spec.ts
+PASS src/modules/learning/learning-quiz-access.spec.ts
+PASS src/modules/assessment/assessment.service.spec.ts
+PASS src/modules/catalog/catalog.service.spec.ts
+PASS src/modules/learning/learning-admin.service.spec.ts
+PASS src/modules/learning/learning.service.spec.ts
+
+Test Suites: 21 passed, 21 total
+Tests:       198 passed, 198 total
+Snapshots:   0 total
+Time:        2.782 s
+Ran all test suites.
+
+> backend@0.0.1 test:e2e
+> node --experimental-vm-modules node_modules/jest/bin/jest.js --config ./test/jest-e2e.json --runInBand
+
+PASS test/auth.e2e-spec.ts (17.122 s)
+PASS test/learning-admin.e2e-spec.ts (5.142 s)
+PASS test/assessment-full-test.e2e-spec.ts
+PASS test/payments.e2e-spec.ts
+PASS test/assessment-quiz.e2e-spec.ts
+PASS test/learning-user-data.e2e-spec.ts
+PASS test/catalog-admin.e2e-spec.ts
+PASS test/learning-access.e2e-spec.ts
+PASS test/health.e2e-spec.ts
+PASS test/platform-settings.e2e-spec.ts
+PASS test/payments-admin.e2e-spec.ts
+PASS test/assessment-full-test-lists.e2e-spec.ts
+PASS test/assessment-results.e2e-spec.ts
+PASS test/catalog.e2e-spec.ts
+PASS test/admin-notes.e2e-spec.ts
+
+Test Suites: 15 passed, 15 total
+Tests:       193 passed, 193 total
+Snapshots:   0 total
+Time:        67.053 s
+Ran all test suites.
+
+> backend@0.0.1 build
+> nest build
+
+$ cd .. && npm test && npm run build && node scripts/check-ui-diff.mjs refactor/nestjs-backend
+> vite_react_shadcn_ts@0.0.0 test
+> vitest run
+
+ RUN  v3.2.4 C:/Users/lenovo/l-english-academy
+
+ ✓ src/test/example.test.ts (1 test) 44ms
+ ✓ src/lib/api/client.test.ts (4 tests) 182ms
+ ✓ src/lib/api/admin.test.ts (7 tests) 230ms
+ ✓ src/lib/api/fullTest.test.ts (7 tests) 260ms
+ ✓ src/lib/api/assessment.test.ts (13 tests) 250ms
+ ✓ src/lib/api/auth.test.ts (9 tests) 219ms
+ ✓ src/lib/api/payments.test.ts (8 tests) 211ms
+ ✓ src/lib/api/catalog.test.ts (19 tests) 272ms
+ ✓ src/lib/api/learning.test.ts (43 tests) 183ms
+ ✓ src/test/part2Audio.test.ts (3 tests) 527ms
+ ✓ src/test/speakingRooms.test.ts (11 tests) 36ms
+ ✓ src/test/audioUrlAndDictation.test.ts (6 tests) 6ms
+
+ Test Files  12 passed (12)
+      Tests  131 passed (131)
+   Start at  00:31:24
+   Duration  13.83s (transform 11.55s, setup 20.28s, collect 26.05s, tests 2.42s, environment 26.53s, prepare 3.21s)
+
+> vite_react_shadcn_ts@0.0.0 build
+> vite build
+
+vite v5.4.19 building for production...
+transforming...
+✓ 2737 modules transformed.
+rendering chunks...
+computing gzip size...
+✓ built in 41.80s
+check-ui-diff: OK — không có thay đổi giao diện trong src/**/*.tsx (so với refactor/nestjs-backend).
+
+$ grep -rn "platform_settings" src --include=*.ts --include=*.tsx | grep -v "integrations/supabase/types.ts\|AdminBackup"
+(empty - exit code 1)
+
+$ git log --oneline -3 && git diff --stat refactor/nestjs-backend
+128c6ed feat(admin): add platform settings API and migrate client callers
+176e0c1 docs: record T-017 review PASS, update queue
+581037e merge: T-017 full test lists via API (review PASS)
+ backend/src/modules/admin/admin.controller.ts    |  34 ++-
+ backend/src/modules/admin/admin.mapper.ts        |  15 +-
+ backend/src/modules/admin/admin.module.ts        |   3 +-
+ backend/src/modules/admin/admin.repository.ts    |  33 ++-
+ backend/src/modules/admin/admin.service.spec.ts  |  93 +++++++++
+ backend/src/modules/admin/admin.service.ts       |  38 +++-
+ backend/src/modules/admin/dto/index.ts           |   1 +
+ backend/src/modules/admin/dto/setting.dto.ts     |  28 +++
+ backend/src/modules/admin/settings.constants.ts  |  19 ++
+ backend/src/modules/admin/settings.controller.ts |  24 +++
+ backend/test/platform-settings.e2e-spec.ts       | 252 +++++++++++++++++++++++
+ src/lib/api/admin.test.ts                        |  55 ++++-
+ src/lib/api/admin.ts                             |  42 ++++
+ src/pages/admin/AdminSettings.tsx                |  14 +-
+ src/services/homepageShowcaseService.ts          |  28 +--
+ src/services/vocabPacksService.ts                |  44 +---
+ 16 files changed, 643 insertions(+), 80 deletions(-)
+```
 
 ## 9. Câu hỏi (người làm điền khi bị chặn)
 
