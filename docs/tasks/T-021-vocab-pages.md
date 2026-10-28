@@ -209,3 +209,6 @@ bbd9327 docs(tasks): queue T-021 vocab pages
 ## 8. Câu hỏi (người làm điền khi bị chặn)
 
 ## 9. Review (Claude điền)
+**PASS** (Claude, 2026-10-29) — merge vào `refactor/nestjs-backend`. Review trên `a7cbe51`.
+- Chuỗi dò 4.2 đúng từng bước và đúng thứ tự, quy tắc `.maybeSingle()` (≥ 2 dòng → coi như không thấy) áp ở cả 4 lần tra; `question_ids` giới hạn 500, sai định dạng → 400. Đọc `lessons` chỉ đọc, có ghi chú. 2 trang chỉ đổi `queryFn` + `import`, giữ cách xử lý lỗi cũ.
+- Sau gộp: lint/typecheck sạch, unit 236/236, e2e 262/262, vitest 160/160, `check-ui-diff` OK, build OK.
