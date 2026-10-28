@@ -330,3 +330,11 @@ Không có.
 - `LessonPracticeManager` cũ bỏ qua lỗi; adapter phải giữ (không ném).
 
 ## 10. Review (Claude điền)
+**PASS** (Claude, 2026-10-28) — merge vào `refactor/nestjs-backend`. Review trên `3eb7419`.
+- 11 route đúng mục 4, guard admin ở cấp class; server tính `display_order`, `video_url`/`pdf_url`, `expires_at`; quiz tự tạo + ghi bài và `lesson-order` trong transaction; 404/409/400 đúng mã. Output nguyên văn đầy đủ.
+- Gộp với P3 (`6322b3c`, cũng sửa `learning.module.ts`): xung đột 1 chỗ (`exports: [LearningService]` của P3 + controller/service admin), Claude giải tay. Chạy lại sau gộp: lint/typecheck sạch, unit 16 suite/143 test, e2e 7 suite/125 test, build OK.
+- Góp ý (không chặn):
+  - `expires_in_days` để `@IsOptional` → **bỏ trống = vĩnh viễn**. Adapter frontend phải luôn gửi trường này (kể cả `null`); nên đổi thành bắt buộc (`@ValidateIf(o => o.expires_in_days !== null)`) khi làm task frontend admin.
+  - `inTransaction` tạo `new LearningRepository(tx as PrismaService)` — ép kiểu; chạy được vì chỉ gọi model, nhưng gọi `$transaction` lồng bên trong sẽ hỏng. Ghi chú để không ai dùng như vậy.
+  - `resolveMediaUrls` coi chuỗi toàn khoảng trắng là rỗng (cũ giữ nguyên) — chấp nhận.
+  - `lesson-order` nhận danh sách con của module (không bắt đủ mọi bài) — giao diện cũ luôn gửi đủ, chấp nhận.
