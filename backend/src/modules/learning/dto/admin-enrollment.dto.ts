@@ -1,5 +1,5 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsInt, IsOptional, Max, Min } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
+import { IsInt, Max, Min, ValidateIf } from 'class-validator';
 import { EnrollmentDto } from './enrollment.dto';
 
 export class AdminEnrollmentCourseDto {
@@ -17,16 +17,16 @@ export class CreateAdminEnrollmentDto {
   @IsInt()
   course_id!: number;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     nullable: true,
     type: Number,
     minimum: 1,
     maximum: 3650,
     example: 30,
   })
-  @IsOptional()
+  @ValidateIf((o: CreateAdminEnrollmentDto) => o.expires_in_days !== null)
   @IsInt()
   @Min(1)
   @Max(3650)
-  expires_in_days?: number | null;
+  expires_in_days!: number | null;
 }

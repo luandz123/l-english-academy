@@ -17,6 +17,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getFriendlyErrorMessage } from "@/lib/errorHandler";
 import {
+  listUserEnrollments,
+  addUserEnrollment,
+  removeEnrollment,
+} from "@/lib/api/learning";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -50,7 +55,7 @@ const AdminStudentDetail = () => {
   const { data: enrollments = [] } = useQuery({
     queryKey: ["admin-student-enrollments", userId],
     queryFn: async () => {
-      const { data } = await supabase.from("enrollments").select("*, courses(title)").eq("user_id", userId!);
+      const { data } = await listUserEnrollments(userId!);
       return data ?? [];
     },
     enabled: !!userId,
@@ -108,12 +113,11 @@ const AdminStudentDetail = () => {
 
   const unlockCourseMutation = useMutation({
     mutationFn: async () => {
-      const expiresAt = expiryDays === "unlimited" ? null : new Date(Date.now() + Number(expiryDays) * 86400000).toISOString();
-      const { error } = await supabase.from("enrollments").insert({
-        user_id: userId!,
-        course_id: Number(selectedCourseId),
-        expires_at: expiresAt,
-      });
+      const { error } = await addUserEnrollment(
+        userId!,
+        Number(selectedCourseId),
+        expiryDays === "unlimited" ? null : Number(expiryDays),
+      );
       if (error) throw error;
     },
     onSuccess: () => {
@@ -129,7 +133,7 @@ const AdminStudentDetail = () => {
 
   const removeEnrollmentMutation = useMutation({
     mutationFn: async (enrollmentId: number) => {
-      const { error } = await supabase.from("enrollments").delete().eq("id", enrollmentId);
+      const { error } = await removeEnrollment(enrollmentId);
       if (error) throw error;
     },
     onSuccess: () => {

@@ -10,10 +10,14 @@ import {
   listMyNotes,
   listMyProgress,
   listMyProgressRows,
+  listUserEnrollments,
+  addUserEnrollment,
+  removeEnrollment,
   removeFavorite,
   setLessonProgress,
 } from "./learning";
 import { ApiError } from "./client";
+import { getFriendlyErrorMessage } from "../errorHandler";
 
 function mockFetch(status: number, body?: unknown) {
   const fn = vi.fn().mockResolvedValue(
@@ -486,6 +490,145 @@ describe("learning adapter", () => {
 
       expect(data).toBeNull();
       expect(error).toBeInstanceOf(ApiError);
+    });
+  });
+
+  describe("listUserEnrollments", () => {
+    it("gọi đúng URL learning/admin/users/:userId/enrollments và method GET", async () => {
+      const enrollments = [
+        {
+          id: 1,
+          user_id: "user-uuid-1",
+          course_id: 2,
+          enrolled_at: "2026-01-01T00:00:00.000Z",
+          expires_at: "2026-07-01T00:00:00.000Z",
+          courses: { title: "TOEIC 450+" },
+        },
+      ];
+      const fetchMock = mockFetch(200, enrollments);
+
+      const { data, error } = await listUserEnrollments("user-uuid-1");
+
+      expect(error).toBeNull();
+      expect(data).toEqual(enrollments);
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("/api/v1/learning/admin/users/user-uuid-1/enrollments");
+      expect(init?.method).toBe("GET");
+    });
+
+    it("trả về ApiError khi lỗi 500, không ném ngoại lệ", async () => {
+      mockFetch(500, { statusCode: 500, code: "INTERNAL_ERROR", message: "Server error" });
+      const { data, error } = await listUserEnrollments("user-uuid-1");
+
+      expect(data).toBeNull();
+      expect(error).toBeInstanceOf(ApiError);
+      expect(error?.status).toBe(500);
+    });
+  });
+
+  describe("addUserEnrollment", () => {
+    it("gọi POST learning/admin/users/:userId/enrollments với body { course_id, expires_in_days }", async () => {
+      const created = {
+        id: 10,
+        user_id: "user-uuid-1",
+        course_id: 3,
+        enrolled_at: "2026-10-28T00:00:00.000Z",
+        expires_at: "2026-11-27T00:00:00.000Z",
+        courses: { title: "TOEIC 650+" },
+      };
+      const fetchMock = mockFetch(201, created);
+
+      const { data, error } = await addUserEnrollment("user-uuid-1", 3, 30);
+
+      expect(error).toBeNull();
+      expect(data).toEqual(created);
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("/api/v1/learning/admin/users/user-uuid-1/enrollments");
+      expect(init?.method).toBe("POST");
+      expect(JSON.parse(init?.body as string)).toEqual({
+        course_id: 3,
+        expires_in_days: 30,
+      });
+    });
+
+    it("addUserEnrollment(..., null) gửi \"expires_in_days\": null (không bỏ khóa)", async () => {
+      const created = {
+        id: 11,
+        user_id: "user-uuid-1",
+        course_id: 4,
+        enrolled_at: "2026-10-28T00:00:00.000Z",
+        expires_at: null,
+        courses: { title: "TOEIC 800+" },
+      };
+      const fetchMock = mockFetch(201, created);
+
+      const { data, error } = await addUserEnrollment("user-uuid-1", 4, null);
+
+      expect(error).toBeNull();
+      expect(data).toEqual(created);
+      const [, init] = fetchMock.mock.calls[0];
+      const rawBody = init?.body as string;
+      expect(rawBody).toContain('"expires_in_days":null');
+      const parsed = JSON.parse(rawBody) as Record<string, unknown>;
+      expect(Object.prototype.hasOwnProperty.call(parsed, "expires_in_days")).toBe(true);
+      expect(parsed.expires_in_days).toBeNull();
+    });
+
+    it("đổi mã lỗi ENROLLMENT_EXISTS sang code = \"23505\" để getFriendlyErrorMessage trả đúng câu trùng lặp", async () => {
+      mockFetch(409, {
+        statusCode: 409,
+        code: "ENROLLMENT_EXISTS",
+        message: "Học viên đã được ghi danh vào khóa học này",
+      });
+
+      const { data, error } = await addUserEnrollment("user-uuid-1", 3, 30);
+
+      expect(data).toBeNull();
+      expect(error).toBeInstanceOf(ApiError);
+      expect(error?.status).toBe(409);
+      expect(error?.code).toBe("23505");
+      expect(getFriendlyErrorMessage(error)).toBe(
+        "Dữ liệu này đã tồn tại trên hệ thống (bị trùng lặp). Vui lòng đổi tên hoặc kiểm tra lại.",
+      );
+    });
+
+    it("giữ nguyên lỗi khác (vd: 500 INTERNAL_ERROR), không ném ngoại lệ", async () => {
+      mockFetch(500, {
+        statusCode: 500,
+        code: "INTERNAL_ERROR",
+        message: "Đã có lỗi xảy ra",
+      });
+
+      const { data, error } = await addUserEnrollment("user-uuid-1", 3, 30);
+
+      expect(data).toBeNull();
+      expect(error).toBeInstanceOf(ApiError);
+      expect(error?.status).toBe(500);
+      expect(error?.code).toBe("INTERNAL_ERROR");
+    });
+  });
+
+  describe("removeEnrollment", () => {
+    it("gọi đúng URL learning/admin/enrollments/:id và method DELETE, xử lý 204 No Content", async () => {
+      const fetchMock = mockFetch(204);
+
+      const { data, error } = await removeEnrollment(99);
+
+      expect(error).toBeNull();
+      expect(data).toBeNull();
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("/api/v1/learning/admin/enrollments/99");
+      expect(init?.method).toBe("DELETE");
+    });
+
+    it("trả về ApiError khi lỗi 500, không ném ngoại lệ", async () => {
+      mockFetch(500, { statusCode: 500, code: "INTERNAL_ERROR", message: "Server error" });
+
+      const { data, error } = await removeEnrollment(99);
+
+      expect(data).toBeNull();
+      expect(error).toBeInstanceOf(ApiError);
+      expect(error?.status).toBe(500);
     });
   });
 });

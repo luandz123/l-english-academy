@@ -39,6 +39,10 @@ export interface EnrollmentRow {
   expires_at: string | null;
 }
 
+export interface AdminEnrollmentRow extends EnrollmentRow {
+  courses: { title: string } | null;
+}
+
 export interface MaterialRow {
   id: number;
   lesson_id: number | null;
@@ -218,4 +222,49 @@ export async function listLessonPractices(
   return toResult(
     apiClient.get<PracticeRow[]>(`learning/lessons/${lessonId}/practices`),
   );
+}
+
+export async function listUserEnrollments(
+  userId: string,
+): Promise<{ data: AdminEnrollmentRow[] | null; error: ApiError | null }> {
+  return toResult(
+    apiClient.get<AdminEnrollmentRow[]>(
+      `learning/admin/users/${userId}/enrollments`,
+    ),
+  );
+}
+
+export async function addUserEnrollment(
+  userId: string,
+  courseId: number,
+  expiresInDays: number | null,
+): Promise<{ data: AdminEnrollmentRow | null; error: ApiError | null }> {
+  const result = await toResult(
+    apiClient.post<AdminEnrollmentRow>(
+      `learning/admin/users/${userId}/enrollments`,
+      {
+        course_id: courseId,
+        expires_in_days: expiresInDays,
+      },
+    ),
+  );
+  if (result.error?.code === "ENROLLMENT_EXISTS") {
+    return {
+      data: null,
+      error: new ApiError(409, "23505", result.error.message, result.error.details),
+    };
+  }
+  return result;
+}
+
+export async function removeEnrollment(
+  enrollmentId: number,
+): Promise<{ data: null; error: ApiError | null }> {
+  const result = await toResult(
+    apiClient.delete<void>(`learning/admin/enrollments/${enrollmentId}`),
+  );
+  if (result.error) {
+    return { data: null, error: result.error };
+  }
+  return { data: null, error: null };
 }
