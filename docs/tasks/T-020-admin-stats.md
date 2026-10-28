@@ -189,3 +189,7 @@ grep -n "supabase" src/pages/admin/AdminDashboard.tsx src/pages/admin/AdminRepor
 ## 7. Câu hỏi (người làm điền khi bị chặn)
 
 ## 8. Review (Claude điền)
+**PASS** (Claude, 2026-10-29) — merge vào `refactor/nestjs-backend`. Review trên `7845bfe`.
+- Route `/admin/stats/*` đúng mục 3, guard admin; giới hạn 50 id; 3 trang giữ nguyên mọi dòng tính toán (`scoreMap`, `countMap`, `qMap`/`sorted`, `enrollMap`/`status`), không còn Supabase.
+- Lệch nhỏ (chấp nhận): thêm `if (error) throw error` ở các `queryFn` mà code cũ bỏ qua lỗi. Hiển thị không đổi vì `useQuery` rơi về giá trị mặc định `0`/`[]` khi lỗi; chỉ thêm 1 lần retry.
+- Sau gộp: lint/typecheck sạch, unit 221/221, e2e 249/249, vitest 152/152, `check-ui-diff` OK, build OK.

@@ -25,5 +25,5 @@ Ký hiệu: ⏳ chờ · 🔨 đang làm · 🔍 chờ review · 🔁 TRẢ LẠ
 | T-017 | [danh sách Full Test](T-017-full-test-lists.md) | `task/T-017-full-test-lists` | T-011 | ✅ merged |
 | T-018 | [cài đặt nền tảng](T-018-platform-settings.md) | `task/T-018-platform-settings` | — | ✅ merged |
 | T-019 | [admin khóa học + danh mục](T-019-catalog-admin-courses.md) | `task/T-019-catalog-admin-courses` | — | ✅ merged |
-| T-020 | [admin thống kê + học viên](T-020-admin-stats.md) | `task/T-020-admin-stats` | T-018 | ⏳ chờ |
+| T-020 | [admin thống kê + học viên](T-020-admin-stats.md) | `task/T-020-admin-stats` | T-018 | ✅ merged |
 | T-021 | [từ vựng + flashcard](T-021-vocab-pages.md) | `task/T-021-vocab-pages` | — | ⏳ chờ |
