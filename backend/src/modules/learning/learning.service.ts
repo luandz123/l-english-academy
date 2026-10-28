@@ -118,6 +118,66 @@ export class LearningService {
   }
 
   /**
+   * Quyền làm quiz (OPEN_QUESTIONS #22a): admin, quiz `is_free`, học được module chứa
+   * quiz (coi quiz như một bài của module), hoặc học được ít nhất một bài gắn quiz.
+   * Cùng quy tắc `canStudyLesson` với video. Quiz không gắn module/bài (vd. các Part
+   * của đề thi thử) chỉ admin làm qua đây. Quiz không tồn tại → false.
+   */
+  async canTakeQuiz(
+    quizId: number,
+    user: AuthenticatedUser | undefined,
+  ): Promise<boolean> {
+    if (await this.isAdmin(user)) return true;
+    const quiz = await this.repo.findQuizAccess(quizId);
+    if (!quiz) return false;
+
+    const contexts = [
+      { module: quiz.module, lesson: { isFree: quiz.isFree } },
+      ...quiz.lessons.map((l) => ({ module: l.module, lesson: l })),
+    ];
+    const courseIds = [
+      ...new Set(
+        contexts
+          .map((c) => c.module?.courseId)
+          .filter((id): id is number => typeof id === 'number'),
+      ),
+    ];
+    const byCourse = new Map(
+      await Promise.all(
+        courseIds.map(
+          async (id) =>
+            [
+              id,
+              await Promise.all([
+                this.catalog.findCourseById(id),
+                user ? this.repo.findEnrollment(user.id, id) : null,
+              ]),
+            ] as const,
+        ),
+      ),
+    );
+
+    const now = new Date();
+    return contexts.some((c) => {
+      const courseId = c.module?.courseId;
+      const [course, enrollment] =
+        typeof courseId === 'number'
+          ? (byCourse.get(courseId) ?? [null, null])
+          : [null, null];
+      return canStudyLesson(
+        lessonAccessContext({
+          isAdmin: false,
+          enrollment,
+          now,
+          course,
+          module: c.module,
+          lesson: c.lesson,
+        }),
+      );
+    });
+  }
+
+  /**
    * Thay `LearnPage.tsx:71-80`. Lấy danh sách tiến độ bài học của người dùng hiện tại.
    * Order `last_watched_at desc nulls last, id desc`.
    */

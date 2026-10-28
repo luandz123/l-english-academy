@@ -10,5 +10,6 @@ import { LearningService } from './learning.service';
   imports: [AuthModule, CatalogModule],
   controllers: [LearningController],
   providers: [LearningService, LearningRepository, LearningMapper],
+  exports: [LearningService],
 })
 export class LearningModule {}

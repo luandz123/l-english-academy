@@ -27,10 +27,14 @@ describe('AssessmentModule — quiz (e2e)', () => {
   let prisma: PrismaService;
   const EMAIL_SUFFIX = '@assessment.test';
 
-  const tokens = { a: '', b: '', admin: '' };
+  const tokens = { a: '', b: '', admin: '', expired: '' };
   const userIds = { a: '', b: '' };
   let quizId = 0;
   let emptyQuizId = 0;
+  /** Quiz không gắn module, chỉ gắn với một bài free của khóa trả phí. */
+  let freeLessonQuizId = 0;
+  /** Quiz không gắn module hay bài nào. */
+  let orphanQuizId = 0;
   /** [câu][đáp án] → id; đáp án đúng: câu 0 → 0, câu 1 → 1, câu 2 → 0. */
   const answerIds: number[][] = [];
   const questionIds: number[] = [];
@@ -39,6 +43,9 @@ describe('AssessmentModule — quiz (e2e)', () => {
   const bearer = (t: string) => ({ Authorization: `Bearer ${t}` });
 
   async function cleanup(): Promise<void> {
+    await prisma.course.deleteMany({
+      where: { title: { startsWith: '[e2e-assessment]' } },
+    });
     await prisma.quiz.deleteMany({
       where: { title: { startsWith: '[e2e-assessment]' } },
     });
@@ -84,18 +91,53 @@ describe('AssessmentModule — quiz (e2e)', () => {
     prisma = app.get(PrismaService);
     await cleanup();
 
+    // Khóa trả phí → module trả phí → quiz chính (gắn module + bài exam trả phí)
+    const course = await prisma.course.create({
+      data: { title: '[e2e-assessment] Khóa', courseType: 'video_quiz' },
+    });
+    const mod = await prisma.module.create({
+      data: { courseId: course.id, title: 'M', displayOrder: 0 },
+    });
     const quiz = await prisma.quiz.create({
       data: {
+        moduleId: mod.id,
         title: '[e2e-assessment] Quiz',
         totalQuestions: 3,
         timeLimitSeconds: 300,
       },
     });
     quizId = quiz.id;
+    await prisma.lesson.create({
+      data: { moduleId: mod.id, title: 'Bài thi', lessonType: 'exam', quizId },
+    });
     const empty = await prisma.quiz.create({
-      data: { title: '[e2e-assessment] Rỗng' },
+      data: { title: '[e2e-assessment] Rỗng', isFree: true },
     });
     emptyQuizId = empty.id;
+    const freeLessonQuiz = await prisma.quiz.create({
+      data: { title: '[e2e-assessment] Bài free' },
+    });
+    freeLessonQuizId = freeLessonQuiz.id;
+    await prisma.question.create({
+      data: { quizId: freeLessonQuizId, questionText: 'Q', displayOrder: 0 },
+    });
+    await prisma.lesson.create({
+      data: {
+        moduleId: mod.id,
+        title: 'Luyện tập free',
+        lessonType: 'practice',
+        quizId: freeLessonQuizId,
+        isFree: true,
+        displayOrder: 1,
+      },
+    });
+    const orphan = await prisma.quiz.create({
+      data: { title: '[e2e-assessment] Mồ côi' },
+    });
+    orphanQuizId = orphan.id;
+    await prisma.question.create({
+      data: { quizId: orphanQuizId, questionText: 'Q', displayOrder: 0 },
+    });
 
     const correctIndex = [0, 1, 0];
     // Tạo theo thứ tự display_order ngược để kiểm server sắp lại
@@ -130,8 +172,24 @@ describe('AssessmentModule — quiz (e2e)', () => {
     const a = await userWithToken(`a${EMAIL_SUFFIX}`);
     const b = await userWithToken(`b${EMAIL_SUFFIX}`);
     const admin = await userWithToken(`admin${EMAIL_SUFFIX}`);
+    const expired = await userWithToken(`expired${EMAIL_SUFFIX}`);
     await prisma.userRole.create({ data: { userId: admin.id, role: 'admin' } });
-    Object.assign(tokens, { a: a.token, b: b.token, admin: admin.token });
+    await prisma.enrollment.create({
+      data: { userId: a.id, courseId: course.id },
+    });
+    await prisma.enrollment.create({
+      data: {
+        userId: expired.id,
+        courseId: course.id,
+        expiresAt: new Date(Date.now() - 60_000),
+      },
+    });
+    Object.assign(tokens, {
+      a: a.token,
+      b: b.token,
+      admin: admin.token,
+      expired: expired.token,
+    });
     Object.assign(userIds, { a: a.id, b: b.id });
   });
 
@@ -159,6 +217,7 @@ describe('AssessmentModule — quiz (e2e)', () => {
     it('câu hỏi theo display_order, không lộ đáp án đúng hay lời giải', async () => {
       const res = await http()
         .get(`/api/v1/assessment/quizzes/${quizId}/questions`)
+        .set(bearer(tokens.a))
         .expect(200);
       const qs = res.body as QuestionDto[];
       expect(qs.map((q) => q.id)).toEqual(questionIds);
@@ -180,6 +239,52 @@ describe('AssessmentModule — quiz (e2e)', () => {
         .get('/api/v1/assessment/quizzes/999999/questions')
         .expect(200);
       expect(res.body).toEqual([]);
+    });
+  });
+
+  describe('quyền làm quiz (#22a, cùng quy tắc canStudyLesson)', () => {
+    const questions = (id: number, token?: string) => {
+      const req = http().get(`/api/v1/assessment/quizzes/${id}/questions`);
+      return token ? req.set(bearer(token)) : req;
+    };
+    const code = (res: { body: unknown }) =>
+      (res.body as { code: string }).code;
+
+    it('quiz của khóa trả phí: khách, chưa mua, ghi danh hết hạn → 403 QUIZ_LOCKED', async () => {
+      for (const token of [undefined, tokens.b, tokens.expired]) {
+        const res = await questions(quizId, token).expect(403);
+        expect(code(res)).toBe('QUIZ_LOCKED');
+      }
+    });
+
+    it('chưa mua nộp bài → 403 QUIZ_LOCKED, không ghi kết quả', async () => {
+      const before = await prisma.userQuizResult.count({ where: { quizId } });
+      const res = await submit(tokens.b, pick([0, 1, 0])).expect(403);
+      expect(code(res)).toBe('QUIZ_LOCKED');
+      expect(await prisma.userQuizResult.count({ where: { quizId } })).toBe(
+        before,
+      );
+    });
+
+    it('đã ghi danh và admin → 200', async () => {
+      await questions(quizId, tokens.a).expect(200);
+      await questions(quizId, tokens.admin).expect(200);
+    });
+
+    it('quiz gắn một bài free → ai cũng làm được, kể cả khách', async () => {
+      await questions(freeLessonQuizId).expect(200);
+      await questions(freeLessonQuizId, tokens.b).expect(200);
+    });
+
+    it('quiz không gắn module/bài → chỉ admin', async () => {
+      expect(code(await questions(orphanQuizId, tokens.a).expect(403))).toBe(
+        'QUIZ_LOCKED',
+      );
+      await questions(orphanQuizId, tokens.admin).expect(200);
+    });
+
+    it('token sai → 401 (không hạ xuống khách)', async () => {
+      await questions(quizId, 'not-a-jwt').expect(401);
     });
   });
 

@@ -214,7 +214,7 @@ const QuizPage = () => {
   });
 
   const { data: questions, isLoading, isError: isQuestionsError, refetch: refetchQuestions } = useQuery({
-    queryKey: ["quiz-questions", qid],
+    queryKey: ["quiz-questions", qid, user?.id],
     queryFn: async () => {
       const { data, error } = await listQuizQuestions(qid);
       if (error) throw error;

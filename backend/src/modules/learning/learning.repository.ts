@@ -19,6 +19,12 @@ export interface LessonAccessRow {
   module: { isFree: boolean | null; courseId: number | null } | null;
 }
 
+export interface QuizAccessRow {
+  isFree: boolean | null;
+  module: { isFree: boolean | null; courseId: number | null } | null;
+  lessons: LessonAccessRow[];
+}
+
 export type LessonPracticeWithQuiz = LessonPractice & {
   quiz: Pick<Quiz, 'id' | 'title' | 'totalQuestions'> | null;
 };
@@ -57,6 +63,23 @@ export class LearningRepository {
       select: {
         isFree: true,
         module: { select: { isFree: true, courseId: true } },
+      },
+    });
+  }
+
+  /** Quiz + module của nó + mọi bài gắn quiz này (`lessons.quiz_id`), cho quyền làm quiz. */
+  findQuizAccess(quizId: number): Promise<QuizAccessRow | null> {
+    return this.prisma.quiz.findUnique({
+      where: { id: quizId },
+      select: {
+        isFree: true,
+        module: { select: { isFree: true, courseId: true } },
+        lessons: {
+          select: {
+            isFree: true,
+            module: { select: { isFree: true, courseId: true } },
+          },
+        },
       },
     });
   }

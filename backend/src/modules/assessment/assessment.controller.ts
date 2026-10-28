@@ -25,6 +25,7 @@ import {
   type AuthenticatedUser,
   JwtAuthGuard,
 } from '../auth/guards/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 import {
   LatestQuizResultResponseDto,
   QuestionDto,
@@ -52,17 +53,21 @@ export class AssessmentController {
   }
 
   @Get('quizzes/:quizId/questions')
+  @UseGuards(OptionalJwtAuthGuard)
   @ApiOperation({
     summary: 'Đề để làm bài',
     description:
-      'Công khai như RLS cũ nhưng **không** có is_correct, explanation, transcript, ' +
+      'Chỉ khi có quyền làm quiz (canTakeQuiz, #22a), **không** có is_correct, explanation, transcript, ' +
       'translation, dictation_keywords. Quiz không tồn tại → [].',
   })
   @ApiOkResponse({ type: [QuestionDto] })
+  @ApiForbiddenResponse({ description: 'QUIZ_LOCKED' })
+  @ApiUnauthorizedResponse({ description: 'Có gửi token nhưng sai/hết hạn' })
   getQuestions(
     @Param('quizId', ParseIntPipe) quizId: number,
+    @CurrentUser() user: AuthenticatedUser | undefined,
   ): Promise<QuestionDto[]> {
-    return this.assessment.getQuestions(quizId);
+    return this.assessment.getQuestions(quizId, user);
   }
 
   @Post('quizzes/:quizId/submit')
@@ -77,13 +82,14 @@ export class AssessmentController {
   @ApiCreatedResponse({ type: SubmitQuizResponseDto })
   @ApiBadRequestResponse({ description: 'INVALID_ANSWER / VALIDATION_FAILED' })
   @ApiNotFoundResponse({ description: 'QUIZ_NOT_FOUND' })
+  @ApiForbiddenResponse({ description: 'QUIZ_LOCKED' })
   @ApiUnauthorizedResponse({ description: 'Chưa đăng nhập' })
   submit(
     @Param('quizId', ParseIntPipe) quizId: number,
     @Body() dto: SubmitQuizDto,
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<SubmitQuizResponseDto> {
-    return this.assessment.submit(user.id, quizId, dto);
+    return this.assessment.submit(user, quizId, dto);
   }
 
   @Get('quizzes/:quizId/review')

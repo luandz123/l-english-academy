@@ -1,5 +1,6 @@
 import { HttpException } from '@nestjs/common';
 import type { AuthService } from '../auth/auth.service';
+import type { LearningService } from '../learning/learning.service';
 import { AssessmentMapper } from './assessment.mapper';
 import type { AssessmentRepository } from './assessment.repository';
 import { AssessmentService } from './assessment.service';
@@ -65,7 +66,9 @@ const RESULT = {
   completedAt: new Date('2026-10-28T10:00:00Z'),
 };
 
-function setup(opts: { admin?: boolean; hasResult?: boolean } = {}) {
+function setup(
+  opts: { admin?: boolean; hasResult?: boolean; canTake?: boolean } = {},
+) {
   const repo = {
     findQuiz: jest.fn().mockResolvedValue(QUIZ),
     findQuestionsWithAnswers: jest.fn().mockResolvedValue(QUESTIONS),
@@ -87,12 +90,16 @@ function setup(opts: { admin?: boolean; hasResult?: boolean } = {}) {
     findUserAnswers: jest.fn().mockResolvedValue([]),
   };
   const auth = { hasRole: jest.fn().mockResolvedValue(opts.admin ?? false) };
+  const learning = {
+    canTakeQuiz: jest.fn().mockResolvedValue(opts.canTake ?? true),
+  };
   const service = new AssessmentService(
     repo as unknown as AssessmentRepository,
     new AssessmentMapper(),
     auth as unknown as AuthService,
+    learning as unknown as LearningService,
   );
-  return { service, repo, auth };
+  return { service, repo, auth, learning };
 }
 
 async function httpError(promise: Promise<unknown>) {
@@ -115,7 +122,7 @@ describe('AssessmentService', () => {
   describe('getQuestions', () => {
     it('không trả is_correct, explanation, transcript, translation, dictation_keywords', async () => {
       const { service } = setup();
-      const [q] = await service.getQuestions(5);
+      const [q] = await service.getQuestions(5, ME);
       const json = JSON.stringify(q);
       for (const key of [
         'is_correct',
@@ -133,7 +140,7 @@ describe('AssessmentService', () => {
   describe('submit', () => {
     it('server chấm và ghi kết quả, client không gửi điểm', async () => {
       const { service, repo } = setup();
-      const res = await service.submit('u1', 5, {
+      const res = await service.submit(ME, 5, {
         answers: [
           { question_id: 1, selected_answer_id: 11 },
           { question_id: 2, selected_answer_id: 21 },
@@ -160,7 +167,7 @@ describe('AssessmentService', () => {
       const { service, repo } = setup();
       repo.findQuiz.mockResolvedValue(null);
       const err = await httpError(
-        service.submit('u1', 9, { answers: [], time_spent_seconds: 1 }),
+        service.submit(ME, 9, { answers: [], time_spent_seconds: 1 }),
       );
       expect(err.status).toBe(404);
       expect(err.body.code).toBe('QUIZ_NOT_FOUND');
@@ -170,7 +177,7 @@ describe('AssessmentService', () => {
     it('đáp án không thuộc câu → 400 INVALID_ANSWER, không ghi gì', async () => {
       const { service, repo } = setup();
       const err = await httpError(
-        service.submit('u1', 5, {
+        service.submit(ME, 5, {
           answers: [{ question_id: 1, selected_answer_id: 22 }],
           time_spent_seconds: 1,
         }),
@@ -183,11 +190,36 @@ describe('AssessmentService', () => {
     it('lần nộp thứ hai → is_first_attempt false', async () => {
       const { service, repo } = setup();
       repo.createResult.mockResolvedValue({ result: RESULT, attempts: 2 });
-      const res = await service.submit('u1', 5, {
+      const res = await service.submit(ME, 5, {
         answers: [],
         time_spent_seconds: 1,
       });
       expect(res.is_first_attempt).toBe(false);
+    });
+  });
+
+  describe('quyền làm quiz (#22a)', () => {
+    it('không có quyền → getQuestions 403 QUIZ_LOCKED', async () => {
+      const { service } = setup({ canTake: false });
+      const err = await httpError(service.getQuestions(5, ME));
+      expect(err.status).toBe(403);
+      expect(err.body.code).toBe('QUIZ_LOCKED');
+    });
+
+    it('không có quyền → submit 403 QUIZ_LOCKED, không ghi', async () => {
+      const { service, repo } = setup({ canTake: false });
+      const err = await httpError(
+        service.submit(ME, 5, { answers: [], time_spent_seconds: 1 }),
+      );
+      expect(err.body.code).toBe('QUIZ_LOCKED');
+      expect(repo.createResult).not.toHaveBeenCalled();
+    });
+
+    it('quiz không có câu nào → [] mà không cần kiểm quyền', async () => {
+      const { service, repo, learning } = setup({ canTake: false });
+      repo.findQuestionsWithAnswers.mockResolvedValue([]);
+      await expect(service.getQuestions(9, undefined)).resolves.toEqual([]);
+      expect(learning.canTakeQuiz).not.toHaveBeenCalled();
     });
   });
 

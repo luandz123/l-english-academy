@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { AuthService } from '../auth/auth.service';
+import { LearningService } from '../learning/learning.service';
 import type { AuthenticatedUser } from '../auth/guards/jwt-auth.guard';
 import {
   LatestQuizResultResponseDto,
@@ -26,6 +27,7 @@ export class AssessmentService {
     private readonly repo: AssessmentRepository,
     private readonly mapper: AssessmentMapper,
     private readonly auth: AuthService,
+    private readonly learning: LearningService,
   ) {}
 
   /** Thay `QuizPage.tsx:207`, `QuizResult.tsx:64`. */
@@ -38,9 +40,15 @@ export class AssessmentService {
   /**
    * Thay `QuizPage.tsx:219` (`select("*, answers(*)")`). Không trả `is_correct` và lời
    * giải: client cũ tải cả đáp án đúng xuống trước khi làm bài. Quiz không có → [].
+   * Không có quyền làm quiz → 403 `QUIZ_LOCKED` (#22a).
    */
-  async getQuestions(quizId: number): Promise<QuestionDto[]> {
+  async getQuestions(
+    quizId: number,
+    user: AuthenticatedUser | undefined,
+  ): Promise<QuestionDto[]> {
     const questions = await this.repo.findQuestionsWithAnswers(quizId);
+    if (questions.length === 0) return [];
+    await this.assertCanTake(quizId, user);
     return questions.map((q) => this.mapper.toQuestionDto(q));
   }
 
@@ -49,12 +57,13 @@ export class AssessmentService {
    * trong một transaction. Client chỉ gửi id đáp án đã chọn và thời gian làm bài.
    */
   async submit(
-    userId: string,
+    user: AuthenticatedUser,
     quizId: number,
     dto: SubmitQuizDto,
   ): Promise<SubmitQuizResponseDto> {
     const quiz = await this.repo.findQuiz(quizId);
     if (!quiz) throw this.quizNotFound(quizId);
+    await this.assertCanTake(quizId, user);
 
     const questions = await this.repo.findQuestionsWithAnswers(quizId);
     let grade;
@@ -77,7 +86,7 @@ export class AssessmentService {
     }
 
     const { result, attempts } = await this.repo.createResult({
-      userId,
+      userId: user.id,
       quizId,
       score: grade.score,
       correctAnswers: grade.correctAnswers,
@@ -159,6 +168,18 @@ export class AssessmentService {
 
   private isAdmin(user: AuthenticatedUser): Promise<boolean> {
     return this.auth.hasRole(user.id, 'admin');
+  }
+
+  private async assertCanTake(
+    quizId: number,
+    user: AuthenticatedUser | undefined,
+  ): Promise<void> {
+    if (!(await this.learning.canTakeQuiz(quizId, user))) {
+      throw new ForbiddenException({
+        code: 'QUIZ_LOCKED',
+        message: 'Bạn chưa có quyền làm bài này',
+      });
+    }
   }
 
   private quizNotFound(quizId: number): NotFoundException {
