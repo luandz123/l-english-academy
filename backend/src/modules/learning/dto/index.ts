@@ -6,3 +6,6 @@ export * from './lesson-progress.dto';
 export * from './favorite.dto';
 export * from './note.dto';
 export * from './practice.dto';
+export * from './admin-lesson.dto';
+export * from './admin-practice.dto';
+export * from './admin-enrollment.dto';
