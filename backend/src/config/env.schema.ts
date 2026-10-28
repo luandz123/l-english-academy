@@ -46,6 +46,12 @@ export const envSchema = z
     GMAIL_CLIENT_ID: z.string().optional(),
     GMAIL_CLIENT_SECRET: z.string().optional(),
     GMAIL_REFRESH_TOKEN: z.string().optional(),
+
+    // --- Payments (OPEN_QUESTIONS #23) ---
+    // API key SePay gửi trong header `Authorization: Apikey <key>`. Thiếu → webhook từ chối mọi request.
+    SEPAY_WEBHOOK_API_KEY: z.string().min(16).optional(),
+    // Chỉ bật ở staging/dev: cho phép nút "giả lập thanh toán" hoàn tất đơn của chính mình.
+    PAYMENT_SIMULATION_ENABLED: booleanString.default('false'),
   })
   .refine(
     (env) =>

@@ -15,6 +15,8 @@ export default async function globalSetup(): Promise<void> {
   process.env.FRONTEND_URL = 'http://localhost:8082';
   process.env.CORS_ORIGINS = 'http://localhost:8082';
   process.env.AUTH_REQUIRE_EMAIL_CONFIRMATION = 'true';
+  process.env.SEPAY_WEBHOOK_API_KEY = 'test-sepay-webhook-key-123456';
+  process.env.PAYMENT_SIMULATION_ENABLED = 'true';
   delete process.env.GOOGLE_CLIENT_ID;
 
   execSync('npx prisma migrate deploy', {

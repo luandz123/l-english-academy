@@ -26,7 +26,12 @@ import {
 } from "@/services/homepageShowcaseService";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  createPaymentOrder,
+  getPaymentOrder,
+  simulatePayment,
+  watchPaymentOrder,
+} from "@/lib/api/payments";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 
@@ -91,43 +96,11 @@ export const UpgradeProCard: React.FC<UpgradeProCardProps> = ({
     async function initOrder() {
       setIsCreatingOrder(true);
       try {
-        // 1. Kiểm tra xem user đã có đơn pending nào mới tạo trong 30 phút qua không
-        const thirtyMinsAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
-        const { data: existingOrders } = await supabase
-          .from("payment_orders")
-          .select("id, order_code, amount, status")
-          .eq("user_id", user!.id)
-          .eq("status", "pending")
-          .gte("created_at", thirtyMinsAgo)
-          .order("created_at", { ascending: false })
-          .limit(1);
-
-        if (existingOrders && existingOrders.length > 0 && isMounted) {
-          const current = existingOrders[0];
-          setOrderCode(current.order_code);
-          setOrderId(current.id);
-          setIsCreatingOrder(false);
-          return;
-        }
-
-        // 2. Nếu chưa có, dùng mã orderCode đã khởi tạo sẵn hoặc sinh mới
-        const targetCode = orderCode || `LEA${Math.floor(10000 + Math.random() * 90000)}`;
-
-        const { data: created, error } = await supabase
-          .from("payment_orders")
-          .insert({
-            user_id: user!.id,
-            order_code: targetCode,
-            amount: data.price,
-            plan_type: "vip_combo",
-            status: "pending",
-          })
-          .select()
-          .single();
+        // Server dùng lại đơn pending trong 30 phút và tự tính giá (OPEN_QUESTIONS #23)
+        const { data: created, error } = await createPaymentOrder();
 
         if (error) {
-          console.warn("[UpgradeProModal] Could not insert order into Supabase:", error.message);
-          if (isMounted) setOrderCode(targetCode);
+          console.warn("[UpgradeProModal] Could not create payment order:", error.message);
         } else if (created && isMounted) {
           setOrderCode(created.order_code);
           setOrderId(created.id);
@@ -150,41 +123,25 @@ export const UpgradeProCard: React.FC<UpgradeProCardProps> = ({
   useEffect(() => {
     if (!orderCode) return;
 
-    // Hủy channel cũ nếu có
+    // Hủy lần theo dõi cũ nếu có
     if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
+      channelRef.current();
       channelRef.current = null;
     }
 
-    const channelName = `realtime-order-${orderCode}`;
-    const channel = supabase
-      .channel(channelName)
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "payment_orders",
-          filter: `order_code=eq.${orderCode}`,
-        },
-        async (payload: any) => {
-          if (payload.new && payload.new.status === "completed") {
-            setIsPaymentSuccess(true);
-            await refreshUserData();
-            toast({
-              title: "🎉 Thanh toán thành công!",
-              description: "Tài khoản của bạn đã được nâng cấp lên VIP PRO trọn đời!",
-            });
-          }
-        }
-      )
-      .subscribe();
-
-    channelRef.current = channel;
+    // Thay Supabase Realtime: hỏi trạng thái đơn mỗi 3 giây
+    channelRef.current = watchPaymentOrder(orderCode, async () => {
+      setIsPaymentSuccess(true);
+      await refreshUserData();
+      toast({
+        title: "🎉 Thanh toán thành công!",
+        description: "Tài khoản của bạn đã được nâng cấp lên VIP PRO trọn đời!",
+      });
+    });
 
     return () => {
       if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
+        channelRef.current();
         channelRef.current = null;
       }
     };
@@ -217,30 +174,8 @@ export const UpgradeProCard: React.FC<UpgradeProCardProps> = ({
     if (!orderCode) return;
     setIsCheckingPayment(true);
     try {
-      // 1. Kiểm tra trực tiếp qua RPC (bypasses RLS hoàn toàn 100%)
-      try {
-        const { data: rpcData } = await supabase.rpc("check_payment_order_status", {
-          p_order_code: orderCode,
-        });
-        if (rpcData && (rpcData as any).completed) {
-          setIsPaymentSuccess(true);
-          await refreshUserData();
-          toast({
-            title: "🎉 Xác nhận thành công!",
-            description: "Đơn hàng đã được thanh toán và kích hoạt VIP PRO!",
-          });
-          return;
-        }
-      } catch {}
-
-      // 2. Kiểm tra trực tiếp từ bảng payment_orders
-      const { data: orderData } = await supabase
-        .from("payment_orders")
-        .select("status")
-        .eq("order_code", orderCode)
-        .maybeSingle();
-
-      if (orderData && orderData.status === "completed") {
+      const { data: orderData } = await getPaymentOrder(orderCode);
+      if (orderData?.completed) {
         setIsPaymentSuccess(true);
         await refreshUserData();
         toast({
@@ -249,23 +184,6 @@ export const UpgradeProCard: React.FC<UpgradeProCardProps> = ({
         });
         return;
       }
-
-      // 2. Thử gọi API endpoint nếu có
-      try {
-        const res = await fetch(`/api/check-payment?order_code=${orderCode}`);
-        if (res.ok) {
-          const result = await res.json();
-          if (result.completed) {
-            setIsPaymentSuccess(true);
-            await refreshUserData();
-            toast({
-              title: "🎉 Xác nhận thành công!",
-              description: "Đơn hàng đã được thanh toán và kích hoạt VIP PRO!",
-            });
-            return;
-          }
-        }
-      } catch {}
 
       toast({
         title: "Chưa ghi nhận biến động",
@@ -296,16 +214,11 @@ export const UpgradeProCard: React.FC<UpgradeProCardProps> = ({
 
     setIsSimulating(true);
     try {
-      // Gọi trực tiếp Stored Procedure của Supabase
-      const { data: rpcResult, error: rpcError } = await supabase.rpc("complete_payment_order", {
-        p_order_code: orderCode,
-        p_transfer_amount: data.price,
-        p_bank_tx_id: `SEPAY_SIM_${Date.now()}`,
-        p_transaction_content: `TEST_SIMULATE ${orderCode}`,
-      });
+      // Server chỉ cho phép khi bật PAYMENT_SIMULATION_ENABLED (OPEN_QUESTIONS #23c)
+      const { error: simulateError } = await simulatePayment(orderCode);
 
-      if (rpcError) {
-        throw new Error(rpcError.message);
+      if (simulateError) {
+        throw new Error(simulateError.message);
       }
 
       setIsPaymentSuccess(true);
