@@ -416,3 +416,6 @@ f9127f5 feat(learning): migrate admin student enrollments to API and require exp
 Không có.
 
 ## 9. Review (Claude điền)
+**PASS** (Claude, 2026-10-28) — merge vào `refactor/nestjs-backend`. Review trên `509525e`.
+- Backend: `expires_in_days` bắt buộc (`ValidateIf`), e2e thiếu trường → 400. Frontend: 3 hàm adapter đúng route/body, luôn gửi `expires_in_days`; `ENROLLMENT_EXISTS` → `23505`; trang chỉ đổi `import` + 1 `queryFn` + 2 `mutationFn`, client không còn tính `expires_at`. Output nguyên văn đủ, có chạy tay.
+- Chạy lại: lint/typecheck sạch, unit 143/143, e2e 126/126, vitest 89/89, eslint adapter sạch, `check-ui-diff` OK, build OK.
