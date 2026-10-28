@@ -235,3 +235,7 @@ b4f1bf7 docs: record T-012 review PASS, update queue
 ## 8. Câu hỏi (người làm điền khi bị chặn)
 
 ## 9. Review (Claude điền)
+**PASS** (Claude, 2026-10-28) — merge vào `refactor/nestjs-backend`. Review trên `9b5db61` (Antigravity làm trước khi QUEUE giao lại cho Claude; review kỹ thay vì làm lại).
+- Đúng từng dòng bảng mục 3: bỏ tạo quiz và tính `display_order` ở client; giữ `.then(({ error }) => …)`, `setQueryData` lạc quan, popup luyện tập vẫn nuốt lỗi; adapter không gửi `display_order`/`course_id`/`module_id` trong body.
+- Chạy lại sau gộp: vitest 121/121, eslint adapter sạch, lint 4 file không tăng (ModuleManager 24→19, LessonManager 27→23), `tsc` 0 lỗi ở file T-013, `check-ui-diff` OK, build OK.
+- Còn lại (ngoài phạm vi, P3 admin quiz): Quiz CRUD độc lập trong `LessonManager.tsx:306-325, 573-580` vẫn ghi Supabase, gồm `lessons.update({ quiz_id })` ở `:580` — trên staging nút "tạo quiz cho bài" sẽ ghi sang DB cũ. Chuyển cùng task admin quiz/câu hỏi.
