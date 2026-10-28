@@ -120,3 +120,54 @@ describe('LearningService.canTakeQuiz (#22a)', () => {
     expect(repo.findEnrollment).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('LearningService.canAccessCourse (Full Test)', () => {
+  const build = (o: {
+    admin?: boolean;
+    courseFree?: boolean | null;
+    course?: boolean;
+    enrollment?: { expiresAt: Date | null } | null;
+  }) => {
+    const repo = {
+      findEnrollment: jest.fn().mockResolvedValue(o.enrollment ?? null),
+    };
+    const auth = { hasRole: jest.fn().mockResolvedValue(o.admin ?? false) };
+    const catalog = {
+      findCourseById: jest
+        .fn()
+        .mockResolvedValue(
+          o.course === false ? null : { id: 1, is_free: o.courseFree ?? false },
+        ),
+    };
+    return new LearningService(
+      repo as unknown as LearningRepository,
+      new LearningMapper(),
+      auth as unknown as AuthService,
+      catalog as unknown as CatalogService,
+    );
+  };
+
+  it('khóa free → true kể cả khách; trả phí chưa mua → false', async () => {
+    expect(
+      await build({ courseFree: true }).canAccessCourse(1, undefined),
+    ).toBe(true);
+    expect(await build({}).canAccessCourse(1, USER)).toBe(false);
+  });
+
+  it('ghi danh còn hạn → true; hết hạn → false', async () => {
+    expect(
+      await build({ enrollment: { expiresAt: null } }).canAccessCourse(1, USER),
+    ).toBe(true);
+    expect(
+      await build({
+        enrollment: { expiresAt: new Date(Date.now() - 60_000) },
+      }).canAccessCourse(1, USER),
+    ).toBe(false);
+  });
+
+  it('admin luôn true; khóa không tồn tại hoặc null → false', async () => {
+    expect(await build({ admin: true }).canAccessCourse(null, USER)).toBe(true);
+    expect(await build({ course: false }).canAccessCourse(1, USER)).toBe(false);
+    expect(await build({}).canAccessCourse(null, USER)).toBe(false);
+  });
+});

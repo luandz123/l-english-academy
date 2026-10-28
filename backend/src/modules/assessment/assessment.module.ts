@@ -5,10 +5,21 @@ import { AssessmentController } from './assessment.controller';
 import { AssessmentMapper } from './assessment.mapper';
 import { AssessmentRepository } from './assessment.repository';
 import { AssessmentService } from './assessment.service';
+import { FullTestController } from './full-test.controller';
+import { FullTestMapper } from './full-test.mapper';
+import { FullTestRepository } from './full-test.repository';
+import { FullTestService } from './full-test.service';
 
 @Module({
   imports: [AuthModule, LearningModule],
-  controllers: [AssessmentController],
-  providers: [AssessmentService, AssessmentRepository, AssessmentMapper],
+  controllers: [AssessmentController, FullTestController],
+  providers: [
+    AssessmentService,
+    AssessmentRepository,
+    AssessmentMapper,
+    FullTestService,
+    FullTestRepository,
+    FullTestMapper,
+  ],
 })
 export class AssessmentModule {}

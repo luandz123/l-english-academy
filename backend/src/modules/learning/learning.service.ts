@@ -123,6 +123,28 @@ export class LearningService {
    * Cùng quy tắc `canStudyLesson` với video. Quiz không gắn module/bài (vd. các Part
    * của đề thi thử) chỉ admin làm qua đây. Quiz không tồn tại → false.
    */
+  /**
+   * Quyền vào nội dung theo khóa (dùng cho Full Test, #18/#22a): admin, khóa `is_free`,
+   * hoặc ghi danh **còn hạn**. Thay `FullTestExam.tsx:320-334` (cũ lấy khóa từ URL và
+   * coi ghi danh hết hạn vẫn hợp lệ). Khóa không tồn tại → false.
+   */
+  async canAccessCourse(
+    courseId: number | null,
+    user: AuthenticatedUser | undefined,
+  ): Promise<boolean> {
+    if (await this.isAdmin(user)) return true;
+    if (courseId === null) return false;
+    const [course, enrollment] = await Promise.all([
+      this.catalog.findCourseById(courseId),
+      user ? this.repo.findEnrollment(user.id, courseId) : null,
+    ]);
+    if (!course) return false;
+    return (
+      Boolean(course.is_free) ||
+      (enrollment !== null && isEnrollmentActive(enrollment, new Date()))
+    );
+  }
+
   async canTakeQuiz(
     quizId: number,
     user: AuthenticatedUser | undefined,
