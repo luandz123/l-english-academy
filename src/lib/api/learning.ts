@@ -61,6 +61,13 @@ export interface LessonProgressRow {
   watch_duration_seconds: number | null;
 }
 
+/** Dòng tiến độ cho Dashboard/MyCourses/Profile (OPEN_QUESTIONS #19). */
+export interface LegacyProgressRow extends LessonProgressRow {
+  created_at: string | null;   // = last_watched_at
+  completed_at: string | null; // = last_watched_at
+  updated_at: null;
+}
+
 export interface FavoriteRow {
   id: number;
   user_id: string;
@@ -129,6 +136,25 @@ export async function listMyProgress(): Promise<{
   error: ApiError | null;
 }> {
   return toResult(apiClient.get<LessonProgressRow[]>("learning/progress"));
+}
+
+export async function listMyProgressRows(): Promise<{
+  data: LegacyProgressRow[] | null;
+  error: ApiError | null;
+}> {
+  const result = await listMyProgress();
+  if (result.error || !result.data) {
+    return { data: null, error: result.error };
+  }
+  return {
+    data: result.data.map((row) => ({
+      ...row,
+      created_at: row.last_watched_at ?? null,
+      completed_at: row.last_watched_at ?? null,
+      updated_at: null,
+    })),
+    error: null,
+  };
 }
 
 export async function setLessonProgress(

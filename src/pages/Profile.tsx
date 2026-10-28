@@ -3,6 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useGamification } from "@/hooks/useGamification";
 import { supabase } from "@/integrations/supabase/client";
 import { authClient, updateMyProfile } from "@/lib/api/auth";
+import { listMyProgressRows } from "@/lib/api/learning";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useMemo } from "react";
@@ -264,11 +265,7 @@ const Profile = () => {
     queryKey: ["profile-lesson-progress", user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const { data } = await supabase
-        .from("user_lesson_progress")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
+      const { data } = await listMyProgressRows();
       return data || [];
     },
     enabled: !!user,
