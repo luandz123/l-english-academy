@@ -9,10 +9,14 @@ import { FullTestController } from './full-test.controller';
 import { FullTestMapper } from './full-test.mapper';
 import { FullTestRepository } from './full-test.repository';
 import { FullTestService } from './full-test.service';
+import { VocabController } from './vocab.controller';
+import { VocabMapper } from './vocab.mapper';
+import { VocabRepository } from './vocab.repository';
+import { VocabService } from './vocab.service';
 
 @Module({
   imports: [AuthModule, LearningModule],
-  controllers: [AssessmentController, FullTestController],
+  controllers: [AssessmentController, FullTestController, VocabController],
   providers: [
     AssessmentService,
     AssessmentRepository,
@@ -20,6 +24,9 @@ import { FullTestService } from './full-test.service';
     FullTestService,
     FullTestRepository,
     FullTestMapper,
+    VocabService,
+    VocabRepository,
+    VocabMapper,
   ],
 })
 export class AssessmentModule {}
