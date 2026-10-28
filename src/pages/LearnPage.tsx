@@ -60,7 +60,7 @@ const LearnPage = () => {
   });
 
   const { data: modules = [], isLoading, isError: isModulesError, refetch: refetchModules } = useQuery({
-    queryKey: ["learn-modules", cId],
+    queryKey: ["learn-modules", cId, user?.id],
     queryFn: async () => {
       const { data } = await getCurriculum(cId);
 
@@ -124,7 +124,7 @@ const LearnPage = () => {
   });
 
   const { data: materials = [] } = useQuery({
-    queryKey: ["lesson-materials", currentLessonId, cId],
+    queryKey: ["lesson-materials", currentLessonId, cId, user?.id],
     queryFn: async () => {
       if (!currentLessonId) return [];
       const { data } = await listLessonMaterials(currentLessonId);
