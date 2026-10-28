@@ -7,7 +7,10 @@ import type {
   UserLessonProgress,
   UserNote,
 } from '../../generated/prisma/client';
-import type { LessonPracticeWithQuiz } from './learning.repository';
+import type {
+  EnrollmentWithCourseTitle,
+  LessonPracticeWithQuiz,
+} from './learning.repository';
 
 describe('LearningMapper', () => {
   const mapper = new LearningMapper();
@@ -237,6 +240,40 @@ describe('LearningMapper', () => {
       const dto = mapper.toEnrollmentDto(enrollment);
       expect(dto.enrolled_at).toBe('2026-01-01T00:00:00.000Z');
       expect(dto.expires_at).toBe('2026-07-01T00:00:00.000Z');
+    });
+
+    it('toAdminEnrollmentDto chuyển đổi kèm courses.title', () => {
+      const enrollment: EnrollmentWithCourseTitle = {
+        id: 2,
+        userId: '11111111-1111-1111-1111-111111111111',
+        courseId: 7,
+        enrolledAt: new Date('2026-01-01T00:00:00.000Z'),
+        expiresAt: null,
+        course: { title: 'TOEIC 450+' },
+      };
+      const dto = mapper.toAdminEnrollmentDto(enrollment);
+      expect(dto).toEqual({
+        id: 2,
+        user_id: '11111111-1111-1111-1111-111111111111',
+        course_id: 7,
+        enrolled_at: '2026-01-01T00:00:00.000Z',
+        expires_at: null,
+        courses: { title: 'TOEIC 450+' },
+      });
+    });
+
+    it('toAdminEnrollmentDto giữ courses: null khi course là null', () => {
+      const enrollment: EnrollmentWithCourseTitle = {
+        id: 3,
+        userId: '11111111-1111-1111-1111-111111111111',
+        courseId: 8,
+        enrolledAt: null,
+        expiresAt: null,
+        course: null,
+      };
+      const dto = mapper.toAdminEnrollmentDto(enrollment);
+      expect(dto.courses).toBeNull();
+      expect(dto.enrolled_at).toBeNull();
     });
   });
 });

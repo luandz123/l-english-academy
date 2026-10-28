@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import type {
+  Course,
   Enrollment,
   Lesson,
   LessonPractice,
@@ -27,6 +28,10 @@ export interface QuizAccessRow {
 
 export type LessonPracticeWithQuiz = LessonPractice & {
   quiz: Pick<Quiz, 'id' | 'title' | 'totalQuestions'> | null;
+};
+
+export type EnrollmentWithCourseTitle = Enrollment & {
+  course: Pick<Course, 'title'> | null;
 };
 
 @Injectable()
@@ -181,6 +186,223 @@ export class LearningRepository {
         },
       },
       orderBy: [{ triggerAtSeconds: 'asc' }, { id: 'asc' }],
+    });
+  }
+
+  inTransaction<T>(fn: (txRepo: LearningRepository) => Promise<T>): Promise<T> {
+    return this.prisma.$transaction(async (tx) =>
+      fn(new LearningRepository(tx as PrismaService)),
+    );
+  }
+
+  async moduleExists(moduleId: number): Promise<boolean> {
+    const count = await this.prisma.module.count({
+      where: { id: moduleId },
+    });
+    return count > 0;
+  }
+
+  findLessonById(id: number): Promise<Lesson | null> {
+    return this.prisma.lesson.findUnique({
+      where: { id },
+    });
+  }
+
+  async nextLessonDisplayOrder(moduleId: number): Promise<number> {
+    const agg = await this.prisma.lesson.aggregate({
+      where: { moduleId },
+      _max: { displayOrder: true },
+    });
+    return agg._max.displayOrder !== null ? agg._max.displayOrder + 1 : 0;
+  }
+
+  // TODO(P3): chuyển sang AssessmentService
+  async createAutoQuizForModule(
+    moduleId: number | null,
+    title: string,
+  ): Promise<Quiz> {
+    const agg = await this.prisma.quiz.aggregate({
+      where: { moduleId },
+      _max: { displayOrder: true },
+    });
+    const displayOrder =
+      agg._max.displayOrder !== null ? agg._max.displayOrder + 1 : 0;
+    return this.prisma.quiz.create({
+      data: {
+        title,
+        totalQuestions: 0,
+        moduleId,
+        displayOrder,
+      },
+    });
+  }
+
+  createLesson(data: {
+    moduleId: number;
+    title: string;
+    lessonType: string;
+    videoUrl: string | null;
+    pdfUrl: string | null;
+    durationSeconds: number;
+    displayOrder: number;
+    quizId: number | null;
+  }): Promise<Lesson> {
+    return this.prisma.lesson.create({
+      data,
+    });
+  }
+
+  updateLesson(
+    id: number,
+    data: {
+      title?: string;
+      lessonType?: string;
+      videoUrl?: string | null;
+      pdfUrl?: string | null;
+      durationSeconds?: number;
+      quizId?: number | null;
+      isFree?: boolean;
+      isPublished?: boolean;
+    },
+  ): Promise<Lesson> {
+    return this.prisma.lesson.update({
+      where: { id },
+      data,
+    });
+  }
+
+  async deleteLesson(id: number): Promise<void> {
+    await this.prisma.lesson.deleteMany({
+      where: { id },
+    });
+  }
+
+  async findLessonIdsByModule(moduleId: number): Promise<number[]> {
+    const rows = await this.prisma.lesson.findMany({
+      where: { moduleId },
+      select: { id: true },
+    });
+    return rows.map((r) => r.id);
+  }
+
+  async reorderLessons(lessonIds: number[]): Promise<void> {
+    if (lessonIds.length === 0) return;
+    await this.prisma.$transaction(
+      lessonIds.map((id, index) =>
+        this.prisma.lesson.update({
+          where: { id },
+          data: { displayOrder: index },
+        }),
+      ),
+    );
+  }
+
+  async quizExists(quizId: number): Promise<boolean> {
+    const count = await this.prisma.quiz.count({
+      where: { id: quizId },
+    });
+    return count > 0;
+  }
+
+  findPracticeById(id: number): Promise<LessonPractice | null> {
+    return this.prisma.lessonPractice.findUnique({
+      where: { id },
+    });
+  }
+
+  countPracticesByLesson(lessonId: number): Promise<number> {
+    return this.prisma.lessonPractice.count({
+      where: { lessonId },
+    });
+  }
+
+  createPractice(data: {
+    lessonId: number;
+    quizId: number | null;
+    triggerAtSeconds: number;
+    title: string;
+    displayOrder: number;
+  }): Promise<LessonPracticeWithQuiz> {
+    return this.prisma.lessonPractice.create({
+      data,
+      include: {
+        quiz: {
+          select: {
+            id: true,
+            title: true,
+            totalQuestions: true,
+          },
+        },
+      },
+    });
+  }
+
+  updatePractice(
+    id: number,
+    data: {
+      quizId: number | null;
+      triggerAtSeconds: number;
+      title: string;
+    },
+  ): Promise<LessonPracticeWithQuiz> {
+    return this.prisma.lessonPractice.update({
+      where: { id },
+      data,
+      include: {
+        quiz: {
+          select: {
+            id: true,
+            title: true,
+            totalQuestions: true,
+          },
+        },
+      },
+    });
+  }
+
+  async deletePractice(id: number): Promise<void> {
+    await this.prisma.lessonPractice.deleteMany({
+      where: { id },
+    });
+  }
+
+  /**
+   * Join chỉ đọc vào bảng `courses` của Catalog để lấy `courses: { title }`
+   * đúng shape PostgREST `select("*, courses(title)")` ở AdminStudentDetail.
+   */
+  findEnrollmentsByUser(userId: string): Promise<EnrollmentWithCourseTitle[]> {
+    return this.prisma.enrollment.findMany({
+      where: { userId },
+      include: {
+        course: {
+          select: { title: true },
+        },
+      },
+      orderBy: [{ id: 'asc' }],
+    });
+  }
+
+  /**
+   * Tạo ghi danh và join chỉ đọc vào bảng `courses` của Catalog để lấy `courses: { title }`.
+   */
+  createEnrollment(data: {
+    userId: string;
+    courseId: number;
+    expiresAt: Date | null;
+  }): Promise<EnrollmentWithCourseTitle> {
+    return this.prisma.enrollment.create({
+      data,
+      include: {
+        course: {
+          select: { title: true },
+        },
+      },
+    });
+  }
+
+  async deleteEnrollment(id: number): Promise<void> {
+    await this.prisma.enrollment.deleteMany({
+      where: { id },
     });
   }
 }
