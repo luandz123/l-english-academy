@@ -4,7 +4,12 @@ import { Users, BookOpen, ClipboardCheck, TrendingUp, LayoutDashboard } from "lu
 import { PageHeader } from "@/components/ui/PageHeader";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  getAdminStatsCounts,
+  getAdminRecentEnrollments,
+  getAdminRecentResults,
+  getAdminQuizScores,
+} from "@/lib/api/admin";
 import { Link } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -12,81 +17,56 @@ const AdminDashboard = () => {
   const { data: totalStudents = 0 } = useQuery({
     queryKey: ["admin-total-students"],
     queryFn: async () => {
-      const { count } = await supabase.from("profiles").select("*", { count: "exact", head: true });
-      return count ?? 0;
+      const { data, error } = await getAdminStatsCounts();
+      if (error) throw error;
+      return data?.total_students ?? 0;
     },
   });
 
   const { data: totalCourses = 0 } = useQuery({
     queryKey: ["admin-total-courses"],
     queryFn: async () => {
-      const { count } = await supabase.from("courses").select("*", { count: "exact", head: true }).eq("is_active", true);
-      return count ?? 0;
+      const { data, error } = await getAdminStatsCounts();
+      if (error) throw error;
+      return data?.total_courses ?? 0;
     },
   });
 
   const { data: totalQuizAttempts = 0 } = useQuery({
     queryKey: ["admin-total-quiz-attempts"],
     queryFn: async () => {
-      const { count } = await supabase.from("user_quiz_results").select("*", { count: "exact", head: true });
-      return count ?? 0;
+      const { data, error } = await getAdminStatsCounts();
+      if (error) throw error;
+      return data?.total_quiz_attempts ?? 0;
     },
   });
 
   const { data: recentEnrollments = [], isLoading: loadingRecent } = useQuery({
     queryKey: ["admin-recent-enrollments"],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("enrollments")
-        .select("*, courses(title)")
-        .order("enrolled_at", { ascending: false })
-        .limit(5);
-      
-      if (!data || data.length === 0) return [];
-      
-      const userIds = [...new Set(data.map(d => d.user_id))];
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("user_id, full_name")
-        .in("user_id", userIds);
-        
-      return data.map(d => ({
-        ...d,
-        profiles: profiles?.find(p => p.user_id === d.user_id) || null
-      }));
+      const { data, error } = await getAdminRecentEnrollments();
+      if (error) throw error;
+      return data ?? [];
     },
   });
 
   const { data: recentResults = [] } = useQuery({
     queryKey: ["admin-recent-results"],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("user_quiz_results")
-        .select("*, quizzes(title)")
-        .order("completed_at", { ascending: false })
-        .limit(5);
-      
-      if (!data || data.length === 0) return [];
-      
-      const userIds = [...new Set(data.map(d => d.user_id))];
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("user_id, full_name")
-        .in("user_id", userIds);
-        
-      return data.map(d => ({
-        ...d,
-        profiles: profiles?.find(p => p.user_id === d.user_id) || null
-      }));
+      const { data, error } = await getAdminRecentResults();
+      if (error) throw error;
+      return data ?? [];
     },
   });
 
   const { data: partScores = [] } = useQuery({
     queryKey: ["admin-part-scores"],
     queryFn: async () => {
-      const { data: quizzes } = await supabase.from("quizzes").select("id, title");
+      const { data, error } = await getAdminQuizScores();
+      if (error) throw error;
+      const quizzes = data?.quizzes;
       if (!quizzes?.length) return [];
-      const { data: results } = await supabase.from("user_quiz_results").select("quiz_id, score");
+      const results = data?.results;
       if (!results?.length) return [];
       const scoreMap: Record<number, { total: number; count: number; title: string }> = {};
       quizzes.forEach((q) => { scoreMap[q.id] = { total: 0, count: 0, title: q.title }; });

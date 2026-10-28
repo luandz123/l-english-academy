@@ -1,6 +1,14 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   addStudentNote,
+  getAdminCourseEnrollments,
+  getAdminQuestionsByIds,
+  getAdminQuizScores,
+  getAdminRecentEnrollments,
+  getAdminRecentResults,
+  getAdminStatsCounts,
+  getAdminStudents,
+  getAdminUserAnswers,
   getPublicSetting,
   listAdminSettings,
   listStudentNotes,
@@ -112,5 +120,120 @@ describe("admin adapter", () => {
       expect(JSON.parse(init?.body as string)).toEqual({ value: SETTING.value });
     });
   });
-});
 
+  describe("admin stats (T-020)", () => {
+    it("getAdminStatsCounts gọi GET /admin/stats/counts", async () => {
+      const counts = { total_students: 10, total_courses: 5, total_quiz_attempts: 20 };
+      const fetchMock = mockFetch(200, counts);
+      const { data, error } = await getAdminStatsCounts();
+      expect(error).toBeNull();
+      expect(data).toEqual(counts);
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("/api/v1/admin/stats/counts");
+      expect(init?.method).toBe("GET");
+    });
+
+    it("getAdminRecentEnrollments gọi GET /admin/stats/recent-enrollments", async () => {
+      const list = [{ id: 1, user_id: "u-1", course_id: 2, enrolled_at: null, expires_at: null, courses: null, profiles: null }];
+      const fetchMock = mockFetch(200, list);
+      const { data, error } = await getAdminRecentEnrollments();
+      expect(error).toBeNull();
+      expect(data).toEqual(list);
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("/api/v1/admin/stats/recent-enrollments");
+      expect(init?.method).toBe("GET");
+    });
+
+    it("getAdminRecentResults gọi GET /admin/stats/recent-results", async () => {
+      const list = [{ id: 1, user_id: "u-1", quiz_id: 2, score: 9.0, correct_answers: 9, total_questions: 10, completed_at: null, quizzes: null, profiles: null }];
+      const fetchMock = mockFetch(200, list);
+      const { data, error } = await getAdminRecentResults();
+      expect(error).toBeNull();
+      expect(data).toEqual(list);
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("/api/v1/admin/stats/recent-results");
+      expect(init?.method).toBe("GET");
+    });
+
+    it("getAdminQuizScores gọi GET /admin/stats/quiz-scores", async () => {
+      const scores = { quizzes: [{ id: 1, title: "Q1" }], results: [{ quiz_id: 1, score: 8.5 }] };
+      const fetchMock = mockFetch(200, scores);
+      const { data, error } = await getAdminQuizScores();
+      expect(error).toBeNull();
+      expect(data).toEqual(scores);
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("/api/v1/admin/stats/quiz-scores");
+      expect(init?.method).toBe("GET");
+    });
+
+    it("getAdminCourseEnrollments gọi GET /admin/stats/course-enrollments", async () => {
+      const enrollments = { courses: [{ id: 1, title: "C1" }], enrollments: [{ course_id: 1 }] };
+      const fetchMock = mockFetch(200, enrollments);
+      const { data, error } = await getAdminCourseEnrollments();
+      expect(error).toBeNull();
+      expect(data).toEqual(enrollments);
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("/api/v1/admin/stats/course-enrollments");
+      expect(init?.method).toBe("GET");
+    });
+
+    it("getAdminUserAnswers gọi GET /admin/stats/answers", async () => {
+      const answers = [{ question_id: 1, is_correct: true }];
+      const fetchMock = mockFetch(200, answers);
+      const { data, error } = await getAdminUserAnswers();
+      expect(error).toBeNull();
+      expect(data).toEqual(answers);
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("/api/v1/admin/stats/answers");
+      expect(init?.method).toBe("GET");
+    });
+
+    it("getAdminQuestionsByIds gọi GET /admin/stats/questions với query ids", async () => {
+      const questions = [{ id: 10, question_text: "Text" }];
+      const fetchMock = mockFetch(200, questions);
+      const { data, error } = await getAdminQuestionsByIds([10, 20]);
+      expect(error).toBeNull();
+      expect(data).toEqual(questions);
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("/api/v1/admin/stats/questions?ids=10,20");
+      expect(init?.method).toBe("GET");
+    });
+
+    it("getAdminQuestionsByIds gọi không query khi mảng rỗng", async () => {
+      const fetchMock = mockFetch(200, []);
+      const { data, error } = await getAdminQuestionsByIds([]);
+      expect(error).toBeNull();
+      expect(data).toEqual([]);
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("/api/v1/admin/stats/questions");
+      expect(init?.method).toBe("GET");
+    });
+
+    it("getAdminStudents gọi GET /admin/stats/students", async () => {
+      const students = {
+        profiles: [
+          {
+            id: "p-1",
+            user_id: "u-1",
+            full_name: "A",
+            avatar_url: null,
+            email: "a@b.com",
+            is_pro: false,
+            pro_plan: null,
+            pro_activated_at: null,
+            created_at: null,
+            updated_at: null,
+          },
+        ],
+        enrollments: [{ user_id: "u-1", expires_at: null }],
+      };
+      const fetchMock = mockFetch(200, students);
+      const { data, error } = await getAdminStudents();
+      expect(error).toBeNull();
+      expect(data).toEqual(students);
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("/api/v1/admin/stats/students");
+      expect(init?.method).toBe("GET");
+    });
+  });
+});

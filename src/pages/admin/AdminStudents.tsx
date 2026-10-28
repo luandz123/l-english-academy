@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";
 import { Search, Eye } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { getAdminStudents } from "@/lib/api/admin";
 import { adminCreateStudent } from "@/lib/api/auth";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
@@ -54,10 +54,12 @@ const AdminStudents = () => {
   const { data: students = [], isLoading } = useQuery({
     queryKey: ["admin-students"],
     queryFn: async () => {
-      const { data: profiles } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
+      const { data, error } = await getAdminStudents();
+      if (error) throw error;
+      const profiles = data?.profiles;
       if (!profiles) return [];
 
-      const { data: enrollments } = await supabase.from("enrollments").select("user_id, expires_at");
+      const enrollments = data?.enrollments;
       const enrollMap: Record<string, { count: number; hasActive: boolean; hasExpired: boolean }> = {};
       (enrollments ?? []).forEach((e) => {
         if (!enrollMap[e.user_id]) enrollMap[e.user_id] = { count: 0, hasActive: false, hasExpired: false };
