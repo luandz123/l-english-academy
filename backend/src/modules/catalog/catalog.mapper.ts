@@ -1,6 +1,20 @@
 import { Injectable } from '@nestjs/common';
-import type { Course, CourseCategory } from '../../generated/prisma/client';
-import { CourseCategoryDto, CourseDto } from './dto';
+import type {
+  Course,
+  CourseCategory,
+  Lesson,
+  Module,
+  Quiz,
+} from '../../generated/prisma/client';
+import {
+  AdminModuleDto,
+  AdminModuleLessonDto,
+  AdminModuleQuizDto,
+  CourseCategoryDto,
+  CourseDto,
+  ModuleDto,
+} from './dto';
+import type { AdminModuleWithRelations } from './catalog.repository';
 
 @Injectable()
 export class CatalogMapper {
@@ -44,5 +58,56 @@ export class CatalogMapper {
 
   toCourseDtoList(courses: Course[]): CourseDto[] {
     return courses.map((course) => this.toCourseDto(course));
+  }
+
+  toModuleDto(mod: Module): ModuleDto {
+    return {
+      id: mod.id,
+      course_id: mod.courseId,
+      title: mod.title,
+      description: mod.description,
+      display_order: mod.displayOrder,
+      is_free: mod.isFree,
+      is_published: mod.isPublished,
+    };
+  }
+
+  toAdminModuleLessonDto(lesson: Lesson): AdminModuleLessonDto {
+    return {
+      id: lesson.id,
+      module_id: lesson.moduleId,
+      title: lesson.title,
+      video_url: lesson.videoUrl,
+      duration_seconds: lesson.durationSeconds,
+      display_order: lesson.displayOrder,
+      is_live: lesson.isLive,
+      live_time: lesson.liveTime ? lesson.liveTime.toISOString() : null,
+      lesson_type: lesson.lessonType,
+      quiz_id: lesson.quizId,
+      pdf_url: lesson.pdfUrl,
+      is_free: lesson.isFree,
+      is_published: lesson.isPublished,
+    };
+  }
+
+  toAdminModuleQuizDto(quiz: Quiz): AdminModuleQuizDto {
+    return {
+      id: quiz.id,
+      module_id: quiz.moduleId,
+      title: quiz.title,
+      total_questions: quiz.totalQuestions,
+      time_limit_seconds: quiz.timeLimitSeconds,
+      display_order: quiz.displayOrder,
+      audio_url: quiz.audioUrl,
+      is_free: quiz.isFree,
+    };
+  }
+
+  toAdminModuleDto(mod: AdminModuleWithRelations): AdminModuleDto {
+    return {
+      ...this.toModuleDto(mod),
+      lessons: mod.lessons.map((l) => this.toAdminModuleLessonDto(l)),
+      quizzes: mod.quizzes.map((q) => this.toAdminModuleQuizDto(q)),
+    };
   }
 }
