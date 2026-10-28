@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getFriendlyErrorMessage } from "@/lib/errorHandler";
 import { listUserQuizResults } from "@/lib/api/assessment";
+import { listStudentNotes, addStudentNote } from "@/lib/api/admin";
 import {
   listUserEnrollments,
   addUserEnrollment,
@@ -74,11 +75,7 @@ const AdminStudentDetail = () => {
   const { data: notes = [] } = useQuery({
     queryKey: ["admin-student-notes", userId],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("admin_student_notes")
-        .select("*")
-        .eq("student_id", userId!)
-        .order("created_at", { ascending: false });
+      const { data } = await listStudentNotes(userId!);
       return data ?? [];
     },
     enabled: !!userId,
@@ -96,9 +93,7 @@ const AdminStudentDetail = () => {
 
   const addNoteMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("admin_student_notes").insert({
-        student_id: userId!, admin_id: user!.id, content: noteText,
-      });
+      const { error } = await addStudentNote(userId!, noteText);
       if (error) throw error;
     },
     onSuccess: () => {
