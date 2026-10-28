@@ -62,6 +62,24 @@ export interface QuizResultRow {
   completed_at: string | null;
 }
 
+export interface QuizResultWithQuizRow extends QuizResultRow {
+  quizzes: {
+    id: number;
+    title: string;
+    audio_url: string | null;
+    total_questions: number;
+    module_id: number | null;
+    modules: {
+      id: number;
+      title: string;
+      courses: {
+        id: number;
+        title: string;
+      } | null;
+    } | null;
+  } | null;
+}
+
 export interface UserAnswerRow {
   id: number;
   result_id: number;
@@ -141,5 +159,26 @@ export async function listResultAnswers(
 ): Promise<{ data: UserAnswerRow[] | null; error: ApiError | null }> {
   return toResult(
     apiClient.get<UserAnswerRow[]>(`assessment/results/${resultId}/answers`),
+  );
+}
+
+/** Danh sách kết quả quiz của chính mình kèm thông tin quiz/module/course (ASM-006). */
+export async function listMyQuizResults(): Promise<{
+  data: QuizResultWithQuizRow[] | null;
+  error: ApiError | null;
+}> {
+  return toResult(
+    apiClient.get<QuizResultWithQuizRow[]>("assessment/results/me"),
+  );
+}
+
+/** Admin lấy danh sách kết quả quiz của một học viên (ADM-003). */
+export async function listUserQuizResults(
+  userId: string,
+): Promise<{ data: QuizResultWithQuizRow[] | null; error: ApiError | null }> {
+  return toResult(
+    apiClient.get<QuizResultWithQuizRow[]>(
+      `assessment/admin/users/${userId}/results`,
+    ),
   );
 }

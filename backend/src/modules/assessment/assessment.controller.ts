@@ -6,6 +6,7 @@ import {
   HttpStatus,
   Param,
   ParseIntPipe,
+  ParseUUIDPipe,
   Post,
   UseGuards,
 } from '@nestjs/common';
@@ -20,17 +21,20 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import { AppRole } from '../../generated/prisma/enums';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import {
   type AuthenticatedUser,
   JwtAuthGuard,
 } from '../auth/guards/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
+import { Roles, RolesGuard } from '../auth/guards/roles.guard';
 import {
   LatestQuizResultResponseDto,
   QuestionDto,
   QuizDto,
   QuizResultDto,
+  QuizResultWithQuizDto,
   ReviewQuestionDto,
   SubmitQuizDto,
   SubmitQuizResponseDto,
@@ -118,6 +122,36 @@ export class AssessmentController {
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<LatestQuizResultResponseDto> {
     return this.assessment.getLatestResult(user.id, quizId);
+  }
+
+  @Get('results/me')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary:
+      'Danh sách kết quả quiz của chính mình kèm thông tin quiz (ASM-006)',
+  })
+  @ApiOkResponse({ type: [QuizResultWithQuizDto] })
+  @ApiUnauthorizedResponse({ description: 'Chưa đăng nhập' })
+  listMyResults(
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<QuizResultWithQuizDto[]> {
+    return this.assessment.listUserResults(user.id);
+  }
+
+  @Get('admin/users/:userId/results')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(AppRole.admin)
+  @ApiOperation({
+    summary: 'Admin xem danh sách kết quả quiz của một học viên (ADM-003)',
+  })
+  @ApiOkResponse({ type: [QuizResultWithQuizDto] })
+  @ApiBadRequestResponse({ description: 'userId không phải UUID' })
+  @ApiUnauthorizedResponse({ description: 'Chưa đăng nhập' })
+  @ApiForbiddenResponse({ description: 'Không phải admin' })
+  listUserResults(
+    @Param('userId', ParseUUIDPipe) userId: string,
+  ): Promise<QuizResultWithQuizDto[]> {
+    return this.assessment.listUserResults(userId);
   }
 
   @Get('results/:resultId')

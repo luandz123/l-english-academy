@@ -16,6 +16,7 @@ import { Unlock, ShieldAlert, Trash2, Edit, Plus, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getFriendlyErrorMessage } from "@/lib/errorHandler";
+import { listUserQuizResults } from "@/lib/api/assessment";
 import {
   listUserEnrollments,
   addUserEnrollment,
@@ -64,11 +65,7 @@ const AdminStudentDetail = () => {
   const { data: quizResults = [] } = useQuery({
     queryKey: ["admin-student-results", userId],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("user_quiz_results")
-        .select("*, quizzes(title)")
-        .eq("user_id", userId!)
-        .order("completed_at", { ascending: false });
+      const { data } = await listUserQuizResults(userId!);
       return data ?? [];
     },
     enabled: !!userId,

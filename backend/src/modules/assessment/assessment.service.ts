@@ -12,6 +12,7 @@ import {
   QuestionDto,
   QuizDto,
   QuizResultDto,
+  QuizResultWithQuizDto,
   ReviewQuestionDto,
   SubmitQuizDto,
   SubmitQuizResponseDto,
@@ -125,6 +126,15 @@ export class AssessmentService {
   ): Promise<LatestQuizResultResponseDto> {
     const result = await this.repo.findLatestResult(userId, quizId);
     return { result: result ? this.mapper.toQuizResultDto(result) : null };
+  }
+
+  /**
+   * Danh sách kết quả quiz của một user kèm thông tin quiz/module/course
+   * (ASM-006 ở Learn/Dashboard/Profile cho chính mình; ADM-003 ở AdminStudentDetail).
+   */
+  async listUserResults(userId: string): Promise<QuizResultWithQuizDto[]> {
+    const rows = await this.repo.findResultsByUserWithQuiz(userId);
+    return rows.map((r) => this.mapper.toQuizResultWithQuizDto(r));
   }
 
   /** Thay `QuizResult.tsx:110`. Không phải của mình (và không phải admin) → [] như RLS. */

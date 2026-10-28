@@ -86,6 +86,7 @@ function setup(
       ),
     findResult: jest.fn().mockResolvedValue(RESULT),
     findLatestResult: jest.fn().mockResolvedValue(null),
+    findResultsByUserWithQuiz: jest.fn().mockResolvedValue([]),
     hasResult: jest.fn().mockResolvedValue(opts.hasResult ?? false),
     findUserAnswers: jest.fn().mockResolvedValue([]),
   };
@@ -270,6 +271,89 @@ describe('AssessmentService', () => {
     it('admin chưa nộp vẫn xem được', async () => {
       const { service } = setup({ admin: true });
       await expect(service.getReview(ME, 5)).resolves.toHaveLength(2);
+    });
+  });
+
+  describe('listUserResults & AssessmentMapper.toQuizResultWithQuizDto', () => {
+    it('map đầy đủ quizzes -> modules -> courses và xử lý quiz không gắn module', async () => {
+      const { service, repo } = setup();
+      repo.findResultsByUserWithQuiz.mockResolvedValue([
+        {
+          ...RESULT,
+          score: '8.75',
+          quiz: {
+            id: 5,
+            title: 'Quiz có module',
+            audioUrl: 'https://cdn.example.com/a.mp3',
+            totalQuestions: 10,
+            moduleId: 2,
+            module: {
+              id: 2,
+              title: 'Module 2',
+              course: { id: 1, title: 'Khóa TOEIC' },
+            },
+          },
+        },
+        {
+          ...RESULT,
+          id: 101,
+          score: null,
+          completedAt: null,
+          quiz: {
+            id: 6,
+            title: 'Quiz mồ côi',
+            audioUrl: null,
+            totalQuestions: 5,
+            moduleId: null,
+            module: null,
+          },
+        },
+      ]);
+
+      const rows = await service.listUserResults('u1');
+      expect(repo.findResultsByUserWithQuiz).toHaveBeenCalledWith('u1');
+      expect(rows).toEqual([
+        {
+          id: 100,
+          user_id: 'u1',
+          quiz_id: 5,
+          score: 8.75,
+          correct_answers: 1,
+          total_questions: 2,
+          time_spent_seconds: 30,
+          completed_at: '2026-10-28T10:00:00.000Z',
+          quizzes: {
+            id: 5,
+            title: 'Quiz có module',
+            audio_url: 'https://cdn.example.com/a.mp3',
+            total_questions: 10,
+            module_id: 2,
+            modules: {
+              id: 2,
+              title: 'Module 2',
+              courses: { id: 1, title: 'Khóa TOEIC' },
+            },
+          },
+        },
+        {
+          id: 101,
+          user_id: 'u1',
+          quiz_id: 5,
+          score: null,
+          correct_answers: 1,
+          total_questions: 2,
+          time_spent_seconds: 30,
+          completed_at: null,
+          quizzes: {
+            id: 6,
+            title: 'Quiz mồ côi',
+            audio_url: null,
+            total_questions: 5,
+            module_id: null,
+            modules: null,
+          },
+        },
+      ]);
     });
   });
 });

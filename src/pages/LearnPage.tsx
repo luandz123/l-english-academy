@@ -6,6 +6,7 @@ import { PlayCircle, CheckCircle, ChevronLeft, ChevronRight, Check, Loader2, Fil
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { listMyQuizResults } from "@/lib/api/assessment";
 import { getCourse } from "@/lib/api/catalog";
 import {
   addFavorite,
@@ -101,11 +102,7 @@ const LearnPage = () => {
     queryKey: ["learn-quiz-results", user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const { data } = await supabase
-        .from("user_quiz_results")
-        .select("quiz_id, score, correct_answers, total_questions")
-        .eq("user_id", user.id)
-        .order("completed_at", { ascending: false });
+      const { data } = await listMyQuizResults();
       return data ?? [];
     },
     enabled: !!user,

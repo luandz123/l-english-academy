@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { listMyQuizResults } from "@/lib/api/assessment";
 import { listCourses } from "@/lib/api/catalog";
 import { listMyProgressRows } from "@/lib/api/learning";
 import { useAuth } from "@/hooks/useAuth";
@@ -181,11 +182,7 @@ export const DashboardPage: React.FC = () => {
     queryKey: ["dashboard-quiz-results", user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const { data } = await supabase
-        .from("user_quiz_results")
-        .select("id, quiz_id, score, total_questions, correct_answers, time_spent_seconds, completed_at")
-        .eq("user_id", user.id)
-        .order("completed_at", { ascending: false });
+      const { data } = await listMyQuizResults();
       return data || [];
     },
     enabled: !!user,

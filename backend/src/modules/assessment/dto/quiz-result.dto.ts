@@ -37,6 +37,54 @@ export class QuizResultDto {
   completed_at!: string | null;
 }
 
+export class QuizResultCourseEmbedDto {
+  @ApiProperty()
+  id!: number;
+
+  @ApiProperty()
+  title!: string;
+}
+
+export class QuizResultModuleEmbedDto {
+  @ApiProperty()
+  id!: number;
+
+  @ApiProperty()
+  title!: string;
+
+  @ApiProperty({ type: QuizResultCourseEmbedDto, nullable: true })
+  courses!: QuizResultCourseEmbedDto | null;
+}
+
+export class QuizResultQuizEmbedDto {
+  @ApiProperty()
+  id!: number;
+
+  @ApiProperty()
+  title!: string;
+
+  @ApiProperty({ nullable: true, type: String })
+  audio_url!: string | null;
+
+  @ApiProperty()
+  total_questions!: number;
+
+  @ApiProperty({ nullable: true, type: Number })
+  module_id!: number | null;
+
+  @ApiProperty({ type: QuizResultModuleEmbedDto, nullable: true })
+  modules!: QuizResultModuleEmbedDto | null;
+}
+
+/**
+ * Một dòng `user_quiz_results` kèm join `quizzes(id, title, audio_url, total_questions,
+ * module_id, modules(id, title, courses(id, title)))` như PostgREST (ASM-006, ADM-003).
+ */
+export class QuizResultWithQuizDto extends QuizResultDto {
+  @ApiProperty({ type: QuizResultQuizEmbedDto, nullable: true })
+  quizzes!: QuizResultQuizEmbedDto | null;
+}
+
 /** Bọc trong object vì Nest trả body rỗng khi handler trả `null`. */
 export class LatestQuizResultResponseDto {
   @ApiProperty({ type: QuizResultDto, nullable: true })
