@@ -27,3 +27,4 @@ Ký hiệu: ⏳ chờ · 🔨 đang làm · 🔍 chờ review · 🔁 TRẢ LẠ
 | T-019 | [admin khóa học + danh mục](T-019-catalog-admin-courses.md) | `task/T-019-catalog-admin-courses` | — | ✅ merged |
 | T-020 | [admin thống kê + học viên](T-020-admin-stats.md) | `task/T-020-admin-stats` | T-018 | ✅ merged |
 | T-021 | [từ vựng + flashcard](T-021-vocab-pages.md) | `task/T-021-vocab-pages` | — | ⏳ chờ |
+| T-022 | [dọn 2 trang admin chi tiết](T-022-admin-detail-leftovers.md) | `task/T-022-admin-detail-leftovers` | — | ⏳ chờ |
