@@ -6,7 +6,14 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Edit, Trash2, GripVertical, ChevronDown, ChevronRight, Eye, EyeOff, Unlock, Lock, Sparkles, CheckCircle2 } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  createModule,
+  deleteModule,
+  patchModule,
+  reorderModules,
+  setFreeModule,
+  updateModule,
+} from "@/lib/api/catalog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import LessonManager from "./LessonManager";
 import { getFriendlyErrorMessage } from "@/lib/errorHandler";
@@ -81,7 +88,7 @@ const SortableModuleItem = ({
     setIsUpdatingFree(true);
     const newStatus = !mod.is_free;
     try {
-      const { error } = await (supabase.from("modules") as any).update({ is_free: newStatus }).eq("id", mod.id);
+      const { error } = await patchModule(mod.id, { is_free: newStatus });
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey: ["admin-course-modules", courseId] });
       toast({
@@ -159,7 +166,7 @@ const SortableModuleItem = ({
             onClick={(e) => {
               e.stopPropagation();
               const newStatus = mod.is_published === false ? true : false;
-              supabase.from("modules").update({ is_published: newStatus } as any).eq("id", mod.id).then(({ error }: any) => {
+              patchModule(mod.id, { is_published: newStatus }).then(({ error }: any) => {
                 if (error) {
                   toast({ title: "Lỗi", description: error.message, variant: "destructive" });
                   return;
@@ -253,9 +260,7 @@ const ModuleManager = ({ courseId, modules }: ModuleManagerProps) => {
     queryClient.setQueryData(["admin-course-modules", courseId], reordered);
 
     // Save to DB
-    for (let i = 0; i < reordered.length; i++) {
-      await supabase.from("modules").update({ display_order: i }).eq("id", reordered[i].id);
-    }
+    await reorderModules(courseId, reordered.map((m: any) => m.id));
     queryClient.invalidateQueries({ queryKey: ["admin-course-modules", courseId] });
     toast({ title: "Đã sắp xếp lại" });
   };
@@ -275,13 +280,8 @@ const ModuleManager = ({ courseId, modules }: ModuleManagerProps) => {
         );
       }) || modules[0];
 
-      for (const m of modules) {
-        const shouldBeFree = m.id === part1Module.id;
-        const { error } = await (supabase.from("modules") as any)
-          .update({ is_free: shouldBeFree })
-          .eq("id", m.id);
-        if (error) throw error;
-      }
+      const { error } = await setFreeModule(courseId, part1Module.id);
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-course-modules", courseId] });
@@ -298,20 +298,17 @@ const ModuleManager = ({ courseId, modules }: ModuleManagerProps) => {
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (editingModule) {
-        const { error } = await (supabase.from("modules") as any).update({
+        const { error } = await updateModule(editingModule.id, {
           title: moduleTitle,
           description: moduleDesc,
           is_free: isFree,
-        }).eq("id", editingModule.id);
+        });
         if (error) throw error;
       } else {
-        const maxOrder = modules.length > 0 ? Math.max(...modules.map((m: any) => m.display_order)) + 1 : 0;
-        const { error } = await (supabase.from("modules") as any).insert({
-          course_id: courseId,
+        const { error } = await createModule(courseId, {
           title: moduleTitle,
           description: moduleDesc,
           is_free: isFree,
-          display_order: maxOrder,
         });
         if (error) throw error;
       }
@@ -332,7 +329,7 @@ const ModuleManager = ({ courseId, modules }: ModuleManagerProps) => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      const { error } = await supabase.from("modules").delete().eq("id", id);
+      const { error } = await deleteModule(id);
       if (error) throw error;
     },
     onSuccess: () => {

@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { getAdminCourseModules } from "@/lib/api/catalog";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -159,7 +160,7 @@ const AdminCourseDetail = () => {
   const { data: modules = [] } = useQuery({
     queryKey: ["admin-course-modules", id],
     queryFn: async () => {
-      const { data } = await supabase.from("modules").select("*, lessons(*), quizzes(*)").eq("course_id", id).order("display_order");
+      const { data } = await getAdminCourseModules(id);
       return data ?? [];
     },
   });

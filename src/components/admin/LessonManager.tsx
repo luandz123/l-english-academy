@@ -9,6 +9,13 @@ import { Plus, Edit, Trash2, Video, FileQuestion, BookOpen, ChevronDown, Chevron
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import {
+  createLesson,
+  deleteLesson,
+  patchLesson,
+  reorderLessons,
+  updateLesson,
+} from "@/lib/api/learning";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import QuizManager from "./QuizManager";
 import LessonPracticeManager from "./LessonPracticeManager";
@@ -102,7 +109,7 @@ const SortableLessonItem = ({
           onClick={(e) => {
             e.stopPropagation();
             const newStatus = !l.is_free;
-            (supabase.from("lessons") as any).update({ is_free: newStatus }).eq("id", l.id).then(({ error }: any) => {
+            patchLesson(l.id, { is_free: newStatus }).then(({ error }: any) => {
               if (error) {
                 toast({ title: "Lỗi", description: error.message, variant: "destructive" });
                 return;
@@ -122,7 +129,7 @@ const SortableLessonItem = ({
           onClick={(e) => {
             e.stopPropagation();
             const newStatus = l.is_published === false ? true : false;
-            supabase.from("lessons").update({ is_published: newStatus } as any).eq("id", l.id).then(({ error }: any) => {
+            patchLesson(l.id, { is_published: newStatus }).then(({ error }: any) => {
               if (error) {
                 toast({ title: "Lỗi", description: error.message, variant: "destructive" });
                 return;
@@ -208,9 +215,7 @@ const LessonManager = ({ moduleId, courseId, lessons, quizzes }: LessonManagerPr
 
     const reordered = arrayMove(sorted, oldIndex, newIndex);
 
-    for (let i = 0; i < reordered.length; i++) {
-      await supabase.from("lessons").update({ display_order: i }).eq("id", reordered[i].id);
-    }
+    await reorderLessons(moduleId, reordered.map((l: any) => l.id));
     queryClient.invalidateQueries({ queryKey: ["admin-course-modules", courseId] });
     toast({ title: "Đã sắp xếp lại bài học" });
   };
@@ -240,36 +245,19 @@ const LessonManager = ({ moduleId, courseId, lessons, quizzes }: LessonManagerPr
 
   const saveLessonMutation = useMutation({
     mutationFn: async () => {
-      let quizId: number | null = null;
-
-      // Auto-create quiz for exam/practice/dictation lessons
-      if ((lessonType === "exam" || lessonType === "practice" || lessonType === "dictation") && !editingLesson?.quiz_id) {
-        const { data: quizData, error: quizError } = await supabase.from("quizzes").insert({
-          title: `Quiz - ${lessonTitle}`,
-          total_questions: 0,
-          module_id: moduleId,
-          display_order: quizzes.length > 0 ? Math.max(...quizzes.map((q: any) => q.display_order)) + 1 : 0,
-        }).select("id").single();
-        if (quizError) throw quizError;
-        quizId = quizData.id;
-      }
-
-      const payload: any = {
+      const body = {
         title: lessonTitle,
         lesson_type: lessonType,
         video_url: lessonType === "video" && videoUrl ? videoUrl : null,
         pdf_url: lessonType === "video" && pdfUrl ? pdfUrl : null,
         duration_seconds: durationUnit === "minutes" ? (Number(durationVal) || 0) * 60 : (Number(durationVal) || 0),
-        module_id: moduleId,
-        display_order: editingLesson ? editingLesson.display_order : (lessons.length > 0 ? Math.max(...lessons.map((l: any) => l.display_order)) + 1 : 0),
       };
-      if (quizId) payload.quiz_id = quizId;
 
       if (editingLesson) {
-        const { error } = await supabase.from("lessons").update(payload).eq("id", editingLesson.id);
+        const { error } = await updateLesson(editingLesson.id, body);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("lessons").insert(payload);
+        const { error } = await createLesson(moduleId, body);
         if (error) throw error;
       }
     },
@@ -285,7 +273,7 @@ const LessonManager = ({ moduleId, courseId, lessons, quizzes }: LessonManagerPr
 
   const deleteLessonMutation = useMutation({
     mutationFn: async (id: number) => {
-      const { error } = await supabase.from("lessons").delete().eq("id", id);
+      const { error } = await deleteLesson(id);
       if (error) throw error;
     },
     onSuccess: () => {
