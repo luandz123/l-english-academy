@@ -27,10 +27,10 @@
 - Thứ tự như cũ; `limit(5)` ở server.
 
 ## 4. Tiêu chí nghiệm thu
-- [ ] E2E: mọi route × 3 vai (401/403/200)
-- [ ] E2E: `counts` đúng (seed 2 khóa active + 1 ẩn → `total_courses = 2`); `recent-*` tối đa 5, mới nhất trước, có `profiles.full_name`; `questions?ids=` chỉ trả id được hỏi, > 50 id → 400
-- [ ] Adapter test; `grep -n "supabase" src/pages/admin/AdminDashboard.tsx src/pages/admin/AdminReports.tsx` rỗng; `AdminStudents.tsx` không còn `from("profiles")`/`from("enrollments")`; `check-ui-diff` OK
-- [ ] `git diff` 3 trang: các dòng tính toán sau khi có dữ liệu **không đổi**
+- [x] E2E: mọi route × 3 vai (401/403/200)
+- [x] E2E: `counts` đúng (seed 2 khóa active + 1 ẩn → `total_courses = 2`); `recent-*` tối đa 5, mới nhất trước, có `profiles.full_name`; `questions?ids=` chỉ trả id được hỏi, > 50 id → 400
+- [x] Adapter test; `grep -n "supabase" src/pages/admin/AdminDashboard.tsx src/pages/admin/AdminReports.tsx` rỗng; `AdminStudents.tsx` không còn `from("profiles")`/`from("enrollments")`; `check-ui-diff` OK
+- [x] `git diff` 3 trang: các dòng tính toán sau khi có dữ liệu **không đổi**
 
 ## 5. Lệnh kiểm tra — dán **nguyên văn** output vào mục 6, chạy **sau commit cuối**
 ```bash
@@ -42,6 +42,149 @@ git log --oneline -3 && git diff --stat refactor/nestjs-backend
 ```
 
 ## 6. Kết quả (người làm điền)
+
+### 6.1. Docker Postgres
+```
+ Container l-english-academy-postgres-1  Running
+```
+
+### 6.2. Backend lint, typecheck, test, test:e2e, build
+```
+> backend@0.0.1 lint
+> eslint "{src,test}/**/*.ts"
+
+> backend@0.0.1 typecheck
+> tsc --noEmit -p tsconfig.json
+
+> backend@0.0.1 test
+> node --experimental-vm-modules node_modules/jest/bin/jest.js
+
+PASS src/modules/assessment/quiz-grading.spec.ts
+PASS src/modules/learning/lesson-access.spec.ts
+PASS src/common/transforms/to-optional-boolean.spec.ts
+PASS src/mail/gmail-api.transport.spec.ts
+PASS src/config/env.schema.spec.ts
+PASS src/modules/payments/payment-rules.spec.ts
+PASS src/modules/auth/auth.mapper.spec.ts
+PASS src/modules/assessment/toeic-scoring.spec.ts
+PASS src/modules/catalog/catalog.mapper.spec.ts
+PASS src/modules/learning/learning.mapper.spec.ts
+PASS src/common/filters/all-exceptions.filter.spec.ts
+PASS src/modules/admin/admin.service.spec.ts
+PASS src/modules/learning/learning-quiz-access.spec.ts
+PASS src/modules/auth/guards/jwt-auth.guard.spec.ts
+PASS src/modules/catalog/catalog-admin.service.spec.ts
+PASS src/modules/auth/guards/optional-jwt-auth.guard.spec.ts
+PASS src/modules/payments/payments.service.spec.ts
+PASS src/modules/assessment/assessment.service.spec.ts
+PASS src/modules/learning/learning.service.spec.ts
+PASS src/modules/catalog/catalog.service.spec.ts
+PASS src/modules/learning/learning-admin.service.spec.ts
+
+Test Suites: 21 passed, 21 total
+Tests:       212 passed, 212 total
+Snapshots:   0 total
+Time:        4.502 s, estimated 5 s
+Ran all test suites.
+
+> backend@0.0.1 test:e2e
+> node --experimental-vm-modules node_modules/jest/bin/jest.js --config ./test/jest-e2e.json --runInBand
+
+PASS test/health.e2e-spec.ts
+PASS test/catalog.e2e-spec.ts
+PASS test/auth.e2e-spec.ts (6.027 s)
+PASS test/learning-access.e2e-spec.ts
+PASS test/learning-user-data.e2e-spec.ts
+PASS test/assessment-quiz.e2e-spec.ts
+PASS test/payments.e2e-spec.ts
+PASS test/assessment-full-test.e2e-spec.ts
+PASS test/catalog-admin.e2e-spec.ts
+PASS test/assessment-results.e2e-spec.ts
+PASS test/admin-notes.e2e-spec.ts
+PASS test/payments-admin.e2e-spec.ts
+PASS test/assessment-full-test-lists.e2e-spec.ts
+PASS test/learning-admin.e2e-spec.ts
+PASS test/platform-settings.e2e-spec.ts
+PASS test/admin-stats.e2e-spec.ts
+
+Test Suites: 16 passed, 16 total
+Tests:       238 passed, 238 total
+Snapshots:   0 total
+Time:        62.639 s
+Ran all test suites.
+
+> backend@0.0.1 build
+> nest build
+```
+
+### 6.3. Frontend test, build, check-ui-diff
+```
+> vite_react_shadcn_ts@0.0.0 test
+> vitest run
+
+ RUN  v3.2.4 C:/Users/lenovo/l-english-academy
+
+ ✓ src/test/example.test.ts (1 test) 16ms
+ ✓ src/lib/api/client.test.ts (4 tests) 165ms
+ ✓ src/lib/api/fullTest.test.ts (7 tests) 222ms
+ ✓ src/lib/api/auth.test.ts (9 tests) 240ms
+ ✓ src/lib/api/admin.test.ts (16 tests) 233ms
+ ✓ src/lib/api/payments.test.ts (8 tests) 263ms
+ ✓ src/lib/api/assessment.test.ts (13 tests) 233ms
+ ✓ src/lib/api/catalog.test.ts (19 tests) 236ms
+ ✓ src/lib/api/learning.test.ts (45 tests) 269ms
+ ✓ src/test/part2Audio.test.ts (3 tests) 500ms
+ ✓ src/test/speakingRooms.test.ts (11 tests) 25ms
+ ✓ src/test/audioUrlAndDictation.test.ts (6 tests) 45ms
+
+ Test Files  12 passed (12)
+      Tests  142 passed (142)
+   Start at  01:17:40
+   Duration  8.75s (transform 8.59s, setup 7.53s, collect 20.37s, tests 2.45s, environment 22.22s, prepare 2.85s)
+
+> vite_react_shadcn_ts@0.0.0 build
+> vite build
+
+vite v5.4.19 building for production...
+transforming...
+✓ 2737 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                        1.71 kB │ gzip:   0.80 kB
+dist/assets/index-DnZVuPdT.css                       310.27 kB │ gzip:  40.21 kB
+...
+✓ built in 28.93s
+check-ui-diff: OK — không có thay đổi giao diện trong src/**/*.tsx (so với refactor/nestjs-backend).
+```
+
+### 6.4. Grep supabase in admin pages
+```
+grep -n "supabase" src/pages/admin/AdminDashboard.tsx src/pages/admin/AdminReports.tsx src/pages/admin/AdminStudents.tsx
+(không có kết quả — mã thoát 1 — hoàn toàn sạch supabase)
+```
+
+### 6.5. Git log and git diff stat
+```
+09e0ff4 feat(admin): add admin stats and reports API and migrate dashboard callers
+96842e7 docs: record T-018 review PASS, update queue and settings rows
+3c0cbc3 merge: T-018 platform settings via API (review PASS)
+
+ backend/src/modules/admin/admin-stats.controller.ts | 108 ++++++
+ backend/src/modules/admin/admin.mapper.ts           |  73 ++--
+ backend/src/modules/admin/admin.module.ts           |   3 +-
+ backend/src/modules/admin/admin.repository.ts       | 177 +++++++++
+ backend/src/modules/admin/admin.service.spec.ts     | 198 ++++++++++
+ backend/src/modules/admin/admin.service.ts          |  85 ++++-
+ backend/src/modules/admin/dto/admin-stats.dto.ts    | 163 ++++++++
+ backend/src/modules/admin/dto/index.ts              |   1 +
+ backend/test/admin-stats.e2e-spec.ts                | 530 ++++++++++++++++++++++++++
+ src/lib/api/admin.test.ts                           | 125 ++++++-
+ src/lib/api/admin.ts                                | 137 ++++++-
+ src/pages/admin/AdminDashboard.tsx                  |  70 +---
+ src/pages/admin/AdminReports.tsx                    |  18 +-
+ src/pages/admin/AdminStudents.tsx                   |   8 +-
+ 14 files changed, 1638 insertions(+), 58 deletions(-)
+```
 
 ## 7. Câu hỏi (người làm điền khi bị chặn)
 
