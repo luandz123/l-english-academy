@@ -254,3 +254,7 @@ af4797c feat(assessment): server-side Full Test grading with ETS conversion (P3)
 Không có.
 
 ## 9. Review (Claude điền)
+**PASS** (Claude, 2026-10-28) — merge vào `refactor/nestjs-backend`. Review trên `b57c0d1`.
+- 7 route đúng mục 4, guard admin cấp class; `display_order` server tính; `module-order` và `free-module` trong transaction, kiểm id thuộc khóa; join chỉ đọc có ghi chú. Output nguyên văn đủ.
+- Chạy lại sau gộp: lint/typecheck sạch, unit 185/185, e2e 164/164, build OK.
+- Ghi nhận (không chặn): `CatalogModule` giờ import `AuthModule` để dùng guard — đúng cách, không vòng import.
