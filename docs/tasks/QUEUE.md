@@ -8,7 +8,7 @@ Claude viết spec và cập nhật cột **Trạng thái**. Antigravity làm l�
 3. Nếu không: lấy dòng **⏳ chờ** đầu tiên mà mọi task ở cột *Phụ thuộc* đều **✅ merged**. Không có dòng nào đủ điều kiện → dừng và báo "hết việc".
 4. Mỗi task: `git checkout -b <nhánh>` từ `refactor/nestjs-backend` vừa pull → làm đúng spec → chạy lệnh mục 6 **sau commit cuối** → dán output **nguyên văn** vào mục 7 → commit → `git push -u origin <nhánh>`.
 5. Không tự sửa cột Trạng thái, `PARITY.md`, `PROGRESS.md`. Không merge vào `refactor/nestjs-backend`. Bị chặn → ghi mục 8 của spec, push, chuyển task kế.
-6. Không đụng module **Payments**, **Gamification** (Claude đang làm).
+6. Không đụng module **Gamification** (Claude đang làm). Payments chỉ làm đúng phạm vi T-015.
 
 ## Trạng thái
 Ký hiệu: ⏳ chờ · 🔨 đang làm · 🔍 chờ review · 🔁 TRẢ LẠI · ✅ merged
@@ -20,3 +20,5 @@ Ký hiệu: ⏳ chờ · 🔨 đang làm · 🔍 chờ review · 🔁 TRẢ LẠ
 | T-012 | [admin chương (backend)](T-012-catalog-admin-modules.md) | `task/T-012-catalog-admin-modules` | — | ⏳ chờ |
 | T-014 | [ghi chú học viên](T-014-admin-student-notes.md) | `task/T-014-admin-student-notes` | T-010 | ⏳ chờ |
 | T-013 | [admin khóa học (frontend)](T-013-admin-course-frontend.md) | `task/T-013-admin-course-frontend` | T-012 | ⏳ chờ |
+| T-015 | [admin duyệt đơn](T-015-payments-admin.md) | `task/T-015-payments-admin` | — | ⏳ chờ |
+| T-016 | [admin danh sách ghi danh](T-016-admin-enrollments-list.md) | `task/T-016-admin-enrollments-list` | T-015 | ⏳ chờ |
