@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { listMyQuizResults } from "@/lib/api/assessment";
 import { listCourses } from "@/lib/api/catalog";
+import { listMyFullTestResults } from "@/lib/api/fullTest";
 import { listMyProgressRows } from "@/lib/api/learning";
 import { useAuth } from "@/hooks/useAuth";
 import { useGamification } from "@/hooks/useGamification";
@@ -193,11 +194,7 @@ export const DashboardPage: React.FC = () => {
     queryKey: ["dashboard-full-tests", user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const { data } = await supabase
-        .from("user_full_test_results")
-        .select("*, full_tests(*)")
-        .eq("user_id", user.id)
-        .order("completed_at", { ascending: false });
+      const { data } = await listMyFullTestResults();
       return data || [];
     },
     enabled: !!user,

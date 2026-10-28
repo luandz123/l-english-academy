@@ -12,6 +12,7 @@ import {
   FullTestDto,
   FullTestQuestionDto,
   FullTestResultDto,
+  FullTestResultWithTestDto,
   LatestFullTestResultResponseDto,
   SubmitFullTestDto,
 } from './dto';
@@ -35,6 +36,21 @@ export class FullTestService {
     const test = await this.repo.findFullTest(testId);
     if (!test) throw this.notFound(testId);
     return this.mapper.toFullTestDto(test);
+  }
+
+  /** Thay `FullTestList.tsx:16-28`. Danh sách đề của một khóa học (công khai). */
+  async getCourseFullTests(courseId: number): Promise<FullTestDto[]> {
+    const tests = await this.repo.findCourseFullTests(courseId);
+    return tests.map((t) => this.mapper.toFullTestDto(t));
+  }
+
+  /**
+   * Thay `FullTestList.tsx:30-41`, `DashboardPage.tsx:195-207`, `Profile.tsx:245-257`.
+   * Danh sách kết quả Full Test của chính user hiện tại, kèm thông tin đề thi.
+   */
+  async getMyResults(userId: string): Promise<FullTestResultWithTestDto[]> {
+    const results = await this.repo.findMyFullTestResults(userId);
+    return results.map((r) => this.mapper.toResultWithTestDto(r));
   }
 
   /**

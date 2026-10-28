@@ -4,7 +4,9 @@ import {
   getFullTestQuestions,
   getFullTestResult,
   getLatestFullTestResult,
+  listCourseFullTests,
   listFullTestAnswerDetails,
+  listMyFullTestResults,
   submitFullTest,
 } from "./fullTest";
 
@@ -67,5 +69,24 @@ describe("fullTest adapter", () => {
     const locked = await getFullTestQuestions(3);
     expect(locked.data).toBeNull();
     expect(locked.error?.code).toBe("FULLTEST_LOCKED");
+  });
+
+  it("listCourseFullTests gọi GET đúng URL", async () => {
+    const tests = [{ id: 1, title: "Test 1" }];
+    const fetchMock = mockFetch(200, tests);
+    await expect(listCourseFullTests(42)).resolves.toEqual({ data: tests, error: null });
+    expect(fetchMock.mock.calls[0][0]).toBe("/api/v1/assessment/courses/42/full-tests");
+  });
+
+  it("listMyFullTestResults gọi GET đúng URL và xử lý lỗi không ném", async () => {
+    const results = [{ id: 10, total_score: 850, full_tests: { id: 1, title: "Test 1" } }];
+    const fetchMock = mockFetch(200, results);
+    await expect(listMyFullTestResults()).resolves.toEqual({ data: results, error: null });
+    expect(fetchMock.mock.calls[0][0]).toBe("/api/v1/assessment/full-test-results/me");
+
+    mockFetch(500, { statusCode: 500, message: "Internal server error" });
+    const res = await listMyFullTestResults();
+    expect(res.data).toBeNull();
+    expect(res.error).toBeTruthy();
   });
 });

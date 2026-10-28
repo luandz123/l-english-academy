@@ -41,6 +41,10 @@ export interface FullTestResultRow {
   answers_detail: unknown;
 }
 
+export interface FullTestResultWithTestRow extends FullTestResultRow {
+  full_tests: FullTestRow | null;
+}
+
 export interface FullTestAnswerDetailRow {
   id: number;
   result_id: number;
@@ -115,5 +119,20 @@ export async function listFullTestAnswerDetails(
 ): Promise<{ data: FullTestAnswerDetailRow[] | null; error: ApiError | null }> {
   return toResult(
     apiClient.get<FullTestAnswerDetailRow[]>(`assessment/full-test-results/${resultId}/answers`),
+  );
+}
+
+export async function listCourseFullTests(
+  courseId: number,
+): Promise<{ data: FullTestRow[] | null; error: ApiError | null }> {
+  return toResult(apiClient.get<FullTestRow[]>(`assessment/courses/${courseId}/full-tests`));
+}
+
+export async function listMyFullTestResults(): Promise<{
+  data: FullTestResultWithTestRow[] | null;
+  error: ApiError | null;
+}> {
+  return toResult(
+    apiClient.get<FullTestResultWithTestRow[]>("assessment/full-test-results/me"),
   );
 }

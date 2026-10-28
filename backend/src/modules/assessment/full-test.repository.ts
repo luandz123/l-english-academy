@@ -116,4 +116,24 @@ export class FullTestRepository {
       orderBy: [{ id: 'asc' }],
     });
   }
+
+  findCourseFullTests(courseId: number): Promise<FullTest[]> {
+    return this.prisma.fullTest.findMany({
+      where: { courseId },
+      orderBy: [{ category: 'asc' }, { displayOrder: 'asc' }, { id: 'asc' }],
+    });
+  }
+
+  findMyFullTestResults(
+    userId: string,
+  ): Promise<(UserFullTestResult & { fullTest: FullTest | null })[]> {
+    return this.prisma.userFullTestResult.findMany({
+      where: { userId },
+      include: { fullTest: true },
+      orderBy: [
+        { completedAt: { sort: 'desc', nulls: 'last' } },
+        { id: 'desc' },
+      ],
+    });
+  }
 }
