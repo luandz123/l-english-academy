@@ -16,7 +16,7 @@ Ký hiệu: ⏳ chờ · 🔨 đang làm · 🔍 chờ review · 🔁 TRẢ LẠ
 | Task | Spec | Nhánh | Phụ thuộc | Trạng thái |
 |---|---|---|---|---|
 | T-010 | [ghi danh admin](T-010-admin-student-enrollments.md) | `task/T-010-admin-student-enrollments` | — | ✅ merged |
-| T-011 | [kết quả quiz](T-011-quiz-results-lists.md) | `task/T-011-quiz-results-lists` | — | ⏳ chờ |
+| T-011 | [kết quả quiz](T-011-quiz-results-lists.md) | `task/T-011-quiz-results-lists` | — | ✅ merged |
 | T-012 | [admin chương (backend)](T-012-catalog-admin-modules.md) | `task/T-012-catalog-admin-modules` | — | ⏳ chờ |
 | T-014 | [ghi chú học viên](T-014-admin-student-notes.md) | `task/T-014-admin-student-notes` | T-010 | ⏳ chờ |
 | T-013 | [admin khóa học (frontend)](T-013-admin-course-frontend.md) | `task/T-013-admin-course-frontend` | T-012 | ⏳ chờ |

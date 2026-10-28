@@ -396,3 +396,6 @@ src/pages/DashboardPage.tsx:314:        supabase.from("user_quiz_results").selec
 Không có.
 
 ## 9. Review (Claude điền)
+**PASS** (Claude, 2026-10-28) — merge vào `refactor/nestjs-backend`. Review trên `6a63dd0`.
+- 2 route đúng mục 4, `results/me` khai báo trước `results/:resultId`; join chỉ đọc có ghi chú; 4 trang chỉ đổi `queryFn` + `import`. Gộp với Full Test/Payments không xung đột.
+- Chạy lại sau gộp: lint/typecheck sạch, unit 173/173, e2e 150/150, vitest 101/101, `check-ui-diff` OK, build OK; chỉ còn `DashboardPage.tsx:314` (bảng xếp hạng, ngoài phạm vi).
