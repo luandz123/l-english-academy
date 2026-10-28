@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import type { AdminStudentNote } from '../../generated/prisma/client';
+import type {
+  AdminStudentNote,
+  PlatformSetting,
+} from '../../generated/prisma/client';
 
 @Injectable()
 export class AdminRepository {
@@ -20,6 +23,34 @@ export class AdminRepository {
   }): Promise<AdminStudentNote> {
     return this.prisma.adminStudentNote.create({
       data,
+    });
+  }
+
+  findSettingByKey(key: string): Promise<PlatformSetting | null> {
+    return this.prisma.platformSetting.findUnique({
+      where: { key },
+    });
+  }
+
+  findAllSettings(): Promise<PlatformSetting[]> {
+    return this.prisma.platformSetting.findMany({
+      orderBy: { key: 'asc' },
+    });
+  }
+
+  upsertSetting(key: string, value: string): Promise<PlatformSetting> {
+    const now = new Date();
+    return this.prisma.platformSetting.upsert({
+      where: { key },
+      create: {
+        key,
+        value,
+        updatedAt: now,
+      },
+      update: {
+        value,
+        updatedAt: now,
+      },
     });
   }
 }

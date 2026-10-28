@@ -1,4 +1,4 @@
-import { supabase } from '@/integrations/supabase/client';
+import { getPublicSetting, saveSetting } from '@/lib/api/admin';
 import { VocabTopic, VocabWord } from '@/components/game/WordShooter/types';
 import { DEFAULT_VOCAB_TOPICS } from '@/components/game/WordShooter/defaultVocabPacks';
 import { TOEIC_600_MASTER_PACK, TOEIC_THEMATIC_PACKS, TOEIC_600_ALL_WORDS } from '@/data/toeic600Data';
@@ -23,16 +23,12 @@ export function ensureToeicPacksIncluded(packs: VocabTopic[]): VocabTopic[] {
 
 /**
  * Load all vocabulary topics
- * Priority: Supabase platform_settings -> localStorage cache -> DEFAULT_VOCAB_TOPICS
+ * Priority: API -> localStorage cache -> DEFAULT_VOCAB_TOPICS
  */
 export async function getVocabPacks(): Promise<VocabTopic[]> {
-  // 1. Try fetching from Supabase platform_settings
+  // 1. Try fetching from settings API
   try {
-    const { data, error } = await supabase
-      .from('platform_settings')
-      .select('value')
-      .eq('key', 'game_vocab_packs')
-      .maybeSingle();
+    const { data, error } = await getPublicSetting('game_vocab_packs');
 
     if (!error && data?.value) {
       const parsed = JSON.parse(data.value);
@@ -95,36 +91,10 @@ export async function saveVocabPacks(packs: VocabTopic[]): Promise<{ success: bo
     console.warn('[vocabPacksService] Could not write to localStorage:', err);
   }
 
-  // 2. Persist to Supabase platform_settings
+  // 2. Persist via API
   try {
-    const { data: existing } = await supabase
-      .from('platform_settings')
-      .select('key')
-      .eq('key', 'game_vocab_packs')
-      .maybeSingle();
-
-    if (existing) {
-      const { error } = await supabase
-        .from('platform_settings')
-        .update({
-          value: jsonString,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('key', 'game_vocab_packs');
-
-      if (error) throw error;
-    } else {
-      const { error } = await supabase
-        .from('platform_settings')
-        .insert({
-          key: 'game_vocab_packs',
-          value: jsonString,
-          updated_at: new Date().toISOString(),
-        });
-
-      if (error) throw error;
-    }
-
+    const { error } = await saveSetting('game_vocab_packs', jsonString);
+    if (error) throw error;
     return { success: true };
   } catch (err: any) {
     console.error('[vocabPacksService] Failed to save to Supabase:', err);

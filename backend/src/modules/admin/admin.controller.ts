@@ -7,6 +7,7 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Put,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -28,7 +29,12 @@ import {
 } from '../auth/guards/jwt-auth.guard';
 import { Roles, RolesGuard } from '../auth/guards/roles.guard';
 import { AdminService } from './admin.service';
-import { AdminNoteDto, CreateAdminNoteDto } from './dto';
+import {
+  AdminNoteDto,
+  CreateAdminNoteDto,
+  SettingDto,
+  UpdateSettingDto,
+} from './dto';
 
 @ApiTags('admin')
 @ApiBearerAuth()
@@ -37,6 +43,32 @@ import { AdminNoteDto, CreateAdminNoteDto } from './dto';
 @Roles(AppRole.admin)
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
+
+  @Get('settings')
+  @ApiOperation({
+    summary: 'Admin xem tất cả cài đặt nền tảng',
+  })
+  @ApiOkResponse({ type: [SettingDto] })
+  @ApiUnauthorizedResponse({ description: 'Chưa đăng nhập' })
+  @ApiForbiddenResponse({ description: 'Không phải admin' })
+  listAllSettings(): Promise<SettingDto[]> {
+    return this.adminService.listAllSettings();
+  }
+
+  @Put('settings/:key')
+  @ApiOperation({
+    summary: 'Admin tạo mới hoặc cập nhật một cài đặt nền tảng',
+  })
+  @ApiOkResponse({ type: SettingDto })
+  @ApiBadRequestResponse({ description: 'VALIDATION_FAILED' })
+  @ApiUnauthorizedResponse({ description: 'Chưa đăng nhập' })
+  @ApiForbiddenResponse({ description: 'Không phải admin' })
+  saveSetting(
+    @Param('key') key: string,
+    @Body() dto: UpdateSettingDto,
+  ): Promise<SettingDto> {
+    return this.adminService.saveSetting(key, dto.value);
+  }
 
   @Get('users/:userId/notes')
   @ApiOperation({

@@ -1,8 +1,17 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma } from '../../generated/prisma/client';
 import { AdminMapper } from './admin.mapper';
 import { AdminRepository } from './admin.repository';
-import { AdminNoteDto, CreateAdminNoteDto } from './dto';
+import { AdminNoteDto, CreateAdminNoteDto, SettingDto } from './dto';
+import {
+  PUBLIC_SETTING_KEYS,
+  PublicSettingKey,
+  SETTING_KEY_REGEX,
+} from './settings.constants';
 
 @Injectable()
 export class AdminService {
@@ -40,5 +49,30 @@ export class AdminService {
       }
       throw error;
     }
+  }
+
+  async getPublicSetting(key: string): Promise<SettingDto | null> {
+    if (!PUBLIC_SETTING_KEYS.includes(key as PublicSettingKey)) {
+      return null;
+    }
+    const setting = await this.repo.findSettingByKey(key);
+    return setting ? this.mapper.toSettingDto(setting) : null;
+  }
+
+  async listAllSettings(): Promise<SettingDto[]> {
+    const settings = await this.repo.findAllSettings();
+    return settings.map((s) => this.mapper.toSettingDto(s));
+  }
+
+  async saveSetting(key: string, value: string): Promise<SettingDto> {
+    if (!SETTING_KEY_REGEX.test(key)) {
+      throw new BadRequestException({
+        code: 'VALIDATION_FAILED',
+        message:
+          'Khóa cài đặt không hợp lệ. Chỉ chấp nhận chữ cái thường a-z, chữ số 0-9 và dấu gạch dưới, độ dài từ 1 đến 64 ký tự.',
+      });
+    }
+    const setting = await this.repo.upsertSetting(key, value);
+    return this.mapper.toSettingDto(setting);
   }
 }

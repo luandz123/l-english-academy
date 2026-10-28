@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { addStudentNote, listStudentNotes } from "./admin";
+import {
+  addStudentNote,
+  getPublicSetting,
+  listAdminSettings,
+  listStudentNotes,
+  saveSetting,
+} from "./admin";
 import { ApiError } from "./client";
 
 function mockFetch(status: number, body?: unknown) {
@@ -19,6 +25,12 @@ const NOTE = {
   student_id: "s-1",
   content: "Ghi chú test",
   created_at: "2026-10-28T12:00:00.000Z",
+};
+
+const SETTING = {
+  key: "homepage_showcase_config",
+  value: '{"vip_combo":{"price":1750000}}',
+  updated_at: "2026-10-28T12:00:00.000Z",
 };
 
 describe("admin adapter", () => {
@@ -60,4 +72,45 @@ describe("admin adapter", () => {
     expect(res2.error).toBeInstanceOf(ApiError);
     expect(res2.error?.code).toBe("USER_NOT_FOUND");
   });
+
+  describe("platform settings", () => {
+    it("getPublicSetting bóc .setting từ response { setting: SettingDto | null }", async () => {
+      const fetchMock = mockFetch(200, { setting: SETTING });
+      const { data, error } = await getPublicSetting("homepage_showcase_config");
+      expect(error).toBeNull();
+      expect(data).toEqual(SETTING);
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("/api/v1/settings/homepage_showcase_config");
+      expect(init?.method).toBe("GET");
+    });
+
+    it("getPublicSetting trả data: null khi server trả { setting: null }", async () => {
+      mockFetch(200, { setting: null });
+      const { data, error } = await getPublicSetting("secret_key");
+      expect(error).toBeNull();
+      expect(data).toBeNull();
+    });
+
+    it("listAdminSettings gọi GET /admin/settings", async () => {
+      const fetchMock = mockFetch(200, [SETTING]);
+      const { data, error } = await listAdminSettings();
+      expect(error).toBeNull();
+      expect(data).toEqual([SETTING]);
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("/api/v1/admin/settings");
+      expect(init?.method).toBe("GET");
+    });
+
+    it("saveSetting gọi PUT /admin/settings/:key với body { value }", async () => {
+      const fetchMock = mockFetch(200, SETTING);
+      const { data, error } = await saveSetting("homepage_showcase_config", SETTING.value);
+      expect(error).toBeNull();
+      expect(data).toEqual(SETTING);
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("/api/v1/admin/settings/homepage_showcase_config");
+      expect(init?.method).toBe("PUT");
+      expect(JSON.parse(init?.body as string)).toEqual({ value: SETTING.value });
+    });
+  });
 });
+
