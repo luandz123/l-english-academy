@@ -77,6 +77,7 @@ describe('LearningAdminService', () => {
       updatePractice: jest.fn(),
       deletePractice: jest.fn(),
       findEnrollmentsByUser: jest.fn(),
+      findAllEnrollments: jest.fn(),
       createEnrollment: jest.fn(),
       deleteEnrollment: jest.fn(),
     };
@@ -606,6 +607,49 @@ describe('LearningAdminService', () => {
       is_free: false,
       category_id: null,
     };
+
+    it('getAllEnrollments: trả danh sách ghi danh kèm courses và profiles', async () => {
+      repo.findAllEnrollments.mockResolvedValue([
+        {
+          id: 1,
+          userId: mockUserId,
+          courseId: 5,
+          enrolledAt: new Date('2026-01-01T00:00:00.000Z'),
+          expiresAt: null,
+          course: { title: 'TOEIC 650+' },
+          user: {
+            profile: {
+              id: 'prof-1',
+              userId: mockUserId,
+              fullName: 'Nguyen Van A',
+            },
+          },
+        },
+        {
+          id: 2,
+          userId: 'user-2',
+          courseId: 6,
+          enrolledAt: null,
+          expiresAt: null,
+          course: null,
+          user: {
+            profile: null,
+          },
+        },
+      ]);
+
+      const res = await service.getAllEnrollments();
+      expect(repo.findAllEnrollments).toHaveBeenCalled();
+      expect(res).toHaveLength(2);
+      expect(res[0].courses).toEqual({ title: 'TOEIC 650+' });
+      expect(res[0].profiles).toEqual({
+        id: 'prof-1',
+        user_id: mockUserId,
+        full_name: 'Nguyen Van A',
+      });
+      expect(res[1].courses).toBeNull();
+      expect(res[1].profiles).toBeNull();
+    });
 
     it('createUserEnrollment: ném 404 COURSE_NOT_FOUND khi khóa học không tồn tại', async () => {
       catalog.findCourseById.mockResolvedValue(null);

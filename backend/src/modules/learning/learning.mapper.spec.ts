@@ -8,6 +8,7 @@ import type {
   UserNote,
 } from '../../generated/prisma/client';
 import type {
+  EnrollmentWithCourseAndProfile,
   EnrollmentWithCourseTitle,
   LessonPracticeWithQuiz,
 } from './learning.repository';
@@ -274,6 +275,53 @@ describe('LearningMapper', () => {
       const dto = mapper.toAdminEnrollmentDto(enrollment);
       expect(dto.courses).toBeNull();
       expect(dto.enrolled_at).toBeNull();
+    });
+
+    it('toAdminEnrollmentListDto chuyển đổi kèm courses và profiles', () => {
+      const enrollment: EnrollmentWithCourseAndProfile = {
+        id: 4,
+        userId: '11111111-1111-1111-1111-111111111111',
+        courseId: 9,
+        enrolledAt: new Date('2026-02-01T00:00:00.000Z'),
+        expiresAt: new Date('2026-08-01T00:00:00.000Z'),
+        course: { title: 'TOEIC 800+' },
+        user: {
+          profile: {
+            id: 'prof-99',
+            userId: '11111111-1111-1111-1111-111111111111',
+            fullName: 'Nguyen Thi B',
+          },
+        },
+      };
+      const dto = mapper.toAdminEnrollmentListDto(enrollment);
+      expect(dto).toEqual({
+        id: 4,
+        user_id: '11111111-1111-1111-1111-111111111111',
+        course_id: 9,
+        enrolled_at: '2026-02-01T00:00:00.000Z',
+        expires_at: '2026-08-01T00:00:00.000Z',
+        courses: { title: 'TOEIC 800+' },
+        profiles: {
+          id: 'prof-99',
+          user_id: '11111111-1111-1111-1111-111111111111',
+          full_name: 'Nguyen Thi B',
+        },
+      });
+    });
+
+    it('toAdminEnrollmentListDto giữ profiles: null khi user không có profile', () => {
+      const enrollment: EnrollmentWithCourseAndProfile = {
+        id: 5,
+        userId: '22222222-2222-2222-2222-222222222222',
+        courseId: 10,
+        enrolledAt: null,
+        expiresAt: null,
+        course: null,
+        user: { profile: null },
+      };
+      const dto = mapper.toAdminEnrollmentListDto(enrollment);
+      expect(dto.courses).toBeNull();
+      expect(dto.profiles).toBeNull();
     });
   });
 });

@@ -8,6 +8,7 @@ import { AppRole } from '../src/generated/prisma/enums';
 import { TokenService } from '../src/modules/auth/token.service';
 import type {
   AdminEnrollmentDto,
+  AdminEnrollmentListDto,
   CurriculumModuleDto,
   LessonDto,
   PracticeDto,
@@ -315,6 +316,12 @@ describe('LearningModule — Admin quản lý bài học, luyện tập, ghi dan
         method: 'delete',
         path: () => `/api/v1/learning/admin/practices/${rbacPracticeDeleteId}`,
         expectedAdminStatus: 204,
+      },
+      {
+        name: 'GET /learning/admin/enrollments',
+        method: 'get',
+        path: () => '/api/v1/learning/admin/enrollments',
+        expectedAdminStatus: 200,
       },
       {
         name: 'GET /users/:userId/enrollments',
@@ -971,6 +978,57 @@ describe('LearningModule — Admin quản lý bài học, luyện tập, ghi dan
         .delete(`/api/v1/learning/admin/enrollments/${firstEnrollmentId}`)
         .set(bearer(adminToken))
         .expect(204);
+    });
+
+    it('GET /enrollments trả danh sách toàn hệ thống kèm courses và profiles sắp enrolled_at desc nulls last, id desc', async () => {
+      // Tạo profile cho studentId
+      await prisma.profile.create({
+        data: {
+          userId: studentId,
+          fullName: 'Học viên Test',
+        },
+      });
+
+      // Tạo thêm 1 user không có profile và ghi danh vào courseId với enrolledAt = null
+      const student2 = await prisma.user.create({
+        data: {
+          email: `student2-no-profile-${Date.now()}@learning-admin.test`,
+          emailVerifiedAt: new Date(),
+        },
+      });
+      const nullEnrolled = await prisma.enrollment.create({
+        data: {
+          userId: student2.id,
+          courseId,
+          enrolledAt: null,
+        },
+      });
+
+      const res = await http()
+        .get('/api/v1/learning/admin/enrollments')
+        .set(bearer(adminToken))
+        .expect(200);
+
+      const list = res.body as AdminEnrollmentListDto[];
+      expect(Array.isArray(list)).toBe(true);
+      expect(list.length).toBeGreaterThanOrEqual(2);
+
+      // enrolledAt != null phải đứng trước enrolledAt == null
+      const nonNullIndex = list.findIndex((e) => e.enrolled_at !== null);
+      const nullIndex = list.findIndex((e) => e.id === nullEnrolled.id);
+      expect(nullIndex).toBeGreaterThan(nonNullIndex);
+
+      // User có profile: kèm profiles.full_name
+      const withProfile = list.find((e) => e.user_id === studentId);
+      expect(withProfile).toBeDefined();
+      expect(withProfile?.courses?.title).toBeDefined();
+      expect(withProfile?.profiles).not.toBeNull();
+      expect(withProfile?.profiles?.full_name).toBe('Học viên Test');
+
+      // User không có profile: profiles: null
+      const noProfile = list.find((e) => e.id === nullEnrolled.id);
+      expect(noProfile).toBeDefined();
+      expect(noProfile?.profiles).toBeNull();
     });
   });
 });
