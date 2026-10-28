@@ -90,6 +90,35 @@ export interface PatchModulePayload {
   is_published?: boolean;
 }
 
+export interface SaveCoursePayload {
+  title: string;
+  subtitle?: string | null;
+  description?: string | null;
+  instructor?: string | null;
+  thumbnail_url?: string | null;
+  course_type: CourseType | string;
+  category_id?: number | null;
+  price: number;
+  is_free: boolean;
+  is_active: boolean;
+  duration_months?: number | null;
+  display_order: number;
+}
+
+export interface PatchCoursePayload {
+  is_active?: boolean;
+  is_free?: boolean;
+}
+
+export interface SaveCategoryPayload {
+  name: string;
+  slug: string;
+  icon: string;
+  display_order: number;
+  is_active: boolean;
+}
+
+
 export async function listCategories(params?: {
   active?: boolean;
 }): Promise<{ data: CourseCategoryRow[] | null; error: ApiError | null }> {
@@ -226,3 +255,85 @@ export async function setFreeModule(
   }
   return { data: null, error: null };
 }
+
+export async function listAdminCourses(): Promise<{
+  data: CourseRow[] | null;
+  error: ApiError | null;
+}> {
+  return toResult(apiClient.get<CourseRow[]>("catalog/admin/courses"));
+}
+
+export async function createCourse(
+  body: SaveCoursePayload,
+): Promise<{ data: CourseRow | null; error: ApiError | null }> {
+  return toResult(apiClient.post<CourseRow>("catalog/admin/courses", body));
+}
+
+export async function updateCourse(
+  id: number,
+  body: SaveCoursePayload,
+): Promise<{ data: CourseRow | null; error: ApiError | null }> {
+  return toResult(
+    apiClient.put<CourseRow>(`catalog/admin/courses/${id}`, body),
+  );
+}
+
+export async function patchCourse(
+  id: number,
+  body: PatchCoursePayload,
+): Promise<{ data: CourseRow | null; error: ApiError | null }> {
+  return toResult(
+    apiClient.patch<CourseRow>(`catalog/admin/courses/${id}`, body),
+  );
+}
+
+export async function deleteCourse(
+  id: number,
+): Promise<{ data: null; error: ApiError | null }> {
+  const res = await toResult(
+    apiClient.delete<void>(`catalog/admin/courses/${id}`),
+  );
+  if (res.error) {
+    return { data: null, error: res.error };
+  }
+  return { data: null, error: null };
+}
+
+export async function listAdminCategories(): Promise<{
+  data: CourseCategoryRow[] | null;
+  error: ApiError | null;
+}> {
+  return toResult(
+    apiClient.get<CourseCategoryRow[]>("catalog/admin/categories"),
+  );
+}
+
+export async function createCategory(
+  body: SaveCategoryPayload,
+): Promise<{ data: CourseCategoryRow | null; error: ApiError | null }> {
+  return toResult(
+    apiClient.post<CourseCategoryRow>("catalog/admin/categories", body),
+  );
+}
+
+export async function updateCategory(
+  id: number,
+  body: SaveCategoryPayload,
+): Promise<{ data: CourseCategoryRow | null; error: ApiError | null }> {
+  return toResult(
+    apiClient.put<CourseCategoryRow>(`catalog/admin/categories/${id}`, body),
+  );
+}
+
+export async function deleteCategory(
+  id: number,
+): Promise<{ data: null; error: ApiError | null }> {
+  const res = await toResult(
+    apiClient.delete<void>(`catalog/admin/categories/${id}`),
+  );
+  if (res.error) {
+    return { data: null, error: res.error };
+  }
+  return { data: null, error: null };
+}
+

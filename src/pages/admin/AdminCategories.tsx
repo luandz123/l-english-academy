@@ -1,7 +1,13 @@
 import AdminLayout from "@/components/AdminLayout";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  createCategory,
+  deleteCategory,
+  listAdminCategories,
+  listAdminCourses,
+  updateCategory,
+} from "@/lib/api/catalog";
 import {
   Plus,
   Pencil,
@@ -115,11 +121,7 @@ const AdminCategories = () => {
   const { data: categories = [], isLoading } = useQuery({
     queryKey: ["admin-course-categories"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("course_categories")
-        .select("*")
-        .order("display_order", { ascending: true })
-        .order("id", { ascending: true });
+      const { data, error } = await listAdminCategories();
       if (error) throw error;
       return (data || []) as Category[];
     },
@@ -129,7 +131,7 @@ const AdminCategories = () => {
   const { data: courses = [] } = useQuery({
     queryKey: ["admin-courses-category-count"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("courses").select("id, category_id, is_active");
+      const { data, error } = await listAdminCourses();
       if (error) throw error;
       return data || [];
     },
@@ -140,27 +142,22 @@ const AdminCategories = () => {
   const saveMutation = useMutation({
     mutationFn: async (cat: Partial<Category>) => {
       if (cat.id) {
-        const { error } = await supabase
-          .from("course_categories")
-          .update({
-            name: cat.name,
-            slug: cat.slug,
-            icon: cat.icon || "BookOpen",
-            display_order: cat.display_order ?? 0,
-            is_active: cat.is_active ?? true,
-          })
-          .eq("id", cat.id);
+        const { error } = await updateCategory(cat.id, {
+          name: cat.name || "",
+          slug: cat.slug || "",
+          icon: cat.icon || "BookOpen",
+          display_order: cat.display_order ?? 0,
+          is_active: cat.is_active ?? true,
+        });
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("course_categories").insert([
-          {
-            name: cat.name,
-            slug: cat.slug,
-            icon: cat.icon || "BookOpen",
-            display_order: cat.display_order ?? (categories.length + 1),
-            is_active: cat.is_active ?? true,
-          },
-        ]);
+        const { error } = await createCategory({
+          name: cat.name || "",
+          slug: cat.slug || "",
+          icon: cat.icon || "BookOpen",
+          display_order: cat.display_order ?? (categories.length + 1),
+          is_active: cat.is_active ?? true,
+        });
         if (error) throw error;
       }
     },
@@ -183,7 +180,7 @@ const AdminCategories = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      const { error } = await supabase.from("course_categories").delete().eq("id", id);
+      const { error } = await deleteCategory(id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -203,10 +200,15 @@ const AdminCategories = () => {
 
   const toggleStatusMutation = useMutation({
     mutationFn: async ({ id, is_active }: { id: number; is_active: boolean }) => {
-      const { error } = await supabase
-        .from("course_categories")
-        .update({ is_active })
-        .eq("id", id);
+      const cat = categories.find((c) => c.id === id);
+      if (!cat) return;
+      const { error } = await updateCategory(id, {
+        name: cat.name,
+        slug: cat.slug,
+        icon: cat.icon || "BookOpen",
+        display_order: cat.display_order ?? 0,
+        is_active,
+      });
       if (error) throw error;
     },
     onSuccess: () => {

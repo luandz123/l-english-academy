@@ -9,7 +9,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { getAdminCourseModules } from "@/lib/api/catalog";
+import {
+  getAdminCourseModules,
+  getCourse,
+  listAdminCategories,
+  updateCourse,
+} from "@/lib/api/catalog";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -57,7 +62,7 @@ const AdminCourseDetail = () => {
   const { data: course, isLoading } = useQuery({
     queryKey: ["admin-course", id],
     queryFn: async () => {
-      const { data, error } = await supabase.from("courses").select("*").eq("id", id).maybeSingle();
+      const { data, error } = await getCourse(Number(id));
       if (error) throw error;
       return data;
     },
@@ -80,7 +85,7 @@ const AdminCourseDetail = () => {
   const { data: categories = [] } = useQuery({
     queryKey: ["admin-course-categories"],
     queryFn: async () => {
-      const { data } = await supabase.from("course_categories").select("*").order("display_order");
+      const { data } = await listAdminCategories();
       return data || [];
     },
   });
@@ -130,7 +135,7 @@ const AdminCourseDetail = () => {
 
   const updateMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("courses").update({
+      const { error } = await updateCourse(Number(id), {
         title,
         description: description || null,
         subtitle: subtitle || null,
@@ -143,7 +148,7 @@ const AdminCourseDetail = () => {
         is_active: isActive,
         is_free: isFree,
         display_order: displayOrder,
-      }).eq("id", id);
+      });
       if (error) throw error;
     },
     onSuccess: () => {

@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { createCourse, listAdminCategories } from "@/lib/api/catalog";
 import { Upload, Plus, Layers, ArrowLeft } from "lucide-react";
 
 const AdminCourseNew = () => {
@@ -35,12 +36,8 @@ const AdminCourseNew = () => {
   const { data: categories = [], isLoading: isLoadingCategories } = useQuery({
     queryKey: ["admin-course-categories"],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("course_categories")
-        .select("*")
-        .eq("is_active", true)
-        .order("display_order");
-      return data || [];
+      const { data } = await listAdminCategories();
+      return (data || []).filter((c) => c.is_active);
     },
   });
 
@@ -80,7 +77,7 @@ const AdminCourseNew = () => {
       if (!form.category_id) {
         throw new Error("Vui lòng chọn danh mục khóa học");
       }
-      const { error } = await supabase.from("courses").insert({
+      const { error } = await createCourse({
         title: form.title,
         subtitle: form.subtitle || null,
         description: form.description || null,

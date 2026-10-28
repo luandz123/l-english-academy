@@ -6,7 +6,12 @@ import { Link, useSearchParams } from "react-router-dom";
 import { Plus, Search, Edit, Eye, Trash2, EyeOff, Unlock, Lock, Loader2, BookOpen, Layers, Filter } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  deleteCourse,
+  listAdminCategories,
+  listAdminCourses,
+  patchCourse,
+} from "@/lib/api/catalog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useMemo, useEffect } from "react";
@@ -47,11 +52,7 @@ const AdminCourses = () => {
   const { data: courses = [], isLoading } = useQuery({
     queryKey: ["admin-courses"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("courses")
-        .select("*")
-        .order("display_order", { ascending: true })
-        .order("id", { ascending: false });
+      const { data, error } = await listAdminCourses();
       if (error) throw error;
       return data;
     },
@@ -60,10 +61,7 @@ const AdminCourses = () => {
   const { data: categories = [] } = useQuery({
     queryKey: ["admin-course-categories"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("course_categories")
-        .select("*")
-        .order("display_order", { ascending: true });
+      const { data, error } = await listAdminCategories();
       if (error) throw error;
       return data || [];
     },
@@ -75,7 +73,7 @@ const AdminCourses = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      const { error } = await supabase.from("courses").delete().eq("id", id);
+      const { error } = await deleteCourse(id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -90,7 +88,7 @@ const AdminCourses = () => {
 
   const toggleActiveMutation = useMutation({
     mutationFn: async ({ id, isActive }: { id: number; isActive: boolean }) => {
-      const { error } = await supabase.from("courses").update({ is_active: isActive }).eq("id", id);
+      const { error } = await patchCourse(id, { is_active: isActive });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -105,7 +103,7 @@ const AdminCourses = () => {
 
   const toggleFreeMutation = useMutation({
     mutationFn: async ({ id, isFree }: { id: number; isFree: boolean }) => {
-      const { error } = await (supabase.from("courses") as any).update({ is_free: isFree }).eq("id", id);
+      const { error } = await patchCourse(id, { is_free: isFree });
       if (error) throw error;
     },
     onSuccess: () => {
