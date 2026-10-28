@@ -2,7 +2,11 @@ import AdminLayout from "@/components/AdminLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  getAdminCourseEnrollments,
+  getAdminUserAnswers,
+  getAdminQuestionsByIds,
+} from "@/lib/api/admin";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const COLORS = ["hsl(var(--primary))", "hsl(var(--accent))", "hsl(var(--warning))", "hsl(var(--destructive))", "hsl(var(--success))"];
@@ -11,9 +15,11 @@ const AdminReports = () => {
   const { data: courseStats = [], isLoading: loadingCourses } = useQuery({
     queryKey: ["admin-report-courses"],
     queryFn: async () => {
-      const { data: courses } = await supabase.from("courses").select("id, title").eq("is_active", true);
+      const { data, error } = await getAdminCourseEnrollments();
+      if (error) throw error;
+      const courses = data?.courses;
       if (!courses) return [];
-      const { data: enrollments } = await supabase.from("enrollments").select("course_id");
+      const enrollments = data?.enrollments;
       const countMap: Record<number, number> = {};
       (enrollments ?? []).forEach((e) => { countMap[e.course_id] = (countMap[e.course_id] || 0) + 1; });
       return courses.map((c) => ({ name: c.title.substring(0, 20), value: countMap[c.id] || 0 }));
@@ -23,7 +29,8 @@ const AdminReports = () => {
   const { data: quizStats = [] } = useQuery({
     queryKey: ["admin-report-hardest"],
     queryFn: async () => {
-      const { data: answers } = await supabase.from("user_answers").select("question_id, is_correct");
+      const { data: answers, error: answersError } = await getAdminUserAnswers();
+      if (answersError) throw answersError;
       if (!answers?.length) return [];
       const qMap: Record<number, { total: number; wrong: number }> = {};
       answers.forEach((a) => {
@@ -36,7 +43,8 @@ const AdminReports = () => {
         .sort((a, b) => a.correctRate - b.correctRate)
         .slice(0, 5);
       const qIds = sorted.map((s) => s.id);
-      const { data: questions } = await supabase.from("questions").select("id, question_text").in("id", qIds);
+      const { data: questions, error: questionsError } = await getAdminQuestionsByIds(qIds);
+      if (questionsError) throw questionsError;
       const qTextMap: Record<number, string> = {};
       (questions ?? []).forEach((q) => { qTextMap[q.id] = q.question_text; });
       return sorted.map((s) => {
