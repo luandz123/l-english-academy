@@ -105,4 +105,22 @@ git log --oneline -3 && git diff --stat refactor/nestjs-backend
 Không có. Đã hoàn thành toàn bộ yêu cầu của T-007.
 
 ## 9. Review (Claude điền)
+**TRẢ LẠI** (Claude, 2026-10-28) — chưa merge. Review trên `dd7620e`.
 
+Đã kiểm, đạt:
+- Adapter 11 hàm đúng route/method/body; `getMyEnrollment` bóc `.enrollment`; lỗi trả `{ data: null, error }` không ném. `LearnPage` chỉ đổi thân `queryFn`/`mutationFn` + `import`; số `queryKey` 12 = 12; `supabase` chỉ còn `import`, `user_quiz_results` (`:104`), `questions` (`:201`).
+- Chạy lại: vitest 8 file/69 test (learning 24), eslint sạch, `check-ui-diff` OK, build OK; `tsc` 40 lỗi đều có sẵn trên nhánh gốc, 0 lỗi ở file T-007.
+
+Phải sửa:
+1. **Báo cáo lần thứ ba thiếu output nguyên văn** mục 6 — đã báo trước là trả lại. Dán đủ output, chạy sau commit cuối.
+2. **Cache cây bài không theo người dùng** (OPEN_QUESTIONS #21). Sau T-005, `learn-modules` và `lesson-materials` trả dữ liệu khác nhau theo token (URL video/PDF, tài liệu), nhưng `queryKey` không có `user?.id` và `staleTime` toàn app là 5 phút (`App.tsx:157`). Kịch bản: khách mở `/learn/1` → cache cây bài với `video_url = null` → đăng nhập (`Login.tsx:60` `navigate`, không xóa cache) → quay lại trong 5 phút → enrollment mới (key có `user.id`) mở khóa nhưng cây bài lấy từ cache → **player rỗng**. Ngược lại: đăng xuất, khách cùng tab thấy URL của người trước. Code cũ không có lỗi này vì dữ liệu giống nhau cho mọi người. **Chờ chủ dự án quyết #21** rồi mới sửa; không tự đổi `queryKey`.
+
+**#21 đã quyết — việc sửa cho lần nộp lại:**
+- `LearnPage.tsx`: đổi **đúng 2** `queryKey`, không đổi gì khác:
+  - `["learn-modules", cId]` → `["learn-modules", cId, user?.id]`
+  - `["lesson-materials", currentLessonId, cId]` → `["lesson-materials", currentLessonId, cId, user?.id]`
+- `git diff refactor/nestjs-backend -- src/pages/LearnPage.tsx | grep queryKey` chỉ được ra đúng 2 cặp dòng trên (dán output).
+- Chạy tay: mở `/learn/1` khi chưa đăng nhập → đăng nhập tài khoản có ghi danh → quay lại `/learn/1` ngay (dưới 5 phút) → bài trả phí phát được video. Rồi đăng xuất → `/learn/1` → bài trả phí bị khóa, Network không có `video_url` khác `null`. Ghi kết quả vào mục 7.
+- Dán **nguyên văn** output mục 6, chạy sau commit cuối.
+
+Không chặn: thêm `if (!currentLessonId) return [];` ở `lesson-materials` (thu hẹp kiểu, `enabled` đã chặn) — chấp nhận.
