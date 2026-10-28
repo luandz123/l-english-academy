@@ -354,3 +354,7 @@ c5a957d docs: record T-007 review PASS, mark LRN rows frontend done
 Không có. Đã hoàn thành toàn bộ yêu cầu của T-008.
 
 ## 10. Review (Claude điền)
+**PASS** (Claude, 2026-10-28) — merge vào `refactor/nestjs-backend`. Review trên `69ced0c`.
+- Adapter `listMyProgressRows` đúng mục 4 (gán từ `last_watched_at`, đủ 3 khóa, giữ thứ tự, lỗi không ném). 3 trang chỉ đổi thân `queryFn` + `import`; `queryKey` giữ nguyên; `user_lesson_progress` không còn trong 3 trang. Output nguyên văn đầy đủ.
+- Chạy lại: vitest 8 file/71 test, eslint `src/lib/api/learning*` sạch, eslint 3 trang 28/18/14 lỗi = đúng bằng nhánh gốc, `tsc` 0 lỗi ở file T-008, `check-ui-diff` OK, build OK.
+- Ghi nhận (không chặn): đánh dấu hoàn thành ở `LearnPage` chỉ invalidate `["lesson-progress"]`; 3 key `dashboard-lesson-progress`, `my-courses-user-progress`, `profile-lesson-progress` có thể cũ tới 5 phút (`staleTime` toàn app). Cùng kiểu với các trang khác đang có; không thêm invalidate (luật 3).
