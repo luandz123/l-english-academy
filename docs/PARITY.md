@@ -49,7 +49,7 @@
 | **CAT-006** | Catalog | Query chi tiết 1 khóa học theo id từ bảng `courses` | [src/pages/LearnPage.tsx:43](file:///c:/Users/lenovo/l-english-academy/src/pages/LearnPage.tsx#L43) | `GET /api/v1/catalog/courses/:id` + `src/lib/api/catalog.ts:getCourse` | `backend/test/catalog.e2e-spec.ts`, `src/lib/api/catalog.test.ts` | `frontend ✓` | Đầy đủ thông tin `title`, `description`, `price` |
 | **CAT-007** | Catalog | Query cây Modules và Lessons con của khóa học | [src/pages/LearnPage.tsx:51](file:///c:/Users/lenovo/l-english-academy/src/pages/LearnPage.tsx#L51) | | | `todo` | Nested relations `modules(lessons(*))` |
 | **CAT-008** | Catalog | Route `/my-courses` - Danh sách khóa học đã ghi danh | [src/pages/MyCoursesPage.tsx:106](file:///c:/Users/lenovo/l-english-academy/src/pages/MyCoursesPage.tsx#L106) | | | `todo` | Kết hợp bảng `enrollments` và `courses` |
-| **CAT-009** | Catalog | Cấu hình Section Trang chủ từ `platform_settings` | [src/services/homepageShowcaseService.ts:397](file:///c:/Users/lenovo/l-english-academy/src/services/homepageShowcaseService.ts#L397) | | | `todo` | Khóa `homepage_showcase_config` (fallback localStorage) |
+| **CAT-009** | Catalog | Cấu hình Section Trang chủ từ `platform_settings` | [src/services/homepageShowcaseService.ts:397](file:///c:/Users/lenovo/l-english-academy/src/services/homepageShowcaseService.ts#L397) | `GET /api/v1/settings/:key` (8 key công khai), `GET/PUT /api/v1/admin/settings` | `backend/test/platform-settings.e2e-spec.ts` | `frontend ✓` | Khóa `homepage_showcase_config` (fallback localStorage) |
 
 ---
 
@@ -167,7 +167,7 @@
 | **ADM-017** | Admin | Route `/admin/materials` - Quản lý tệp tài liệu trong bucket | [src/pages/admin/AdminMaterials.tsx:253](file:///c:/Users/lenovo/l-english-academy/src/pages/admin/AdminMaterials.tsx#L253) | | | `todo` | Thống kê dung lượng, xóa file rác |
 | **ADM-018** | Admin | Route `/admin/reports` - Thống kê học tập và bài thi | [src/pages/admin/AdminReports.tsx:254](file:///c:/Users/lenovo/l-english-academy/src/pages/admin/AdminReports.tsx#L254) | | | `todo` | Báo cáo tỷ lệ đúng, thời gian làm bài |
 | **ADM-019** | Admin | Route `/admin/backup` - Sao lưu CSDL | [src/pages/admin/AdminBackup.tsx:255](file:///c:/Users/lenovo/l-english-academy/src/pages/admin/AdminBackup.tsx#L255) | | | `todo` | Xuất dữ liệu quản trị |
-| **ADM-020** | Admin | Route `/admin/settings` - Cài đặt nền tảng `platform_settings` | [src/pages/admin/AdminSettings.tsx:256](file:///c:/Users/lenovo/l-english-academy/src/pages/admin/AdminSettings.tsx#L256) | | | `todo` | Quản lý key-value cấu hình chung |
+| **ADM-020** | Admin | Route `/admin/settings` - Cài đặt nền tảng `platform_settings` | [src/pages/admin/AdminSettings.tsx:256](file:///c:/Users/lenovo/l-english-academy/src/pages/admin/AdminSettings.tsx#L256) | `GET /api/v1/settings/:key` (8 key công khai), `GET/PUT /api/v1/admin/settings` | `backend/test/platform-settings.e2e-spec.ts` | `frontend ✓` | Quản lý key-value cấu hình chung |
 | **ADM-021** | Admin | Ghi nhật ký quản trị vào `admin_activity_log` | [supabase/migrations/20260329141747_3017db4a-6d94-4787-bcc1-328c5cd706ff.sql:350](file:///c:/Users/lenovo/l-english-academy/supabase/migrations/20260329141747_3017db4a-6d94-4787-bcc1-328c5cd706ff.sql#L350) | | | `todo` | Audit trail các hành động của admin |
 
 ---

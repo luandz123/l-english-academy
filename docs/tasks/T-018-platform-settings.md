@@ -190,3 +190,6 @@ $ git log --oneline -3 && git diff --stat refactor/nestjs-backend
 ## 9. Câu hỏi (người làm điền khi bị chặn)
 
 ## 10. Review (Claude điền)
+**PASS** (Claude, 2026-10-29) — merge vào `refactor/nestjs-backend`. Review trên `345b802`.
+- Route công khai chỉ trả đúng 8 key như RLS, key khác `{ setting: null }` mà không gọi DB; admin đọc/ghi mọi key, upsert một lệnh; kiểm định dạng key. 3 chỗ gọi chỉ thay nguồn dữ liệu, giữ nhánh fallback/cache cũ. Không còn `platform_settings` trong `src/` (trừ types, AdminBackup).
+- Chạy lại sau gộp: lint/typecheck sạch, unit 201/201, e2e 195/195, vitest 133/133, `check-ui-diff` OK, build OK.
