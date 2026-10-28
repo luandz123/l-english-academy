@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { approvePaymentOrder, listAdminPaymentOrders } from "@/lib/api/payments";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -26,7 +27,7 @@ const AdminEnrollments = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // 1. Fetch Danh sách Đơn Thanh toán (payment_orders)
+  // 1. Fetch Danh sách Đơn Thanh toán
   const { 
     data: paymentOrders = [], 
     isLoading: loadingOrders, 
@@ -34,28 +35,8 @@ const AdminEnrollments = () => {
   } = useQuery({
     queryKey: ["admin-payment-orders"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("payment_orders")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        console.warn("[AdminEnrollments] Error fetching payment_orders:", error);
-        return [];
-      }
-
-      const orders = data ?? [];
-      const userIds = [...new Set(orders.map((o) => o.user_id))];
-
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, user_id, full_name, email")
-        .in("user_id", userIds);
-
-      return orders.map((o) => ({
-        ...o,
-        profile: profiles?.find((p) => p.user_id === o.user_id) || null,
-      }));
+      const { data } = await listAdminPaymentOrders();
+      return data ?? [];
     },
   });
 
@@ -100,19 +81,14 @@ const AdminEnrollments = () => {
   });
 
   // Admin duyệt thủ công đơn hàng (nếu khách chuyển sai cú pháp hoặc ngân hàng chậm)
-  const handleApproveOrder = async (orderCode: string, amount: number) => {
+  const handleApproveOrder = async (orderCode: string, _amount: number) => {
     if (!confirm(`Xác nhận duyệt và nâng cấp PRO ngay cho đơn hàng ${orderCode}?`)) {
       return;
     }
 
     setApprovingCode(orderCode);
     try {
-      const { data: result, error } = await supabase.rpc("complete_payment_order", {
-        p_order_code: orderCode,
-        p_transfer_amount: amount,
-        p_bank_tx_id: `MANUAL_ADMIN_${Date.now()}`,
-        p_transaction_content: `ADMIN_MANUAL_APPROVE ${orderCode}`,
-      });
+      const { error } = await approvePaymentOrder(orderCode);
 
       if (error) {
         toast({

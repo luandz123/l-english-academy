@@ -13,6 +13,7 @@ import type { Env } from '../../config/env.schema';
 import { AuthService } from '../auth/auth.service';
 import type { AuthenticatedUser } from '../auth/guards/jwt-auth.guard';
 import { PaymentOrderDto, WebhookResultDto } from './dto/payment-order.dto';
+import { AdminPaymentOrderDto } from './dto/admin-payment-order.dto';
 import {
   extractOrderCode,
   isPaidInFull,
@@ -159,6 +160,39 @@ export class PaymentsService {
     );
   }
 
+  /**
+   * Đọc danh sách tất cả đơn hàng kèm profile học viên cho admin (ADM-015).
+   */
+  async listAdminOrders(): Promise<AdminPaymentOrderDto[]> {
+    const rows = await this.repo.findAllOrdersWithProfiles();
+    return rows.map((row) => this.mapper.toAdminOrderDto(row));
+  }
+
+  /**
+   * Admin duyệt thủ công đơn hàng (ADM-016).
+   * Lấy số tiền từ đơn hàng (server quyết), ghi log hành động có admin_id.
+   */
+  async approveOrder(
+    adminUser: AuthenticatedUser,
+    orderCode: string,
+  ): Promise<WebhookResultDto> {
+    const order = await this.repo.findOrderByCode(orderCode);
+    if (!order) {
+      throw new NotFoundException({
+        code: 'ORDER_NOT_FOUND',
+        message: 'Không tìm thấy đơn hàng',
+      });
+    }
+
+    return this.applyPayment(order, {
+      transferAmount: Number(order.amount),
+      bankTxId: `MANUAL_ADMIN_${Date.now()}`,
+      transactionContent: `ADMIN_MANUAL_APPROVE ${order.orderCode}`,
+      action: 'payment_manual_approve',
+      adminId: adminUser.id,
+    });
+  }
+
   private async applyPayment(
     order: PaymentOrder,
     input: {
@@ -166,6 +200,7 @@ export class PaymentsService {
       bankTxId: string | null;
       transactionContent: string | null;
       action: string;
+      adminId?: string | null;
     },
   ): Promise<WebhookResultDto> {
     if (order.status === 'completed') {
