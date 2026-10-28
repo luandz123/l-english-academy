@@ -9,6 +9,7 @@ import {
   listMyFavorites,
   listMyNotes,
   listMyProgress,
+  listMyProgressRows,
   removeFavorite,
   setLessonProgress,
 } from "./learning";
@@ -197,6 +198,81 @@ describe("learning adapter", () => {
       expect(data).toBeNull();
       expect(error).toBeInstanceOf(ApiError);
       expect(error?.status).toBe(401);
+    });
+  });
+
+  describe("listMyProgressRows", () => {
+    it("gọi GET learning/progress, gán created_at = completed_at = last_watched_at (kể cả null), updated_at = null, giữ các trường gốc và giữ nguyên thứ tự", async () => {
+      const progress = [
+        {
+          id: 2,
+          user_id: "user-1",
+          lesson_id: 20,
+          is_completed: true,
+          last_watched_at: "2026-10-28T08:00:00.000Z",
+          watch_duration_seconds: 180,
+        },
+        {
+          id: 1,
+          user_id: "user-1",
+          lesson_id: 10,
+          is_completed: false,
+          last_watched_at: null,
+          watch_duration_seconds: null,
+        },
+      ];
+      const fetchMock = mockFetch(200, progress);
+
+      const { data, error } = await listMyProgressRows();
+
+      expect(error).toBeNull();
+      expect(data).toEqual([
+        {
+          id: 2,
+          user_id: "user-1",
+          lesson_id: 20,
+          is_completed: true,
+          last_watched_at: "2026-10-28T08:00:00.000Z",
+          watch_duration_seconds: 180,
+          created_at: "2026-10-28T08:00:00.000Z",
+          completed_at: "2026-10-28T08:00:00.000Z",
+          updated_at: null,
+        },
+        {
+          id: 1,
+          user_id: "user-1",
+          lesson_id: 10,
+          is_completed: false,
+          last_watched_at: null,
+          watch_duration_seconds: null,
+          created_at: null,
+          completed_at: null,
+          updated_at: null,
+        },
+      ]);
+      expect(Object.keys(data![0])).toEqual(
+        expect.arrayContaining(["created_at", "completed_at", "updated_at"]),
+      );
+      expect(Object.keys(data![1])).toEqual(
+        expect.arrayContaining(["created_at", "completed_at", "updated_at"]),
+      );
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("/api/v1/learning/progress");
+      expect(init?.method).toBe("GET");
+    });
+
+    it("trả về { data: null, error } khi lỗi 401 hoặc 500, không ném ngoại lệ", async () => {
+      mockFetch(401, { statusCode: 401, code: "UNAUTHORIZED", message: "Unauthorized" });
+      const res401 = await listMyProgressRows();
+      expect(res401.data).toBeNull();
+      expect(res401.error).toBeInstanceOf(ApiError);
+      expect(res401.error?.status).toBe(401);
+
+      mockFetch(500, { statusCode: 500, code: "INTERNAL_ERROR", message: "Server error" });
+      const res500 = await listMyProgressRows();
+      expect(res500.data).toBeNull();
+      expect(res500.error).toBeInstanceOf(ApiError);
+      expect(res500.error?.status).toBe(500);
     });
   });
 

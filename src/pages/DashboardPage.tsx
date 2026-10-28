@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { listCourses } from "@/lib/api/catalog";
+import { listMyProgressRows } from "@/lib/api/learning";
 import { useAuth } from "@/hooks/useAuth";
 import { useGamification } from "@/hooks/useGamification";
 import StudentLayout from "@/components/StudentLayout";
@@ -93,11 +94,7 @@ export const DashboardPage: React.FC = () => {
     queryKey: ["dashboard-lesson-progress", user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const { data } = await supabase
-        .from("user_lesson_progress")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
+      const { data } = await listMyProgressRows();
       return data || [];
     },
     enabled: !!user,
