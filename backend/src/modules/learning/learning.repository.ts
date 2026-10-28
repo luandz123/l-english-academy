@@ -7,6 +7,7 @@ import type {
   LessonPractice,
   Material,
   Module,
+  Profile,
   Quiz,
   UserFavorite,
   UserLessonProgress,
@@ -32,6 +33,13 @@ export type LessonPracticeWithQuiz = LessonPractice & {
 
 export type EnrollmentWithCourseTitle = Enrollment & {
   course: Pick<Course, 'title'> | null;
+};
+
+export type EnrollmentWithCourseAndProfile = Enrollment & {
+  course: Pick<Course, 'title'> | null;
+  user: {
+    profile: Pick<Profile, 'id' | 'userId' | 'fullName'> | null;
+  };
 };
 
 @Injectable()
@@ -379,6 +387,31 @@ export class LearningRepository {
         },
       },
       orderBy: [{ id: 'asc' }],
+    });
+  }
+
+  findAllEnrollments(): Promise<EnrollmentWithCourseAndProfile[]> {
+    return this.prisma.enrollment.findMany({
+      include: {
+        course: {
+          select: { title: true },
+        },
+        user: {
+          select: {
+            profile: {
+              select: {
+                id: true,
+                userId: true,
+                fullName: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: [
+        { enrolledAt: { sort: 'desc', nulls: 'last' } },
+        { id: 'desc' },
+      ],
     });
   }
 

@@ -31,6 +31,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles, RolesGuard } from '../auth/guards/roles.guard';
 import {
   AdminEnrollmentDto,
+  AdminEnrollmentListDto,
   CreateAdminEnrollmentDto,
   LessonDto,
   PatchLessonDto,
@@ -179,6 +180,17 @@ export class LearningAdminController {
   }
 
   // --- 4.3 Ghi danh ---
+
+  @Get('enrollments')
+  @ApiOperation({
+    summary: 'Admin lấy danh sách tất cả ghi danh toàn hệ thống (ADM-015)',
+  })
+  @ApiOkResponse({ type: [AdminEnrollmentListDto] })
+  @ApiUnauthorizedResponse({ description: 'Chưa đăng nhập' })
+  @ApiForbiddenResponse({ description: 'Không có quyền admin' })
+  getAllEnrollments(): Promise<AdminEnrollmentListDto[]> {
+    return this.learningAdminService.getAllEnrollments();
+  }
 
   @Get('users/:userId/enrollments')
   @ApiOperation({

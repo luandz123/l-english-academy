@@ -14,6 +14,7 @@ import {
   listMyNotes,
   listMyProgress,
   listMyProgressRows,
+  listAllEnrollments,
   listUserEnrollments,
   addUserEnrollment,
   patchLesson,
@@ -500,6 +501,40 @@ describe("learning adapter", () => {
 
       expect(data).toBeNull();
       expect(error).toBeInstanceOf(ApiError);
+    });
+  });
+
+  describe("listAllEnrollments", () => {
+    it("gọi đúng URL learning/admin/enrollments và method GET", async () => {
+      const enrollments = [
+        {
+          id: 1,
+          user_id: "user-uuid-1",
+          course_id: 10,
+          enrolled_at: "2026-01-01T00:00:00Z",
+          expires_at: null,
+          courses: { title: "TOEIC 450+" },
+          profiles: { id: "p-1", user_id: "user-uuid-1", full_name: "Nguyen Van A" },
+        },
+      ];
+      const fetchMock = mockFetch(200, enrollments);
+
+      const { data, error } = await listAllEnrollments();
+
+      expect(error).toBeNull();
+      expect(data).toEqual(enrollments);
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("/api/v1/learning/admin/enrollments");
+      expect(init?.method).toBe("GET");
+    });
+
+    it("trả về ApiError khi lỗi 500, không ném ngoại lệ", async () => {
+      mockFetch(500, { statusCode: 500, code: "INTERNAL_ERROR", message: "Server error" });
+      const { data, error } = await listAllEnrollments();
+
+      expect(data).toBeNull();
+      expect(error).toBeInstanceOf(ApiError);
+      expect(error?.status).toBe(500);
     });
   });
 

@@ -15,7 +15,7 @@ import {
   ExternalLink
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { listAllEnrollments } from "@/lib/api/learning";
 import { approvePaymentOrder, listAdminPaymentOrders } from "@/lib/api/payments";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
@@ -48,19 +48,10 @@ const AdminEnrollments = () => {
   } = useQuery({
     queryKey: ["admin-enrollments"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("enrollments")
-        .select("*, courses(title)")
-        .order("enrolled_at", { ascending: false });
+      const { data, error } = await listAllEnrollments();
       if (error) throw error;
 
       const enrollmentsData = data ?? [];
-      const userIds = [...new Set(enrollmentsData.map((e) => e.user_id))];
-
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, user_id, full_name")
-        .in("user_id", userIds);
 
       return enrollmentsData.map((e: any) => {
         const now = new Date();
@@ -74,7 +65,7 @@ const AdminEnrollments = () => {
           ...e,
           remaining,
           status,
-          profiles: profiles?.find((p) => p.id === e.user_id || p.user_id === e.user_id) || null,
+          profiles: e.profiles ?? null,
         };
       });
     },

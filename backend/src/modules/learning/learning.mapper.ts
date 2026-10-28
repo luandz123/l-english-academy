@@ -9,6 +9,7 @@ import type {
 } from '../../generated/prisma/client';
 import {
   AdminEnrollmentDto,
+  AdminEnrollmentListDto,
   CurriculumModuleDto,
   EnrollmentDto,
   FavoriteDto,
@@ -19,6 +20,7 @@ import {
   PracticeDto,
 } from './dto';
 import type {
+  EnrollmentWithCourseAndProfile,
   EnrollmentWithCourseTitle,
   LessonPracticeWithQuiz,
   ModuleWithLessons,
@@ -148,6 +150,21 @@ export class LearningMapper {
     return {
       ...this.toEnrollmentDto(enrollment),
       courses: enrollment.course ? { title: enrollment.course.title } : null,
+    };
+  }
+
+  toAdminEnrollmentListDto(
+    enrollment: EnrollmentWithCourseAndProfile,
+  ): AdminEnrollmentListDto {
+    return {
+      ...this.toAdminEnrollmentDto(enrollment),
+      profiles: enrollment.user?.profile
+        ? {
+            id: enrollment.user.profile.id,
+            user_id: enrollment.user.profile.userId,
+            full_name: enrollment.user.profile.fullName,
+          }
+        : null,
     };
   }
 }

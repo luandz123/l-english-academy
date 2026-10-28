@@ -8,6 +8,7 @@ import { Prisma } from '../../generated/prisma/client';
 import { CatalogService } from '../catalog/catalog.service';
 import {
   AdminEnrollmentDto,
+  AdminEnrollmentListDto,
   CreateAdminEnrollmentDto,
   LessonDto,
   PatchLessonDto,
@@ -234,6 +235,11 @@ export class LearningAdminService {
   }
 
   // --- 4.3 Ghi danh ---
+
+  async getAllEnrollments(): Promise<AdminEnrollmentListDto[]> {
+    const rows = await this.repo.findAllEnrollments();
+    return rows.map((r) => this.mapper.toAdminEnrollmentListDto(r));
+  }
 
   async getUserEnrollments(userId: string): Promise<AdminEnrollmentDto[]> {
     const rows = await this.repo.findEnrollmentsByUser(userId);

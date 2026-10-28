@@ -43,6 +43,14 @@ export interface AdminEnrollmentRow extends EnrollmentRow {
   courses: { title: string } | null;
 }
 
+export interface AdminEnrollmentListRow extends AdminEnrollmentRow {
+  profiles: {
+    id: string;
+    user_id: string;
+    full_name: string | null;
+  } | null;
+}
+
 export interface MaterialRow {
   id: number;
   lesson_id: number | null;
@@ -240,6 +248,15 @@ export async function listLessonPractices(
 ): Promise<{ data: PracticeRow[] | null; error: ApiError | null }> {
   return toResult(
     apiClient.get<PracticeRow[]>(`learning/lessons/${lessonId}/practices`),
+  );
+}
+
+export async function listAllEnrollments(): Promise<{
+  data: AdminEnrollmentListRow[] | null;
+  error: ApiError | null;
+}> {
+  return toResult(
+    apiClient.get<AdminEnrollmentListRow[]>('learning/admin/enrollments'),
   );
 }
 
