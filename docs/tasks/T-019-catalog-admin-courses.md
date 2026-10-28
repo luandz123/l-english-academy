@@ -200,3 +200,7 @@ e27faa5 docs: record T-016 review PASS, update queue and ADM-015
   Chuyển sang gọi `updateCategory(id, { name: cat.name, slug: cat.slug, icon: cat.icon || "BookOpen", display_order: cat.display_order ?? 0, is_active })` sử dụng endpoint `PUT /catalog/admin/categories/:id` đã định nghĩa.
 
 ## 9. Review (Claude điền)
+**PASS** (Claude, 2026-10-29) — merge vào `refactor/nestjs-backend`. Review trên `e5e45f5`.
+- 9 route đúng mục 4; server ép `price = 0` khi `is_free` ở cả tạo, sửa và PATCH (có e2e). 4 trang chỉ đổi nguồn dữ liệu; `getCourse` không lọc khóa ẩn nên admin vẫn sửa được khóa ẩn.
+- Spec bỏ sót nút bật/tắt danh mục (`toggleStatusMutation`); Antigravity tự chuyển sang `PUT` với giá trị đang có trong cache — chấp nhận (cùng màn hình đã tải danh sách). `AdminCourseNew` lọc `is_active` ở client thay vì server — cùng kết quả.
+- Gộp với T-018 không xung đột. Sau gộp: lint/typecheck sạch, unit 210/210, e2e 214/214, vitest 143/143, `check-ui-diff` OK, build OK.
