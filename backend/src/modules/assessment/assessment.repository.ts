@@ -11,6 +11,24 @@ import type { GradedAnswer } from './quiz-grading';
 
 export type QuestionWithAnswers = Question & { answers: Answer[] };
 
+export type UserQuizResultWithQuiz = UserQuizResult & {
+  quiz: {
+    id: number;
+    title: string;
+    audioUrl: string | null;
+    totalQuestions: number;
+    moduleId: number | null;
+    module: {
+      id: number;
+      title: string;
+      course: {
+        id: number;
+        title: string;
+      } | null;
+    } | null;
+  } | null;
+};
+
 @Injectable()
 export class AssessmentRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -100,6 +118,45 @@ export class AssessmentRepository {
     return this.prisma.userAnswer.findMany({
       where: { resultId },
       orderBy: [{ id: 'asc' }],
+    });
+  }
+
+  /**
+   * Danh sách kết quả quiz của một user kèm join `quizzes -> modules -> courses`
+   * (ASM-006, ADM-003). Join bảng `modules`/`courses` thuộc Catalog chỉ để đọc
+   * tiêu đề bằng `include`/`select` trong cùng một câu SQL như PostgREST cũ,
+   * tránh N+1 qua service.
+   */
+  findResultsByUserWithQuiz(userId: string): Promise<UserQuizResultWithQuiz[]> {
+    return this.prisma.userQuizResult.findMany({
+      where: { userId },
+      include: {
+        quiz: {
+          select: {
+            id: true,
+            title: true,
+            audioUrl: true,
+            totalQuestions: true,
+            moduleId: true,
+            module: {
+              select: {
+                id: true,
+                title: true,
+                course: {
+                  select: {
+                    id: true,
+                    title: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: [
+        { completedAt: { sort: 'desc', nulls: 'last' } },
+        { id: 'desc' },
+      ],
     });
   }
 }

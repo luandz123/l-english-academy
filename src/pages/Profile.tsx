@@ -2,6 +2,7 @@ import StudentLayout from "@/components/StudentLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { useGamification } from "@/hooks/useGamification";
 import { supabase } from "@/integrations/supabase/client";
+import { listMyQuizResults } from "@/lib/api/assessment";
 import { authClient, updateMyProfile } from "@/lib/api/auth";
 import { listMyProgressRows } from "@/lib/api/learning";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -227,11 +228,7 @@ const Profile = () => {
     queryKey: ["profile-quiz-results", user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const { data } = await supabase
-        .from("user_quiz_results")
-        .select("*, quizzes(id, title, audio_url, total_questions, module_id, modules(id, title, courses(id, title)))")
-        .eq("user_id", user.id)
-        .order("completed_at", { ascending: false });
+      const { data } = await listMyQuizResults();
       return data || [];
     },
     enabled: !!user,

@@ -8,10 +8,14 @@ import {
   QuestionDto,
   QuizDto,
   QuizResultDto,
+  QuizResultWithQuizDto,
   ReviewQuestionDto,
   UserAnswerDto,
 } from './dto';
-import type { QuestionWithAnswers } from './assessment.repository';
+import type {
+  QuestionWithAnswers,
+  UserQuizResultWithQuiz,
+} from './assessment.repository';
 
 @Injectable()
 export class AssessmentMapper {
@@ -87,6 +91,33 @@ export class AssessmentMapper {
       total_questions: r.totalQuestions,
       time_spent_seconds: r.timeSpentSeconds,
       completed_at: r.completedAt ? r.completedAt.toISOString() : null,
+    };
+  }
+
+  toQuizResultWithQuizDto(r: UserQuizResultWithQuiz): QuizResultWithQuizDto {
+    return {
+      ...this.toQuizResultDto(r),
+      quizzes: r.quiz
+        ? {
+            id: r.quiz.id,
+            title: r.quiz.title,
+            audio_url: r.quiz.audioUrl,
+            total_questions: r.quiz.totalQuestions,
+            module_id: r.quiz.moduleId,
+            modules: r.quiz.module
+              ? {
+                  id: r.quiz.module.id,
+                  title: r.quiz.module.title,
+                  courses: r.quiz.module.course
+                    ? {
+                        id: r.quiz.module.course.id,
+                        title: r.quiz.module.course.title,
+                      }
+                    : null,
+                }
+              : null,
+          }
+        : null,
     };
   }
 

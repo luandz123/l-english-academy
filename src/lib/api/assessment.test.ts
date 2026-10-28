@@ -4,8 +4,10 @@ import {
   getQuiz,
   getQuizResult,
   getQuizReview,
+  listMyQuizResults,
   listQuizQuestions,
   listResultAnswers,
+  listUserQuizResults,
   submitQuiz,
 } from "./assessment";
 import { ApiError } from "./client";
@@ -42,6 +44,8 @@ describe("assessment adapter", () => {
     ["listQuizQuestions", () => listQuizQuestions(5), "/api/v1/assessment/quizzes/5/questions"],
     ["getQuizReview", () => getQuizReview(5), "/api/v1/assessment/quizzes/5/review"],
     ["listResultAnswers", () => listResultAnswers(100), "/api/v1/assessment/results/100/answers"],
+    ["listMyQuizResults", () => listMyQuizResults(), "/api/v1/assessment/results/me"],
+    ["listUserQuizResults", () => listUserQuizResults("u-123"), "/api/v1/assessment/admin/users/u-123/results"],
   ])("%s gọi GET đúng URL và trả nguyên data", async (_name, call, url) => {
     const fetchMock = mockFetch(200, [{ id: 1 }]);
     const { data, error } = await call();
@@ -98,5 +102,19 @@ describe("assessment adapter", () => {
     const { data, error } = await submitQuiz(5, [], 1);
     expect(data).toBeNull();
     expect(error?.status).toBe(500);
+  });
+
+  it("listMyQuizResults và listUserQuizResults gặp lỗi → trả { data: null, error }, không ném", async () => {
+    mockFetch(401, { statusCode: 401, code: "UNAUTHORIZED", message: "Chưa đăng nhập" });
+    const res1 = await listMyQuizResults();
+    expect(res1.data).toBeNull();
+    expect(res1.error).toBeInstanceOf(ApiError);
+    expect(res1.error?.status).toBe(401);
+
+    mockFetch(403, { statusCode: 403, code: "FORBIDDEN", message: "Không phải admin" });
+    const res2 = await listUserQuizResults("u-123");
+    expect(res2.data).toBeNull();
+    expect(res2.error).toBeInstanceOf(ApiError);
+    expect(res2.error?.status).toBe(403);
   });
 });
