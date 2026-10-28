@@ -176,14 +176,14 @@
 
 | ID | Module | Hành vi cần giữ nguyên | File cũ (đường dẫn:dòng) | Endpoint / Service mới | Test | Trạng thái | Ghi chú |
 | :---: | :--- | :--- | :--- | :--- | :--- | :---: | :--- |
-| **GAM-001** | Gamification | Khởi tạo state Gamification từ `localStorage` | [src/hooks/useGamification.ts:137](file:///c:/Users/lenovo/l-english-academy/src/hooks/useGamification.ts#L137) | | | `todo` | `lenglish_gamification_${userId}` |
-| **GAM-002** | Gamification | Chuyển dữ liệu điểm guest sang tài khoản khi đăng nhập | [src/hooks/useGamification.ts:199](file:///c:/Users/lenovo/l-english-academy/src/hooks/useGamification.ts#L199) | | | `todo` | Giữ nguyên XP khi học thử rồi mới đăng ký |
-| **GAM-003** | Gamification | Logic cộng XP và thăng cấp (`addXp`) | [src/hooks/useGamification.ts:228](file:///c:/Users/lenovo/l-english-academy/src/hooks/useGamification.ts#L228) | | | `todo` | **Chuyển về server**: Level = sqrt(XP / 50) |
-| **GAM-004** | Gamification | Cập nhật chuỗi Streak hàng ngày (`updateStreak`) | [src/hooks/useGamification.ts:316](file:///c:/Users/lenovo/l-english-academy/src/hooks/useGamification.ts#L316) | | | `todo` | **Chuyển về server**: Cronjob 00:00 |
-| **GAM-005** | Gamification | Hệ thống nhiệm vụ ngày Daily Quests | [src/hooks/useGamification.ts:333](file:///c:/Users/lenovo/l-english-academy/src/hooks/useGamification.ts#L333) | | | `todo` | Học bài, làm quiz, luyện phản xạ |
-| **GAM-006** | Gamification | Mở rương phần thưởng ngẫu nhiên ngày `lenglish_last_chest_date` | [src/hooks/useGamification.ts:364](file:///c:/Users/lenovo/l-english-academy/src/hooks/useGamification.ts#L364) | | | `todo` | Thưởng XP ngẫu nhiên mỗi ngày |
-| **GAM-007** | Gamification | Hiển thị thanh tiến trình XP, level và badge | [src/pages/DashboardPage.tsx:260](file:///c:/Users/lenovo/l-english-academy/src/pages/DashboardPage.tsx#L260) | | | `todo` | UI dashboard học viên |
-| **GAM-008** | Gamification | Bảng xếp hạng tuần/tháng (Leaderboard) | [src/pages/DashboardPage.tsx:320](file:///c:/Users/lenovo/l-english-academy/src/pages/DashboardPage.tsx#L320) | | | `todo` | **Chuyển về server**: Bảng xếp hạng thật |
+| **GAM-001** | Gamification | Khởi tạo state Gamification từ `localStorage` | [src/hooks/useGamification.ts:137](file:///c:/Users/lenovo/l-english-academy/src/hooks/useGamification.ts#L137) | | | `không đổi` | `lenglish_gamification_${userId}`. Giữ ở client (OPEN_QUESTIONS #24) |
+| **GAM-002** | Gamification | Chuyển dữ liệu điểm guest sang tài khoản khi đăng nhập | [src/hooks/useGamification.ts:199](file:///c:/Users/lenovo/l-english-academy/src/hooks/useGamification.ts#L199) | | | `không đổi` | Giữ nguyên XP khi học thử rồi mới đăng ký. Giữ ở client (OPEN_QUESTIONS #24) |
+| **GAM-003** | Gamification | Logic cộng XP và thăng cấp (`addXp`) | [src/hooks/useGamification.ts:228](file:///c:/Users/lenovo/l-english-academy/src/hooks/useGamification.ts#L228) | | | `không đổi` | **Chuyển về server**: Level = sqrt(XP / 50). Giữ ở client (OPEN_QUESTIONS #24) |
+| **GAM-004** | Gamification | Cập nhật chuỗi Streak hàng ngày (`updateStreak`) | [src/hooks/useGamification.ts:316](file:///c:/Users/lenovo/l-english-academy/src/hooks/useGamification.ts#L316) | | | `không đổi` | **Chuyển về server**: Cronjob 00:00. Giữ ở client (OPEN_QUESTIONS #24) |
+| **GAM-005** | Gamification | Hệ thống nhiệm vụ ngày Daily Quests | [src/hooks/useGamification.ts:333](file:///c:/Users/lenovo/l-english-academy/src/hooks/useGamification.ts#L333) | | | `không đổi` | Học bài, làm quiz, luyện phản xạ. Giữ ở client (OPEN_QUESTIONS #24) |
+| **GAM-006** | Gamification | Mở rương phần thưởng ngẫu nhiên ngày `lenglish_last_chest_date` | [src/hooks/useGamification.ts:364](file:///c:/Users/lenovo/l-english-academy/src/hooks/useGamification.ts#L364) | | | `không đổi` | Thưởng XP ngẫu nhiên mỗi ngày. Giữ ở client (OPEN_QUESTIONS #24) |
+| **GAM-007** | Gamification | Hiển thị thanh tiến trình XP, level và badge | [src/pages/DashboardPage.tsx:260](file:///c:/Users/lenovo/l-english-academy/src/pages/DashboardPage.tsx#L260) | | | `không đổi` | UI dashboard học viên. Giữ ở client (OPEN_QUESTIONS #24) |
+| **GAM-008** | Gamification | Bảng xếp hạng tuần/tháng (Leaderboard) | [src/pages/DashboardPage.tsx:320](file:///c:/Users/lenovo/l-english-academy/src/pages/DashboardPage.tsx#L320) | | | `không đổi` | **Chuyển về server**: Bảng xếp hạng thật. Giữ ở client (OPEN_QUESTIONS #24) |
 
 ---
 
