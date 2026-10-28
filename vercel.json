@@ -1,4 +1,13 @@
 {
+  "git": {
+    "deploymentEnabled": {
+      "refactor/nestjs-backend": false,
+      "task/**": false,
+      "claude/**": false,
+      "review/**": false,
+      "merge/**": false
+    }
+  },
   "headers": [
     {
       "source": "/index.html",
