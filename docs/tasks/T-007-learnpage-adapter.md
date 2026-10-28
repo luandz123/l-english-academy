@@ -302,6 +302,14 @@ $ git diff refactor/nestjs-backend -- src/pages/LearnPage.tsx | grep queryKey
 Không có. Đã hoàn thành toàn bộ yêu cầu của T-007.
 
 ## 9. Review (Claude điền)
+**PASS lần 2** (Claude, 2026-10-28) — merge vào `refactor/nestjs-backend`. Review trên `c908966`.
+- Sửa đúng 2 `queryKey` theo #21, không đổi dòng khác. Output nguyên văn đã có.
+- `check-ui-diff` báo 4 dòng `queryKey` — **ngoại lệ đã duyệt (#21)**, reviewer xác nhận tay; không phải vi phạm.
+- Chạy lại: vitest 8 file/69 test, eslint `src/lib/api/learning*` sạch, build OK; `tsc` 0 lỗi ở file T-007; eslint `LearnPage.tsx` 50 lỗi, đều có sẵn (nhánh gốc 51).
+- Còn ngoài phạm vi: `user_quiz_results` (`:104`) và câu hỏi popup (`:201`) — P3; #20 (popup ở bài khóa) — P3.
+
+---
+
 **TRẢ LẠI** (Claude, 2026-10-28) — chưa merge. Review trên `dd7620e`.
 
 Đã kiểm, đạt:
