@@ -15,6 +15,36 @@ export interface PaymentOrderRow {
   created_at: string | null;
 }
 
+export interface AdminPaymentProfile {
+  id: string;
+  user_id: string;
+  full_name: string | null;
+  email: string | null;
+}
+
+export interface AdminPaymentOrderRow {
+  id: string;
+  user_id: string;
+  order_code: string;
+  plan_type: string | null;
+  amount: number;
+  status: string | null;
+  payment_gateway: string | null;
+  bank_transaction_id: string | null;
+  transaction_content: string | null;
+  paid_at: string | null;
+  metadata: unknown;
+  created_at: string | null;
+  updated_at: string | null;
+  profile: AdminPaymentProfile | null;
+}
+
+export interface WebhookResult {
+  success: boolean;
+  message: string;
+  order_code?: string | null;
+}
+
 /** Tạo đơn VIP (server dùng lại đơn pending của mình trong 30 phút). */
 export async function createPaymentOrder(): Promise<{
   data: PaymentOrderRow | null;
@@ -81,4 +111,33 @@ export function watchPaymentOrder(
     stopped = true;
     if (timer) clearTimeout(timer);
   };
+}
+
+export async function listAdminPaymentOrders(): Promise<{
+  data: AdminPaymentOrderRow[] | null;
+  error: ApiError | null;
+}> {
+  return toResult(
+    apiClient.get<AdminPaymentOrderRow[]>("payments/admin/orders"),
+  );
+}
+
+export async function approvePaymentOrder(
+  orderCode: string,
+): Promise<{
+  data: WebhookResult | null;
+  error: ApiError | null;
+}> {
+  const result = await toResult(
+    apiClient.post<WebhookResult>(
+      `payments/admin/orders/${encodeURIComponent(orderCode)}/approve`,
+    ),
+  );
+  if (result.data && result.data.success === false) {
+    return {
+      data: result.data,
+      error: new ApiError(409, "PAYMENT_NOT_APPROVED", result.data.message),
+    };
+  }
+  return result;
 }

@@ -1,10 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  approvePaymentOrder,
   createPaymentOrder,
   getPaymentOrder,
+  listAdminPaymentOrders,
   simulatePayment,
   watchPaymentOrder,
 } from "./payments";
+import { ApiError } from "./client";
 
 const ORDER = {
   id: "o1",
@@ -89,5 +92,89 @@ describe("payments adapter", () => {
     stop();
     await vi.advanceTimersByTimeAsync(5000);
     expect(fetch2).not.toHaveBeenCalled();
+  });
+
+  describe("admin operations", () => {
+    it("listAdminPaymentOrders gọi GET payments/admin/orders, trả về danh sách có profile", async () => {
+      const adminOrder = {
+        ...ORDER,
+        user_id: "u1",
+        payment_gateway: "vietqr_sepay",
+        bank_transaction_id: null,
+        transaction_content: null,
+        metadata: {},
+        updated_at: "2026-10-28T10:00:00.000Z",
+        profile: {
+          id: "p1",
+          user_id: "u1",
+          full_name: "Học viên A",
+          email: "hva@example.com",
+        },
+      };
+      const fetchMock = mockFetch([200, [adminOrder]]);
+
+      const { data, error } = await listAdminPaymentOrders();
+
+      expect(error).toBeNull();
+      expect(data).toEqual([adminOrder]);
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("/api/v1/payments/admin/orders");
+      expect(init?.method).toBe("GET");
+    });
+
+    it("approvePaymentOrder gọi POST payments/admin/orders/:orderCode/approve không gửi body số tiền", async () => {
+      const result = {
+        success: true,
+        message: "Kích hoạt thành công đơn hàng LEA12345",
+        order_code: "LEA12345",
+      };
+      const fetchMock = mockFetch([200, result]);
+
+      const { data, error } = await approvePaymentOrder("LEA12345");
+
+      expect(error).toBeNull();
+      expect(data).toEqual(result);
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("/api/v1/payments/admin/orders/LEA12345/approve");
+      expect(init?.method).toBe("POST");
+      expect(init?.body).toBeUndefined();
+    });
+
+    it("approvePaymentOrder trả về error khi data.success = false", async () => {
+      mockFetch([
+        200,
+        {
+          success: false,
+          message: "Số tiền chuyển không đủ",
+          order_code: "LEA12345",
+        },
+      ]);
+
+      const { data, error } = await approvePaymentOrder("LEA12345");
+
+      expect(data?.success).toBe(false);
+      expect(error).toBeInstanceOf(ApiError);
+      expect(error?.status).toBe(409);
+      expect(error?.code).toBe("PAYMENT_NOT_APPROVED");
+      expect(error?.message).toBe("Số tiền chuyển không đủ");
+    });
+
+    it("approvePaymentOrder trả về ApiError khi lỗi 404, không ném ngoại lệ", async () => {
+      mockFetch([
+        404,
+        {
+          statusCode: 404,
+          code: "ORDER_NOT_FOUND",
+          message: "Không tìm thấy đơn hàng",
+        },
+      ]);
+
+      const { data, error } = await approvePaymentOrder("UNKNOWN");
+
+      expect(data).toBeNull();
+      expect(error).toBeInstanceOf(ApiError);
+      expect(error?.status).toBe(404);
+      expect(error?.code).toBe("ORDER_NOT_FOUND");
+    });
   });
 });

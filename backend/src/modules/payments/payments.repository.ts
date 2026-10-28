@@ -65,6 +65,7 @@ export class PaymentsRepository {
     bankTxId: string | null;
     transactionContent: string | null;
     action: string;
+    adminId?: string | null;
   }): Promise<{ completed: boolean; enrolledCourses: number }> {
     const { order } = input;
     return this.prisma.$transaction(async (tx) => {
@@ -110,6 +111,7 @@ export class PaymentsRepository {
           action: input.action,
           entityType: 'payment_orders',
           entityId: order.id,
+          adminId: input.adminId ?? null,
           details: {
             order_code: order.orderCode,
             user_id: order.userId,
@@ -121,6 +123,30 @@ export class PaymentsRepository {
         },
       });
       return { completed: true, enrolledCourses: enrolled.count };
+    });
+  }
+
+  /**
+   * Đọc danh sách tất cả đơn hàng kèm profile học viên cho admin.
+   * Join chỉ đọc user -> profile trong PaymentsRepository để frontend hiển thị tên và email học viên (ADM-015).
+   */
+  async findAllOrdersWithProfiles() {
+    return this.prisma.paymentOrder.findMany({
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      include: {
+        user: {
+          select: {
+            profile: {
+              select: {
+                id: true,
+                userId: true,
+                fullName: true,
+                email: true,
+              },
+            },
+          },
+        },
+      },
     });
   }
 
