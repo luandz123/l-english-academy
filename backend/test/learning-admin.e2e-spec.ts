@@ -928,7 +928,20 @@ describe('LearningModule — Admin quản lý bài học, luyện tập, ghi dan
         .set(bearer(adminToken))
         .send({
           course_id: courseId,
+          expires_in_days: 30,
           expires_at: '2099-01-01T00:00:00.000Z',
+        })
+        .expect(400);
+
+      expect((res.body as ErrorResponseBody).code).toBe('VALIDATION_FAILED');
+    });
+
+    it('thiếu expires_in_days → 400 VALIDATION_FAILED', async () => {
+      const res = await http()
+        .post(`/api/v1/learning/admin/users/${studentId}/enrollments`)
+        .set(bearer(adminToken))
+        .send({
+          course_id: courseId,
         })
         .expect(400);
 
