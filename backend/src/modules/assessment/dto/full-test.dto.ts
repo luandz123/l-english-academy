@@ -170,6 +170,11 @@ export class FullTestResultDto {
   answers_detail!: unknown;
 }
 
+export class FullTestResultWithTestDto extends FullTestResultDto {
+  @ApiProperty({ type: FullTestDto, nullable: true })
+  full_tests!: FullTestDto | null;
+}
+
 export class LatestFullTestResultResponseDto {
   @ApiProperty({ type: FullTestResultDto, nullable: true })
   result!: FullTestResultDto | null;

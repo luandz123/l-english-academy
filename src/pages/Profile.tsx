@@ -4,6 +4,7 @@ import { useGamification } from "@/hooks/useGamification";
 import { supabase } from "@/integrations/supabase/client";
 import { listMyQuizResults } from "@/lib/api/assessment";
 import { authClient, updateMyProfile } from "@/lib/api/auth";
+import { listMyFullTestResults } from "@/lib/api/fullTest";
 import { listMyProgressRows } from "@/lib/api/learning";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -243,11 +244,7 @@ const Profile = () => {
     queryKey: ["profile-fulltest-results", user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const { data } = await supabase
-        .from("user_full_test_results")
-        .select("*, full_tests(id, title, total_questions)")
-        .eq("user_id", user.id)
-        .order("completed_at", { ascending: false });
+      const { data } = await listMyFullTestResults();
       return data || [];
     },
     enabled: !!user,

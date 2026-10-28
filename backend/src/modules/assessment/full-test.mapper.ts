@@ -9,6 +9,7 @@ import {
   FullTestDto,
   FullTestQuestionDto,
   FullTestResultDto,
+  FullTestResultWithTestDto,
 } from './dto';
 import { AssessmentMapper } from './assessment.mapper';
 import type { FullTestQuestion } from './full-test.repository';
@@ -59,6 +60,15 @@ export class FullTestMapper {
       pause_count: r.pauseCount,
       test_mode: r.testMode,
       answers_detail: r.answersDetail,
+    };
+  }
+
+  toResultWithTestDto(
+    r: UserFullTestResult & { fullTest: FullTest | null },
+  ): FullTestResultWithTestDto {
+    return {
+      ...this.toResultDto(r),
+      full_tests: r.fullTest ? this.toFullTestDto(r.fullTest) : null,
     };
   }
 

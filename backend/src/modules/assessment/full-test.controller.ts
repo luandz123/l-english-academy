@@ -31,6 +31,7 @@ import {
   FullTestDto,
   FullTestQuestionDto,
   FullTestResultDto,
+  FullTestResultWithTestDto,
   LatestFullTestResultResponseDto,
   SubmitFullTestDto,
 } from './dto';
@@ -41,6 +42,17 @@ import { FullTestService } from './full-test.service';
 @Controller('assessment')
 export class FullTestController {
   constructor(private readonly fullTests: FullTestService) {}
+
+  @Get('courses/:courseId/full-tests')
+  @ApiOperation({
+    summary: 'Danh sách đề Full Test của một khóa học (công khai)',
+  })
+  @ApiOkResponse({ type: [FullTestDto] })
+  getCourseFullTests(
+    @Param('courseId', ParseIntPipe) courseId: number,
+  ): Promise<FullTestDto[]> {
+    return this.fullTests.getCourseFullTests(courseId);
+  }
 
   @Get('full-tests/:testId')
   @ApiOperation({ summary: 'Thông tin một đề Full Test (công khai)' })
@@ -100,6 +112,17 @@ export class FullTestController {
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<LatestFullTestResultResponseDto> {
     return this.fullTests.getLatestResult(user.id, testId);
+  }
+
+  @Get('full-test-results/me')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Danh sách kết quả Full Test của tôi' })
+  @ApiOkResponse({ type: [FullTestResultWithTestDto] })
+  @ApiUnauthorizedResponse({ description: 'Chưa đăng nhập' })
+  getMyResults(
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<FullTestResultWithTestDto[]> {
+    return this.fullTests.getMyResults(user.id);
   }
 
   @Get('full-test-results/:resultId')

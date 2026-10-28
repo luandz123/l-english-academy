@@ -2,7 +2,7 @@ import StudentLayout from "@/components/StudentLayout";
 import { useParams, Link } from "react-router-dom";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Lock, CheckCircle2, Clock, FileText, ArrowRight, RotateCcw, AlertTriangle } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { listCourseFullTests, listMyFullTestResults } from "@/lib/api/fullTest";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -16,12 +16,7 @@ const FullTestList = () => {
   const { data: tests, isLoading, isError, refetch } = useQuery({
     queryKey: ["full-tests", cid],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("full_tests")
-        .select("*")
-        .eq("course_id", cid)
-        .order("category")
-        .order("display_order");
+      const { data, error } = await listCourseFullTests(cid);
       if (error) throw error;
       return data || [];
     },
@@ -30,11 +25,7 @@ const FullTestList = () => {
   const { data: results } = useQuery({
     queryKey: ["full-test-results", user?.id],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("user_full_test_results")
-        .select("test_id, total_score")
-        .eq("user_id", user!.id)
-        .order("total_score", { ascending: false });
+      const { data } = await listMyFullTestResults();
       return data || [];
     },
     enabled: !!user,
