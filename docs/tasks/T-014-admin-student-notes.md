@@ -396,3 +396,6 @@ af4797c feat(assessment): server-side Full Test grading with ETS conversion (P3)
 Không có.
 
 ## 9. Review (Claude điền)
+**PASS** (Claude, 2026-10-28) — merge vào `refactor/nestjs-backend`. Review trên `1422112`.
+- `AdminModule` mới đúng mẫu (controller → service → repository → mapper, guard admin cấp class); `admin_id` từ token, nội dung giữ nguyên văn, `P2003` → 404. Output nguyên văn đủ.
+- Gộp: xung đột 1 chỗ `import` ở `AdminStudentDetail.tsx` với T-011 (cùng thêm import) — Claude giữ cả hai. Sau gộp: lint/typecheck sạch, unit 188/188, e2e 168/168, vitest 104/104, `check-ui-diff` OK, build OK.
