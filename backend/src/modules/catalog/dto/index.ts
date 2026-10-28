@@ -5,3 +5,4 @@ export * from './list-categories-query.dto';
 export * from './list-courses-query.dto';
 export * from './count-courses-query.dto';
 export * from './admin-module.dto';
+export * from './admin-course.dto';

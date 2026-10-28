@@ -1,4 +1,5 @@
 import { HttpException } from '@nestjs/common';
+import { Prisma } from '../../generated/prisma/client';
 import { CatalogAdminService } from './catalog-admin.service';
 import { CatalogMapper } from './catalog.mapper';
 import type { CatalogRepository } from './catalog.repository';
@@ -11,6 +12,33 @@ const MODULE_ROW = {
   displayOrder: 0,
   isFree: false,
   isPublished: true,
+};
+
+const COURSE_ROW = {
+  id: 1,
+  title: 'Khóa TOEIC 450+',
+  subtitle: 'Subtitle',
+  description: 'Mô tả',
+  courseType: 'video_quiz',
+  categoryId: BigInt(2),
+  price: 500000,
+  durationMonths: 6,
+  thumbnailUrl: 'https://thumb.jpg',
+  instructor: 'Cô Mai Phương',
+  isActive: true,
+  isFree: false,
+  displayOrder: 1,
+  createdAt: new Date('2026-03-29T14:17:47.000Z'),
+};
+
+const CATEGORY_ROW = {
+  id: BigInt(2),
+  name: 'TOEIC',
+  slug: 'toeic',
+  icon: 'BookOpen',
+  displayOrder: 1,
+  isActive: true,
+  createdAt: new Date('2026-03-29T14:17:47.000Z'),
 };
 
 function setup() {
@@ -40,6 +68,32 @@ function setup() {
     findModuleIdsByCourse: jest.fn().mockResolvedValue([10, 11, 12]),
     reorderModules: jest.fn().mockResolvedValue(undefined),
     setFreeModuleForCourse: jest.fn().mockResolvedValue(undefined),
+    findAdminCourses: jest.fn().mockResolvedValue([COURSE_ROW]),
+    findCourseById: jest.fn().mockResolvedValue(COURSE_ROW),
+    createCourse: jest
+      .fn()
+      .mockImplementation((data: Record<string, unknown>) =>
+        Promise.resolve({ ...COURSE_ROW, ...data }),
+      ),
+    updateCourse: jest
+      .fn()
+      .mockImplementation((_id: number, data: Record<string, unknown>) =>
+        Promise.resolve({ ...COURSE_ROW, ...data }),
+      ),
+    deleteCourse: jest.fn().mockResolvedValue(COURSE_ROW),
+    findAdminCategories: jest.fn().mockResolvedValue([CATEGORY_ROW]),
+    findCategoryById: jest.fn().mockResolvedValue(CATEGORY_ROW),
+    createCategory: jest
+      .fn()
+      .mockImplementation((data: Record<string, unknown>) =>
+        Promise.resolve({ ...CATEGORY_ROW, ...data }),
+      ),
+    updateCategory: jest
+      .fn()
+      .mockImplementation((_id: number, data: Record<string, unknown>) =>
+        Promise.resolve({ ...CATEGORY_ROW, ...data }),
+      ),
+    deleteCategory: jest.fn().mockResolvedValue(CATEGORY_ROW),
   };
 
   const service = new CatalogAdminService(
@@ -193,6 +247,129 @@ describe('CatalogAdminService', () => {
       const { service, repo } = setup();
       await service.setFreeModule(1, { module_id: 11 });
       expect(repo.setFreeModuleForCourse).toHaveBeenCalledWith(1, 11);
+    });
+  });
+
+  describe('admin courses & categories', () => {
+    it('listAdminCourses trả danh sách đã map', async () => {
+      const { service, repo } = setup();
+      const res = await service.listAdminCourses();
+      expect(repo.findAdminCourses).toHaveBeenCalled();
+      expect(res).toHaveLength(1);
+      expect(res[0].id).toBe(1);
+      expect(res[0].category_id).toBe(2);
+    });
+
+    it('createCourse: is_free = true → lưu price = 0 bất kể client gửi gì', async () => {
+      const { service, repo } = setup();
+      const res = await service.createCourse({
+        title: 'Khóa Free',
+        course_type: 'video_quiz',
+        price: 999000,
+        is_free: true,
+        is_active: true,
+        display_order: 1,
+      });
+      expect(repo.createCourse).toHaveBeenCalledWith(
+        expect.objectContaining({ price: 0, isFree: true }),
+      );
+      expect(res.price).toBe(0);
+    });
+
+    it('createCourse: category_id không tồn tại → 404 CATEGORY_NOT_FOUND', async () => {
+      const { service, repo } = setup();
+      repo.findCategoryById.mockResolvedValue(null);
+      const err = await httpError(
+        service.createCourse({
+          title: 'Khóa Lạ',
+          category_id: 9999,
+          course_type: 'video_quiz',
+          price: 100000,
+          is_free: false,
+          is_active: true,
+          display_order: 1,
+        }),
+      );
+      expect(err.status).toBe(404);
+      expect(err.body.code).toBe('CATEGORY_NOT_FOUND');
+    });
+
+    it('updateCourse: khóa không tồn tại → 404 COURSE_NOT_FOUND', async () => {
+      const { service, repo } = setup();
+      repo.findCourseById.mockResolvedValue(null);
+      const err = await httpError(
+        service.updateCourse(999, {
+          title: 'Update',
+          course_type: 'video_quiz',
+          price: 100000,
+          is_free: false,
+          is_active: true,
+          display_order: 1,
+        }),
+      );
+      expect(err.status).toBe(404);
+      expect(err.body.code).toBe('COURSE_NOT_FOUND');
+    });
+
+    it('patchCourse: body rỗng → 400 VALIDATION_FAILED', async () => {
+      const { service } = setup();
+      const err = await httpError(service.patchCourse(1, {}));
+      expect(err.status).toBe(400);
+      expect(err.body.code).toBe('VALIDATION_FAILED');
+    });
+
+    it('patchCourse: is_free: true → đặt price = 0', async () => {
+      const { service, repo } = setup();
+      await service.patchCourse(1, { is_free: true });
+      expect(repo.updateCourse).toHaveBeenCalledWith(1, {
+        isFree: true,
+        price: 0,
+      });
+    });
+
+    it('deleteCourse: P2025 không ném lỗi (204)', async () => {
+      const { service, repo } = setup();
+      repo.deleteCourse.mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError('Not found', {
+          code: 'P2025',
+          clientVersion: '7.0.0',
+        }),
+      );
+      await expect(service.deleteCourse(999)).resolves.toBeUndefined();
+    });
+
+    it('createCategory: slug trùng → 409 CATEGORY_SLUG_EXISTS', async () => {
+      const { service, repo } = setup();
+      repo.createCategory.mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError('Unique failed', {
+          code: 'P2002',
+          clientVersion: '7.0.0',
+        }),
+      );
+      const err = await httpError(
+        service.createCategory({
+          name: 'TOEIC',
+          slug: 'toeic',
+          icon: 'BookOpen',
+          display_order: 1,
+          is_active: true,
+        }),
+      );
+      expect(err.status).toBe(409);
+      expect(err.body.code).toBe('CATEGORY_SLUG_EXISTS');
+    });
+
+    it('deleteCategory: P2003 (đang có khóa học) → 409 CATEGORY_HAS_COURSES', async () => {
+      const { service, repo } = setup();
+      repo.deleteCategory.mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError('FK failed', {
+          code: 'P2003',
+          clientVersion: '7.0.0',
+        }),
+      );
+      const err = await httpError(service.deleteCategory(2));
+      expect(err.status).toBe(409);
+      expect(err.body.code).toBe('CATEGORY_HAS_COURSES');
     });
   });
 });

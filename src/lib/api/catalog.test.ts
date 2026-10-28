@@ -1,15 +1,24 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   countCourses,
+  createCategory,
+  createCourse,
   createModule,
+  deleteCategory,
+  deleteCourse,
   deleteModule,
   getAdminCourseModules,
   getCourse,
+  listAdminCategories,
+  listAdminCourses,
   listCategories,
   listCourses,
+  patchCourse,
   patchModule,
   reorderModules,
   setFreeModule,
+  updateCategory,
+  updateCourse,
   updateModule,
 } from "./catalog";
 import { ApiError } from "./client";
@@ -383,6 +392,168 @@ describe("catalog adapter", () => {
       expect((await deleteModule(1)).error).toBeInstanceOf(ApiError);
       expect((await reorderModules(5, [1])).error).toBeInstanceOf(ApiError);
       expect((await setFreeModule(5, 1)).error).toBeInstanceOf(ApiError);
+    });
+  });
+
+  describe("admin courses and categories adapter", () => {
+    it("listAdminCourses gọi GET /catalog/admin/courses", async () => {
+      const fetchMock = mockFetch(200, [{ id: 1, title: "Course 1" }]);
+      const { data, error } = await listAdminCourses();
+      expect(error).toBeNull();
+      expect(data).toEqual([{ id: 1, title: "Course 1" }]);
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("/api/v1/catalog/admin/courses");
+      expect(init?.method).toBe("GET");
+    });
+
+    it("createCourse gọi POST /catalog/admin/courses", async () => {
+      const payload = {
+        title: "New Course",
+        course_type: "video_quiz",
+        price: 200000,
+        is_free: false,
+        is_active: true,
+        display_order: 1,
+      };
+      const fetchMock = mockFetch(201, { id: 2, ...payload });
+      const { data, error } = await createCourse(payload);
+      expect(error).toBeNull();
+      expect(data?.id).toBe(2);
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("/api/v1/catalog/admin/courses");
+      expect(init?.method).toBe("POST");
+      expect(JSON.parse(init?.body as string)).toEqual(payload);
+    });
+
+    it("updateCourse gọi PUT /catalog/admin/courses/:id", async () => {
+      const payload = {
+        title: "Updated Course",
+        course_type: "video_quiz",
+        price: 0,
+        is_free: true,
+        is_active: true,
+        display_order: 1,
+      };
+      const fetchMock = mockFetch(200, { id: 2, ...payload });
+      const { data, error } = await updateCourse(2, payload);
+      expect(error).toBeNull();
+      expect(data?.title).toBe("Updated Course");
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("/api/v1/catalog/admin/courses/2");
+      expect(init?.method).toBe("PUT");
+    });
+
+    it("patchCourse gọi PATCH /catalog/admin/courses/:id", async () => {
+      const fetchMock = mockFetch(200, { id: 2, is_active: false });
+      const { data, error } = await patchCourse(2, { is_active: false });
+      expect(error).toBeNull();
+      expect(data?.is_active).toBe(false);
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("/api/v1/catalog/admin/courses/2");
+      expect(init?.method).toBe("PATCH");
+    });
+
+    it("deleteCourse gọi DELETE /catalog/admin/courses/:id", async () => {
+      const fetchMock = mockFetch(204);
+      const { data, error } = await deleteCourse(2);
+      expect(error).toBeNull();
+      expect(data).toBeNull();
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("/api/v1/catalog/admin/courses/2");
+      expect(init?.method).toBe("DELETE");
+    });
+
+    it("listAdminCategories gọi GET /catalog/admin/categories", async () => {
+      const fetchMock = mockFetch(200, [{ id: 1, name: "Category 1" }]);
+      const { data, error } = await listAdminCategories();
+      expect(error).toBeNull();
+      expect(data).toEqual([{ id: 1, name: "Category 1" }]);
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("/api/v1/catalog/admin/categories");
+      expect(init?.method).toBe("GET");
+    });
+
+    it("createCategory gọi POST /catalog/admin/categories", async () => {
+      const payload = {
+        name: "Cat New",
+        slug: "cat-new",
+        icon: "BookOpen",
+        display_order: 1,
+        is_active: true,
+      };
+      const fetchMock = mockFetch(201, { id: 1, ...payload });
+      const { data, error } = await createCategory(payload);
+      expect(error).toBeNull();
+      expect(data?.id).toBe(1);
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("/api/v1/catalog/admin/categories");
+      expect(init?.method).toBe("POST");
+    });
+
+    it("updateCategory gọi PUT /catalog/admin/categories/:id", async () => {
+      const payload = {
+        name: "Cat Edit",
+        slug: "cat-edit",
+        icon: "BookOpen",
+        display_order: 1,
+        is_active: true,
+      };
+      const fetchMock = mockFetch(200, { id: 1, ...payload });
+      const { data, error } = await updateCategory(1, payload);
+      expect(error).toBeNull();
+      expect(data?.name).toBe("Cat Edit");
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("/api/v1/catalog/admin/categories/1");
+      expect(init?.method).toBe("PUT");
+    });
+
+    it("deleteCategory gọi DELETE /catalog/admin/categories/:id", async () => {
+      const fetchMock = mockFetch(204);
+      const { data, error } = await deleteCategory(1);
+      expect(error).toBeNull();
+      expect(data).toBeNull();
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("/api/v1/catalog/admin/categories/1");
+      expect(init?.method).toBe("DELETE");
+    });
+
+    it("lỗi HTTP trả { data: null, error } và không ném", async () => {
+      mockFetch(500, { statusCode: 500, code: "INTERNAL_ERROR", message: "Error" });
+      expect((await listAdminCourses()).error).toBeInstanceOf(ApiError);
+      expect((await createCourse({
+        title: "T",
+        course_type: "video_quiz",
+        price: 0,
+        is_free: true,
+        is_active: true,
+        display_order: 1,
+      })).error).toBeInstanceOf(ApiError);
+      expect((await updateCourse(1, {
+        title: "T",
+        course_type: "video_quiz",
+        price: 0,
+        is_free: true,
+        is_active: true,
+        display_order: 1,
+      })).error).toBeInstanceOf(ApiError);
+      expect((await patchCourse(1, { is_active: true })).error).toBeInstanceOf(ApiError);
+      expect((await deleteCourse(1)).error).toBeInstanceOf(ApiError);
+      expect((await listAdminCategories()).error).toBeInstanceOf(ApiError);
+      expect((await createCategory({
+        name: "C",
+        slug: "c",
+        icon: "BookOpen",
+        display_order: 1,
+        is_active: true,
+      })).error).toBeInstanceOf(ApiError);
+      expect((await updateCategory(1, {
+        name: "C",
+        slug: "c",
+        icon: "BookOpen",
+        display_order: 1,
+        is_active: true,
+      })).error).toBeInstanceOf(ApiError);
+      expect((await deleteCategory(1)).error).toBeInstanceOf(ApiError);
     });
   });
 });

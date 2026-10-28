@@ -7,6 +7,7 @@ import type {
   Module,
   Quiz,
 } from '../../generated/prisma/client';
+import { Prisma } from '../../generated/prisma/client';
 
 export type AdminModuleWithRelations = Module & {
   lessons: Lesson[];
@@ -172,5 +173,65 @@ export class CatalogRepository {
         data: { isFree: true },
       }),
     ]);
+  }
+
+  async findAdminCourses(): Promise<Course[]> {
+    return this.prisma.course.findMany({
+      orderBy: [{ displayOrder: 'asc' }, { id: 'desc' }],
+    });
+  }
+
+  async createCourse(data: Prisma.CourseUncheckedCreateInput): Promise<Course> {
+    return this.prisma.course.create({ data });
+  }
+
+  async updateCourse(
+    id: number,
+    data: Prisma.CourseUncheckedUpdateInput,
+  ): Promise<Course> {
+    return this.prisma.course.update({
+      where: { id },
+      data,
+    });
+  }
+
+  async deleteCourse(id: number): Promise<Course> {
+    return this.prisma.course.delete({
+      where: { id },
+    });
+  }
+
+  async findAdminCategories(): Promise<CourseCategory[]> {
+    return this.prisma.courseCategory.findMany({
+      orderBy: [{ displayOrder: 'asc' }, { id: 'asc' }],
+    });
+  }
+
+  async findCategoryById(id: number | bigint): Promise<CourseCategory | null> {
+    return this.prisma.courseCategory.findUnique({
+      where: { id: BigInt(id) },
+    });
+  }
+
+  async createCategory(
+    data: Prisma.CourseCategoryCreateInput,
+  ): Promise<CourseCategory> {
+    return this.prisma.courseCategory.create({ data });
+  }
+
+  async updateCategory(
+    id: number | bigint,
+    data: Prisma.CourseCategoryUpdateInput,
+  ): Promise<CourseCategory> {
+    return this.prisma.courseCategory.update({
+      where: { id: BigInt(id) },
+      data,
+    });
+  }
+
+  async deleteCategory(id: number | bigint): Promise<CourseCategory> {
+    return this.prisma.courseCategory.delete({
+      where: { id: BigInt(id) },
+    });
   }
 }
