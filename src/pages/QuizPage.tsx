@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
-import { supabase } from "@/integrations/supabase/client";
+import { getQuiz, listQuizQuestions, submitQuiz } from "@/lib/api/assessment";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -204,7 +204,7 @@ const QuizPage = () => {
   const { data: quiz, isError: isQuizError, refetch: refetchQuiz } = useQuery({
     queryKey: ["quiz", qid],
     queryFn: async () => {
-      const { data, error } = await supabase.from("quizzes").select("*").eq("id", qid).single();
+      const { data, error } = await getQuiz(qid);
       if (error) throw error;
       if (data) {
         data.audio_url = formatAudioUrl(data.audio_url);
@@ -216,11 +216,7 @@ const QuizPage = () => {
   const { data: questions, isLoading, isError: isQuestionsError, refetch: refetchQuestions } = useQuery({
     queryKey: ["quiz-questions", qid],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("questions")
-        .select("*, answers(*)")
-        .eq("quiz_id", qid)
-        .order("display_order");
+      const { data, error } = await listQuizQuestions(qid);
       if (error) throw error;
       return (data || []).map((q: any) => ({
         ...q,
@@ -289,54 +285,33 @@ const QuizPage = () => {
     setSubmitting(true);
     playSound("complete");
 
-    let correctCount = 0;
-    questions.forEach((q: any, i: number) => {
-      const selectedId = answers[i];
-      const isCorrect = q.answers.find((a: any) => a.id === selectedId)?.is_correct;
-      if (isCorrect) correctCount++;
-    });
-
-    const score = questions.length > 0 ? (correctCount / questions.length) * 10 : 0;
     const finalTimeSpent = Math.max(
       1,
       timeLeft !== null ? (totalLimitSeconds - timeLeft) : (elapsedTimeRef.current || 1)
     );
 
-    const { data: result } = await supabase.from("user_quiz_results").insert({
-      user_id: user.id,
-      quiz_id: qid,
-      score: Number(score.toFixed(2)),
-      correct_answers: correctCount,
-      total_questions: questions.length,
-      time_spent_seconds: finalTimeSpent,
-    }).select().single();
-
-    if (result) {
-      const userAnswers = questions.map((q: any, i: number) => ({
-        result_id: result.id,
+    // Server chấm điểm: chỉ gửi id đáp án đã chọn (OPEN_QUESTIONS #22 khi nộp lỗi)
+    const { data: submitted } = await submitQuiz(
+      qid,
+      questions.map((q: any, i: number) => ({
         question_id: q.id,
         selected_answer_id: answers[i] || null,
-        is_correct: q.answers.find((a: any) => a.id === answers[i])?.is_correct || false,
-      }));
-      await supabase.from("user_answers").insert(userAnswers);
+      })),
+      finalTimeSpent,
+    );
+    if (!submitted) {
+      setSubmitting(false);
+      return;
     }
+    const result = submitted.result;
+    const correctCount = result.correct_answers ?? 0;
 
     // Award XP only on first completion for this quiz
     const QUIZ_COMPLETED_KEY = `lenglish_quiz_completed_v1_${user.id}_${qid}`;
     let isFirstTime = !localStorage.getItem(QUIZ_COMPLETED_KEY);
-    if (isFirstTime) {
-      try {
-        const { count } = await supabase
-          .from("user_quiz_results")
-          .select("id", { count: "exact", head: true })
-          .eq("user_id", user.id)
-          .eq("quiz_id", qid);
-        // Note: we just inserted 1 result above, so if count <= 1 it's first submission
-        if ((count || 0) > 1) {
-          isFirstTime = false;
-          localStorage.setItem(QUIZ_COMPLETED_KEY, "true");
-        }
-      } catch {}
+    if (isFirstTime && !submitted.is_first_attempt) {
+      isFirstTime = false;
+      localStorage.setItem(QUIZ_COMPLETED_KEY, "true");
     }
 
     if (isFirstTime) {
