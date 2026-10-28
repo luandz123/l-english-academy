@@ -164,3 +164,6 @@ $ git log --oneline -3 && git diff --stat refactor/nestjs-backend
 ## 8. Câu hỏi (người làm điền khi bị chặn)
 
 ## 9. Review (Claude điền)
+**PASS** (Claude, 2026-10-29) — merge vào `refactor/nestjs-backend`. Review trên `3bc3b10`.
+- Route admin đúng mục 4; join chỉ đọc `course.title` + `user.profile`; trang chỉ thay nguồn dữ liệu, giữ nguyên tính `remaining`/`status`; `AdminEnrollments.tsx` không còn Supabase. Nhánh sạch (phiên mới đã stash phần T-017 thừa đúng hướng dẫn).
+- Chạy lại sau gộp: lint/typecheck sạch, unit 195/195, e2e 184/184, vitest 129/129, `check-ui-diff` OK, build OK.
