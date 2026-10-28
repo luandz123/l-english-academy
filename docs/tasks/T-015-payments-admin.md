@@ -403,3 +403,7 @@ d6b7d5c docs: record T-014 review PASS, Claude takes T-013
 ## 8. Câu hỏi (người làm điền khi bị chặn)
 
 ## 9. Review (Claude điền)
+**PASS** (Claude, 2026-10-28) — merge vào `refactor/nestjs-backend`. Review trên `ef04e28`.
+- Guard admin cấp class; duyệt đơn dùng lại đúng `applyPayment` (số tiền lấy từ đơn, không từ client), log `payment_manual_approve` có `admin_id`, đơn đã completed không ghi lần 2; `success: false` → `PAYMENT_NOT_APPROVED` để toast lỗi cũ hiện. Trang chỉ đổi `import`, 1 `queryFn` và biểu thức RPC.
+- Chạy lại sau gộp: lint/typecheck sạch, unit 192/192, e2e 174/174, vitest 125/125, `check-ui-diff` OK, build OK.
+- Nhỏ (không chặn): tham số `amount` của `handleApproveOrder` đổi thành `_amount` (không còn dùng); một comment bỏ chữ `(payment_orders)` — chấp nhận.
