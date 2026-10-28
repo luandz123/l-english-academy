@@ -9,6 +9,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { CatalogModule } from './modules/catalog/catalog.module';
 import { LearningModule } from './modules/learning/learning.module';
+import { AssessmentModule } from './modules/assessment/assessment.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { LearningModule } from './modules/learning/learning.module';
     AuthModule,
     CatalogModule,
     LearningModule,
+    AssessmentModule,
   ],
 })
 export class AppModule {}
