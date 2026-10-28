@@ -196,3 +196,6 @@ $ git log --oneline -3 && git diff --stat refactor/nestjs-backend
 ## 8. Câu hỏi (người làm điền khi bị chặn)
 
 ## 9. Review (Claude điền)
+**PASS** (Claude, 2026-10-29) — merge vào `refactor/nestjs-backend`. Review trên `bd6e0a8`.
+- 2 route đúng mục 4, `full-test-results/me` khai báo trước `:resultId`; 3 trang chỉ đổi `queryFn` + `import`. Sau gộp: lint/typecheck sạch, unit 192/192, e2e 182/182, vitest 127/127, `check-ui-diff` OK, build OK.
+- Còn lại ngoài mục 3 (để task sau): `DashboardPage.tsx:208` (danh sách mọi đề), `:310` (bảng xếp hạng), `Profile.tsx:207` (đếm số đề).
