@@ -4,6 +4,7 @@
  * do server tính; client chỉ gửi id đáp án đã chọn.
  */
 import { apiClient, toResult, ApiError } from "./client";
+import type { VocabWordRow } from "./vocab";
 
 export interface QuizRow {
   id: number;
@@ -555,9 +556,9 @@ export async function getDictationLesson(
 /** Lấy từ vựng gắn với câu hỏi trong quiz nghe chép chính tả (T-025). */
 export async function getDictationVocab(
   quizId: number,
-): Promise<{ data: any[] | null; error: ApiError | null }> {
+): Promise<{ data: VocabWordRow[] | null; error: ApiError | null }> {
   return toResult(
-    apiClient.get<any[]>(`assessment/dictation/quizzes/${quizId}/vocab`),
+    apiClient.get<VocabWordRow[]>(`assessment/dictation/quizzes/${quizId}/vocab`),
   );
 }
 
