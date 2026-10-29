@@ -166,18 +166,18 @@ Hai implementation:
 ---
 
 ## 5. Tiêu chí nghiệm thu
-- [ ] Interface `StorageService` có 2 implementation (`SupabaseStorageService` và `InMemoryStorageService`)
-- [ ] E2E phân quyền cho mọi route media:
+- [x] Interface `StorageService` có 2 implementation (`SupabaseStorageService` và `InMemoryStorageService`)
+- [x] E2E phân quyền cho mọi route media:
   - `POST /api/v1/media/upload`: 401 khi chưa login, 403 khi là student, 201 khi là admin
   - `POST /api/v1/media/avatar`: 401 khi chưa login, 201 khi là student/admin
   - Chặn file quá dung lượng (400 `FILE_TOO_LARGE`)
   - Chặn MIME type không hợp lệ ở avatar (400 `INVALID_FILE_TYPE`)
   - Chặn folder không nằm trong whitelist ở admin upload (400 `INVALID_FOLDER`)
-- [ ] Unit tests service & adapter test đầy đủ
-- [ ] `git grep -n "supabase.storage" src` **rỗng** (0 kết quả)
-- [ ] Không đổi bất kỳ thẻ JSX, className, bố cục hay câu chữ giao diện nào; `check-ui-diff` OK
-- [ ] Backend lint, typecheck, unit test, e2e test, build pass 100%
-- [ ] Frontend vitest test, build pass 100%
+- [x] Unit tests service & adapter test đầy đủ
+- [x] `git grep -n "supabase.storage" src` **rỗng** (0 kết quả)
+- [x] Không đổi bất kỳ thẻ JSX, className, bố cục hay câu chữ giao diện nào; `check-ui-diff` OK
+- [x] Backend lint, typecheck, unit test, e2e test, build pass 100%
+- [x] Frontend vitest test, build pass 100%
 
 ---
 
@@ -194,9 +194,188 @@ git log --oneline -3 && git diff --stat refactor/nestjs-backend
 
 ## 7. Kết quả (người làm điền)
 - Commit(s):
+  - `b72a89d docs(tasks): spec T-026 media upload`
+  - `358721a feat(media): backend upload endpoints and frontend adapter (T-026)`
+  - `3fe41d3 fix(media): preserve error handling toasts in admin components`
 - File đã sửa:
+  - `backend/.env.example`
+  - `backend/src/app.module.ts`
+  - `backend/src/config/env.schema.spec.ts`
+  - `backend/src/config/env.schema.ts`
+  - `backend/src/modules/media/dto/index.ts`
+  - `backend/src/modules/media/dto/media-response.dto.ts`
+  - `backend/src/modules/media/dto/upload-media.dto.ts`
+  - `backend/src/modules/media/media.controller.ts`
+  - `backend/src/modules/media/media.module.ts`
+  - `backend/src/modules/media/media.service.spec.ts`
+  - `backend/src/modules/media/media.service.ts`
+  - `backend/src/modules/media/storage/in-memory-storage.service.ts`
+  - `backend/src/modules/media/storage/storage.interface.ts`
+  - `backend/src/modules/media/storage/supabase-storage.service.ts`
+  - `backend/test/media.e2e-spec.ts`
+  - `docs/tasks/T-026-media-upload.md`
+  - `render.yaml`
+  - `src/components/admin/CourseFullTestManager.tsx`
+  - `src/components/admin/ImportDialog.tsx`
+  - `src/components/admin/LessonManager.tsx`
+  - `src/components/admin/QuizManager.tsx`
+  - `src/lib/api/media.test.ts`
+  - `src/lib/api/media.ts`
+  - `src/pages/Profile.tsx`
+  - `src/pages/admin/AdminCourseDetail.tsx`
+  - `src/pages/admin/AdminCourseJsonImport.tsx`
+  - `src/pages/admin/AdminCourseNew.tsx`
+  - `src/pages/admin/AdminFullTestManager.tsx`
+  - `src/pages/admin/AdminFullTestQuestions.tsx`
+  - `src/pages/admin/AdminGamesConfig.tsx`
+  - `src/pages/admin/AdminMaterials.tsx`
 - Output lệnh kiểm tra:
-- Chỗ chưa chắc:
+```
+$ docker compose up -d postgres
+ Container l-english-academy-postgres-1  Running
+
+$ npm --prefix backend run lint; npm --prefix backend run typecheck
+> backend@0.0.1 lint
+> eslint "{src,test}/**/*.ts"
+
+> backend@0.0.1 typecheck
+> tsc --noEmit -p tsconfig.json
+
+$ npm --prefix backend test
+> backend@0.0.1 test
+> node --experimental-vm-modules node_modules/jest/bin/jest.js
+
+PASS src/common/filters/all-exceptions.filter.spec.ts
+PASS src/modules/catalog/catalog.mapper.spec.ts
+PASS src/modules/auth/guards/optional-jwt-auth.guard.spec.ts
+PASS src/modules/auth/guards/jwt-auth.guard.spec.ts
+PASS src/modules/catalog/catalog-admin.service.spec.ts
+PASS src/mail/gmail-api.transport.spec.ts
+PASS src/modules/learning/learning-quiz-access.spec.ts
+PASS src/modules/learning/learning.mapper.spec.ts
+PASS src/modules/assessment/assessment-admin.service.spec.ts
+PASS src/modules/payments/payment-rules.spec.ts
+PASS src/modules/assessment/assessment.service.spec.ts
+PASS src/modules/assessment/vocab.service.spec.ts
+PASS src/modules/admin/admin.service.spec.ts
+PASS src/common/transforms/to-optional-boolean.spec.ts
+PASS src/config/env.schema.spec.ts
+PASS src/modules/auth/auth.mapper.spec.ts
+PASS src/modules/assessment/toeic-scoring.spec.ts
+PASS src/modules/learning/lesson-access.spec.ts
+PASS src/modules/payments/payments.service.spec.ts
+PASS src/modules/assessment/quiz-grading.spec.ts
+PASS src/modules/catalog/catalog.service.spec.ts
+PASS src/modules/learning/learning-admin.service.spec.ts
+PASS src/modules/learning/learning.service.spec.ts
+PASS src/modules/media/media.service.spec.ts
+
+Test Suites: 24 passed, 24 total
+Tests:       296 passed, 296 total
+Snapshots:   0 total
+Time:        4.06 s
+Ran all test suites.
+
+$ npm --prefix backend run test:e2e
+> backend@0.0.1 test:e2e
+> node --experimental-vm-modules node_modules/jest/bin/jest.js --config ./test/jest-e2e.json --runInBand
+
+PASS test/auth.e2e-spec.ts (6.225 s)
+PASS test/learning-admin.e2e-spec.ts
+PASS test/assessment-admin.e2e-spec.ts
+PASS test/assessment-full-test.e2e-spec.ts
+PASS test/assessment-quiz.e2e-spec.ts
+PASS test/admin-stats.e2e-spec.ts
+PASS test/assessment-admin-fulltest.e2e-spec.ts
+PASS test/catalog-admin.e2e-spec.ts
+PASS test/learning-user-data.e2e-spec.ts
+PASS test/assessment-vocab.e2e-spec.ts
+PASS test/learning-access.e2e-spec.ts
+PASS test/assessment-full-test-lists.e2e-spec.ts
+PASS test/payments.e2e-spec.ts
+PASS test/platform-settings.e2e-spec.ts
+PASS test/catalog-admin-courses.e2e-spec.ts
+PASS test/admin-notes.e2e-spec.ts
+PASS test/media.e2e-spec.ts
+PASS test/payments-admin.e2e-spec.ts
+PASS test/catalog.e2e-spec.ts
+PASS test/assessment-results.e2e-spec.ts
+PASS test/health.e2e-spec.ts
+
+Test Suites: 21 passed, 21 total
+Tests:       337 passed, 337 total
+Snapshots:   0 total
+Time:        32.186 s, estimated 34 s
+Ran all test suites.
+
+$ npm --prefix backend run build
+> backend@0.0.1 build
+> nest build
+
+$ npm test
+> vite_react_shadcn_ts@0.0.0 test
+> vitest run
+
+ Test Files  14 passed (14)
+      Tests  191 passed (191)
+   Start at  11:50:23
+   Duration  7.00s (transform 1.31s, setup 5.12s, collect 5.08s, tests 919ms, environment 48.44s, prepare 4.00s)
+
+$ npm run build
+> vite_react_shadcn_ts@0.0.0 build
+> vite build
+
+vite v5.4.19 building for production...
+transforming...
+✓ 2739 modules transformed.
+rendering chunks...
+computing gzip size...
+✓ built in 10.46s
+
+$ node scripts/check-ui-diff.mjs refactor/nestjs-backend
+check-ui-diff: OK — không có thay đổi giao diện trong src/**/*.tsx (so với refactor/nestjs-backend).
+
+$ git grep -n "supabase.storage" src/
+(0 matches - exit code 1)
+
+$ git log --oneline -3 && git diff --stat refactor/nestjs-backend
+3fe41d3 fix(media): preserve error handling toasts in admin components
+358721a feat(media): backend upload endpoints and frontend adapter (T-026)
+b72a89d docs(tasks): spec T-026 media upload
+ backend/.env.example                               |   7 +
+ backend/src/app.module.ts                          |   2 +
+ backend/src/config/env.schema.spec.ts              |  14 ++
+ backend/src/config/env.schema.ts                   |  16 ++
+ backend/src/modules/media/dto/index.ts             |   3 +
+ .../src/modules/media/dto/media-response.dto.ts    |  16 ++
+ backend/src/modules/media/dto/upload-media.dto.ts  |  46 +++++
+ backend/src/modules/media/media.controller.ts      | 129 ++++++++++++
+ backend/src/modules/media/media.module.ts          |  42 ++++
+ backend/src/modules/media/media.service.spec.ts    | 165 ++++++++++++++++
+ backend/src/modules/media/media.service.ts         | 142 ++++++++++++++
+ .../media/storage/in-memory-storage.service.ts     |  53 +++++
+ .../src/modules/media/storage/storage.interface.ts |  20 ++
+ .../media/storage/supabase-storage.service.ts      |  53 +++++
+ backend/test/media.e2e-spec.ts                     | 216 +++++++++++++++++++++
+ docs/tasks/T-026-media-upload.md                   | 209 ++++++++++++++++++++
+ render.yaml                                        |   5 +
+ src/components/admin/CourseFullTestManager.tsx     |  16 +-
+ src/components/admin/ImportDialog.tsx              |  22 +--
+ src/components/admin/LessonManager.tsx             |   8 +-
+ src/components/admin/QuizManager.tsx               |  33 ++--
+ src/lib/api/media.test.ts                          | 103 ++++++++++
+ src/lib/api/media.ts                               |  82 ++++++++
+ src/pages/Profile.tsx                              |  17 +-
+ src/pages/admin/AdminCourseDetail.tsx              |  11 +-
+ src/pages/admin/AdminCourseJsonImport.tsx          |  16 +-
+ src/pages/admin/AdminCourseNew.tsx                 |  11 +-
+ src/pages/admin/AdminFullTestManager.tsx           |  21 +-
+ src/pages/admin/AdminFullTestQuestions.tsx         |  16 +-
+ src/pages/admin/AdminGamesConfig.tsx               |   7 +-
+ src/pages/admin/AdminMaterials.tsx                 |   9 +-
+ 31 files changed, 1392 insertions(+), 118 deletions(-)
+```
+- Chỗ chưa chắc: Không có
 
 ---
 
@@ -206,3 +385,4 @@ Không có.
 ---
 
 ## 9. Review (Claude điền)
+
