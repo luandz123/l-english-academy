@@ -16,8 +16,8 @@ Dự án Supabase **phải giữ** sau cutover: Storage `materials` + Realtime +
 **Chốt (2026-10-29): nâng staging lên production**, không dựng bộ thứ hai. Service Render `lenglish-api` + DB Neon hiện tại trở thành production; dữ liệu test bị xóa và nội dung được copy lại ở ngày cutover. Lý do: chưa có người dùng thật (D-05), Render free chung 750 giờ/tháng, ít biến phải nhập lại. Đánh đổi: hết staging — cần lại thì tạo nhánh Neon + service Render mới.
 
 ## 1. Điều kiện bắt đầu
-- [ ] QUEUE: T-033, T-034 ✅ merged. `grep -rn "supabase\.\(from\|rpc\|storage\|auth\)" src` chỉ còn `speakingService.ts` (hoãn #11).
-- [ ] CI `refactor/nestjs-backend` xanh; staging chạy được 6 luồng ở §5 (smoke test).
+- [x] QUEUE: T-033, T-034, T-035 ✅ merged. `grep -rn "supabase\.\(from\|rpc\|storage\|auth\)" src` chỉ còn `speakingService.ts` (hoãn #11).
+- [x] CI `refactor/nestjs-backend` xanh; staging chạy được 6 luồng ở §5 (smoke test) — 2026-10-29.
 - [ ] Diễn tập rollback trên staging xong (§6), ghi thời gian thực tế.
 - [ ] `main` không có commit nào chưa vào nhánh refactor: `git log origin/refactor/nestjs-backend..origin/main` rỗng.
 - [ ] Đã chọn giờ ít người dùng; báo trước đóng băng nội dung (admin không sửa khóa học/đề trong lúc chuyển).
@@ -105,9 +105,9 @@ Kiểm tra: `verify-content` khớp số dòng + md5 cả 15 bảng. Lệch → 
 | 6. `/admin/fulltests` sau T-035 (staging `4f65fbf`) | đã chuyển API |
 | 5. Thanh toán giả lập: `POST /payments/orders` 201 (mã `LEA86524`, QR SePay) → polling 3s → `simulate` 200 → đơn hoàn tất, hiện "Chào mừng VIP PRO" | đạt |
 
-Còn lại (chủ dự án tự làm, cần chọn file / nhận email):
-- [ ] Luồng 1: đăng ký tài khoản mới bằng email thật → nhận thư xác nhận (Gmail API) → đăng nhập.
-- [ ] Luồng 6: `/admin/materials` upload 1 ảnh nhỏ → mở được qua `public_url`; `/admin/import-json` import 1 file JSON nhỏ.
+Chủ dự án tự làm (2026-10-29: đều chạy được):
+- [x] Luồng 1: đăng ký tài khoản mới bằng email thật → nhận thư xác nhận (Gmail API) → đăng nhập.
+- [x] Luồng 6: `/admin/materials` upload 1 ảnh nhỏ → mở được qua `public_url`; `/admin/import-json` import 1 file JSON nhỏ.
 - [ ] (Tùy chọn) Luồng 5 thật: chuyển khoản 2.000đ vào đơn trên staging để thử webhook SePay — chỉ khi webhook SePay đang trỏ staging.
 
 ## 6. Rollback (mục tiêu < 15 phút)
