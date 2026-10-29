@@ -29,4 +29,4 @@ Ký hiệu: ⏳ chờ · 🔨 đang làm · 🔍 chờ review · 🔁 TRẢ LẠ
 | T-021 | [từ vựng + flashcard](T-021-vocab-pages.md) | `task/T-021-vocab-pages` | — | ✅ merged |
 | T-022 | [dọn 2 trang admin chi tiết](T-022-admin-detail-leftovers.md) | `task/T-022-admin-detail-leftovers` | — | ✅ merged |
 | T-023 | [admin quiz + câu hỏi](T-023-admin-quiz-questions.md) | `task/T-023-admin-quiz-questions` | T-022 | ✅ merged |
-| T-024 | [admin sửa câu hỏi Full Test](T-024-admin-fulltest-questions.md) | `task/T-024-admin-fulltest-questions` | T-023 | ⏳ chờ |
+| T-024 | [admin sửa câu hỏi Full Test](T-024-admin-fulltest-questions.md) | `task/T-024-admin-fulltest-questions` | T-023 | ✅ merged |

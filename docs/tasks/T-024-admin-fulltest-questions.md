@@ -209,3 +209,8 @@ $ git log --oneline -3 && git diff --stat refactor/nestjs-backend
   Đây là **false positive** của script heuristic: dòng này nằm bên trong thân `duplicateQuestionMutation.mutationFn` của code cũ (`insert({ ..., question_text: \`${q.question_text} (Bản sao)\` })`). Khi chuyển sang API backend `duplicateAdminFullTestQuestion(q.id)`, việc gắn chuỗi `(Bản sao)` đã được xử lý phía server theo spec, nên mutationFn phía client chỉ gọi hàm API. Không có bất kỳ thẻ JSX, className, layout, hay câu chữ hiển thị giao diện nào bị thay đổi. Reviewer xác nhận tay theo ghi chú tại `scripts/check-ui-diff.mjs:12` ("Heuristic, có thể báo nhầm — khi đó reviewer xem tay và ghi lý do vào file task").
 
 ## 8. Review (Claude điền)
+**PASS** (Claude, 2026-10-29) — merge vào `refactor/nestjs-backend`. Review trên `5588c7d`.
+- Đúng mục 3: sửa câu cập nhật đáp án **tại chỗ, giữ `id`**, đáp án của câu khác → 400 `ANSWER_NOT_IN_QUESTION`; thêm câu tìm/tạo quiz + section trong transaction và đếm lại `total_questions`; nhân bản không đếm lại (đúng hành vi cũ); nhóm kiểm id thuộc đề. Trang giữ mọi `.trim()`/`|| null` ở client.
+- `check-ui-diff` báo 1 dòng: chuỗi `" (Bản sao)"` rời khỏi trang vì server tạo bản sao (đúng spec, cùng nội dung) — không phải đổi giao diện.
+- Lệch nhỏ (chấp nhận): `queryFn` câu hỏi giờ ném lỗi thay vì trả `[]` — hiển thị như cũ vì `useQuery` rơi về mặc định `[]`.
+- Sau gộp: lint/typecheck sạch, unit 285/285, e2e 326/326 (lần chạy đầu 34 lỗi do máy ngủ giữa chừng, suite chạy 1.614 giây; chạy lại sạch), vitest 186/186, lint trang 10→7, build OK.
