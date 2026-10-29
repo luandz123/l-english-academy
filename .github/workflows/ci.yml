@@ -92,7 +92,8 @@ jobs:
     # Chỉ khi push lên nhánh refactor và cả frontend + backend đều xanh.
     # Áp migration lên Neon trước; migration lỗi → không gọi Render, bản đang chạy giữ nguyên.
     # (Không dùng workflow_run: nó chỉ kích hoạt khi file workflow nằm trên nhánh mặc định.)
-    if: github.event_name == 'push' && github.ref == 'refs/heads/refactor/nestjs-backend'
+    # Sau cutover service Render chạy nhánh main (docs/CUTOVER.md) nên deploy theo cả main.
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/refactor/nestjs-backend' || github.ref == 'refs/heads/main')
     needs: [quality-check, backend]
     runs-on: ubuntu-latest
     environment: staging

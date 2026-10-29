@@ -60,3 +60,10 @@ Luật chung nhắc lại: không sửa JSX/`className`/câu chữ/`queryKey`; g
 - `admin_activity_log` (ADM-021): endpoint admin đọc nhật ký (trang nào đang đọc thì chuyển).
 - `DashboardPage.tsx` bảng xếp hạng thời gian học (`:310`) + danh sách mọi đề (`:208`), `Profile.tsx` đếm số đề (`:207`), `MyCoursesPage.tsx:103` (giữ lỗi cột `duration_minutes` như cũ — #12 chưa quyết, trả `[]` như hiện tại thì ghi rõ), `HeroSection.tsx`, `AdminLessonVocab.tsx`, `AdminGamesConfig.tsx` (phần không realtime), `WordShooterLobby.tsx:199` (đọc `vocab_questions` → API từ vựng đã có; **không** đụng kênh broadcast), `utils/audioUrl.ts`, `integrations/lovable`.
 - Bảng xếp hạng: endpoint trả **tổng thời gian theo user** (server cộng), không trả từng dòng kết quả của người khác.
+
+## T-034 · Dọn nốt ngoài T-033 — phụ thuộc T-033 (dùng lại endpoint từ vựng admin của T-033)
+- `ImportDialog.tsx`: `:128` (`vocab_questions` insert + tạo `vocab_quizzes` nếu chưa có), `:349` (`answers` insert), `:366` (đếm câu → `quizzes.total_questions`), `:379` (đếm từ → `vocab_quizzes.total_questions`). Gộp thành **một** endpoint import câu hỏi cho quiz (câu + đáp án + từ vựng + cập nhật 2 bộ đếm) trong **một `$transaction`**; tổng số câu/từ do server đếm. Giữ đúng quy tắc tách chuỗi từ vựng cũ (`;` rồi `|`, `display_order = vIdx`, tiêu đề `Từ vựng - ${quizTitle}`).
+- `QuizManager.tsx:518` (lesson theo `quiz_id`), `:597-599` (từ vựng theo bài) → endpoint đã có ở `vocab.controller.ts` (`lessons/:lessonId/quiz-id`, `lessons/:ref/words`) hoặc endpoint admin T-033; không tạo trùng.
+- ~~`AdminSettings.tsx:194-197` danh sách admin~~ — đã làm trong T-033 (`GET /admin/users/admins`).
+- `AdminSettings.tsx:79,94` hiển thị và gọi thử `/api/payment-webhook` (Vercel function cũ). Webhook mới là `POST /api/v1/payments/webhooks/sepay`. **Đổi chuỗi đường dẫn** là đổi dữ liệu hiển thị cho admin cấu hình SePay → ghi mục "Câu hỏi", làm phần còn lại, **không** tự đổi.
+- Sau task: `grep -rn "supabase\.\(from\|rpc\|storage\)" src` chỉ còn phần Speaking đã hoãn (#11).
