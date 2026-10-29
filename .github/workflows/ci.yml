@@ -92,7 +92,8 @@ jobs:
     # Chỉ khi push lên nhánh refactor và cả frontend + backend đều xanh.
     # Áp migration lên Neon trước; migration lỗi → không gọi Render, bản đang chạy giữ nguyên.
     # (Không dùng workflow_run: nó chỉ kích hoạt khi file workflow nằm trên nhánh mặc định.)
-    if: github.event_name == 'push' && github.ref == 'refs/heads/refactor/nestjs-backend'
+    # Sau cutover service Render chạy nhánh main (docs/CUTOVER.md) nên deploy theo cả main.
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/refactor/nestjs-backend' || github.ref == 'refs/heads/main')
     needs: [quality-check, backend]
     runs-on: ubuntu-latest
     environment: staging
@@ -192,11 +193,7 @@ jobs:
         env:
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
-        # vercel.json trỏ rewrite /api/v1 về backend PRODUCTION (main build thẳng từ file này);
-        # bản staging đổi lại sang backend staging trước khi build.
         run: |
-          sed -i 's#https://lenglish-api-prod.onrender.com#https://lenglish-api.onrender.com#' vercel.json
-          grep -q 'https://lenglish-api.onrender.com/api/v1' vercel.json
           vercel pull --yes --environment=preview --token="$VERCEL_TOKEN"
           vercel build --token="$VERCEL_TOKEN"
 
@@ -207,52 +204,3 @@ jobs:
           echo "Deploy: $url"
           vercel alias set "$url" "$STAGING_ALIAS" --token="$VERCEL_TOKEN"
           echo "::notice::Staging frontend: https://$STAGING_ALIAS"
-
-  deploy-production:
-    # Chỉ chạy sau cutover (ADR 0004, docs/CUTOVER.md): push lên main + CI xanh.
-    # Migration lên Neon PRODUCTION trước; lỗi thì không gọi Render, bản đang chạy giữ nguyên.
-    # Frontend production do Vercel tự build từ main (git integration), không qua job này.
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [quality-check, backend]
-    runs-on: ubuntu-latest
-    environment: production
-    concurrency:
-      group: deploy-production
-      cancel-in-progress: false
-    env:
-      DATABASE_URL_UNPOOLED: ${{ secrets.PRODUCTION_DATABASE_URL_UNPOOLED }}
-      RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_PRODUCTION_DEPLOY_HOOK_URL }}
-    defaults:
-      run:
-        working-directory: backend
-
-    steps:
-      - name: Kiểm tra secrets
-        working-directory: ${{ github.workspace }}
-        run: |
-          if [ -z "$DATABASE_URL_UNPOOLED" ] || [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
-            echo "::warning::Chưa cấu hình PRODUCTION_DATABASE_URL_UNPOOLED / RENDER_PRODUCTION_DEPLOY_HOOK_URL (environment 'production') — bỏ qua deploy"
-            echo "SKIP_DEPLOY=1" >> "$GITHUB_ENV"
-          fi
-
-      - uses: actions/checkout@v4
-        if: env.SKIP_DEPLOY != '1'
-
-      - uses: actions/setup-node@v4
-        if: env.SKIP_DEPLOY != '1'
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: backend/package-lock.json
-
-      - name: Cài dependency (prisma generate qua postinstall)
-        if: env.SKIP_DEPLOY != '1'
-        run: npm ci
-
-      - name: Áp migration lên Neon production
-        if: env.SKIP_DEPLOY != '1'
-        run: npx prisma migrate deploy
-
-      - name: Gọi Render Deploy Hook (production)
-        if: env.SKIP_DEPLOY != '1'
-        run: curl -fsS -X POST "$RENDER_DEPLOY_HOOK_URL" > /dev/null

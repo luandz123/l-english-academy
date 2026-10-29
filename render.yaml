@@ -1,4 +1,5 @@
-# Render Blueprint — backend staging (ADR 0003). Render → New → Blueprint → chọn repo này.
+# Render Blueprint — backend (ADR 0003). Trước cutover là staging; ngày cutover service này
+# được nâng lên production (đổi nhánh sang main, tắt giả lập) — docs/CUTOVER.md. Render → New → Blueprint → chọn repo này.
 # Deploy KHÔNG tự động theo git: job deploy-staging trong .github/workflows/ci.yml chạy migration
 # lên Neon rồi mới gọi Deploy Hook, để migration lỗi thì không deploy.
 services:
@@ -50,63 +51,9 @@ services:
         sync: false
       - key: SEPAY_WEBHOOK_API_KEY # >= 16 ký tự, khai cùng giá trị ở SePay > Webhooks > API Key
         sync: false
-      - key: PAYMENT_SIMULATION_ENABLED # service này là staging: cho nút giả lập thanh toán
+      - key: PAYMENT_SIMULATION_ENABLED # staging: "true". Ngày cutover đổi thành "false" trên Render
         value: "true"
       # Supabase Storage (T-026)
-      - key: SUPABASE_URL
-        sync: false
-      - key: SUPABASE_SERVICE_ROLE_KEY
-        sync: false
-
-  # PRODUCTION — chỉ tạo SAU khi đã merge refactor vào main (docs/CUTOVER.md bước 3).
-  # Tạo sớm thì lần deploy đầu sẽ lỗi vì main chưa có thư mục backend/.
-  # Deploy qua job deploy-production (ci.yml): migration Neon production rồi mới gọi Deploy Hook.
-  - type: web
-    name: lenglish-api-prod # đổi tên thì sửa destination trong vercel.json + sed ở ci.yml
-    runtime: docker
-    region: singapore
-    plan: free
-    branch: main
-    rootDir: backend
-    dockerfilePath: ./Dockerfile
-    dockerContext: .
-    healthCheckPath: /api/health
-    autoDeploy: false
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: LOG_LEVEL
-        value: info
-      - key: TRUST_PROXY_HOPS
-        value: "2"
-      - key: AUTH_REQUIRE_EMAIL_CONFIRMATION
-        value: "true"
-      - key: JWT_ACCESS_SECRET
-        generateValue: true
-      - key: DATABASE_URL # Neon PRODUCTION pooled (-pooler), sslmode=verify-full — KHÔNG dùng DB staging
-        sync: false
-      - key: FRONTEND_URL # domain production trên Vercel
-        sync: false
-      - key: CORS_ORIGINS
-        sync: false
-      - key: MAIL_PROVIDER
-        value: gmail_api
-      - key: GMAIL_CLIENT_ID
-        sync: false
-      - key: GMAIL_CLIENT_SECRET
-        sync: false
-      - key: GMAIL_REFRESH_TOKEN
-        sync: false
-      - key: MAIL_FROM
-        sync: false
-      - key: GOOGLE_CLIENT_ID
-        sync: false
-      - key: GOOGLE_CLIENT_SECRET
-        sync: false
-      - key: SEPAY_WEBHOOK_API_KEY # bắt buộc ở production: thiếu thì webhook từ chối mọi request
-        sync: false
-      - key: PAYMENT_SIMULATION_ENABLED # production: TẮT nút giả lập thanh toán
-        value: "false"
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY
