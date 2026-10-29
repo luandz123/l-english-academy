@@ -8,7 +8,7 @@ Từ T-025, Claude chỉ viết **bản tóm tắt** dưới đây. Antigravity 
 3. Viết mục 4 "Đặc tả" theo **ràng buộc** của bản tóm tắt + mẫu đã có (T-009, T-012, T-019, T-023: controller admin riêng, guard cấp class, `inTransaction`, DTO class-validator, mapper, 404/400/409 có `code`).
 4. Commit spec riêng (`docs(tasks): spec T-0xx`), **rồi** mới code. Gặp hành vi lạ hoặc ràng buộc không đủ rõ → ghi mục "Câu hỏi", làm phần còn lại, push.
 5. Kiểm tra như mọi task: chạy lệnh mục 6 **sau commit cuối**, dán output **nguyên văn**, push.
-6. **Thêm vào lệnh kiểm tra của mọi spec** (vì `vite build` không kiểm kiểu): `npx tsc --noEmit -p tsconfig.app.json 2>&1 | grep "error TS" | grep -E "src/lib/api|<file trang đã sửa>"` phải **rỗng**, và `npx eslint src/lib/api/<file>.ts` sạch.
+6. **Thêm vào lệnh kiểm tra của mọi spec** (grep Supabase phải bắt cả lời gọi xuống dòng, xem T-035) (vì `vite build` không kiểm kiểu): `npx tsc --noEmit -p tsconfig.app.json 2>&1 | grep "error TS" | grep -E "src/lib/api|<file trang đã sửa>"` phải **rỗng**, và `npx eslint src/lib/api/<file>.ts` sạch.
 
 ### Tự rà bảo mật trước khi push (bắt buộc — dán checklist đã đánh dấu vào mục Kết quả)
 - [ ] **Mọi id client gửi đều thuộc đúng đối tượng cha**: câu hỏi thuộc quiz, đáp án thuộc câu, bài thuộc chương, practice thuộc bài… Id lạ → 400 `*_IDS_INVALID`/`*_NOT_IN_*`, không ghi gì. Có e2e gửi id của đối tượng khác.
@@ -68,3 +68,13 @@ Luật chung nhắc lại: không sửa JSX/`className`/câu chữ/`queryKey`; g
 - `AdminSettings.tsx:79,94` hiển thị và gọi thử `/api/payment-webhook` (Vercel function cũ). Webhook mới là `POST /api/v1/payments/webhooks/sepay`. **Đổi chuỗi đường dẫn** là đổi dữ liệu hiển thị cho admin cấu hình SePay → ghi mục "Câu hỏi", làm phần còn lại, **không** tự đổi.
 - `DashboardPage.tsx:150` (`modules` + `lessons(id, title)` theo `course_id` của khóa Nghe-Đọc) → endpoint đọc đã có trong Catalog/Learning nếu đúng shape, không tạo trùng. (Sót ở T-033.)
 - Sau task: `grep -rn "supabase\.\(from\|rpc\|storage\)" src` chỉ còn phần Speaking đã hoãn (#11).
+
+## T-035 · Chỗ sót do lệnh grep một dòng (Claude phát hiện khi smoke test 2026-10-29)
+Lệnh `grep "supabase\.from"` không bắt được lời gọi xuống dòng (`await supabase` ⏎ `.from(...)`). Kiểm tra từ giờ dùng:
+`grep -rlz -P "supabase\s*\)?\s*\.(from|rpc|storage|auth)\(" src` **hoặc** liệt kê mọi file `import … integrations/supabase/client` rồi đọc từng chỗ dùng.
+- `MyCoursesPage.tsx:48` và `DashboardPage.tsx:114`: `enrollments` + `courses(*)` của chính user, `order enrolled_at desc`. **Quan trọng**: sau cutover RLS chặn → học viên thấy 0 khóa. Dùng endpoint ghi danh của mình đã có trong Learning (kiểm tra shape `*, courses(*)`); `MyCoursesPage` giữ `if (error) throw error`, `DashboardPage` bỏ qua lỗi như cũ.
+- `App.tsx:63`: `full_tests.select("course_id").eq("id", tId).maybeSingle()` cho redirect `/fulltest/:id` → `GET /assessment/full-tests/:id` đã có (404 → `null`).
+- `AdminFullTestManager.tsx:50,74,98,105,117,136` và `CourseFullTestManager.tsx:82,137,157,176,208`: danh sách đề (admin), danh sách khóa, sửa đề, **tạo đề + 7 quiz `Part N - <title>` + 7 section** → một endpoint admin tạo đề trong **một `$transaction`** (giữ đúng tiêu đề, `display_order = part`, `total_questions: 0` như cũ), sửa đề qua endpoint admin. Dùng lại endpoint T-024/T-028 nếu đã có, không tạo trùng.
+- `AdminVocabPacks.tsx:548`: tìm từ vựng (`word not null`, `order id desc`, `limit 60`, `ilike` theo ô tìm) → endpoint admin đọc; `ilike` an toàn (Prisma `contains` + `mode: insensitive`), `limit` cố định ở server.
+- Xóa `import { supabase }` không còn dùng ở `AdminFullTestQuestions.tsx`, `AdminCourseNew.tsx`, `LessonManager.tsx` (chỉ dòng import).
+- Sau task: file còn import Supabase client chỉ là `speakingService.ts`, `SpeakingRoomsPage.tsx`, `useVoiceRoom.ts` (#11) và `WordShooterLobby.tsx`, `WordShooterArena.tsx` (chỉ `supabase.channel` — #28).

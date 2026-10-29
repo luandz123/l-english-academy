@@ -93,7 +93,16 @@ Kiểm tra: `verify-content` khớp số dòng + md5 cả 15 bảng. Lệch → 
 | Full Test khóa trả phí (113, 114) → 403 `FULLTEST_LOCKED`; khóa free (83) → 200 | đạt |
 | Full Test id không tồn tại → 200 `[]` | giống code cũ (Supabase trả mảng rỗng) |
 
-Còn lại: luồng 1, 2, 4, 5, 6 cần đăng nhập — chạy sau khi T-033, T-034 merge.
+### Kết quả smoke test — đã đăng nhập (Claude + chủ dự án, 2026-10-29, staging `e7e5818`)
+| Luồng | Kết quả |
+|---|---|
+| 2. Học bài khóa 1 (bài 48): ghi chú, tài liệu, practices, tiến độ | 200 |
+| 4. Quiz 767: nộp 201 → kết quả + xem lại 200 (3/10) | đạt |
+| 4. Full Test 83 (khóa free) và 113 (khóa 19): nộp 201 → kết quả + chi tiết 200 | đạt |
+| 6. Admin (đọc): dashboard, khóa học, học viên, tài liệu, đơn/ghi danh, cài đặt, sao lưu | 200 |
+| 6. `/admin/fulltests` | **còn gọi Supabase** → T-035 |
+
+Còn lại: luồng 1 (đăng ký + email), 5 (thanh toán), 6 (upload, import) — sau T-035.
 
 ## 6. Rollback (mục tiêu < 15 phút)
 1. Vercel → Deployments → bản production cuối trước cutover → **Promote to Production** (hoặc `git revert` merge commit trên `main`). Bản đó dùng Supabase trực tiếp, không cần backend.
