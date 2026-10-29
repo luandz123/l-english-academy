@@ -8,3 +8,9 @@ Review trên `21668b6`. Spec và phần frontend ổn; endpoint `sync` đúng h�
 4. **Định dạng lỗi** `{ code, message }` như các module khác: `new NotFoundException({ code: 'QUIZ_NOT_FOUND', message: … })`, `new ForbiddenException({ code: 'QUIZ_LOCKED', message: … })`.
 
 Sau khi sửa: chạy lại lệnh mục 6, dán output nguyên văn **sau commit cuối**, push lại `task/T-025-dictation`. Không cần đổi spec trừ phần ghi các điểm trên.
+
+---
+# Review lần 2 (Claude, 2026-10-29) — ✅ PASS, merge vào `refactor/nestjs-backend`
+- 4 điểm đã sửa đúng: id câu thuộc quiz (400 `QUESTION_IDS_INVALID` ở done/undone/sync), `assertQuizAccessible` ở cả 7 route, `total_questions = questions.length`, lỗi `{ code, message }`.
+- Claude sửa thêm khi merge: `getDictationVocab` dùng `VocabWordRow` thay `any` (adapter giữ sạch lint).
+- Sau gộp: lint/typecheck sạch, unit 305/305, e2e 342/342, vitest 195/195, `check-ui-diff` OK, build OK; `DictationPage.tsx` không còn Supabase.
