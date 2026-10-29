@@ -182,3 +182,163 @@ export async function listUserQuizResults(
     ),
   );
 }
+
+export interface SaveQuestionAnswerPayload {
+  answer_text: string;
+  is_correct?: boolean;
+  explanation?: string | null;
+}
+
+export interface SaveQuestionPayload {
+  question_text?: string | null;
+  translation?: string | null;
+  dictation_keywords?: string | null;
+  image_url?: string | null;
+  audio_url?: string | null;
+  question_type?: string | null;
+  answers: SaveQuestionAnswerPayload[];
+}
+
+export interface SaveModuleQuizPayload {
+  title: string;
+  total_questions: number;
+  time_limit_seconds?: number | null;
+}
+
+/** Admin lấy danh sách câu hỏi của quiz (ADM-011). */
+export async function listAdminQuizQuestions(
+  quizId: number,
+): Promise<{ data: ReviewQuestionRow[] | null; error: ApiError | null }> {
+  return toResult(
+    apiClient.get<ReviewQuestionRow[]>(
+      `assessment/admin/quizzes/${quizId}/questions`,
+    ),
+  );
+}
+
+/** Admin tạo câu hỏi mới cho quiz (ADM-011). */
+export async function createQuizQuestion(
+  quizId: number,
+  body: SaveQuestionPayload,
+): Promise<{ data: ReviewQuestionRow | null; error: ApiError | null }> {
+  return toResult(
+    apiClient.post<ReviewQuestionRow>(
+      `assessment/admin/quizzes/${quizId}/questions`,
+      body,
+    ),
+  );
+}
+
+/** Admin cập nhật câu hỏi và đáp án (ADM-011). */
+export async function updateQuizQuestion(
+  id: number,
+  body: SaveQuestionPayload,
+): Promise<{ data: ReviewQuestionRow | null; error: ApiError | null }> {
+  return toResult(
+    apiClient.put<ReviewQuestionRow>(
+      `assessment/admin/questions/${id}`,
+      body,
+    ),
+  );
+}
+
+/** Admin xóa 1 câu hỏi (ADM-011). */
+export async function deleteQuizQuestion(
+  id: number,
+): Promise<{ error: ApiError | null }> {
+  const res = await toResult(
+    apiClient.delete(`assessment/admin/questions/${id}`),
+  );
+  return { error: res.error };
+}
+
+/** Admin xóa nhiều câu hỏi cùng lúc trong quiz (ADM-011). */
+export async function deleteQuizQuestions(
+  quizId: number,
+  questionIds: number[],
+): Promise<{ error: ApiError | null }> {
+  const res = await toResult(
+    apiClient.post(`assessment/admin/quizzes/${quizId}/questions/bulk-delete`, {
+      question_ids: questionIds,
+    }),
+  );
+  return { error: res.error };
+}
+
+/** Admin cập nhật thứ tự câu hỏi trong quiz (ADM-011). */
+export async function reorderQuizQuestions(
+  quizId: number,
+  questionIds: number[],
+): Promise<{ error: ApiError | null }> {
+  const res = await toResult(
+    apiClient.put(`assessment/admin/quizzes/${quizId}/question-order`, {
+      question_ids: questionIds,
+    }),
+  );
+  return { error: res.error };
+}
+
+/** Admin gán ảnh hàng loạt cho các câu hỏi trong quiz (ADM-011). */
+export async function setQuizQuestionImages(
+  quizId: number,
+  items: { question_id: number; image_url: string | null }[],
+): Promise<{ error: ApiError | null }> {
+  const res = await toResult(
+    apiClient.put(`assessment/admin/quizzes/${quizId}/question-images`, {
+      items,
+    }),
+  );
+  return { error: res.error };
+}
+
+/** Admin cập nhật audio của quiz (ADM-011). */
+export async function patchQuiz(
+  quizId: number,
+  body: { audio_url: string | null },
+): Promise<{ data: QuizRow | null; error: ApiError | null }> {
+  return toResult(
+    apiClient.patch<QuizRow>(`assessment/admin/quizzes/${quizId}`, body),
+  );
+}
+
+/** Admin tạo quiz độc lập trong chương (ADM-010). */
+export async function createModuleQuiz(
+  moduleId: number,
+  body: SaveModuleQuizPayload,
+): Promise<{ data: QuizRow | null; error: ApiError | null }> {
+  return toResult(
+    apiClient.post<QuizRow>(
+      `assessment/admin/modules/${moduleId}/quizzes`,
+      body,
+    ),
+  );
+}
+
+/** Admin sửa quiz độc lập trong chương (ADM-010). */
+export async function updateModuleQuiz(
+  id: number,
+  body: SaveModuleQuizPayload,
+): Promise<{ data: QuizRow | null; error: ApiError | null }> {
+  return toResult(
+    apiClient.put<QuizRow>(`assessment/admin/quizzes/${id}`, body),
+  );
+}
+
+/** Admin xóa quiz (ADM-010). */
+export async function deleteModuleQuiz(
+  id: number,
+): Promise<{ error: ApiError | null }> {
+  const res = await toResult(
+    apiClient.delete(`assessment/admin/quizzes/${id}`),
+  );
+  return { error: res.error };
+}
+
+/** Admin tạo quiz gắn với bài học (ADM-010). */
+export async function createLessonQuiz(
+  lessonId: number,
+): Promise<{ data: QuizRow | null; error: ApiError | null }> {
+  return toResult(
+    apiClient.post<QuizRow>(`assessment/admin/lessons/${lessonId}/quiz`),
+  );
+}

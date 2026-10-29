@@ -16,6 +16,12 @@ import {
   reorderLessons,
   updateLesson,
 } from "@/lib/api/learning";
+import {
+  createLessonQuiz,
+  createModuleQuiz,
+  deleteModuleQuiz,
+  updateModuleQuiz,
+} from "@/lib/api/assessment";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import QuizManager from "./QuizManager";
 import LessonPracticeManager from "./LessonPracticeManager";
@@ -295,18 +301,16 @@ const LessonManager = ({ moduleId, courseId, lessons, quizzes }: LessonManagerPr
 
   const saveQuizMutation = useMutation({
     mutationFn: async () => {
-      const payload = {
+      const body = {
         title: quizTitle,
         total_questions: Number(quizTotalQ) || 0,
         time_limit_seconds: (quizTimeLimitUnit === "minutes" ? (Number(quizTimeLimitVal) || 0) * 60 : (Number(quizTimeLimitVal) || 0)) || null,
-        module_id: moduleId,
-        display_order: editingQuiz ? editingQuiz.display_order : quizzes.length,
       };
       if (editingQuiz) {
-        const { error } = await supabase.from("quizzes").update(payload).eq("id", editingQuiz.id);
+        const { error } = await updateModuleQuiz(editingQuiz.id, body);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("quizzes").insert(payload);
+        const { error } = await createModuleQuiz(moduleId, body);
         if (error) throw error;
       }
     },
@@ -322,7 +326,7 @@ const LessonManager = ({ moduleId, courseId, lessons, quizzes }: LessonManagerPr
 
   const deleteQuizMutation = useMutation({
     mutationFn: async (id: number) => {
-      const { error } = await supabase.from("quizzes").delete().eq("id", id);
+      const { error } = await deleteModuleQuiz(id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -570,14 +574,8 @@ const CreateQuizForLesson = ({ lessonId, moduleId, courseId, quizzesCount, lesso
 
   const createMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.from("quizzes").insert({
-        title: `Quiz - ${lessonTitle}`,
-        total_questions: 0,
-        module_id: moduleId,
-        display_order: quizzesCount || 0,
-      }).select("id").single();
+      const { error } = await createLessonQuiz(lessonId);
       if (error) throw error;
-      await supabase.from("lessons").update({ quiz_id: data.id }).eq("id", lessonId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-course-modules", courseId] });

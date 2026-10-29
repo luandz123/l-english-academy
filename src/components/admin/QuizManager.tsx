@@ -9,6 +9,18 @@ import { Plus, Edit, Trash2, Upload, Download, Image, Music, Library, GripVertic
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import {
+  createQuizQuestion,
+  deleteQuizQuestion,
+  deleteQuizQuestions,
+  getQuiz,
+  listAdminQuizQuestions,
+  patchQuiz,
+  reorderQuizQuestions,
+  setQuizQuestionImages,
+  updateQuizQuestion,
+} from "@/lib/api/assessment";
+import { getCourse } from "@/lib/api/catalog";
 import AdminLessonVocab from "./AdminLessonVocab";
 import ImportDialog from "./ImportDialog";
 import {
@@ -129,7 +141,7 @@ const QuizManager = ({ quizId, courseId, lessonType, lessonId }: QuizManagerProp
   const { data: questions = [] } = useQuery({
     queryKey: ["quiz-questions-admin", quizId],
     queryFn: async () => {
-      const { data } = await supabase.from("questions").select("*, answers(*)").eq("quiz_id", quizId).order("display_order");
+      const { data } = await listAdminQuizQuestions(quizId);
       return (data ?? []).map((q: any) => ({ ...q, answers: (q.answers ?? []).sort((a: any, b: any) => a.display_order - b.display_order) }));
     },
   });
@@ -138,7 +150,7 @@ const QuizManager = ({ quizId, courseId, lessonType, lessonId }: QuizManagerProp
   const { data: quizData } = useQuery({
     queryKey: ["quiz-detail-admin", quizId],
     queryFn: async () => {
-      const { data } = await supabase.from("quizzes").select("*").eq("id", quizId).single();
+      const { data } = await getQuiz(quizId);
       return data;
     },
   });
@@ -147,7 +159,7 @@ const QuizManager = ({ quizId, courseId, lessonType, lessonId }: QuizManagerProp
   const { data: courseData } = useQuery({
     queryKey: ["course-detail-admin", courseId],
     queryFn: async () => {
-      const { data } = await supabase.from("courses").select("*").eq("id", courseId).single();
+      const { data } = await getCourse(courseId);
       return data;
     },
   });
@@ -294,9 +306,7 @@ const QuizManager = ({ quizId, courseId, lessonType, lessonId }: QuizManagerProp
     // Optimistic update
     queryClient.setQueryData(["quiz-questions-admin", quizId], reordered);
 
-    for (let i = 0; i < reordered.length; i++) {
-      await supabase.from("questions").update({ display_order: i }).eq("id", reordered[i].id);
-    }
+    await reorderQuizQuestions(quizId, reordered.map((q: any) => q.id));
     queryClient.invalidateQueries({ queryKey: ["quiz-questions-admin", quizId] });
     toast({ title: "Đã sắp xếp lại câu hỏi" });
   };
@@ -396,49 +406,29 @@ const QuizManager = ({ quizId, courseId, lessonType, lessonId }: QuizManagerProp
         const finalAudioUrl = await autoImportMedia(qAudioUrl, quizFolder, `Q${qIndex} - Audio`, "audio", `Q${qIndex}`);
         const finalImageUrl = await autoImportMedia(qImageUrl, quizFolder, `Q${qIndex} - Image`, "image", `Q${qIndex}`);
         
-        let targetQuestionId: number;
-        if (editingQ) {
-          await supabase.from("questions").update({
-            question_text: qText,
-            translation: qTranslation || null,
-            dictation_keywords: qDictationKeywords || null,
-            image_url: finalImageUrl || null,
-            audio_url: finalAudioUrl || null,
-            question_type: qType,
-          }).eq("id", editingQ.id);
-          targetQuestionId = editingQ.id;
-          // Delete old answers and re-insert
-          await supabase.from("answers").delete().eq("question_id", targetQuestionId);
-        } else {
-          const { data, error } = await supabase.from("questions").insert({
-            quiz_id: quizId,
-            question_text: qText,
-            translation: qTranslation || null,
-            dictation_keywords: qDictationKeywords || null,
-            image_url: finalImageUrl || null,
-            audio_url: finalAudioUrl || null,
-            question_type: qType,
-            display_order: questions.length > 0 ? Math.max(...questions.map((q: any) => q.display_order)) + 1 : 0,
-          }).select("id").single();
-          if (error) throw error;
-          targetQuestionId = data.id;
-        }
-        // Insert answers
-        const validAnswers = answerFields.filter(a => a.text.trim());
-        if (validAnswers.length > 0) {
-          await supabase.from("answers").insert(
-            validAnswers.map((a, i) => ({
-              question_id: targetQuestionId,
+        const body = {
+          question_text: qText,
+          translation: qTranslation || null,
+          dictation_keywords: qDictationKeywords || null,
+          image_url: finalImageUrl || null,
+          audio_url: finalAudioUrl || null,
+          question_type: qType,
+          answers: answerFields
+            .filter((a) => a.text.trim())
+            .map((a) => ({
               answer_text: a.text,
               is_correct: a.is_correct,
               explanation: a.explanation || null,
-              display_order: i,
-            }))
-          );
+            })),
+        };
+
+        if (editingQ) {
+          const { error } = await updateQuizQuestion(editingQ.id, body);
+          if (error) throw error;
+        } else {
+          const { error } = await createQuizQuestion(quizId, body);
+          if (error) throw error;
         }
-        // Update quiz total_questions
-        const { count } = await supabase.from("questions").select("id", { count: "exact", head: true }).eq("quiz_id", quizId);
-        await supabase.from("quizzes").update({ total_questions: count ?? 0 }).eq("id", quizId);
       } finally {
         setUploadingMedia(false);
       }
@@ -456,10 +446,8 @@ const QuizManager = ({ quizId, courseId, lessonType, lessonId }: QuizManagerProp
 
   const deleteQuestionMutation = useMutation({
     mutationFn: async (id: number) => {
-      await supabase.from("answers").delete().eq("question_id", id);
-      await supabase.from("questions").delete().eq("id", id);
-      const { count } = await supabase.from("questions").select("id", { count: "exact", head: true }).eq("quiz_id", quizId);
-      await supabase.from("quizzes").update({ total_questions: count ?? 0 }).eq("id", quizId);
+      const { error } = await deleteQuizQuestion(id);
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["quiz-questions-admin", quizId] });
@@ -473,10 +461,8 @@ const QuizManager = ({ quizId, courseId, lessonType, lessonId }: QuizManagerProp
 
   const deleteMultipleQuestionsMutation = useMutation({
     mutationFn: async (ids: number[]) => {
-      await supabase.from("answers").delete().in("question_id", ids);
-      await supabase.from("questions").delete().in("id", ids);
-      const { count } = await supabase.from("questions").select("id", { count: "exact", head: true }).eq("quiz_id", quizId);
-      await supabase.from("quizzes").update({ total_questions: count ?? 0 }).eq("id", quizId);
+      const { error } = await deleteQuizQuestions(quizId, ids);
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["quiz-questions-admin", quizId] });
@@ -495,9 +481,9 @@ const QuizManager = ({ quizId, courseId, lessonType, lessonId }: QuizManagerProp
   // Wizard: Save audio to quiz level
   const saveAudioMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("quizzes").update({
+      const { error } = await patchQuiz(quizId, {
         audio_url: wizardAudioUrl || null,
-      }).eq("id", quizId);
+      });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -514,10 +500,13 @@ const QuizManager = ({ quizId, courseId, lessonType, lessonId }: QuizManagerProp
   // Wizard: Save image assignments
   const saveImageAssignmentsMutation = useMutation({
     mutationFn: async () => {
-      for (const q of questions) {
-        const imageUrl = wizardImageAssignments[q.id] || null;
-        await supabase.from("questions").update({ image_url: imageUrl }).eq("id", q.id);
-      }
+      await setQuizQuestionImages(
+        quizId,
+        questions.map((q: any) => ({
+          question_id: q.id,
+          image_url: wizardImageAssignments[q.id] || null,
+        })),
+      );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["quiz-questions-admin", quizId] });
