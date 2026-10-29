@@ -2,7 +2,12 @@ import StudentLayout from "@/components/StudentLayout";
 import { useParams, useLocation, Link } from "react-router-dom";
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  getFullTestQuestions,
+  getFullTestResult,
+  getLatestFullTestResult,
+  listFullTestAnswerDetails,
+} from "@/lib/api/fullTest";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { CheckCircle, LayoutGrid, Clock, Award, Eye, ChevronLeft, Loader2, Headphones, BookOpen } from "lucide-react";
@@ -52,21 +57,10 @@ const FullTestResult = () => {
     queryKey: ["latest-fulltest-result", user?.id, testId],
     queryFn: async () => {
       if (stateResultId) {
-        const { data } = await supabase
-          .from("user_full_test_results")
-          .select("*")
-          .eq("id", stateResultId)
-          .maybeSingle();
+        const { data } = await getFullTestResult(stateResultId);
         return data;
       }
-      const { data } = await supabase
-        .from("user_full_test_results")
-        .select("*")
-        .eq("user_id", user!.id)
-        .eq("test_id", Number(testId))
-        .order("completed_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const { data } = await getLatestFullTestResult(Number(testId));
       return data;
     },
     enabled: !!user,
@@ -78,10 +72,7 @@ const FullTestResult = () => {
   const { data: answerDetails = [], isLoading: loadingDetails, isError: isDetailsError, refetch: refetchDetails } = useQuery({
     queryKey: ["fulltest-answer-details", resultId],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("full_test_answer_details")
-        .select("*")
-        .eq("result_id", resultId);
+      const { data } = await listFullTestAnswerDetails(resultId!);
       return data || [];
     },
     enabled: !!resultId,
@@ -89,41 +80,11 @@ const FullTestResult = () => {
 
   // 3. Fetch all questions & answers of this test
   const { data: questions = [], isLoading: loadingQuestions, isError: isQuestionsError, refetch: refetchQuestions } = useQuery({
-    queryKey: ["fulltest-result-questions", testId],
+    queryKey: ["fulltest-result-questions", testId, user?.id],
     queryFn: async () => {
-      const { data: sections } = await supabase
-        .from("full_test_sections")
-        .select("part_number, quiz_id")
-        .eq("test_id", Number(testId));
-
-      if (!sections || sections.length === 0) return [];
-      const quizIds = sections.map(s => s.quiz_id).filter(Boolean) as number[];
-      if (quizIds.length === 0) return [];
-
-      const { data: qData } = await supabase
-        .from("questions")
-        .select("*, answers(*)")
-        .in("quiz_id", quizIds);
-
-      if (!qData) return [];
-
-      const mapped = qData.map((q: any) => {
-        const sec = sections.find(s => s.quiz_id === q.quiz_id);
-        const part = sec ? sec.part_number : 5;
-        return {
-          ...q,
-          part_number: part,
-          answers: (q.answers || []).sort((a: any, b: any) => a.display_order - b.display_order),
-        };
-      });
-
-      // Sort globally
-      mapped.sort((a, b) => {
-        if (a.part_number !== b.part_number) return a.part_number - b.part_number;
-        return a.display_order - b.display_order;
-      });
-
-      return mapped;
+      // Server kiểm quyền theo khóa của đề, trả câu kèm part_number đã sắp theo Part
+      const { data } = await getFullTestQuestions(Number(testId));
+      return data ?? [];
     },
     enabled: !!testId,
   });

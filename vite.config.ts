@@ -7,6 +7,12 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8082,
     allowedHosts: true,
+    proxy: {
+      "/api/v1": {
+        target: "http://localhost:3000",
+        changeOrigin: true,
+      },
+    },
     hmr: {
       overlay: false,
     },

@@ -47,7 +47,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { searchAdminVocabWords } from '@/lib/api/assessment';
 import { VocabTopic, VocabWord } from '@/components/game/WordShooter/types';
 import { 
   getVocabPacks, 
@@ -545,18 +545,7 @@ export default function AdminVocabPacks() {
   const fetchDbWords = async () => {
     setIsLoadingDb(true);
     try {
-      let query = supabase
-        .from('vocab_questions')
-        .select('id, word, phonetic, definition_vi, example_sentence')
-        .not('word', 'is', null)
-        .order('id', { ascending: false })
-        .limit(60);
-
-      if (dbSearch.trim()) {
-        query = query.ilike('word', `%${dbSearch.trim()}%`);
-      }
-
-      const { data, error } = await query;
+      const { data, error } = await searchAdminVocabWords(dbSearch);
       if (!error && data) {
         setDbWords(data);
       }

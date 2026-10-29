@@ -9,7 +9,8 @@ import { useNavigate, Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { uploadMedia } from "@/lib/api/media";
+import { createCourse, listAdminCategories } from "@/lib/api/catalog";
 import { Upload, Plus, Layers, ArrowLeft } from "lucide-react";
 
 const AdminCourseNew = () => {
@@ -35,12 +36,8 @@ const AdminCourseNew = () => {
   const { data: categories = [], isLoading: isLoadingCategories } = useQuery({
     queryKey: ["admin-course-categories"],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("course_categories")
-        .select("*")
-        .eq("is_active", true)
-        .order("display_order");
-      return data || [];
+      const { data } = await listAdminCategories();
+      return (data || []).filter((c) => c.is_active);
     },
   });
 
@@ -59,14 +56,8 @@ const AdminCourseNew = () => {
 
     try {
       setIsUploading(true);
-      const sanitizedName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, "");
-      const path = `course-thumbnails/${Date.now()}_${sanitizedName}`;
-
-      const { error: uploadErr } = await supabase.storage.from("materials").upload(path, file);
-      if (uploadErr) throw uploadErr;
-
-      const { data: urlData } = supabase.storage.from("materials").getPublicUrl(path);
-      update("thumbnail_url", urlData.publicUrl);
+      const { publicUrl } = await uploadMedia(file, "course-thumbnails");
+      update("thumbnail_url", publicUrl);
       toast({ title: "Tải ảnh lên thành công" });
     } catch (error: any) {
       toast({ title: "Lỗi tải ảnh lên", description: error.message, variant: "destructive" });
@@ -80,7 +71,7 @@ const AdminCourseNew = () => {
       if (!form.category_id) {
         throw new Error("Vui lòng chọn danh mục khóa học");
       }
-      const { error } = await supabase.from("courses").insert({
+      const { error } = await createCourse({
         title: form.title,
         subtitle: form.subtitle || null,
         description: form.description || null,

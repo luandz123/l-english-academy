@@ -1,6 +1,6 @@
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { listCourses } from "@/lib/api/catalog";
 import StudentLayout from "@/components/StudentLayout";
 import { CourseCard, CourseRow } from "@/components/CourseCard";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,13 +14,7 @@ export const ListeningPage: React.FC = () => {
   const { data: courses = [], isLoading, isError, refetch } = useQuery<CourseRow[]>({
     queryKey: ["student-listening-courses"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("courses")
-        .select("*")
-        .eq("is_active", true)
-        .eq("course_type", "listening")
-        .order("display_order", { ascending: true })
-        .order("id", { ascending: false });
+      const { data, error } = await listCourses({ active: true, courseType: "listening" });
       if (error) throw error;
       return data || [];
     },

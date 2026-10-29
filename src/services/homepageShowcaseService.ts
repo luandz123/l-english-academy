@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+import { getPublicSetting, saveSetting } from "@/lib/api/admin";
 import {
   ArcadeGameItem,
   ArcadeSectionConfig,
@@ -358,11 +358,7 @@ export function generateSepayQrUrl(
  */
 export async function getHomepageShowcaseConfig(): Promise<HomepageShowcaseConfig> {
   try {
-    const { data, error } = await supabase
-      .from("platform_settings")
-      .select("value")
-      .eq("key", "homepage_showcase_config")
-      .maybeSingle();
+    const { data, error } = await getPublicSetting("homepage_showcase_config");
 
     if (!error && data?.value) {
       const parsed = JSON.parse(data.value);
@@ -449,24 +445,8 @@ export async function saveHomepageShowcaseConfig(config: HomepageShowcaseConfig)
   localStorage.setItem(SHOWCASE_CONFIG_STORAGE_KEY, jsonStr);
 
   try {
-    const { data: existing } = await supabase
-      .from("platform_settings")
-      .select("key")
-      .eq("key", "homepage_showcase_config")
-      .maybeSingle();
-
-    if (existing) {
-      const { error } = await supabase
-        .from("platform_settings")
-        .update({ value: jsonStr })
-        .eq("key", "homepage_showcase_config");
-      if (error) throw error;
-    } else {
-      const { error } = await supabase
-        .from("platform_settings")
-        .insert({ key: "homepage_showcase_config", value: jsonStr });
-      if (error) throw error;
-    }
+    const { error } = await saveSetting("homepage_showcase_config", jsonStr);
+    if (error) throw error;
   } catch (err) {
     console.error("[homepageShowcaseService] Error saving to Supabase:", err);
     throw err;

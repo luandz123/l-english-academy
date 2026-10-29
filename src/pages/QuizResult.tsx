@@ -21,7 +21,13 @@ import {
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  getLatestQuizResult,
+  getQuiz,
+  getQuizResult,
+  getQuizReview,
+  listResultAnswers,
+} from "@/lib/api/assessment";
 import { useAuth } from "@/hooks/useAuth";
 import { formatAudioUrl } from "@/utils/audioUrl";
 import { cn } from "@/lib/utils";
@@ -41,13 +47,11 @@ const QuizResult = () => {
 
   // 1. Fetch questions fresh from DB
   const { data: questions = [], isLoading: loadingQ } = useQuery({
-    queryKey: ["quiz-result-questions", qid],
+    queryKey: ["quiz-result-questions", qid, user?.id],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("questions")
-        .select("*, answers(*)")
-        .eq("quiz_id", qid)
-        .order("display_order");
+      // Đáp án đúng chỉ mở sau khi đã nộp; lỗi (403) ném ra để không cache [] (OPEN_QUESTIONS #22)
+      const { data, error } = await getQuizReview(qid);
+      if (error) throw error;
       return (data || []).map((q: any) => ({
         ...q,
         audio_url: formatAudioUrl(q.audio_url),
@@ -61,11 +65,7 @@ const QuizResult = () => {
   const { data: quiz } = useQuery({
     queryKey: ["quiz-result-quiz", qid],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("quizzes")
-        .select("id, title, audio_url, time_limit_seconds")
-        .eq("id", qid)
-        .single();
+      const { data } = await getQuiz(qid);
       if (data) {
         data.audio_url = formatAudioUrl(data.audio_url);
       }
@@ -80,22 +80,11 @@ const QuizResult = () => {
     queryKey: ["latest-user-quiz-result", user?.id, qid, stateResultId],
     queryFn: async () => {
       if (stateResultId) {
-        const { data } = await supabase
-          .from("user_quiz_results")
-          .select("*")
-          .eq("id", stateResultId)
-          .maybeSingle();
+        const { data } = await getQuizResult(stateResultId);
         if (data) return data;
       }
       if (!user) return null;
-      const { data } = await supabase
-        .from("user_quiz_results")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("quiz_id", qid)
-        .order("completed_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const { data } = await getLatestQuizResult(qid);
       return data;
     },
     enabled: !!qid,
@@ -107,10 +96,7 @@ const QuizResult = () => {
   const { data: dbUserAnswers = [] } = useQuery({
     queryKey: ["user-answers-result", activeResultId],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("user_answers")
-        .select("*")
-        .eq("result_id", activeResultId);
+      const { data } = await listResultAnswers(activeResultId);
       return data || [];
     },
     enabled: !!activeResultId,

@@ -2,7 +2,7 @@ import { Label } from "@/components/ui/label";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { authClient, getMyAdminRole } from "@/lib/api/auth";
 import { useAuth } from "@/hooks/useAuth";
 import { signInWithGoogle } from "@/lib/googleOAuth";
 import { getFriendlyErrorMessage } from "@/lib/errorHandler";
@@ -66,7 +66,7 @@ export const Login = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { data: authData, error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data: authData, error } = await authClient.signInWithPassword({ email, password });
     setLoading(false);
     if (error) {
       setShakeError(true);
@@ -77,12 +77,7 @@ export const Login = () => {
       let userIsAdmin = isAdmin;
       if (authData?.user) {
         try {
-          const { data: roleData } = await supabase
-            .from("user_roles")
-            .select("role")
-            .eq("user_id", authData.user.id)
-            .eq("role", "admin")
-            .maybeSingle();
+          const { data: roleData } = await getMyAdminRole();
           if (roleData) {
             userIsAdmin = true;
           }

@@ -1,7 +1,14 @@
 import StudentLayout from "@/components/StudentLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { useGamification } from "@/hooks/useGamification";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  listMyQuizResults,
+  getAssessmentStatsOverview,
+} from "@/lib/api/assessment";
+import { authClient, updateMyProfile } from "@/lib/api/auth";
+import { uploadAvatar } from "@/lib/api/media";
+import { listMyFullTestResults } from "@/lib/api/fullTest";
+import { listMyProgressRows } from "@/lib/api/learning";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useMemo } from "react";
@@ -191,22 +198,12 @@ const Profile = () => {
   } = useQuery({
     queryKey: ["system-db-stats"],
     queryFn: async () => {
-      const [
-        { count: totalQuestions },
-        { count: listeningQuestions },
-        { count: readingQuestions },
-        { count: totalFullTests },
-      ] = await Promise.all([
-        supabase.from("questions").select("*", { count: "exact", head: true }),
-        supabase.from("questions").select("*", { count: "exact", head: true }).not("audio_url", "is", null),
-        supabase.from("questions").select("*", { count: "exact", head: true }).is("audio_url", null),
-        supabase.from("full_tests").select("*", { count: "exact", head: true }),
-      ]);
+      const { data } = await getAssessmentStatsOverview();
       return {
-        totalQuestions: totalQuestions || 24382,
-        listeningQuestions: listeningQuestions || 12676,
-        readingQuestions: readingQuestions || 11706,
-        totalFullTests: totalFullTests || 55,
+        totalQuestions: data?.total_questions || 24382,
+        listeningQuestions: data?.listening_questions || 12676,
+        readingQuestions: data?.reading_questions || 11706,
+        totalFullTests: data?.total_full_tests || 55,
       };
     },
     staleTime: 1000 * 60 * 30, // 30 phút
@@ -225,11 +222,7 @@ const Profile = () => {
     queryKey: ["profile-quiz-results", user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const { data } = await supabase
-        .from("user_quiz_results")
-        .select("*, quizzes(id, title, audio_url, total_questions, module_id, modules(id, title, courses(id, title)))")
-        .eq("user_id", user.id)
-        .order("completed_at", { ascending: false });
+      const { data } = await listMyQuizResults();
       return data || [];
     },
     enabled: !!user,
@@ -244,11 +237,7 @@ const Profile = () => {
     queryKey: ["profile-fulltest-results", user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const { data } = await supabase
-        .from("user_full_test_results")
-        .select("*, full_tests(id, title, total_questions)")
-        .eq("user_id", user.id)
-        .order("completed_at", { ascending: false });
+      const { data } = await listMyFullTestResults();
       return data || [];
     },
     enabled: !!user,
@@ -263,11 +252,7 @@ const Profile = () => {
     queryKey: ["profile-lesson-progress", user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const { data } = await supabase
-        .from("user_lesson_progress")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
+      const { data } = await listMyProgressRows();
       return data || [];
     },
     enabled: !!user,
@@ -561,20 +546,14 @@ const Profile = () => {
     const fileName = `${user?.id || "user"}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
     const filePath = `profiles/${folder}/${fileName}`;
 
-    // 1. Thử tải lên Supabase storage
+    // 1. Thử tải lên API backend
     try {
-      const { error: uploadError } = await supabase.storage
-        .from("materials")
-        .upload(filePath, file, { upsert: true, contentType: file.type });
-
-      if (!uploadError) {
-        const { data } = supabase.storage.from("materials").getPublicUrl(filePath);
-        if (data?.publicUrl) {
-          return data.publicUrl;
-        }
+      const { publicUrl } = await uploadAvatar(file, folder);
+      if (publicUrl) {
+        return publicUrl;
       }
     } catch (err) {
-      console.warn("Storage upload error, fallback to data url:", err);
+      console.warn("Media avatar upload error, fallback to data url:", err);
     }
 
     // 2. Fallback Base64 Data URL (luôn thành công 100% trên mọi máy tính)
@@ -595,12 +574,9 @@ const Profile = () => {
     try {
       const newUrl = await processImageFile(file, "avatars");
 
-      await supabase
-        .from("profiles")
-        .update({ avatar_url: newUrl })
-        .eq("user_id", user.id);
+      await updateMyProfile({ avatar_url: newUrl });
 
-      await supabase.auth.updateUser({
+      await authClient.updateUser({
         data: { avatar_url: newUrl },
       });
 
@@ -632,7 +608,7 @@ const Profile = () => {
     try {
       const newUrl = await processImageFile(file, "covers");
 
-      await supabase.auth.updateUser({
+      await authClient.updateUser({
         data: { cover_url: newUrl },
       });
 
@@ -666,18 +642,15 @@ const Profile = () => {
 
     try {
       // 1. Cập nhật bảng profiles
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({
-          full_name: editFullName,
-          avatar_url: editAvatarUrl || null,
-        })
-        .eq("user_id", user.id);
+      const { error: profileError } = await updateMyProfile({
+        full_name: editFullName,
+        avatar_url: editAvatarUrl || null,
+      });
 
       if (profileError) throw profileError;
 
       // 2. Cập nhật Auth metadata
-      await supabase.auth.updateUser({
+      await authClient.updateUser({
         data: {
           full_name: editFullName,
           avatar_url: editAvatarUrl || null,

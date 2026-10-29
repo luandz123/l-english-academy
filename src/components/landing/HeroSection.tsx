@@ -2,22 +2,23 @@ import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import heroImg from "@/assets/hero-student.webp";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { getAssessmentStatsOverview } from "@/lib/api/assessment";
+import { countCourses } from "@/lib/api/catalog";
 import { CheckCircle2, FileCheck2, Headphones, ChevronRight, ArrowRight, BookOpen, Sparkles } from "lucide-react";
 
 const HeroSection = () => {
   const { user } = useAuth();
 
-  // Lấy số liệu thật từ Supabase
+  // Lấy số liệu thật từ backend API
   const { data: liveStats } = useQuery({
     queryKey: ["hero-live-stats"],
     queryFn: async () => {
-      const [usersRes, coursesRes] = await Promise.all([
-        supabase.from("profiles").select("user_id", { count: "exact", head: true }),
-        supabase.from("courses").select("id", { count: "exact", head: true }).eq("is_active", true),
+      const [statsRes, coursesRes] = await Promise.all([
+        getAssessmentStatsOverview(),
+        countCourses({ active: true }),
       ]);
       return {
-        users: usersRes.count || 0,
+        users: statsRes.data?.total_users || 0,
         courses: coursesRes.count || 0,
       };
     },

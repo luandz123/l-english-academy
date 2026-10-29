@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { listAdminSettings, saveSetting, getAdminUsers } from "@/lib/api/admin";
 import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -118,7 +118,7 @@ const AdminSettings = () => {
   const { data: settings = {}, isLoading: isLoadingPlatform } = useQuery({
     queryKey: ["admin-settings"],
     queryFn: async () => {
-      const { data } = await supabase.from("platform_settings").select("*");
+      const { data } = await listAdminSettings();
       const map: Record<string, string> = {};
       (data ?? []).forEach((s) => {
         map[s.key] = s.value;
@@ -148,16 +148,7 @@ const AdminSettings = () => {
         { key: "accent_color", value: accentColor },
       ];
       for (const entry of entries) {
-        const { data: existing } = await supabase
-          .from("platform_settings")
-          .select("key")
-          .eq("key", entry.key)
-          .maybeSingle();
-        if (existing) {
-          await supabase.from("platform_settings").update({ value: entry.value }).eq("key", entry.key);
-        } else {
-          await supabase.from("platform_settings").insert(entry);
-        }
+        await saveSetting(entry.key, entry.value);
       }
     },
     onSuccess: () => {
@@ -199,11 +190,8 @@ const AdminSettings = () => {
   const { data: admins = [] } = useQuery({
     queryKey: ["admin-users"],
     queryFn: async () => {
-      const { data: roles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
-      if (!roles?.length) return [];
-      const userIds = roles.map((r) => r.user_id);
-      const { data: profiles } = await supabase.from("profiles").select("*").in("user_id", userIds);
-      return profiles ?? [];
+      const { data } = await getAdminUsers();
+      return data ?? [];
     },
   });
 

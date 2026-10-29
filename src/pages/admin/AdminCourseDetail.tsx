@@ -8,7 +8,20 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  createAdminMaterial,
+  deleteAdminMaterial,
+  listAdminMaterials,
+  uploadMedia,
+} from "@/lib/api/media";
+import {
+  getAdminCourseModules,
+  getCourse,
+  listAdminCategories,
+  updateCourse,
+} from "@/lib/api/catalog";
+import { listCourseFullTests } from "@/lib/api/fullTest";
+import { listCourseEnrollments } from "@/lib/api/learning";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -44,19 +57,16 @@ const AdminCourseDetail = () => {
   const { data: fullTests = [] } = useQuery({
     queryKey: ["admin-course-fulltests", id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("full_tests")
-        .select("id, title")
-        .eq("course_id", id);
+      const { data, error } = await listCourseFullTests(id);
       if (error) throw error;
-      return data || [];
+      return (data ?? []).map((t) => ({ id: t.id, title: t.title }));
     },
   });
 
   const { data: course, isLoading } = useQuery({
     queryKey: ["admin-course", id],
     queryFn: async () => {
-      const { data, error } = await supabase.from("courses").select("*").eq("id", id).maybeSingle();
+      const { data, error } = await getCourse(Number(id));
       if (error) throw error;
       return data;
     },
@@ -79,7 +89,7 @@ const AdminCourseDetail = () => {
   const { data: categories = [] } = useQuery({
     queryKey: ["admin-course-categories"],
     queryFn: async () => {
-      const { data } = await supabase.from("course_categories").select("*").order("display_order");
+      const { data } = await listAdminCategories();
       return data || [];
     },
   });
@@ -111,14 +121,8 @@ const AdminCourseDetail = () => {
 
     try {
       setIsUploading(true);
-      const sanitizedName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '');
-      const path = `course-thumbnails/${Date.now()}_${sanitizedName}`;
-      
-      const { error: uploadErr } = await supabase.storage.from("materials").upload(path, file);
-      if (uploadErr) throw uploadErr;
-
-      const { data: urlData } = supabase.storage.from("materials").getPublicUrl(path);
-      setThumbnailUrl(urlData.publicUrl);
+      const { publicUrl } = await uploadMedia(file, "course-thumbnails");
+      setThumbnailUrl(publicUrl);
       toast({ title: "Tải ảnh lên thành công" });
     } catch (error: any) {
       toast({ title: "Lỗi tải ảnh lên", description: error.message, variant: "destructive" });
@@ -129,7 +133,7 @@ const AdminCourseDetail = () => {
 
   const updateMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("courses").update({
+      const { error } = await updateCourse(Number(id), {
         title,
         description: description || null,
         subtitle: subtitle || null,
@@ -142,7 +146,7 @@ const AdminCourseDetail = () => {
         is_active: isActive,
         is_free: isFree,
         display_order: displayOrder,
-      }).eq("id", id);
+      });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -159,7 +163,7 @@ const AdminCourseDetail = () => {
   const { data: modules = [] } = useQuery({
     queryKey: ["admin-course-modules", id],
     queryFn: async () => {
-      const { data } = await supabase.from("modules").select("*, lessons(*), quizzes(*)").eq("course_id", id).order("display_order");
+      const { data } = await getAdminCourseModules(id);
       return data ?? [];
     },
   });
@@ -167,31 +171,15 @@ const AdminCourseDetail = () => {
   const { data: enrolledStudents = [] } = useQuery({
     queryKey: ["admin-course-enrollments", id],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("enrollments")
-        .select("*")
-        .eq("course_id", id)
-        .order("enrolled_at", { ascending: false });
-        
-      if (!data || data.length === 0) return [];
-      
-      const userIds = [...new Set(data.map(d => d.user_id))];
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("user_id, full_name")
-        .in("user_id", userIds);
-
-      return data.map(d => ({
-        ...d,
-        profiles: profiles?.find(p => p.user_id === d.user_id) || null
-      }));
+      const { data } = await listCourseEnrollments(id);
+      return data ?? [];
     },
   });
 
   const { data: materials = [] } = useQuery({
     queryKey: ["admin-course-materials", id],
     queryFn: async () => {
-      const { data } = await supabase.from("materials").select("*").eq("course_id", id).order("display_order");
+      const { data } = await listAdminMaterials({ course_id: id });
       return data ?? [];
     },
   });
@@ -204,8 +192,11 @@ const AdminCourseDetail = () => {
 
   const addMaterialMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("materials").insert({
-        course_id: id, title: matTitle, file_url: matUrl, file_type: matType,
+      const { error } = await createAdminMaterial({
+        course_id: id,
+        title: matTitle,
+        file_url: matUrl,
+        file_type: matType,
         display_order: materials.length,
       });
       if (error) throw error;
@@ -223,7 +214,7 @@ const AdminCourseDetail = () => {
 
   const deleteMaterialMutation = useMutation({
     mutationFn: async (matId: number) => {
-      await supabase.from("materials").delete().eq("id", matId);
+      await deleteAdminMaterial(matId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-course-materials", id] });

@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
 import { useState } from "react";
@@ -16,6 +15,15 @@ import { Unlock, ShieldAlert, Trash2, Edit, Plus, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getFriendlyErrorMessage } from "@/lib/errorHandler";
+import { getStudentProfile } from "@/lib/api/auth";
+import { listAdminCourses } from "@/lib/api/catalog";
+import { listUserQuizResults } from "@/lib/api/assessment";
+import { listStudentNotes, addStudentNote } from "@/lib/api/admin";
+import {
+  listUserEnrollments,
+  addUserEnrollment,
+  removeEnrollment,
+} from "@/lib/api/learning";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,7 +49,7 @@ const AdminStudentDetail = () => {
   const { data: profile, isLoading } = useQuery({
     queryKey: ["admin-student-profile", userId],
     queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("*").eq("user_id", userId!).maybeSingle();
+      const { data } = await getStudentProfile(userId!);
       return data;
     },
     enabled: !!userId,
@@ -50,7 +58,7 @@ const AdminStudentDetail = () => {
   const { data: enrollments = [] } = useQuery({
     queryKey: ["admin-student-enrollments", userId],
     queryFn: async () => {
-      const { data } = await supabase.from("enrollments").select("*, courses(title)").eq("user_id", userId!);
+      const { data } = await listUserEnrollments(userId!);
       return data ?? [];
     },
     enabled: !!userId,
@@ -59,11 +67,7 @@ const AdminStudentDetail = () => {
   const { data: quizResults = [] } = useQuery({
     queryKey: ["admin-student-results", userId],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("user_quiz_results")
-        .select("*, quizzes(title)")
-        .eq("user_id", userId!)
-        .order("completed_at", { ascending: false });
+      const { data } = await listUserQuizResults(userId!);
       return data ?? [];
     },
     enabled: !!userId,
@@ -72,11 +76,7 @@ const AdminStudentDetail = () => {
   const { data: notes = [] } = useQuery({
     queryKey: ["admin-student-notes", userId],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("admin_student_notes")
-        .select("*")
-        .eq("student_id", userId!)
-        .order("created_at", { ascending: false });
+      const { data } = await listStudentNotes(userId!);
       return data ?? [];
     },
     enabled: !!userId,
@@ -85,8 +85,10 @@ const AdminStudentDetail = () => {
   const { data: allCourses = [] } = useQuery({
     queryKey: ["admin-all-courses"],
     queryFn: async () => {
-      const { data } = await supabase.from("courses").select("id, title").order("title");
-      return data ?? [];
+      const { data } = await listAdminCourses();
+      return (data ?? [])
+        .map((c) => ({ id: c.id, title: c.title }))
+        .sort((a, b) => a.title.localeCompare(b.title, "vi"));
     },
   });
 
@@ -94,9 +96,7 @@ const AdminStudentDetail = () => {
 
   const addNoteMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("admin_student_notes").insert({
-        student_id: userId!, admin_id: user!.id, content: noteText,
-      });
+      const { error } = await addStudentNote(userId!, noteText);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -108,12 +108,11 @@ const AdminStudentDetail = () => {
 
   const unlockCourseMutation = useMutation({
     mutationFn: async () => {
-      const expiresAt = expiryDays === "unlimited" ? null : new Date(Date.now() + Number(expiryDays) * 86400000).toISOString();
-      const { error } = await supabase.from("enrollments").insert({
-        user_id: userId!,
-        course_id: Number(selectedCourseId),
-        expires_at: expiresAt,
-      });
+      const { error } = await addUserEnrollment(
+        userId!,
+        Number(selectedCourseId),
+        expiryDays === "unlimited" ? null : Number(expiryDays),
+      );
       if (error) throw error;
     },
     onSuccess: () => {
@@ -129,7 +128,7 @@ const AdminStudentDetail = () => {
 
   const removeEnrollmentMutation = useMutation({
     mutationFn: async (enrollmentId: number) => {
-      const { error } = await supabase.from("enrollments").delete().eq("id", enrollmentId);
+      const { error } = await removeEnrollment(enrollmentId);
       if (error) throw error;
     },
     onSuccess: () => {

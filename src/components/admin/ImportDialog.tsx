@@ -4,7 +4,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Upload } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { importAdminQuizQuestions } from "@/lib/api/assessment";
+import { createAdminMaterial, uploadMedia } from "@/lib/api/media";
 import { useToast } from "@/hooks/use-toast";
 import {
   Select,
@@ -55,82 +56,29 @@ const createMediaImporter = (quizId: number, courseId: number) => {
       const fileName =
         externalUrl.split("/").pop()?.split("?")[0] || `${type}_${Date.now()}`;
       const sanitizedName = fileName.replace(/[^a-zA-Z0-9.\-_]/g, "");
-      const storagePath = `quiz_media/${Date.now()}_${filePrefix ? filePrefix + "_" : ""}${sanitizedName}`;
+      const { publicUrl } = await uploadMedia(
+        blob,
+        "quiz_media",
+        `${Date.now()}_${filePrefix ? filePrefix + "_" : ""}${sanitizedName}`,
+      );
 
-      const { error: uploadErr } = await supabase.storage
-        .from("materials")
-        .upload(storagePath, blob);
-      if (uploadErr) throw uploadErr;
-
-      const { data: urlData } = supabase.storage
-        .from("materials")
-        .getPublicUrl(storagePath);
-
-      await supabase.from("materials").insert({
+      await createAdminMaterial({
         title: title || sanitizedName,
-        file_url: urlData.publicUrl,
+        file_url: publicUrl,
         file_type: type,
         folder_path: folderPath || (type === "audio" ? "/Quiz Audios" : "/Quiz Images"),
         quiz_id: quizId,
         course_id: courseId,
       });
 
-      cache.set(externalUrl, urlData.publicUrl);
-      return urlData.publicUrl;
+      cache.set(externalUrl, publicUrl);
+      return publicUrl;
     } catch (err) {
       console.error(`Auto import ${type} failed:`, err);
       cache.set(externalUrl, externalUrl); // cache the original to avoid retry
       return externalUrl;
     }
   };
-};
-
-// ── Vocab helper ───────────────────────────────────────────
-const insertVocab = async (
-  vocabText: string,
-  lessonId: number,
-  questionId: number,
-  quizTitle: string
-) => {
-  if (!vocabText || !lessonId) return;
-  let vQuiz = (
-    await supabase
-      .from("vocab_quizzes")
-      .select("id")
-      .eq("lesson_id", lessonId)
-      .maybeSingle()
-  ).data;
-
-  if (!vQuiz) {
-    const { data: newVQ } = await supabase
-      .from("vocab_quizzes")
-      .insert({ title: `Từ vựng - ${quizTitle}`, lesson_id: lessonId, display_order: 0, total_questions: 0 })
-      .select("id")
-      .single();
-    vQuiz = newVQ;
-  }
-  if (!vQuiz) return;
-
-  const words = vocabText.split(";").map((v) => v.trim()).filter(Boolean);
-  const vocabEntries = words
-    .map((v, vIdx) => {
-      const [word, def, phonetic, example] = v.split("|").map((s) => s.trim());
-      return {
-        vocab_quiz_id: vQuiz!.id,
-        question_id: questionId,
-        word: word || "",
-        definition_vi: def || "",
-        phonetic: phonetic || null,
-        audio_male_url: null,
-        example_sentence: example || null,
-        display_order: vIdx,
-      };
-    })
-    .filter((v) => v.word);
-
-  if (vocabEntries.length > 0) {
-    await supabase.from("vocab_questions").insert(vocabEntries);
-  }
 };
 
 // ── Main ImportDialog ──────────────────────────────────────
@@ -317,72 +265,26 @@ const ImportDialog = ({
         }
       }
 
-      // ── Phase 2: Batch insert ALL questions ───────────────
-      const questionsPayload = parsedQuestions.map((pq) => ({
-        quiz_id: quizId,
-        question_text: pq.questionText,
-        question_type: pq.qType,
-        display_order: pq.qOrder,
-        translation: pq.translation,
-        dictation_keywords: pq.dictationKeywords,
-        audio_url: pq.finalAudioUrl,
-        image_url: pq.finalImageUrl,
-      }));
-
-      const { data: insertedQs, error: qError } = await supabase
-        .from("questions")
-        .insert(questionsPayload)
-        .select("id");
-      if (qError) throw qError;
-
-      // ── Phase 3: Batch insert ALL answers ────────────────
-      const allAnswers: any[] = [];
-      parsedQuestions.forEach((pq, idx) => {
-        const qId = insertedQs![idx].id;
-        pq.answers.forEach((ans, aIdx) => {
-          allAnswers.push({
-            question_id: qId,
-            answer_text: ans.text,
+      // ── Phase 2: Import all questions, answers, and vocab in a single backend transaction (T-034) ──
+      const { error: importErr } = await importAdminQuizQuestions(quizId, {
+        effective_lesson_id: effectiveLessonId || null,
+        quiz_title: quizTitle || null,
+        questions: parsedQuestions.map((pq) => ({
+          question_text: pq.questionText,
+          question_type: pq.qType,
+          translation: pq.translation,
+          dictation_keywords: pq.dictationKeywords,
+          audio_url: pq.finalAudioUrl,
+          image_url: pq.finalImageUrl,
+          answers: pq.answers.map((ans) => ({
+            text: ans.text,
             is_correct: ans.isCorrect,
             explanation: ans.explanation,
-            display_order: aIdx,
-          });
-        });
+          })),
+          vocab_text: pq.vocabText || null,
+        })),
       });
-      if (allAnswers.length > 0) {
-        await supabase.from("answers").insert(allAnswers);
-      }
-
-      // ── Phase 4: Vocab (per question, sequential ok since usually few) ──
-      if (effectiveLessonId) {
-        for (let i = 0; i < parsedQuestions.length; i++) {
-          if (parsedQuestions[i].vocabText) {
-            await insertVocab(parsedQuestions[i].vocabText, effectiveLessonId, insertedQs![i].id, quizTitle);
-          }
-        }
-      }
-
-      // ── Phase 5: Update counters ──────────────────────────
-      const { count } = await supabase
-        .from("questions")
-        .select("id", { count: "exact", head: true })
-        .eq("quiz_id", quizId);
-      await supabase.from("quizzes").update({ total_questions: count ?? 0 }).eq("id", quizId);
-
-      if (effectiveLessonId) {
-        const { data: vq } = await supabase
-          .from("vocab_quizzes")
-          .select("id")
-          .eq("lesson_id", effectiveLessonId)
-          .maybeSingle();
-        if (vq) {
-          const { count: vCount } = await supabase
-            .from("vocab_questions")
-            .select("id", { count: "exact", head: true })
-            .eq("vocab_quiz_id", vq.id);
-          await supabase.from("vocab_quizzes").update({ total_questions: vCount ?? 0 }).eq("id", vq.id);
-        }
-      }
+      if (importErr) throw new Error(importErr.message);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["quiz-questions-admin", quizId] });

@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { authClient, getMyAdminRole } from "@/lib/api/auth";
 import { useToast } from "@/hooks/use-toast";
 
 const AuthCallback = () => {
@@ -40,12 +40,7 @@ const AuthCallback = () => {
       } catch {}
       
       try {
-        const { data: roleData } = await supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", userId)
-          .eq("role", "admin")
-          .maybeSingle();
+        const { data: roleData } = await getMyAdminRole();
 
         const isAdmin = !!roleData;
         const getDestination = (targetUrl: string | null, userIsAdmin: boolean) => {
@@ -82,7 +77,7 @@ const AuthCallback = () => {
 
       const code = params.get("code");
       if (code) {
-        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(window.location.href);
+        const { error: exchangeError } = await authClient.exchangeCodeForSession(window.location.href);
         if (exchangeError) {
           toast({
             title: "Lỗi đăng nhập Google",
@@ -94,7 +89,7 @@ const AuthCallback = () => {
         }
       }
 
-      const { data, error } = await supabase.auth.getSession();
+      const { data, error } = await authClient.getSession();
       
       if (error) {
         console.error("Auth callback error:", error.message);
@@ -111,7 +106,7 @@ const AuthCallback = () => {
         handleRedirect(data.session.user.id);
       } else {
         // If no session yet, listen for the state change (Supabase might still be processing)
-        const { data: { subscription: sub } } = supabase.auth.onAuthStateChange(async (event, session) => {
+        const { data: { subscription: sub } } = authClient.onAuthStateChange(async (event, session) => {
           if (event === "SIGNED_IN" && session) {
             sub.unsubscribe();
             handleRedirect(session.user.id);

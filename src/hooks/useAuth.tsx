@@ -1,6 +1,5 @@
 import { createContext, useContext, useEffect, useState, useRef, ReactNode } from "react";
-import { User, Session } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
+import { authClient, getMyAdminRole, getMyProfile, type AuthUser as User, type AuthSession as Session } from "@/lib/api/auth";
 
 interface AuthProfile {
   full_name: string | null;
@@ -53,7 +52,7 @@ const checkInactivityExpiration = async (onExpired: () => void): Promise<boolean
       localStorage.removeItem(LAST_ACTIVE_KEY);
       localStorage.removeItem(CACHED_PROFILE_KEY);
       onExpired();
-      await supabase.auth.signOut().catch(() => {});
+      await authClient.signOut().catch(() => {});
       return true;
     }
   } catch (err) {
@@ -97,17 +96,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const fetchUserData = async (userId: string, currentUser?: User) => {
     try {
       const [profileRes, roleRes] = await Promise.all([
-        supabase
-          .from("profiles")
-          .select("full_name, avatar_url, is_pro")
-          .eq("user_id", userId)
-          .maybeSingle(),
-        supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", userId)
-          .eq("role", "admin")
-          .maybeSingle(),
+        getMyProfile(),
+        getMyAdminRole(),
       ]);
 
       const userMeta = currentUser?.user_metadata || {};
@@ -193,7 +183,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
 
     // 2. Lắng nghe thay đổi trạng thái đăng nhập
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
+    const { data: { subscription } } = authClient.onAuthStateChange(async (event, currentSession) => {
       if (!isMounted) return;
 
       if (event === "SIGNED_OUT") {
@@ -216,7 +206,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
 
     // 3. Kiểm tra session hiện có
-    supabase.auth.getSession().then(({ data: { session: currentSession }, error }) => {
+    authClient.getSession().then(({ data: { session: currentSession }, error }) => {
       if (!isMounted) return;
 
       if (error) {
@@ -259,12 +249,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       // Kiểm tra và tự động refresh token nếu còn dưới 5 phút hoặc đã hết hạn
       try {
-        const { data: { session: curSession } } = await supabase.auth.getSession();
+        const { data: { session: curSession } } = await authClient.getSession();
         if (curSession) {
           const expiresAt = curSession.expires_at ? curSession.expires_at * 1000 : 0;
           if (expiresAt && expiresAt - Date.now() < 5 * 60 * 1000) {
             console.log("[Auth] Chủ động làm mới session sắp hết hạn khi mở lại tab...");
-            await supabase.auth.refreshSession();
+            await authClient.refreshSession();
           }
         }
       } catch (err) {
@@ -290,7 +280,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       localStorage.removeItem(LAST_ACTIVE_KEY);
       localStorage.removeItem(CACHED_PROFILE_KEY);
-      await supabase.auth.signOut();
+      await authClient.signOut();
     } catch (err) {
       console.error("[Auth] Error signing out:", err);
     } finally {

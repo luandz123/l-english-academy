@@ -27,8 +27,180 @@ jobs:
         run: npm run lint
         continue-on-error: true
 
+      # 40 lỗi type có sẵn từ code cũ (chủ yếu kiểu Supabase), sẽ hết khi gỡ Supabase.
+      # Bật chặn khi về 0 — theo dõi trong docs/PROGRESS.md.
+      - name: Typecheck (non-blocking)
+        run: npm run typecheck
+        continue-on-error: true
+
       - name: Unit tests
         run: npm run test
 
       - name: Build
         run: npm run build
+
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies (chạy prisma generate qua postinstall)
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test
+
+      - name: E2E tests (Postgres thật qua Testcontainers)
+        run: npm run test:e2e
+
+      - name: Build
+        run: npm run build
+
+  ui-diff:
+    # Chặn thay đổi JSX/className/câu chữ/queryKey trong PR (REFACTOR_PLAN §5)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check UI diff
+        run: node scripts/check-ui-diff.mjs origin/${{ github.base_ref }} HEAD
+
+  deploy-staging:
+    # Chỉ khi push lên nhánh refactor và cả frontend + backend đều xanh.
+    # Áp migration lên Neon trước; migration lỗi → không gọi Render, bản đang chạy giữ nguyên.
+    # (Không dùng workflow_run: nó chỉ kích hoạt khi file workflow nằm trên nhánh mặc định.)
+    # Sau cutover service Render chạy nhánh main (docs/CUTOVER.md) nên deploy theo cả main.
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/refactor/nestjs-backend' || github.ref == 'refs/heads/main')
+    needs: [quality-check, backend]
+    runs-on: ubuntu-latest
+    environment: staging
+    concurrency:
+      group: deploy-staging
+      cancel-in-progress: false
+    env:
+      # Neon direct (không -pooler): prisma migrate cần advisory lock
+      DATABASE_URL_UNPOOLED: ${{ secrets.STAGING_DATABASE_URL_UNPOOLED }}
+      RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Kiểm tra secrets
+        # Chạy trước checkout nên thư mục backend/ (working-directory mặc định) chưa tồn tại
+        working-directory: ${{ github.workspace }}
+        run: |
+          if [ -z "$DATABASE_URL_UNPOOLED" ] || [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
+            echo "::warning::Chưa cấu hình secret STAGING_DATABASE_URL_UNPOOLED / RENDER_DEPLOY_HOOK_URL (environment 'staging') — bỏ qua deploy"
+            echo "SKIP_DEPLOY=1" >> "$GITHUB_ENV"
+          fi
+
+      - uses: actions/checkout@v4
+        if: env.SKIP_DEPLOY != '1'
+
+      - uses: actions/setup-node@v4
+        if: env.SKIP_DEPLOY != '1'
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Cài dependency (prisma generate qua postinstall)
+        if: env.SKIP_DEPLOY != '1'
+        run: npm ci
+
+      - name: Áp migration lên Neon
+        if: env.SKIP_DEPLOY != '1'
+        run: npx prisma migrate deploy
+
+      - name: Gọi Render Deploy Hook
+        if: env.SKIP_DEPLOY != '1'
+        run: curl -fsS -X POST "$RENDER_DEPLOY_HOOK_URL" > /dev/null
+
+  deploy-staging-frontend:
+    # Build frontend của nhánh refactor lên Vercel (môi trường Preview, KHÔNG phải production)
+    # rồi gắn alias cố định để FRONTEND_URL/CORS_ORIGINS của backend staging không đổi theo deploy.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/refactor/nestjs-backend'
+    needs: [deploy-staging]
+    runs-on: ubuntu-latest
+    environment: staging
+    concurrency:
+      group: deploy-staging-frontend
+      cancel-in-progress: true
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      STAGING_ALIAS: lenglish-staging.vercel.app
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Vercel free giới hạn 100 deploy/ngày: chỉ deploy khi push có đổi file frontend
+      - name: Kiểm tra có đổi frontend
+        id: changes
+        run: |
+          before="${{ github.event.before }}"
+          if [ -z "$before" ] || [ "$before" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$before" 2>/dev/null; then
+            echo "frontend=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          if git diff --name-only "$before" "${{ github.sha }}" | grep -qE '^(src/|public/|index\.html|package(-lock)?\.json|vite\.config\.ts|tailwind\.config\.ts|postcss\.config\.js|tsconfig.*\.json|vercel\.json|components\.json)'; then
+            echo "frontend=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "frontend=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Không đổi frontend, bỏ qua deploy Vercel"
+          fi
+
+      - uses: actions/setup-node@v4
+        if: steps.changes.outputs.frontend == 'true'
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Cài Vercel CLI
+        if: steps.changes.outputs.frontend == 'true'
+        run: npm install --global vercel@latest
+
+      - name: Build (môi trường Preview)
+        if: steps.changes.outputs.frontend == 'true'
+        # Các trang chưa chuyển vẫn tạo Supabase client lúc khởi động; môi trường Preview của
+        # Vercel không có các biến này nên truyền từ biến (công khai) của environment staging.
+        env:
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          vercel pull --yes --environment=preview --token="$VERCEL_TOKEN"
+          vercel build --token="$VERCEL_TOKEN"
+
+      - name: Deploy và gắn alias cố định
+        if: steps.changes.outputs.frontend == 'true'
+        run: |
+          url=$(vercel deploy --prebuilt --token="$VERCEL_TOKEN")
+          echo "Deploy: $url"
+          vercel alias set "$url" "$STAGING_ALIAS" --token="$VERCEL_TOKEN"
+          echo "::notice::Staging frontend: https://$STAGING_ALIAS"

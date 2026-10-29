@@ -5,7 +5,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus, Trash2, Clock, Edit } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { getAdminCourseModules } from "@/lib/api/catalog";
+import {
+  createPractice,
+  deletePractice,
+  listLessonPractices,
+  updatePractice,
+} from "@/lib/api/learning";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -22,7 +28,7 @@ const LessonPracticeManager = ({ lessonId, courseId }: LessonPracticeManagerProp
   const { data: practices = [] } = useQuery({
     queryKey: ["lesson-practices", lessonId],
     queryFn: async () => {
-      const { data } = await supabase.from("lesson_practices").select("*, quizzes(title, total_questions)").eq("lesson_id", lessonId).order("trigger_at_seconds");
+      const { data } = await listLessonPractices(lessonId);
       return data ?? [];
     },
   });
@@ -31,11 +37,15 @@ const LessonPracticeManager = ({ lessonId, courseId }: LessonPracticeManagerProp
   const { data: availableQuizzes = [] } = useQuery({
     queryKey: ["course-quizzes-for-practice", courseId],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("quizzes")
-        .select("id, title, total_questions, modules!inner(course_id)")
-        .eq("modules.course_id", courseId);
-      return data ?? [];
+      const { data } = await getAdminCourseModules(courseId);
+      return (data ?? []).flatMap((m) =>
+        m.quizzes.map((q) => ({
+          id: q.id,
+          title: q.title,
+          total_questions: q.total_questions,
+          modules: { course_id: courseId },
+        })),
+      );
     },
   });
 
@@ -49,17 +59,15 @@ const LessonPracticeManager = ({ lessonId, courseId }: LessonPracticeManagerProp
   const saveMutation = useMutation({
     mutationFn: async () => {
       const triggerAt = (Number(triggerMinutes) || 0) * 60 + (Number(triggerSeconds) || 0);
-      const payload = {
-        lesson_id: lessonId,
+      const body = {
         quiz_id: selectedQuizId ? Number(selectedQuizId) : null,
         trigger_at_seconds: triggerAt,
         title: practiceTitle,
-        display_order: editingPractice ? editingPractice.display_order : practices.length,
       };
       if (editingPractice) {
-        await supabase.from("lesson_practices").update(payload).eq("id", editingPractice.id);
+        await updatePractice(editingPractice.id, body);
       } else {
-        await supabase.from("lesson_practices").insert(payload);
+        await createPractice(lessonId, body);
       }
     },
     onSuccess: () => {
@@ -71,7 +79,7 @@ const LessonPracticeManager = ({ lessonId, courseId }: LessonPracticeManagerProp
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      await supabase.from("lesson_practices").delete().eq("id", id);
+      await deletePractice(id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["lesson-practices", lessonId] });

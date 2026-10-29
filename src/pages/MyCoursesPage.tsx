@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { listCourses } from "@/lib/api/catalog";
+import { listMyProgressRows, getMyCoursesModules, getMyEnrollments } from "@/lib/api/learning";
 import { useAuth } from "@/hooks/useAuth";
 import StudentLayout from "@/components/StudentLayout";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -43,11 +44,7 @@ export const MyCoursesPage: React.FC = () => {
     queryKey: ["my-courses-enrolled", user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const { data, error } = await supabase
-        .from("enrollments")
-        .select("*, courses(*)")
-        .eq("user_id", user.id)
-        .order("enrolled_at", { ascending: false });
+      const { data, error } = await getMyEnrollments();
       if (error) throw error;
       return data || [];
     },
@@ -58,12 +55,7 @@ export const MyCoursesPage: React.FC = () => {
   const { data: allActiveCourses = [], isLoading: isCoursesLoading } = useQuery({
     queryKey: ["my-courses-all-active"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("courses")
-        .select("*")
-        .eq("is_active", true)
-        .order("display_order", { ascending: true })
-        .order("id", { ascending: false });
+      const { data, error } = await listCourses({ active: true });
       if (error) throw error;
       return data || [];
     },
@@ -103,14 +95,7 @@ export const MyCoursesPage: React.FC = () => {
     queryKey: ["my-courses-modules-lessons", courseIds],
     queryFn: async () => {
       if (courseIds.length === 0) return [];
-      const { data, error } = await (supabase.from("modules") as any)
-        .select("id, course_id, title, display_order, lessons(id, module_id, title, display_order, duration_minutes)")
-        .in("course_id", courseIds)
-        .order("display_order", { ascending: true });
-      if (error) {
-        console.error("Error fetching course modules:", error);
-        return [];
-      }
+      const { data } = await getMyCoursesModules();
       return data || [];
     },
     enabled: courseIds.length > 0,
@@ -121,10 +106,7 @@ export const MyCoursesPage: React.FC = () => {
     queryKey: ["my-courses-user-progress", user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const { data } = await supabase
-        .from("user_lesson_progress")
-        .select("lesson_id, is_completed, completed_at, updated_at, created_at")
-        .eq("user_id", user.id);
+      const { data } = await listMyProgressRows();
       return data || [];
     },
     enabled: !!user,

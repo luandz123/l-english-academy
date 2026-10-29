@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useState, useEffect, useRef } from "react";
 import { Volume2, X as XIcon, Mic, CheckCircle2, ArrowRight, ChevronLeft, ChevronRight, RotateCcw, AlertTriangle } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { getLessonVocabWords, getLessonQuizId } from "@/lib/api/vocab";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
@@ -43,66 +43,21 @@ export default function VocabLessonPage() {
     queryKey: ["vocab-lesson-student", lessonId, filteredQuestionIds],
     queryFn: async () => {
       if (!lessonId) return [];
-
-      let { data: quiz } = await supabase
-        .from("vocab_quizzes")
-        .select("id")
-        .eq("lesson_id", Number(lessonId))
-        .maybeSingle();
-
-      if (!quiz) {
-        const { data: vqById } = await supabase
-          .from("vocab_quizzes")
-          .select("id")
-          .eq("id", Number(lessonId))
-          .maybeSingle();
-        quiz = vqById;
-      }
-
-      if (!quiz) {
-        const { data: lesson } = await supabase
-          .from("lessons")
-          .select("id")
-          .eq("quiz_id", Number(lessonId))
-          .maybeSingle();
-        if (lesson) {
-          const { data: vqByLesson } = await supabase
-            .from("vocab_quizzes")
-            .select("id")
-            .eq("lesson_id", lesson.id)
-            .maybeSingle();
-          quiz = vqByLesson;
-        }
-      }
-
-      if (!quiz) {
-        if (filteredQuestionIds && filteredQuestionIds.length > 0) {
-          const { data: vocabByQuestions } = await supabase
-            .from("vocab_questions")
-            .select("*")
-            .in("question_id", filteredQuestionIds)
-            .order("display_order");
-          return vocabByQuestions || [];
-        }
-        return [];
-      }
-
-      let query = supabase.from("vocab_questions").select("*").eq("vocab_quiz_id", quiz.id);
-      if (filteredQuestionIds && filteredQuestionIds.length > 0) {
-        query = query.in("question_id", filteredQuestionIds);
-      }
-      const { data } = await query.order("display_order");
-      return data || [];
-    }
+      const { data } = await getLessonVocabWords(
+        Number(lessonId),
+        filteredQuestionIds,
+      );
+      return data ?? [];
+    },
   });
 
   const { data: lessonData } = useQuery({
     queryKey: ["vocab-lesson-details", lessonId],
     queryFn: async () => {
-      const { data: lesson } = await supabase.from("lessons").select("quiz_id").eq("id", Number(lessonId)).single();
+      const { data: lesson } = await getLessonQuizId(Number(lessonId));
       if (lesson?.quiz_id) setQuizId(lesson.quiz_id);
       return lesson;
-    }
+    },
   });
 
   const word = words?.[currentIdx];

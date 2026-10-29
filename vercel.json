@@ -1,4 +1,13 @@
 {
+  "git": {
+    "deploymentEnabled": {
+      "refactor/nestjs-backend": false,
+      "task/**": false,
+      "claude/**": false,
+      "review/**": false,
+      "merge/**": false
+    }
+  },
   "headers": [
     {
       "source": "/index.html",
@@ -20,6 +29,10 @@
     }
   ],
   "rewrites": [
+    {
+      "source": "/api/v1/:path*",
+      "destination": "https://lenglish-api.onrender.com/api/v1/:path*"
+    },
     {
       "source": "/api/(.*)",
       "destination": "/api/$1"

@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import Logo from "@/components/Logo";
-import { supabase } from "@/integrations/supabase/client";
+import { listCategories } from "@/lib/api/catalog";
 import { useQuery } from "@tanstack/react-query";
 import {
   Home,
@@ -62,11 +62,7 @@ export const SidebarNav = ({ isOpen = false, onClose }: SidebarNavProps) => {
   const { data: categories = [] } = useQuery({
     queryKey: ["sidebar-course-categories"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("course_categories")
-        .select("*")
-        .eq("is_active", true)
-        .order("display_order", { ascending: true });
+      const { data, error } = await listCategories({ active: true });
       if (error) {
         console.error("Error fetching categories:", error);
         return [];

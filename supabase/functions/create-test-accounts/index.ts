@@ -8,6 +8,18 @@ const corsHeaders = {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
+  // SECURITY GUARD: Vô hiệu hóa mặc định để bảo vệ hệ thống khỏi tạo/ghi đè tài khoản không an toàn
+  const allowCreation = Deno.env.get("ALLOW_TEST_ACCOUNT_CREATION") === "true";
+  if (!allowCreation) {
+    return new Response(
+      JSON.stringify({
+        error: "Forbidden",
+        message: "Endpoint create-test-accounts đã bị vô hiệu hóa vì lý do an toàn bảo mật.",
+      }),
+      { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, serviceRoleKey, {

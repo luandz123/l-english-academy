@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Volume2, Undo2, LayoutGrid, Check, X as XIcon, Library, ArrowRight, RotateCcw } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { listVocabCategories, listVocabQuizzes, listVocabWords } from "@/lib/api/vocab";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import ErrorState from "@/components/ErrorState";
@@ -24,11 +24,7 @@ const VocabPage = () => {
   const { data: categories, isLoading, isError: isCategoriesError, refetch: refetchCategories } = useQuery({
     queryKey: ["vocab-categories", cid],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("vocab_categories")
-        .select("*")
-        .eq("course_id", cid)
-        .order("display_order");
+      const { data, error } = await listVocabCategories(cid);
       if (error) throw error;
       return data || [];
     },
@@ -37,11 +33,7 @@ const VocabPage = () => {
   const { data: quizzes, isError: isQuizzesError, refetch: refetchQuizzes } = useQuery({
     queryKey: ["vocab-quizzes", selectedCat],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("vocab_quizzes")
-        .select("*")
-        .eq("category_id", selectedCat!)
-        .order("display_order");
+      const { data, error } = await listVocabQuizzes(selectedCat!);
       if (error) throw error;
       return data || [];
     },
@@ -51,11 +43,7 @@ const VocabPage = () => {
   const { data: vocabWords, isError: isWordsError, refetch: refetchWords } = useQuery({
     queryKey: ["vocab-words", selectedQuiz],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("vocab_questions")
-        .select("*")
-        .eq("vocab_quiz_id", selectedQuiz!)
-        .order("display_order");
+      const { data, error } = await listVocabWords(selectedQuiz!);
       if (error) throw error;
       return data || [];
     },

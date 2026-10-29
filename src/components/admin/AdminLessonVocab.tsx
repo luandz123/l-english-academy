@@ -1,6 +1,16 @@
 import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  getAdminLessonVocabQuiz,
+  createAdminLessonVocabQuiz,
+  getAdminLessonVocabWords,
+  createAdminVocabWordsBatch,
+  updateAdminVocabWord,
+  deleteAdminVocabWord,
+  bulkDeleteAdminVocabWords,
+  getAllLessonsForVocab,
+  getLessonQuestionsForVocab,
+} from "@/lib/api/assessment";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -31,7 +41,7 @@ export default function AdminLessonVocab({ lessonId, lessonTitle, questionId }: 
   const { data: quiz, isLoading: isQuizLoading } = useQuery({
     queryKey: ["lesson-vocab-quiz", lessonId],
     queryFn: async () => {
-      const { data } = await supabase.from("vocab_quizzes").select("*").eq("lesson_id", lessonId).maybeSingle();
+      const { data } = await getAdminLessonVocabQuiz(lessonId);
       return data;
     }
   });
@@ -40,11 +50,7 @@ export default function AdminLessonVocab({ lessonId, lessonTitle, questionId }: 
     queryKey: ["lesson-vocab-words", quiz?.id, questionId],
     queryFn: async () => {
       if (!quiz?.id) return [];
-      let query = supabase.from("vocab_questions").select("*").eq("vocab_quiz_id", quiz.id);
-      if (questionId) {
-        query = query.eq("question_id", questionId);
-      }
-      const { data } = await query.order("display_order");
+      const { data } = await getAdminLessonVocabWords(quiz.id, questionId);
       return data || [];
     },
     enabled: !!quiz?.id
@@ -53,7 +59,7 @@ export default function AdminLessonVocab({ lessonId, lessonTitle, questionId }: 
   const { data: allLessons } = useQuery({
     queryKey: ["all-lessons-for-copy"],
     queryFn: async () => {
-      const { data } = await supabase.from("lessons").select("id, title, module_id").order("id", { ascending: false });
+      const { data } = await getAllLessonsForVocab();
       return data || [];
     },
     enabled: copyOpen
@@ -62,9 +68,10 @@ export default function AdminLessonVocab({ lessonId, lessonTitle, questionId }: 
   const { data: otherLessonWords } = useQuery({
     queryKey: ["lesson-words", selectedLessonId],
     queryFn: async () => {
-      const { data: q } = await supabase.from("vocab_quizzes").select("id").eq("lesson_id", selectedLessonId).maybeSingle();
+      if (!selectedLessonId) return [];
+      const { data: q } = await getAdminLessonVocabQuiz(selectedLessonId);
       if (!q) return [];
-      const { data } = await supabase.from("vocab_questions").select("*").eq("vocab_quiz_id", q.id).order("display_order");
+      const { data } = await getAdminLessonVocabWords(q.id);
       return data || [];
     },
     enabled: !!selectedLessonId
@@ -74,9 +81,7 @@ export default function AdminLessonVocab({ lessonId, lessonTitle, questionId }: 
     queryKey: ["all-questions-for-vocab", quiz?.id],
     queryFn: async () => {
       if (!quiz?.id) return [];
-      const { data: lesson } = await supabase.from("lessons").select("quiz_id").eq("id", lessonId).single();
-      if (!lesson?.quiz_id) return [];
-      const { data } = await supabase.from("questions").select("id, question_text, display_order").eq("quiz_id", lesson.quiz_id).order("display_order");
+      const { data } = await getLessonQuestionsForVocab(lessonId);
       return data || [];
     },
     enabled: !!quiz?.id && !questionId
@@ -84,12 +89,10 @@ export default function AdminLessonVocab({ lessonId, lessonTitle, questionId }: 
 
   const getOrCreateQuiz = async () => {
     if (quiz) return quiz;
-    const { data, error } = await supabase.from("vocab_quizzes").insert({
+    const { data, error } = await createAdminLessonVocabQuiz(lessonId, {
       title: `Từ vựng - ${lessonTitle}`,
-      lesson_id: lessonId,
       display_order: 0,
-      total_questions: 0
-    }).select("*").single();
+    });
     if (error) throw error;
     queryClient.invalidateQueries({ queryKey: ["lesson-vocab-quiz", lessonId] });
     return data;
@@ -173,12 +176,8 @@ export default function AdminLessonVocab({ lessonId, lessonTitle, questionId }: 
       }).filter((item): item is any => item !== null);
 
       if (newQuestions.length > 0) {
-        const { error: insertErr } = await supabase.from("vocab_questions").insert(newQuestions);
+        const { error: insertErr } = await createAdminVocabWordsBatch(q.id, newQuestions);
         if (insertErr) throw insertErr;
-        
-        await supabase.from("vocab_quizzes").update({ 
-          total_questions: (words?.length || 0) + newQuestions.length 
-        }).eq("id", q.id);
       }
     },
     onSuccess: () => {
@@ -203,8 +202,7 @@ export default function AdminLessonVocab({ lessonId, lessonTitle, questionId }: 
     mutationFn: async () => {
       if (!newWord.word || !newWord.definition_vi) throw new Error("Vui lòng điền đủ từ và nghĩa");
       const q = await getOrCreateQuiz();
-      await supabase.from("vocab_questions").insert({
-        vocab_quiz_id: q.id,
+      const { error } = await createAdminVocabWordsBatch(q.id, [{
         word: newWord.word,
         definition_vi: newWord.definition_vi,
         phonetic: newWord.phonetic || null,
@@ -212,8 +210,8 @@ export default function AdminLessonVocab({ lessonId, lessonTitle, questionId }: 
         example_sentence: newWord.example_sentence || null,
         question_id: questionId || null,
         display_order: words?.length || 0
-      });
-      await supabase.from("vocab_quizzes").update({ total_questions: (words?.length || 0) + 1 }).eq("id", q.id);
+      }]);
+      if (error) throw error;
     },
     onSuccess: () => {
       setAddOpen(false);
@@ -226,13 +224,13 @@ export default function AdminLessonVocab({ lessonId, lessonTitle, questionId }: 
   const updateWordMutation = useMutation({
     mutationFn: async () => {
       if (!editingWord || !editingWord.word || !editingWord.definition_vi) throw new Error("Vui lòng điền đủ từ và nghĩa");
-      const { error } = await supabase.from("vocab_questions").update({
+      const { error } = await updateAdminVocabWord(editingWord.id, {
         word: editingWord.word,
         definition_vi: editingWord.definition_vi,
         phonetic: editingWord.phonetic || null,
         audio_male_url: editingWord.audio_url || null,
         example_sentence: editingWord.example_sentence || null,
-      }).eq("id", editingWord.id);
+      });
       
       if (error) throw error;
     },
@@ -249,10 +247,8 @@ export default function AdminLessonVocab({ lessonId, lessonTitle, questionId }: 
 
   const deleteWordMutation = useMutation({
     mutationFn: async (id: number) => {
-      await supabase.from("vocab_questions").delete().eq("id", id);
-      if (quiz) {
-         await supabase.from("vocab_quizzes").update({ total_questions: Math.max(0, (words?.length || 1) - 1) }).eq("id", quiz.id);
-      }
+      const { error } = await deleteAdminVocabWord(id);
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["lesson-vocab-words"] });
@@ -262,11 +258,8 @@ export default function AdminLessonVocab({ lessonId, lessonTitle, questionId }: 
 
   const deleteMultipleWordsMutation = useMutation({
     mutationFn: async (ids: number[]) => {
-      await supabase.from("vocab_questions").delete().in("id", ids);
-      if (quiz) {
-         const remainingCount = Math.max(0, (words?.length || ids.length) - ids.length);
-         await supabase.from("vocab_quizzes").update({ total_questions: remainingCount }).eq("id", quiz.id);
-      }
+      const { error } = await bulkDeleteAdminVocabWords(ids);
+      if (error) throw error;
     },
     onSuccess: () => {
       setSelectedDeleteIds([]);
@@ -277,7 +270,7 @@ export default function AdminLessonVocab({ lessonId, lessonTitle, questionId }: 
 
   const updateWordQuestion = useMutation({
     mutationFn: async ({ id, question_id }: { id: number, question_id: number | null }) => {
-      const { error } = await supabase.from("vocab_questions").update({ question_id }).eq("id", id);
+      const { error } = await updateAdminVocabWord(id, { question_id });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -293,7 +286,6 @@ export default function AdminLessonVocab({ lessonId, lessonTitle, questionId }: 
       
       const wordsToCopy = otherLessonWords?.filter(w => selectedWords.includes(w.id)) || [];
       const newQuestions = wordsToCopy.map((w, i) => ({
-        vocab_quiz_id: q.id,
         word: w.word,
         definition_vi: w.definition_vi,
         phonetic: w.phonetic,
@@ -302,8 +294,8 @@ export default function AdminLessonVocab({ lessonId, lessonTitle, questionId }: 
         display_order: (words?.length || 0) + i
       }));
 
-      await supabase.from("vocab_questions").insert(newQuestions);
-      await supabase.from("vocab_quizzes").update({ total_questions: (words?.length || 0) + newQuestions.length }).eq("id", q.id);
+      const { error } = await createAdminVocabWordsBatch(q.id, newQuestions);
+      if (error) throw error;
     },
     onSuccess: () => {
       setCopyOpen(false);

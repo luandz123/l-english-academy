@@ -1,7 +1,14 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  listMyQuizResults,
+  getAllFullTests,
+  getStudyTimeLeaderboard,
+} from "@/lib/api/assessment";
+import { listCourses } from "@/lib/api/catalog";
+import { listMyFullTestResults } from "@/lib/api/fullTest";
+import { getCurriculum, listMyProgressRows, getMyEnrollments } from "@/lib/api/learning";
 import { useAuth } from "@/hooks/useAuth";
 import { useGamification } from "@/hooks/useGamification";
 import StudentLayout from "@/components/StudentLayout";
@@ -81,12 +88,7 @@ export const DashboardPage: React.FC = () => {
   const { data: courses = [], isLoading: isCoursesLoading } = useQuery({
     queryKey: ["dashboard-courses"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("courses")
-        .select("*")
-        .eq("is_active", true)
-        .order("display_order", { ascending: true })
-        .order("id", { ascending: false });
+      const { data, error } = await listCourses({ active: true });
       if (error) throw error;
       return data || [];
     },
@@ -97,11 +99,7 @@ export const DashboardPage: React.FC = () => {
     queryKey: ["dashboard-lesson-progress", user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const { data } = await supabase
-        .from("user_lesson_progress")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
+      const { data } = await listMyProgressRows();
       return data || [];
     },
     enabled: !!user,
@@ -112,11 +110,7 @@ export const DashboardPage: React.FC = () => {
     queryKey: ["dashboard-enrollments", user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const { data } = await supabase
-        .from("enrollments")
-        .select("*, courses(*)")
-        .eq("user_id", user.id)
-        .order("enrolled_at", { ascending: false });
+      const { data } = await getMyEnrollments();
       return data || [];
     },
     enabled: !!user,
@@ -148,9 +142,7 @@ export const DashboardPage: React.FC = () => {
     queryKey: ["dashboard-course-modules", ngheDocCourseId],
     queryFn: async () => {
       if (!ngheDocCourseId) return [];
-      const { data } = await (supabase.from("modules") as any)
-        .select("id, title, lessons(id, title)")
-        .eq("course_id", ngheDocCourseId);
+      const { data } = await getCurriculum(ngheDocCourseId);
       return data || [];
     },
     enabled: !!ngheDocCourseId,
@@ -188,11 +180,7 @@ export const DashboardPage: React.FC = () => {
     queryKey: ["dashboard-quiz-results", user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const { data } = await supabase
-        .from("user_quiz_results")
-        .select("id, quiz_id, score, total_questions, correct_answers, time_spent_seconds, completed_at")
-        .eq("user_id", user.id)
-        .order("completed_at", { ascending: false });
+      const { data } = await listMyQuizResults();
       return data || [];
     },
     enabled: !!user,
@@ -203,11 +191,7 @@ export const DashboardPage: React.FC = () => {
     queryKey: ["dashboard-full-tests", user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const { data } = await supabase
-        .from("user_full_test_results")
-        .select("*, full_tests(*)")
-        .eq("user_id", user.id)
-        .order("completed_at", { ascending: false });
+      const { data } = await listMyFullTestResults();
       return data || [];
     },
     enabled: !!user,
@@ -217,10 +201,7 @@ export const DashboardPage: React.FC = () => {
   const { data: allFullTests = [] } = useQuery({
     queryKey: ["dashboard-all-full-tests"],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("full_tests")
-        .select("id, title, category, display_order, course_id")
-        .order("display_order", { ascending: true });
+      const { data } = await getAllFullTests();
       return data || [];
     },
   });
@@ -317,24 +298,10 @@ export const DashboardPage: React.FC = () => {
 
   // 8. Study time leaderboard (aggregating real test & quiz time of all users)
   const { data: studyTimeLeaderboard = [] } = useQuery({
-    queryKey: ["dashboard-study-leaderboard"],
+    queryKey: ["dashboard-study-leaderboard", user?.id],
     queryFn: async () => {
-      const [testsRes, quizzesRes] = await Promise.all([
-        supabase.from("user_full_test_results").select("user_id, time_spent_seconds"),
-        supabase.from("user_quiz_results").select("user_id, time_spent_seconds"),
-      ]);
-      const userTimes: Record<string, number> = {};
-      (testsRes.data || []).forEach((r: any) => {
-        if (r.user_id && r.time_spent_seconds) {
-          userTimes[r.user_id] = (userTimes[r.user_id] || 0) + r.time_spent_seconds;
-        }
-      });
-      (quizzesRes.data || []).forEach((r: any) => {
-        if (r.user_id && r.time_spent_seconds) {
-          userTimes[r.user_id] = (userTimes[r.user_id] || 0) + r.time_spent_seconds;
-        }
-      });
-      return Object.entries(userTimes).sort((a, b) => b[1] - a[1]);
+      const { data } = await getStudyTimeLeaderboard();
+      return data || [];
     },
   });
 

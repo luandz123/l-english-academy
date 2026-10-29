@@ -5,7 +5,22 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { PlayCircle, CheckCircle, ChevronLeft, ChevronRight, Check, Loader2, FileQuestion, X, Headphones, PanelRightClose, PanelRight, Keyboard, Trophy, ChevronDown, Lock, Crown, Zap, Sparkles, ShieldCheck, Eye, EyeOff } from "lucide-react";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { listMyQuizResults } from "@/lib/api/assessment";
+import { getCourse } from "@/lib/api/catalog";
+import {
+  addFavorite,
+  addNote,
+  getCurriculum,
+  getMyEnrollment,
+  listLessonMaterials,
+  listLessonPractices,
+  listPracticeQuestions,
+  listMyFavorites,
+  listMyNotes,
+  listMyProgress,
+  removeFavorite,
+  setLessonProgress,
+} from "@/lib/api/learning";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -31,7 +46,7 @@ const LearnPage = () => {
       if (!user) return null;
       if (isAdmin && !adminPreviewAsGuest) return { id: 0, user_id: user.id, course_id: cId, enrolled: true };
       if (isAdmin && adminPreviewAsGuest) return null;
-      const { data } = await supabase.from("enrollments").select("*").eq("user_id", user.id).eq("course_id", cId).maybeSingle();
+      const { data } = await getMyEnrollment(cId);
       return data;
     },
     enabled: !!user,
@@ -40,18 +55,15 @@ const LearnPage = () => {
   const { data: course, isError: isCourseError, refetch: refetchCourse } = useQuery({
     queryKey: ["learn-course", cId],
     queryFn: async () => {
-      const { data } = await supabase.from("courses").select("*").eq("id", cId).maybeSingle();
+      const { data } = await getCourse(cId);
       return data;
     },
   });
 
   const { data: modules = [], isLoading, isError: isModulesError, refetch: refetchModules } = useQuery({
-    queryKey: ["learn-modules", cId],
+    queryKey: ["learn-modules", cId, user?.id],
     queryFn: async () => {
-      const { data } = await (supabase.from("modules") as any)
-        .select("*, lessons(*)")
-        .eq("course_id", cId)
-        .order("display_order");
+      const { data } = await getCurriculum(cId);
 
       if (!data) return [];
 
@@ -70,7 +82,7 @@ const LearnPage = () => {
     queryKey: ["lesson-progress", user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const { data } = await supabase.from("user_lesson_progress").select("*").eq("user_id", user.id);
+      const { data } = await listMyProgress();
       return data ?? [];
     },
     enabled: !!user,
@@ -80,7 +92,7 @@ const LearnPage = () => {
     queryKey: ["lesson-favorites", user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const { data } = await supabase.from("user_favorites").select("*").eq("user_id", user.id);
+      const { data } = await listMyFavorites();
       return data ?? [];
     },
     enabled: !!user,
@@ -90,11 +102,7 @@ const LearnPage = () => {
     queryKey: ["learn-quiz-results", user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const { data } = await supabase
-        .from("user_quiz_results")
-        .select("quiz_id, score, correct_answers, total_questions")
-        .eq("user_id", user.id)
-        .order("completed_at", { ascending: false });
+      const { data } = await listMyQuizResults();
       return data ?? [];
     },
     enabled: !!user,
@@ -106,18 +114,17 @@ const LearnPage = () => {
     queryKey: ["lesson-notes", user?.id, currentLessonId],
     queryFn: async () => {
       if (!user || !currentLessonId) return [];
-      const { data } = await supabase.from("user_notes").select("*").eq("user_id", user.id).eq("lesson_id", currentLessonId).order("created_at", { ascending: false });
+      const { data } = await listMyNotes(currentLessonId);
       return data ?? [];
     },
     enabled: !!user && !!currentLessonId,
   });
 
   const { data: materials = [] } = useQuery({
-    queryKey: ["lesson-materials", currentLessonId, cId],
+    queryKey: ["lesson-materials", currentLessonId, cId, user?.id],
     queryFn: async () => {
-      const { data } = await supabase.from("materials").select("*")
-        .eq("lesson_id", currentLessonId)
-        .order("display_order");
+      if (!currentLessonId) return [];
+      const { data } = await listLessonMaterials(currentLessonId);
       return data ?? [];
     },
     enabled: !!currentLessonId,
@@ -128,10 +135,7 @@ const LearnPage = () => {
     queryKey: ["lesson-practices-student", currentLessonId],
     queryFn: async () => {
       if (!currentLessonId) return [];
-      const { data } = await supabase.from("lesson_practices")
-        .select("*, quizzes(id, title, total_questions)")
-        .eq("lesson_id", currentLessonId)
-        .order("trigger_at_seconds");
+      const { data } = await listLessonPractices(currentLessonId);
       return data ?? [];
     },
     enabled: !!currentLessonId,
@@ -190,8 +194,9 @@ const LearnPage = () => {
   }, [currentLessonId]);
 
   const openPractice = async (practice: any) => {
-    if (!practice.quiz_id) return;
-    const { data } = await supabase.from("questions").select("*, answers(*)").eq("quiz_id", practice.quiz_id).order("display_order");
+    const lessonId = practice.lesson_id ?? currentLessonId;
+    if (!practice.quiz_id || !lessonId) return;
+    const { data } = await listPracticeQuestions(lessonId, practice.id);
     const qs = (data ?? []).map((q: any) => ({ ...q, answers: (q.answers ?? []).sort((a: any, b: any) => a.display_order - b.display_order) }));
     setPracticeQuestions(qs);
     setPracticeAnswers({});
@@ -231,9 +236,9 @@ const LearnPage = () => {
       if (!user || !currentLessonId) return;
       const existing = progress.find((p: any) => p.lesson_id === currentLessonId);
       if (existing) {
-        await supabase.from("user_lesson_progress").update({ is_completed: !existing.is_completed }).eq("id", existing.id);
+        await setLessonProgress(currentLessonId, !existing.is_completed);
       } else {
-        await supabase.from("user_lesson_progress").insert({ user_id: user.id, lesson_id: currentLessonId, is_completed: true });
+        await setLessonProgress(currentLessonId, true);
       }
     },
     onSuccess: () => {
@@ -255,9 +260,9 @@ const LearnPage = () => {
     mutationFn: async () => {
       if (!user || !currentLessonId) return;
       if (isFavorited) {
-        await supabase.from("user_favorites").delete().eq("user_id", user.id).eq("lesson_id", currentLessonId);
+        await removeFavorite(currentLessonId);
       } else {
-        await supabase.from("user_favorites").insert({ user_id: user.id, lesson_id: currentLessonId });
+        await addFavorite(currentLessonId);
       }
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["lesson-favorites"] }),
@@ -294,7 +299,7 @@ const LearnPage = () => {
   const noteMutation = useMutation({
     mutationFn: async () => {
       if (!user || !currentLessonId || !noteText.trim()) return;
-      await supabase.from("user_notes").insert({ user_id: user.id, lesson_id: currentLessonId, content: noteText.trim() });
+      await addNote(currentLessonId, noteText.trim());
     },
     onSuccess: () => {
       setNoteText("");

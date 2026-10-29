@@ -35,6 +35,8 @@ dist-ssr
 *.backup
 *.sql
 !supabase/migrations/*.sql
+!supabase/*.sql
+!backend/prisma/migrations/**/*.sql
 supabase/.temp/
 
 # Scripts and scrapers (if any created locally)
@@ -43,3 +45,9 @@ scraping/
 
 
 
+
+# Backend NestJS
+backend/dist/
+backend/coverage/
+backend/src/generated/
+.neon

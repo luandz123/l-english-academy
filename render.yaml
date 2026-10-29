@@ -1,0 +1,60 @@
+# Render Blueprint — backend (ADR 0003). Trước cutover là staging; ngày cutover service này
+# được nâng lên production (đổi nhánh sang main, tắt giả lập) — docs/CUTOVER.md. Render → New → Blueprint → chọn repo này.
+# Deploy KHÔNG tự động theo git: job deploy-staging trong .github/workflows/ci.yml chạy migration
+# lên Neon rồi mới gọi Deploy Hook, để migration lỗi thì không deploy.
+services:
+  - type: web
+    name: lenglish-api
+    runtime: docker
+    region: singapore
+    plan: free
+    branch: refactor/nestjs-backend
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    autoDeploy: false
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: LOG_LEVEL
+        value: info
+      # Vercel rewrite + Render proxy
+      - key: TRUST_PROXY_HOPS
+        value: "2"
+      - key: AUTH_REQUIRE_EMAIL_CONFIRMATION
+        value: "true"
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      # Các biến dưới đây nhập tay trên Render (sync: false = không lưu giá trị trong repo)
+      - key: DATABASE_URL # Neon pooled (host có -pooler), sslmode=verify-full
+        sync: false
+      - key: FRONTEND_URL # https://<preview Vercel của nhánh refactor>
+        sync: false
+      - key: CORS_ORIGINS # cùng giá trị FRONTEND_URL
+        sync: false
+      # Render free chặn mọi cổng SMTP ra ngoài (từ 26/09/2025) → gửi thư qua Gmail API (HTTPS).
+      # Cách tạo client + refresh token: docs/STAGING.md §2.5
+      - key: MAIL_PROVIDER
+        value: gmail_api
+      - key: GMAIL_CLIENT_ID
+        sync: false
+      - key: GMAIL_CLIENT_SECRET
+        sync: false
+      - key: GMAIL_REFRESH_TOKEN
+        sync: false
+      - key: MAIL_FROM # L-English Academy <gmail-đã-cấp-quyền@gmail.com>
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: SEPAY_WEBHOOK_API_KEY # >= 16 ký tự, khai cùng giá trị ở SePay > Webhooks > API Key
+        sync: false
+      - key: PAYMENT_SIMULATION_ENABLED # staging: "true". Ngày cutover đổi thành "false" trên Render
+        value: "true"
+      # Supabase Storage (T-026)
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false

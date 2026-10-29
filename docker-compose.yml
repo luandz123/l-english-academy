@@ -1,0 +1,40 @@
+# Hạ tầng cho môi trường dev. Chạy: docker compose up -d
+services:
+  postgres:
+    # Cùng major với Neon production (Postgres 18)
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: lenglish
+      POSTGRES_PASSWORD: lenglish
+      POSTGRES_DB: lenglish
+    ports:
+      - "5433:5432" # 5433 để không đụng Postgres cài sẵn trên máy
+    volumes:
+      - pgdata:/var/lib/postgresql # Postgres 18 tự tạo thư mục con theo phiên bản
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lenglish -d lenglish"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  s3:
+    # Thay cho Cloudflare R2 khi dev (cùng API S3). Dùng SeaweedFS vì MinIO
+    # đã ngừng phát hành Docker image (xem ADR 0003). Dev không bật xác thực S3.
+    image: chrislusf/seaweedfs:4.48
+    command: server -dir=/data -s3 -s3.port=8333
+    ports:
+      - "8333:8333" # S3 API
+      - "9333:9333" # Master UI
+    volumes:
+      - s3data:/data
+
+  mailpit:
+    # Hứng mọi email gửi qua SMTP khi dev, xem tại http://localhost:8025
+    image: axllent/mailpit:v1.24
+    ports:
+      - "1025:1025" # SMTP
+      - "8025:8025" # Web UI
+
+volumes:
+  pgdata:
+  s3data:

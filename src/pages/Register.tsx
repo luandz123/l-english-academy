@@ -2,7 +2,7 @@ import { Label } from "@/components/ui/label";
 import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { authClient, updateMyProfile } from "@/lib/api/auth";
 import { useAuth } from "@/hooks/useAuth";
 import { signInWithGoogle } from "@/lib/googleOAuth";
 import { getFriendlyErrorMessage } from "@/lib/errorHandler";
@@ -45,7 +45,7 @@ const Register = () => {
 
     setLoading(true);
     
-    const { data, error } = await supabase.auth.signUp({
+    const { data, error } = await authClient.signUp({
       email,
       password,
       options: {
@@ -61,13 +61,7 @@ const Register = () => {
     } else {
       if (data.session) {
         try {
-          await supabase.from("profiles").upsert(
-            {
-              user_id: data.user!.id,
-              full_name: fullName,
-            },
-            { onConflict: "user_id" }
-          );
+          await updateMyProfile({ full_name: fullName });
         } catch (err) {
           console.error("Profile creation error (might already exist):", err);
         }
