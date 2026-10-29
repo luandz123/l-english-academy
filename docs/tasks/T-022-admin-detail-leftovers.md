@@ -186,3 +186,6 @@ de2804a feat(admin): migrate leftovers in student and course details to nestjs
 ## 8. Câu hỏi (người làm điền khi bị chặn)
 
 ## 9. Review (Claude điền)
+**PASS** (Claude, 2026-10-29) — merge vào `refactor/nestjs-backend`. Review trên `b7acc1f`.
+- 2 route mới đúng mục 4 (guard admin cấp class sẵn có), profile dùng lại `toProfileDto`; 4 chỗ chỉ thay nguồn dữ liệu. Nhánh sạch, không lẫn file T-021 (phiên mới đã `git restore` đúng hướng dẫn). `AdminStudentDetail.tsx` không còn import Supabase.
+- Sau gộp: lint/typecheck sạch, unit 237/237, e2e 265/265, vitest 165/165, `check-ui-diff` OK, build OK.
