@@ -132,24 +132,86 @@ node scripts/check-ui-diff.mjs refactor/nestjs-backend
 
 ## 7. Kết quả (người làm điền)
 ### Checklist tự rà bảo mật (bắt buộc)
-- [ ] **Mọi id client gửi đều thuộc đúng đối tượng cha**: `quizId`, `effective_lesson_id` kiểm tra tồn tại trong DB trước khi ghi.
-- [ ] **Mọi route đọc/ghi dữ liệu có quyền đều kiểm quyền**: guard admin `JwtAuthGuard` + `RolesGuard(admin)` trên endpoint import.
-- [ ] **Dữ liệu người khác**: route admin quản trị câu hỏi theo quiz; không lộ dữ liệu người khác.
-- [ ] **Giới hạn đầu vào**: `ArrayMaxSize(200)`, `MaxLength` cho mọi trường text trong DTO.
-- [ ] **Giá trị nhạy cảm do server tính**: `display_order`, `total_questions` của quiz và vocab quiz đều do server đếm và tính toán.
-- [ ] **Ghi nhiều bước = một `$transaction`**: tạo câu hỏi, đáp án, từ vựng và cập nhật 2 bộ đếm diễn ra trong duy nhất 1 transaction.
-- [ ] **Lỗi dạng `{ code, message }`**: ném đúng cấu trúc chuẩn.
+- [x] **Mọi id client gửi đều thuộc đúng đối tượng cha**: `quizId`, `effective_lesson_id` kiểm tra tồn tại trong DB trước khi ghi.
+- [x] **Mọi route đọc/ghi dữ liệu có quyền đều kiểm quyền**: guard admin `JwtAuthGuard` + `RolesGuard(admin)` trên endpoint import.
+- [x] **Dữ liệu người khác**: route admin quản trị câu hỏi theo quiz; không lộ dữ liệu người khác.
+- [x] **Giới hạn đầu vào**: `ArrayMaxSize(200)`, `MaxLength` cho mọi trường text trong DTO.
+- [x] **Giá trị nhạy cảm do server tính**: `display_order`, `total_questions` của quiz và vocab quiz đều do server đếm và tính toán.
+- [x] **Ghi nhiều bước = một `$transaction`**: tạo câu hỏi, đáp án, từ vựng và cập nhật 2 bộ đếm diễn ra trong duy nhất 1 transaction.
+- [x] **Lỗi dạng `{ code, message }`**: ném đúng cấu trúc chuẩn.
 
 - Commit(s):
+  - `fc41527` refactor(assessment): migrate quiz questions import and remaining queries (T-034)
+  - `bfd8f50` fix(assessment): remove extra newline in import-quiz-questions.dto.ts
 - File đã sửa:
+  - `backend/src/modules/assessment/dto/import-quiz-questions.dto.ts`
+  - `backend/src/modules/assessment/dto/index.ts`
+  - `backend/src/modules/assessment/assessment-admin.controller.ts`
+  - `backend/src/modules/assessment/assessment-admin.service.ts`
+  - `backend/test/quiz-import-questions.e2e-spec.ts`
+  - `src/lib/api/assessment.ts`, `src/lib/api/assessment.test.ts`
+  - `src/components/admin/ImportDialog.tsx`
+  - `src/components/admin/QuizManager.tsx`
+  - `src/pages/DashboardPage.tsx`
 - Output lệnh kiểm tra:
-- Chỗ chưa chắc:
+```bash
+$ npm --prefix backend run lint
+> backend@0.0.1 lint
+> eslint "{src,test}/**/*.ts"
+(clean, exit 0)
+
+$ npm --prefix backend run build
+> backend@0.0.1 build
+> nest build
+(clean, exit 0)
+
+$ npm --prefix backend run test
+> backend@0.0.1 test
+> node --experimental-vm-modules node_modules/jest/bin/jest.js
+Test Suites: 26 passed, 26 total
+Tests:       346 passed, 346 total
+Snapshots:   0 total
+Time:        3.935 s
+Ran all test suites.
+
+$ npm --prefix backend run test:e2e -- quiz-import-questions.e2e-spec.ts
+> backend@0.0.1 test:e2e
+> node --experimental-vm-modules node_modules/jest/bin/jest.js --config ./test/jest-e2e.json --runInBand quiz-import-questions.e2e-spec.ts
+PASS test/quiz-import-questions.e2e-spec.ts
+Test Suites: 1 passed, 1 total
+Tests:       6 passed, 6 total
+Snapshots:   0 total
+Time:        2.067 s
+
+$ npm test -- src/lib/api/assessment.test.ts
+> vite_react_shadcn_ts@0.0.0 test
+> vitest run src/lib/api/assessment.test.ts
+ ✓ src/lib/api/assessment.test.ts (55 tests) 24ms
+ Test Files  1 passed (1)
+      Tests  55 passed (55)
+   Duration  2.20s
+
+$ npx tsc --noEmit -p tsconfig.app.json 2>&1 | Select-String "error TS" | Select-String "src/lib/api|ImportDialog|QuizManager|DashboardPage"
+(clean, rỗng)
+
+$ npx eslint src/lib/api/assessment.ts
+(clean, 0 errors)
+
+$ node scripts/check-ui-diff.mjs refactor/nestjs-backend
+check-ui-diff: 3 thay đổi nằm ngoài vùng được sửa (so với refactor/nestjs-backend):
+  src/components/admin/ImportDialog.tsx:103 [-] chữ tiếng Việt: .insert({ title: `Từ vựng - ${quizTitle}`, lesson_id: lessonId, display_order: 0, total_questions: 0 })
+  src/pages/DashboardPage.tsx:307 [-] queryKey: queryKey: ["dashboard-study-leaderboard"],
+  src/pages/DashboardPage.tsx:306 [+] queryKey: queryKey: ["dashboard-study-leaderboard", user?.id],
+(Ghi chú: ImportDialog.tsx:103 là false positive của script heuristic do xóa hàm helper insertVocab ở client để chuyển hoàn toàn sang server; DashboardPage.tsx:308 là ngoại lệ #21 đã được phê duyệt ở review T-033. Không có bất kỳ thay đổi nào về JSX, className hay layout giao diện).
+```
+- Chỗ chưa chắc: Không có.
 
 ---
 
 ## 8. Câu hỏi (người làm điền khi bị chặn)
 1. `AdminSettings.tsx:78,93`: Đường dẫn webhook SePay đang hiển thị `/api/payment-webhook` (Vercel function cũ) và gọi thử qua `fetch("/api/payment-webhook")`. Webhook mới của backend NestJS là `POST /api/v1/payments/webhooks/sepay`. Theo chỉ dẫn trong BRIEFS.md, việc đổi chuỗi đường dẫn là đổi dữ liệu hiển thị cấu hình cho admin nên giữ nguyên chuỗi cũ và ghi nhận lại vào đây.
 2. `DashboardPage.tsx:308`: Dòng `queryKey: ["dashboard-study-leaderboard", user?.id]` là ngoại lệ hợp lệ theo quy tắc #21 để invalidate cache theo từng user.
+3. `ImportDialog.tsx:103`: Dòng chữ tiếng Việt `Từ vựng - ${quizTitle}` bị xóa ở client vì logic tạo `vocab_quizzes` đã chuyển hoàn toàn vào backend transaction (`POST /assessment/admin/quizzes/:quizId/import-questions`). Đây là false positive của script heuristic tại `scripts/check-ui-diff.mjs`.
 
 ---
 
