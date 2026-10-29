@@ -28,10 +28,7 @@ export class DictationService {
     private readonly learning: LearningService,
   ) {}
 
-  private async assertQuizAccessible(
-    quizId: number,
-    user?: AuthenticatedUser,
-  ) {
+  private async assertQuizAccessible(quizId: number, user?: AuthenticatedUser) {
     const quiz = await this.repo.findQuizById(quizId);
     if (!quiz) {
       throw new NotFoundException({
