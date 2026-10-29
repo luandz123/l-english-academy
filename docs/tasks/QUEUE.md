@@ -31,7 +31,7 @@ Ký hiệu: ⏳ chờ · 🔨 đang làm · 🔍 chờ review · 🔁 TRẢ LẠ
 | T-022 | [dọn 2 trang admin chi tiết](T-022-admin-detail-leftovers.md) | `task/T-022-admin-detail-leftovers` | — | ✅ merged |
 | T-023 | [admin quiz + câu hỏi](T-023-admin-quiz-questions.md) | `task/T-023-admin-quiz-questions` | T-022 | ✅ merged |
 | T-024 | [admin sửa câu hỏi Full Test](T-024-admin-fulltest-questions.md) | `task/T-024-admin-fulltest-questions` | T-023 | ✅ merged |
-| T-025 | [Dictation (#26a)](BRIEFS.md) | `task/T-025-dictation` | — | ⏳ chờ |
+| T-025 | [Dictation (#26a)](BRIEFS.md) — xem `docs/tasks/T-025-REVIEW.md` | `task/T-025-dictation` | — | 🔁 TRẢ LẠI |
 | T-026 | [upload qua backend (#27)](BRIEFS.md) | `task/T-026-media-upload` | — | ⏳ chờ |
 | T-029 | [popup luyện tập LearnPage](BRIEFS.md) | `task/T-029-learn-practice-popup` | — | ⏳ chờ |
 | T-030 | [khảo sát realtime (chỉ khảo sát)](BRIEFS.md) | `task/T-030-realtime-survey` | — | ⏳ chờ |
