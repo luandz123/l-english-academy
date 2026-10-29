@@ -176,6 +176,8 @@ node scripts/check-ui-diff.mjs refactor/nestjs-backend
 - [x] **Lỗi dạng `{ code, message }`**: ném đúng cấu trúc chuẩn.
 
 - Commit(s):
+  - `76d88d1` refactor(assessment,admin,learning): cleanup remaining supabase queries (T-033)
+  - `996811e` Merge origin/refactor/nestjs-backend into task/T-033-leftovers
 - File đã sửa:
   - `backend/src/modules/assessment/dto/leftovers.dto.ts`
   - `backend/src/modules/assessment/dto/index.ts`
@@ -214,27 +216,29 @@ $ npm --prefix backend run build
 
 $ npm --prefix backend run test
 Test Suites: 26 passed, 26 total
-Tests:       335 passed, 335 total
+Tests:       346 passed, 346 total
 Snapshots:   0 total
-Time:        2.855 s
+Time:        2.642 s
 
-$ npm --prefix backend run test:e2e -- assessment-leaderboard.e2e-spec.ts leftovers-admin-backup.e2e-spec.ts
+$ npm --prefix backend run test:e2e -- assessment-leaderboard.e2e-spec.ts leftovers-admin-backup.e2e-spec.ts assessment-bulk-import.e2e-spec.ts catalog-course-import.e2e-spec.ts
+PASS test/assessment-bulk-import.e2e-spec.ts
+PASS test/catalog-course-import.e2e-spec.ts
 PASS test/leftovers-admin-backup.e2e-spec.ts
 PASS test/assessment-leaderboard.e2e-spec.ts
-Test Suites: 2 passed, 2 total
-Tests:       22 passed, 22 total
+Test Suites: 4 passed, 4 total
+Tests:       36 passed, 36 total
 Snapshots:   0 total
-Time:        2.804 s
+Time:        5.408 s
 
-$ npm test -- src/lib/api/assessment.test.ts src/lib/api/admin.test.ts src/lib/api/vocab.test.ts src/lib/api/learning.test.ts
-Test Files  4 passed (4)
-Tests  127 passed (127)
-Duration  1.66s
+$ npm test -- src/lib/api/assessment.test.ts src/lib/api/admin.test.ts src/lib/api/vocab.test.ts src/lib/api/learning.test.ts src/lib/api/catalog.test.ts
+Test Files  5 passed (5)
+Tests  162 passed (162)
+Duration  1.76s
 
 $ npx tsc --noEmit -p tsconfig.app.json 2>&1 | Select-String "error TS" | Select-String "src/lib/api|DashboardPage|Profile|MyCoursesPage|HeroSection|AdminBackup|AdminLessonVocab|AdminSettings|WordShooterLobby"
 (clean, rỗng)
 
-$ npx eslint src/lib/api/assessment.ts src/lib/api/admin.ts src/lib/api/vocab.ts
+$ npx eslint src/lib/api/assessment.ts src/lib/api/admin.ts src/lib/api/vocab.ts src/lib/api/catalog.ts
 (clean, 0 errors)
 
 $ node scripts/check-ui-diff.mjs refactor/nestjs-backend
