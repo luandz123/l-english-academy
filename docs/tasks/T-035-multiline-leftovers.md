@@ -342,3 +342,20 @@ grep -rl "integrations/supabase/client" src --include=*.ts --include=*.tsx | gre
 
 ## 8. Câu hỏi (người làm điền khi bị chặn)
 *(Không có)*
+
+---
+
+## Review (Claude, 2026-10-29) — ✅ PASS, merged (Claude sửa khi merge)
+
+Logic đúng: `GET /learning/my-enrollments` lấy `user_id` từ token (RLS "Users view own enrollments"), route admin guard cấp class + e2e 3 vai, tạo đề + 7 quiz + 7 section trong một `$transaction`, tìm từ vựng `limit` cố định ở server.
+
+**Claude sửa khi merge:**
+1. **Prettier định dạng lại JSX** ở 9 file `.tsx` (thụt lề `<Route>`, gộp dòng template literal trong `className`) → khôi phục định dạng gốc, chỉ giữ dòng import/queryFn/mutationFn. `check-ui-diff`: OK.
+2. **Tạo đề áp mặc định của CourseFullTestManager cho mọi nơi gọi** (`category '2026'`, `display_order = count + 1`, trim) → trường không gửi để mặc định DB như insert cũ của `AdminFullTestManager` (`general`, `0`); lưu đúng giá trị client gửi.
+3. **Sửa đề ghi đè `category = '2026'`, `release_date = null`** khi client không gửi (AdminFullTestManager cũ chỉ gửi title/description/audio_url/course_id) → mất dữ liệu mỗi lần sửa. Nay chỉ cập nhật trường có trong request.
+
+Lưu ý cho lần sau: **không chạy Prettier/format-on-save cho `src/**/*.tsx`**; chỉ format file backend.
+
+Kiểm tra sau gộp (merge/T-035, sau sửa): backend LINT_OK, TYPE_OK, unit 346/346, e2e 447/447 (trước sửa) + 48/48 hai spec bị ảnh hưởng (sau sửa), BUILD_OK; frontend 229/229, FE_LINT_OK, tsc (adapter + trang đã sửa) rỗng, `check-ui-diff` OK, `✓ built`.
+
+File còn import Supabase client: `WordShooterArena.tsx`, `WordShooterLobby.tsx` (chỉ `supabase.channel` — #28), `useVoiceRoom.ts`, `SpeakingRoomsPage.tsx`, `speakingService.ts` (#11).

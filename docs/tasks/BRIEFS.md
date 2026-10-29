@@ -19,6 +19,8 @@ Từ T-025, Claude chỉ viết **bản tóm tắt** dưới đây. Antigravity 
 - [ ] **Ghi nhiều bước = một `$transaction`**; lỗi giữa chừng không để lại bản ghi dở.
 - [ ] **Lỗi dạng `{ code, message }`**, không ném chuỗi trần.
 
+**Không chạy Prettier / format-on-save cho `src/**/*.tsx`** (định dạng lại JSX = vi phạm luật 1, T-035). Chỉ format file backend.
+
 Luật chung nhắc lại: không sửa JSX/`className`/câu chữ/`queryKey`; giữ đúng cách xử lý lỗi cũ (chỗ cũ bỏ qua lỗi thì vẫn bỏ qua); client **không** gửi điểm, giá, quyền, `user_id`, `display_order`; route `/me` hay đoạn cố định khai báo **trước** `/:id`; e2e 3 vai (401/403/2xx) cho mọi route admin.
 
 ---
