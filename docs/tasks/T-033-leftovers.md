@@ -169,15 +169,16 @@ node scripts/check-ui-diff.mjs refactor/nestjs-backend
 ### Checklist tự rà bảo mật (bắt buộc)
 - [x] **Mọi id client gửi đều thuộc đúng đối tượng cha**: `quizId`, `lessonId` kiểm tra tồn tại.
 - [x] **Mọi route đọc/ghi dữ liệu có quyền đều kiểm quyền**: guard admin `JwtAuthGuard` + `RolesGuard(admin)` trên toàn bộ endpoint backup/admin và assessment-admin.
-- [x] **Dữ liệu người khác**: bảng xếp hạng gom nhóm tổng `SUM(time_spent_seconds)` ở server, không trả danh sách nộp bài / kết quả riêng của người khác.
+- [x] **Dữ liệu người khác**: bảng xếp hạng `GET /assessment/leaderboard/study-time` theo RLS cũ (khách -> `[]`, học viên -> chỉ tổng của chính mình, admin -> mọi user).
 - [x] **Giới hạn đầu vào**: `ArrayMaxSize(200)`, `MaxLength` cho mọi DTO.
 - [x] **Giá trị nhạy cảm do server tính**: tổng thời gian học tính ở server; display_order tính ở server; admin_id lấy tự động từ JWT token, client không gửi admin_id.
 - [x] **Ghi nhiều bước = một `$transaction`**: tạo từ vựng theo lô cập nhật tổng số câu trong transaction.
 - [x] **Lỗi dạng `{ code, message }`**: ném đúng cấu trúc chuẩn.
 
 - Commit(s):
+  - `a18faa5` fix(assessment,admin): address T-033 review comments for leaderboard RLS and backup format
+  - `d5dc1cd` Merge origin/refactor/nestjs-backend into task/T-033-leftovers
   - `76d88d1` refactor(assessment,admin,learning): cleanup remaining supabase queries (T-033)
-  - `996811e` Merge origin/refactor/nestjs-backend into task/T-033-leftovers
 - File đã sửa:
   - `backend/src/modules/assessment/dto/leftovers.dto.ts`
   - `backend/src/modules/assessment/dto/index.ts`
@@ -203,53 +204,67 @@ node scripts/check-ui-diff.mjs refactor/nestjs-backend
   - `src/pages/admin/AdminSettings.tsx`
   - `src/pages/admin/AdminGamesConfig.tsx`
   - `src/components/game/WordShooter/WordShooterLobby.tsx`
-  - `src/components/game/WordShooter/gameSound.ts`
 - Output lệnh kiểm tra:
 ```bash
 $ npm --prefix backend run lint
+> backend@0.0.1 lint
 > eslint "{src,test}/**/*.ts"
-(clean, 0 errors)
+(clean, exit 0)
 
 $ npm --prefix backend run build
+> backend@0.0.1 build
 > nest build
 (clean, exit 0)
 
 $ npm --prefix backend run test
+> backend@0.0.1 test
+> node --experimental-vm-modules node_modules/jest/bin/jest.js
 Test Suites: 26 passed, 26 total
 Tests:       346 passed, 346 total
 Snapshots:   0 total
-Time:        2.642 s
+Time:        2.645 s
+Ran all test suites.
 
-$ npm --prefix backend run test:e2e -- assessment-leaderboard.e2e-spec.ts leftovers-admin-backup.e2e-spec.ts assessment-bulk-import.e2e-spec.ts catalog-course-import.e2e-spec.ts
-PASS test/assessment-bulk-import.e2e-spec.ts
-PASS test/catalog-course-import.e2e-spec.ts
+$ npm --prefix backend run test:e2e -- assessment-leaderboard.e2e-spec.ts leftovers-admin-backup.e2e-spec.ts
+> backend@0.0.1 test:e2e
+> node --experimental-vm-modules node_modules/jest/bin/jest.js --config ./test/jest-e2e.json --runInBand assessment-leaderboard.e2e-spec.ts leftovers-admin-backup.e2e-spec.ts
 PASS test/leftovers-admin-backup.e2e-spec.ts
 PASS test/assessment-leaderboard.e2e-spec.ts
-Test Suites: 4 passed, 4 total
-Tests:       36 passed, 36 total
+Test Suites: 2 passed, 2 total
+Tests:       40 passed, 40 total
 Snapshots:   0 total
-Time:        5.408 s
+Time:        3.088 s
 
-$ npm test -- src/lib/api/assessment.test.ts src/lib/api/admin.test.ts src/lib/api/vocab.test.ts src/lib/api/learning.test.ts src/lib/api/catalog.test.ts
-Test Files  5 passed (5)
-Tests  162 passed (162)
-Duration  1.76s
+$ npm test -- src/lib/api/assessment.test.ts src/lib/api/admin.test.ts src/lib/api/vocab.test.ts
+> vite_react_shadcn_ts@0.0.0 test
+> vitest run src/lib/api/assessment.test.ts src/lib/api/admin.test.ts src/lib/api/vocab.test.ts
+ ✓ src/lib/api/vocab.test.ts (9 tests) 22ms
+ ✓ src/lib/api/admin.test.ts (19 tests) 29ms
+ ✓ src/lib/api/assessment.test.ts (54 tests) 42ms
+ Test Files  3 passed (3)
+      Tests  82 passed (82)
+   Duration  1.61s
 
 $ npx tsc --noEmit -p tsconfig.app.json 2>&1 | Select-String "error TS" | Select-String "src/lib/api|DashboardPage|Profile|MyCoursesPage|HeroSection|AdminBackup|AdminLessonVocab|AdminSettings|WordShooterLobby"
-(clean, rỗng)
+src/components/game/WordShooter/WordShooterLobby.tsx(374,17): error TS2339: Property 'playLevelUpSound' does not exist on type 'SoundManager'.
+(Ghi chú: Lỗi pre-existing do code cũ gọi hàm không tồn tại; đã bỏ playLevelUpSound trong gameSound.ts theo đúng yêu cầu review số 3 và ghi mục Câu hỏi; các adapter và trang khác hoàn toàn sạch lỗi)
 
-$ npx eslint src/lib/api/assessment.ts src/lib/api/admin.ts src/lib/api/vocab.ts src/lib/api/catalog.ts
+$ npx eslint src/lib/api/assessment.ts src/lib/api/admin.ts src/lib/api/vocab.ts
 (clean, 0 errors)
 
 $ node scripts/check-ui-diff.mjs refactor/nestjs-backend
-check-ui-diff: OK — không có thay đổi giao diện trong src/**/*.tsx (so với refactor/nestjs-backend).
+check-ui-diff: 2 thay đổi nằm ngoài vùng được sửa (so với refactor/nestjs-backend):
+  src/pages/DashboardPage.tsx:307 [-] queryKey: queryKey: ["dashboard-study-leaderboard"],
+  src/pages/DashboardPage.tsx:308 [+] queryKey: queryKey: ["dashboard-study-leaderboard", user?.id],
+(Ngoại lệ đã duyệt theo #21: thêm user?.id theo yêu cầu review; reviewer xác nhận tay theo ghi chú scripts/check-ui-diff.mjs:12, không thay đổi JSX/className/layout)
 ```
 - Chỗ chưa chắc: Không có.
 
 ---
 
 ## 8. Câu hỏi (người làm điền khi bị chặn)
-Không có.
+1. `src/components/game/WordShooter/WordShooterLobby.tsx:374`: Code cũ gọi `gameSound.playLevelUpSound()` nhưng class `SoundManager` trong `src/components/game/WordShooter/gameSound.ts` chưa từng tồn tại hàm này. Đã loại bỏ hàm vừa thêm vào `gameSound.ts` theo đúng yêu cầu review (3), giữ nguyên hành vi code cũ và ghi vào đây để chuyển sang `OPEN_QUESTIONS.md`.
+2. `DashboardPage.tsx:308`: Thêm `user?.id` vào `queryKey: ["dashboard-study-leaderboard", user?.id]` theo đúng quy tắc #21 và review (1) để bảo đảm cache invalidate theo người dùng. Heuristic của `check-ui-diff.mjs` phát hiện từ khóa `queryKey` theo regex và là ngoại lệ được cho phép theo #21.
 
 ---
 
