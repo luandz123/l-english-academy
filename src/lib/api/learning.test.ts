@@ -7,6 +7,7 @@ import {
   deleteLesson,
   deletePractice,
   getCurriculum,
+  getMyCoursesModules,
   getMyEnrollment,
   listLessonMaterials,
   listLessonPractices,
@@ -998,6 +999,16 @@ describe("learning adapter", () => {
         ).error,
       ).toBeInstanceOf(ApiError);
       expect((await deletePractice(1)).error).toBeInstanceOf(ApiError);
+    });
+
+    it("getMyCoursesModules gọi GET /api/v1/learning/my-courses/modules và trả []", async () => {
+      const fetchMock = mockFetch(200, []);
+      const { data, error } = await getMyCoursesModules();
+      expect(error).toBeNull();
+      expect(data).toEqual([]);
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("/api/v1/learning/my-courses/modules");
+      expect(init?.method).toBe("GET");
     });
   });
 });

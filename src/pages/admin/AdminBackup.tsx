@@ -6,7 +6,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  getBackupStats,
+  getBackupExportFull,
+  getBackupExportStudents,
+  getBackupExportTestResults,
+  getBackupExportQuestionBank,
+  createAdminActivityLog,
+} from "@/lib/api/admin";
 import { useAuth } from "@/hooks/useAuth";
 import {
   Database,
@@ -77,21 +84,16 @@ const AdminBackup: React.FC = () => {
   const fetchTableCounts = async () => {
     setLoadingStats(true);
     try {
-      const updated = await Promise.all(
-        tableStats.map(async (item) => {
-          try {
-            const { count, error } = await supabase
-              .from(item.tableName as any)
-              .select("*", { count: "exact", head: true });
-            if (error) {
-              return { ...item, count: null, status: "error" as const };
-            }
-            return { ...item, count: count ?? 0, status: "ready" as const };
-          } catch {
-            return { ...item, count: null, status: "error" as const };
-          }
-        })
-      );
+      const { data, error } = await getBackupStats();
+      if (error || !data) {
+        setTableStats(tableStats.map((item) => ({ ...item, count: null, status: "error" as const })));
+        return;
+      }
+      const updated = tableStats.map((item) => ({
+        ...item,
+        count: (data as any)[item.tableName] ?? 0,
+        status: "ready" as const,
+      }));
       setTableStats(updated);
     } catch (err) {
       console.error("Error fetching stats:", err);
@@ -126,55 +128,23 @@ const AdminBackup: React.FC = () => {
   // 1. FULL SNAPSHOT BACKUP (JSON)
   const handleExportFullBackup = async () => {
     setIsExportingFull(true);
-    setExportProgress(5);
+    setExportProgress(10);
     setExportStatusText("Khởi tạo tiến trình sao lưu toàn diện...");
 
     try {
-      const tablesToFetch = [
-        "platform_settings",
-        "course_categories",
-        "courses",
-        "modules",
-        "lessons",
-        "lesson_practices",
-        "quizzes",
-        "full_tests",
-        "full_test_sections",
-        "questions",
-        "answers",
-        "profiles",
-        "user_roles",
-        "enrollments",
-        "user_full_test_results",
-        "user_quiz_results",
-        "user_lesson_progress",
-        "vocab_categories",
-        "vocab_quizzes",
-        "vocab_questions",
-      ];
-
-      const backupData: Record<string, any[]> = {};
-      let totalRecords = 0;
-      const stepIncrement = 85 / tablesToFetch.length;
-
-      for (let i = 0; i < tablesToFetch.length; i++) {
-        const table = tablesToFetch[i];
-        setExportStatusText(`Đang kết xuất bảng dữ liệu: ${table}...`);
-        
-        const { data, error } = await supabase.from(table as any).select("*");
-        if (error) {
-          console.warn(`Lỗi đọc bảng ${table}:`, error.message);
-          backupData[table] = [];
-        } else {
-          backupData[table] = data || [];
-          totalRecords += (data || []).length;
-        }
-
-        setExportProgress(Math.round(5 + (i + 1) * stepIncrement));
+      setExportProgress(30);
+      setExportStatusText("Đang tải dữ liệu snapshot từ máy chủ...");
+      const { data: exportRes, error } = await getBackupExportFull();
+      if (error || !exportRes) {
+        throw error || new Error("Không thể tải bản sao lưu");
       }
 
-      setExportProgress(95);
+      setExportProgress(80);
       setExportStatusText("Đang tổng hợp siêu dữ liệu (metadata) và tệp gói...");
+
+      const backupData = exportRes.snapshot;
+      const totalRecords = Object.values(exportRes.counts).reduce((a, b) => a + b, 0);
+      const tablesCount = Object.keys(backupData).length;
 
       const now = new Date();
       const timestampIso = now.toISOString();
@@ -187,11 +157,9 @@ const AdminBackup: React.FC = () => {
         backup_type: "FULL_DATABASE_SNAPSHOT",
         created_at: timestampIso,
         created_by: user?.email || user?.id || "admin",
-        total_tables: tablesToFetch.length,
+        total_tables: tablesCount,
         total_records: totalRecords,
-        tables_summary: Object.fromEntries(
-          Object.entries(backupData).map(([k, v]) => [k, v.length])
-        ),
+        tables_summary: exportRes.counts,
         data: backupData,
       };
 
@@ -213,9 +181,9 @@ const AdminBackup: React.FC = () => {
       setLastBackup(historyItem);
       localStorage.setItem("lenglish_last_backup_meta", JSON.stringify(historyItem));
 
-      // Log activity to admin_activity_log if possible
+      // Log activity to admin_activity_log
       try {
-        await supabase.from("admin_activity_log").insert({
+        await createAdminActivityLog({
           action: "BACKUP_EXPORT_FULL",
           entity_type: "SYSTEM_BACKUP",
           entity_id: filename,
@@ -233,7 +201,7 @@ const AdminBackup: React.FC = () => {
       setExportProgress(100);
       toast({
         title: "Sao lưu thành công!",
-        description: `Đã xuất ${totalRecords.toLocaleString()} bản ghi từ ${tablesToFetch.length} bảng dữ liệu (${(sizeBytes / 1024).toFixed(1)} KB).`,
+        description: `Đã xuất ${totalRecords.toLocaleString()} bản ghi từ ${tablesCount} bảng dữ liệu (${(sizeBytes / 1024).toFixed(1)} KB).`,
       });
     } catch (err: any) {
       console.error("Backup export error:", err);
@@ -255,10 +223,7 @@ const AdminBackup: React.FC = () => {
   const handleExportStudents = async () => {
     toast({ title: "Đang xuất danh sách học viên..." });
     try {
-      const { data: profiles, error } = await supabase
-        .from("profiles")
-        .select("user_id, full_name, email, avatar_url, updated_at")
-        .order("updated_at", { ascending: false });
+      const { data: profiles, error } = await getBackupExportStudents();
 
       if (error) throw error;
 
@@ -284,10 +249,7 @@ const AdminBackup: React.FC = () => {
   const handleExportTestResults = async () => {
     toast({ title: "Đang xuất kết quả thi Full Test..." });
     try {
-      const { data: results, error } = await supabase
-        .from("user_full_test_results")
-        .select("id, user_id, test_id, correct_answers, listening_score, reading_score, total_score, time_spent_seconds, test_mode, created_at")
-        .order("created_at", { ascending: false });
+      const { data: results, error } = await getBackupExportTestResults();
 
       if (error) throw error;
 
@@ -330,24 +292,19 @@ const AdminBackup: React.FC = () => {
   const handleExportQuestionBank = async () => {
     toast({ title: "Đang xuất ngân hàng câu hỏi đề thi..." });
     try {
-      const [qRes, aRes, ftRes] = await Promise.all([
-        supabase.from("questions").select("*"),
-        supabase.from("answers").select("*"),
-        supabase.from("full_tests").select("id, title, test_year, target_score, is_active"),
-      ]);
+      const { data: res, error } = await getBackupExportQuestionBank();
 
-      if (qRes.error) throw qRes.error;
-      if (aRes.error) throw aRes.error;
+      if (error || !res) throw error || new Error("Không thể tải ngân hàng câu hỏi");
 
       const payload = {
         app_name: "L-English Academy Question Bank",
         exported_at: new Date().toISOString(),
-        total_tests: ftRes.data?.length || 0,
-        total_questions: qRes.data?.length || 0,
-        total_answers: aRes.data?.length || 0,
-        full_tests: ftRes.data || [],
-        questions: qRes.data || [],
-        answers: aRes.data || [],
+        total_tests: res.full_tests?.length || 0,
+        total_questions: res.questions?.length || 0,
+        total_answers: res.answers?.length || 0,
+        full_tests: res.full_tests || [],
+        questions: res.questions || [],
+        answers: res.answers || [],
       };
 
       const filename = `toeic_question_bank_${new Date().toISOString().slice(0, 10)}.json`;

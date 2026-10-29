@@ -105,3 +105,20 @@ export async function getLessonQuizId(
   }
   return { data: res.data?.lesson ?? null, error: null };
 }
+
+export interface VocabPoolItem {
+  id: number;
+  word: string;
+  phonetic: string | null;
+  definition_vi: string | null;
+  audio_male_url: string | null;
+}
+
+/** Lấy ngân hàng từ vựng ngẫu nhiên cho game Word Shooter (T-033). */
+export async function getVocabPool(
+  limit = 100,
+): Promise<{ data: VocabPoolItem[] | null; error: ApiError | null }> {
+  return toResult(
+    apiClient.get<VocabPoolItem[]>(`assessment/vocab/pool?limit=${limit}`),
+  );
+}

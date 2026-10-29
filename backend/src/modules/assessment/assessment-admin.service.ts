@@ -5,11 +5,15 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { AssessmentMapper } from './assessment.mapper';
+import { VocabMapper } from './vocab.mapper';
 import { AssessmentAdminRepository } from './assessment-admin.repository';
 import {
   AdminFullTestDetailDto,
   BulkDeleteQuestionsDto,
+  BulkDeleteVocabWordsDto,
   CreateFullTestQuestionDto,
+  CreateLessonVocabQuizDto,
+  CreateVocabWordsBatchDto,
   FullTestQuestionDto,
   PatchQuizDto,
   QuizDto,
@@ -17,10 +21,13 @@ import {
   ReviewQuestionDto,
   SaveModuleQuizDto,
   SaveQuestionDto,
+  SaveVocabWordDto,
   SetQuestionImagesDto,
   UpdateFullTestDto,
   UpdateFullTestQuestionDto,
   UpdateQuestionGroupDto,
+  VocabQuizDto,
+  VocabWordDto,
 } from './dto';
 
 @Injectable()
@@ -28,6 +35,7 @@ export class AssessmentAdminService {
   constructor(
     private readonly repo: AssessmentAdminRepository,
     private readonly mapper: AssessmentMapper,
+    private readonly vocabMapper: VocabMapper,
   ) {}
 
   async listQuizQuestions(quizId: number): Promise<ReviewQuestionDto[]> {
@@ -653,5 +661,75 @@ export class AssessmentAdminService {
       imageUrl: dto.image_url ?? null,
       groupId: dto.group_id ?? null,
     });
+  }
+
+  async getLessonVocabQuiz(lessonId: number): Promise<VocabQuizDto | null> {
+    const quiz = await this.repo.findVocabQuizByLessonId(lessonId);
+    return quiz ? this.vocabMapper.toVocabQuizDto(quiz) : null;
+  }
+
+  async getOrCreateLessonVocabQuiz(
+    lessonId: number,
+    dto: CreateLessonVocabQuizDto,
+  ): Promise<VocabQuizDto> {
+    const existing = await this.repo.findVocabQuizByLessonId(lessonId);
+    if (existing) return this.vocabMapper.toVocabQuizDto(existing);
+    const created = await this.repo.createVocabQuiz({
+      lessonId,
+      title: dto.title,
+      display_order: dto.display_order,
+    });
+    return this.vocabMapper.toVocabQuizDto(created);
+  }
+
+  async getLessonVocabWords(
+    quizId: number,
+    questionId?: number,
+  ): Promise<VocabWordDto[]> {
+    const words = await this.repo.findVocabWords(quizId, questionId);
+    return words.map((w) => this.vocabMapper.toVocabWordDto(w));
+  }
+
+  async createVocabWordsBatch(
+    quizId: number,
+    dto: CreateVocabWordsBatchDto,
+  ): Promise<{ count: number }> {
+    const count = await this.repo.createVocabWords(quizId, dto.words);
+    return { count };
+  }
+
+  async updateVocabWord(
+    id: number,
+    dto: Partial<SaveVocabWordDto>,
+  ): Promise<VocabWordDto> {
+    const word = await this.repo.updateVocabWord(id, dto);
+    return this.vocabMapper.toVocabWordDto(word);
+  }
+
+  async deleteVocabWord(id: number): Promise<void> {
+    await this.repo.deleteVocabWord(id);
+  }
+
+  async bulkDeleteVocabWords(
+    dto: BulkDeleteVocabWordsDto,
+  ): Promise<{ count: number }> {
+    const count = await this.repo.bulkDeleteVocabWords(dto.ids);
+    return { count };
+  }
+
+  async getAllLessonsForVocab(): Promise<
+    { id: number; title: string; moduleId: number | null }[]
+  > {
+    return this.repo.findAllLessonsForVocab();
+  }
+
+  async getLessonQuestionsForVocab(lessonId: number): Promise<
+    {
+      id: number;
+      question_text: string | null;
+      display_order: number;
+    }[]
+  > {
+    return this.repo.findLessonQuestions(lessonId);
   }
 }

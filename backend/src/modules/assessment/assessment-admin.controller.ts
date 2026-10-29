@@ -10,6 +10,7 @@ import {
   Patch,
   Post,
   Put,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -32,7 +33,10 @@ import { AssessmentAdminService } from './assessment-admin.service';
 import {
   AdminFullTestDetailDto,
   BulkDeleteQuestionsDto,
+  BulkDeleteVocabWordsDto,
   CreateFullTestQuestionDto,
+  CreateLessonVocabQuizDto,
+  CreateVocabWordsBatchDto,
   FullTestQuestionDto,
   PatchQuizDto,
   QuizDto,
@@ -40,10 +44,13 @@ import {
   ReviewQuestionDto,
   SaveModuleQuizDto,
   SaveQuestionDto,
+  SaveVocabWordDto,
   SetQuestionImagesDto,
   UpdateFullTestDto,
   UpdateFullTestQuestionDto,
   UpdateQuestionGroupDto,
+  VocabQuizDto,
+  VocabWordDto,
 } from './dto';
 
 @ApiTags('assessment-admin')
@@ -401,5 +408,90 @@ export class AssessmentAdminController {
     @Param('id', ParseIntPipe) id: number,
   ): Promise<void> {
     await this.assessmentAdminService.deleteFullTestQuestion(id);
+  }
+
+  @Get('vocab/lessons/:lessonId/quiz')
+  @ApiOperation({ summary: 'Admin lấy vocab quiz theo bài học' })
+  @ApiOkResponse({ type: VocabQuizDto })
+  getLessonVocabQuiz(
+    @Param('lessonId', ParseIntPipe) lessonId: number,
+  ): Promise<VocabQuizDto | null> {
+    return this.assessmentAdminService.getLessonVocabQuiz(lessonId);
+  }
+
+  @Post('vocab/lessons/:lessonId/quiz')
+  @ApiOperation({ summary: 'Admin tạo vocab quiz cho bài học nếu chưa có' })
+  @ApiOkResponse({ type: VocabQuizDto })
+  getOrCreateLessonVocabQuiz(
+    @Param('lessonId', ParseIntPipe) lessonId: number,
+    @Body() dto: CreateLessonVocabQuizDto,
+  ): Promise<VocabQuizDto> {
+    return this.assessmentAdminService.getOrCreateLessonVocabQuiz(
+      lessonId,
+      dto,
+    );
+  }
+
+  @Get('vocab/quizzes/:quizId/words')
+  @ApiOperation({ summary: 'Admin lấy danh sách từ vựng của quiz' })
+  @ApiOkResponse({ type: [VocabWordDto] })
+  getLessonVocabWords(
+    @Param('quizId', ParseIntPipe) quizId: number,
+    @Query('questionId') questionId?: string,
+  ): Promise<VocabWordDto[]> {
+    const qId = questionId ? parseInt(questionId, 10) : undefined;
+    return this.assessmentAdminService.getLessonVocabWords(
+      quizId,
+      isNaN(qId as number) ? undefined : qId,
+    );
+  }
+
+  @Post('vocab/quizzes/:quizId/words')
+  @ApiOperation({ summary: 'Admin thêm hàng loạt từ vựng vào quiz' })
+  createVocabWordsBatch(
+    @Param('quizId', ParseIntPipe) quizId: number,
+    @Body() dto: CreateVocabWordsBatchDto,
+  ): Promise<{ count: number }> {
+    return this.assessmentAdminService.createVocabWordsBatch(quizId, dto);
+  }
+
+  @Put('vocab/words/:id')
+  @ApiOperation({ summary: 'Admin cập nhật một từ vựng' })
+  @ApiOkResponse({ type: VocabWordDto })
+  updateVocabWord(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: SaveVocabWordDto,
+  ): Promise<VocabWordDto> {
+    return this.assessmentAdminService.updateVocabWord(id, dto);
+  }
+
+  @Delete('vocab/words/:id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Admin xóa một từ vựng' })
+  async deleteVocabWord(@Param('id', ParseIntPipe) id: number): Promise<void> {
+    await this.assessmentAdminService.deleteVocabWord(id);
+  }
+
+  @Post('vocab/words/bulk-delete')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Admin xóa nhiều từ vựng' })
+  bulkDeleteVocabWords(@Body() dto: BulkDeleteVocabWordsDto) {
+    return this.assessmentAdminService.bulkDeleteVocabWords(dto);
+  }
+
+  @Get('vocab/lessons')
+  @ApiOperation({ summary: 'Admin lấy danh sách bài học để copy từ vựng' })
+  getAllLessonsForVocab() {
+    return this.assessmentAdminService.getAllLessonsForVocab();
+  }
+
+  @Get('vocab/lessons/:lessonId/questions')
+  @ApiOperation({
+    summary: 'Admin lấy danh sách câu hỏi của bài học để gán từ vựng',
+  })
+  getLessonQuestionsForVocab(
+    @Param('lessonId', ParseIntPipe) lessonId: number,
+  ) {
+    return this.assessmentAdminService.getLessonQuestionsForVocab(lessonId);
   }
 }

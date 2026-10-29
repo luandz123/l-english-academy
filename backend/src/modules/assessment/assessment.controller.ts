@@ -36,6 +36,7 @@ import {
   QuizResultDto,
   QuizResultWithQuizDto,
   ReviewQuestionDto,
+  StudyTimeLeaderboardItemDto,
   SubmitQuizDto,
   SubmitQuizResponseDto,
   UserAnswerDto,
@@ -47,6 +48,15 @@ import { AssessmentService } from './assessment.service';
 @Controller('assessment')
 export class AssessmentController {
   constructor(private readonly assessment: AssessmentService) {}
+
+  @Get('leaderboard/study-time')
+  @ApiOperation({
+    summary: 'Bảng xếp hạng tổng thời gian học tập của học viên (công khai)',
+  })
+  @ApiOkResponse({ type: [StudyTimeLeaderboardItemDto] })
+  getStudyTimeLeaderboard(): Promise<StudyTimeLeaderboardItemDto[]> {
+    return this.assessment.getStudyTimeLeaderboard();
+  }
 
   @Get('quizzes/:quizId')
   @ApiOperation({ summary: 'Thông tin một quiz (công khai như RLS cũ)' })

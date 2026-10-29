@@ -51,6 +51,7 @@ import {
 } from '@/services/wordShooterRankService';
 import { gameSound } from './gameSound';
 import { supabase } from '@/integrations/supabase/client';
+import { getVocabPool } from '@/lib/api/vocab';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
@@ -196,12 +197,7 @@ export const WordShooterLobby: React.FC<WordShooterLobbyProps> = ({ onStartGame,
   const fetchSupabaseWords = async () => {
     setIsLoadingDbWords(true);
     try {
-      const { data, error } = await supabase
-        .from('vocab_questions')
-        .select('id, word, phonetic, definition_vi, audio_male_url')
-        .not('word', 'is', null)
-        .not('definition_vi', 'is', null)
-        .limit(100);
+      const { data, error } = await getVocabPool(100);
 
       if (error || !data || data.length === 0) {
         toast({

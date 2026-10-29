@@ -159,4 +159,47 @@ export class AssessmentRepository {
       ],
     });
   }
+
+  async getStudyTimeLeaderboard(): Promise<
+    Array<{ user_id: string; total_seconds: number }>
+  > {
+    const [testAgg, quizAgg] = await Promise.all([
+      this.prisma.userFullTestResult.groupBy({
+        by: ['userId'],
+        _sum: { timeSpentSeconds: true },
+        where: { timeSpentSeconds: { not: null } },
+      }),
+      this.prisma.userQuizResult.groupBy({
+        by: ['userId'],
+        _sum: { timeSpentSeconds: true },
+        where: { timeSpentSeconds: { not: null } },
+      }),
+    ]);
+
+    const userMap = new Map<string, number>();
+    for (const t of testAgg) {
+      if (t.userId && t._sum.timeSpentSeconds) {
+        userMap.set(
+          t.userId,
+          (userMap.get(t.userId) || 0) + t._sum.timeSpentSeconds,
+        );
+      }
+    }
+    for (const q of quizAgg) {
+      if (q.userId && q._sum.timeSpentSeconds) {
+        userMap.set(
+          q.userId,
+          (userMap.get(q.userId) || 0) + q._sum.timeSpentSeconds,
+        );
+      }
+    }
+
+    return [...userMap.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 100)
+      .map(([userId, totalSeconds]) => ({
+        user_id: userId,
+        total_seconds: totalSeconds,
+      }));
+  }
 }

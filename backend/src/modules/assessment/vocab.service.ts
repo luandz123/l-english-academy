@@ -4,9 +4,10 @@ import { VocabRepository } from './vocab.repository';
 import {
   LessonQuizIdResponseDto,
   VocabCategoryDto,
+  VocabPoolItemDto,
   VocabQuizDto,
   VocabWordDto,
-} from './dto/vocab.dto';
+} from './dto';
 
 @Injectable()
 export class VocabService {
@@ -136,5 +137,17 @@ export class VocabService {
       ids.push(parsed);
     }
     return ids;
+  }
+
+  /** Thay `WordShooterLobby.tsx:199`. Lấy pool từ vựng cho game. */
+  async getVocabPool(limit: number = 100): Promise<VocabPoolItemDto[]> {
+    const questions = await this.repo.findVocabPool(limit);
+    return questions.map((q) => ({
+      id: q.id,
+      word: q.word,
+      phonetic: q.phonetic ?? null,
+      definition_vi: q.definitionVi ?? null,
+      audio_male_url: q.audioMaleUrl ?? null,
+    }));
   }
 }

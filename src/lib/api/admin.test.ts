@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   addStudentNote,
+  createAdminActivityLog,
+  getAdminActivityLogs,
   getAdminCourseEnrollments,
   getAdminQuestionsByIds,
   getAdminQuizScores,
@@ -9,6 +11,12 @@ import {
   getAdminStatsCounts,
   getAdminStudents,
   getAdminUserAnswers,
+  getAdminUsers,
+  getBackupExportFull,
+  getBackupExportQuestionBank,
+  getBackupExportStudents,
+  getBackupExportTestResults,
+  getBackupStats,
   getPublicSetting,
   listAdminSettings,
   listStudentNotes,
@@ -234,6 +242,42 @@ describe("admin adapter", () => {
       const [url, init] = fetchMock.mock.calls[0];
       expect(url).toBe("/api/v1/admin/stats/students");
       expect(init?.method).toBe("GET");
+    });
+
+    it("getAdminUsers gọi GET /api/v1/admin/users/admins", async () => {
+      const admins = [{ id: "p-1", user_id: "u-1", full_name: "Admin", email: "admin@lenglish.com" }];
+      const fetchMock = mockFetch(200, admins);
+      const { data, error } = await getAdminUsers();
+      expect(error).toBeNull();
+      expect(data).toEqual(admins);
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("/api/v1/admin/users/admins");
+      expect(init?.method).toBe("GET");
+    });
+
+    it("getBackupStats gọi GET /api/v1/admin/backup/stats", async () => {
+      const stats = { courses: 5, lessons: 20, full_tests: 2, questions: 100, answers: 400, profiles: 10, user_full_test_results: 5, enrollments: 8, vocab_quizzes: 3, platform_settings: 1 };
+      const fetchMock = mockFetch(200, stats);
+      const { data, error } = await getBackupStats();
+      expect(error).toBeNull();
+      expect(data).toEqual(stats);
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("/api/v1/admin/backup/stats");
+      expect(init?.method).toBe("GET");
+    });
+
+    it("createAdminActivityLog gọi POST /api/v1/admin/activity-log", async () => {
+      const fetchMock = mockFetch(201, { id: 1, action: "BACKUP_EXPORT_FULL" });
+      const { data, error } = await createAdminActivityLog({
+        action: "BACKUP_EXPORT_FULL",
+        entity_type: "SYSTEM_BACKUP",
+        entity_id: "file.json",
+      });
+      expect(error).toBeNull();
+      expect(data?.action).toBe("BACKUP_EXPORT_FULL");
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("/api/v1/admin/activity-log");
+      expect(init?.method).toBe("POST");
     });
   });
 });

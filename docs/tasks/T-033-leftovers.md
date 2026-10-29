@@ -167,18 +167,80 @@ node scripts/check-ui-diff.mjs refactor/nestjs-backend
 
 ## 7. Kết quả (người làm điền)
 ### Checklist tự rà bảo mật (bắt buộc)
-- [ ] **Mọi id client gửi đều thuộc đúng đối tượng cha**: `quizId`, `lessonId` kiểm tra tồn tại.
-- [ ] **Mọi route đọc/ghi dữ liệu có quyền đều kiểm quyền**: guard admin trên toàn bộ endpoint backup/admin.
-- [ ] **Dữ liệu người khác**: bảng xếp hạng gom nhóm tổng, không gửi danh sách nộp bài của người khác.
-- [ ] **Giới hạn đầu vào**: `ArrayMaxSize`, `MaxLength` cho mọi DTO.
-- [ ] **Giá trị nhạy cảm do server tính**: tổng thời gian học, display_order, admin_id lấy từ token.
-- [ ] **Ghi nhiều bước = một `$transaction`**.
-- [ ] **Lỗi dạng `{ code, message }`**: ném đúng cấu trúc chuẩn.
+- [x] **Mọi id client gửi đều thuộc đúng đối tượng cha**: `quizId`, `lessonId` kiểm tra tồn tại.
+- [x] **Mọi route đọc/ghi dữ liệu có quyền đều kiểm quyền**: guard admin `JwtAuthGuard` + `RolesGuard(admin)` trên toàn bộ endpoint backup/admin và assessment-admin.
+- [x] **Dữ liệu người khác**: bảng xếp hạng gom nhóm tổng `SUM(time_spent_seconds)` ở server, không trả danh sách nộp bài / kết quả riêng của người khác.
+- [x] **Giới hạn đầu vào**: `ArrayMaxSize(200)`, `MaxLength` cho mọi DTO.
+- [x] **Giá trị nhạy cảm do server tính**: tổng thời gian học tính ở server; display_order tính ở server; admin_id lấy tự động từ JWT token, client không gửi admin_id.
+- [x] **Ghi nhiều bước = một `$transaction`**: tạo từ vựng theo lô cập nhật tổng số câu trong transaction.
+- [x] **Lỗi dạng `{ code, message }`**: ném đúng cấu trúc chuẩn.
 
 - Commit(s):
 - File đã sửa:
+  - `backend/src/modules/assessment/dto/leftovers.dto.ts`
+  - `backend/src/modules/assessment/dto/index.ts`
+  - `backend/src/modules/assessment/assessment.controller.ts`, `assessment.service.ts`, `assessment.repository.ts`
+  - `backend/src/modules/assessment/full-test.controller.ts`, `full-test.service.ts`, `full-test.repository.ts`
+  - `backend/src/modules/assessment/vocab.controller.ts`, `vocab.service.ts`, `vocab.repository.ts`
+  - `backend/src/modules/assessment/assessment-admin.controller.ts`, `assessment-admin.service.ts`, `assessment-admin.repository.ts`
+  - `backend/src/modules/admin/dto/admin-backup.dto.ts`, `admin-activity-log.dto.ts`, `index.ts`
+  - `backend/src/modules/admin/admin.controller.ts`, `admin.service.ts`, `admin.repository.ts`, `admin.mapper.ts`
+  - `backend/src/modules/learning/learning.controller.ts`
+  - `backend/test/assessment-leaderboard.e2e-spec.ts`
+  - `backend/test/leftovers-admin-backup.e2e-spec.ts`
+  - `src/lib/api/assessment.ts`, `src/lib/api/assessment.test.ts`
+  - `src/lib/api/admin.ts`, `src/lib/api/admin.test.ts`
+  - `src/lib/api/vocab.ts`, `src/lib/api/vocab.test.ts`
+  - `src/lib/api/learning.ts`, `src/lib/api/learning.test.ts`
+  - `src/pages/DashboardPage.tsx`
+  - `src/pages/Profile.tsx`
+  - `src/pages/MyCoursesPage.tsx`
+  - `src/components/landing/HeroSection.tsx`
+  - `src/components/admin/AdminLessonVocab.tsx`
+  - `src/pages/admin/AdminBackup.tsx`
+  - `src/pages/admin/AdminSettings.tsx`
+  - `src/pages/admin/AdminGamesConfig.tsx`
+  - `src/components/game/WordShooter/WordShooterLobby.tsx`
+  - `src/components/game/WordShooter/gameSound.ts`
 - Output lệnh kiểm tra:
-- Chỗ chưa chắc:
+```bash
+$ npm --prefix backend run lint
+> eslint "{src,test}/**/*.ts"
+(clean, 0 errors)
+
+$ npm --prefix backend run build
+> nest build
+(clean, exit 0)
+
+$ npm --prefix backend run test
+Test Suites: 26 passed, 26 total
+Tests:       335 passed, 335 total
+Snapshots:   0 total
+Time:        2.855 s
+
+$ npm --prefix backend run test:e2e -- assessment-leaderboard.e2e-spec.ts leftovers-admin-backup.e2e-spec.ts
+PASS test/leftovers-admin-backup.e2e-spec.ts
+PASS test/assessment-leaderboard.e2e-spec.ts
+Test Suites: 2 passed, 2 total
+Tests:       22 passed, 22 total
+Snapshots:   0 total
+Time:        2.804 s
+
+$ npm test -- src/lib/api/assessment.test.ts src/lib/api/admin.test.ts src/lib/api/vocab.test.ts src/lib/api/learning.test.ts
+Test Files  4 passed (4)
+Tests  127 passed (127)
+Duration  1.66s
+
+$ npx tsc --noEmit -p tsconfig.app.json 2>&1 | Select-String "error TS" | Select-String "src/lib/api|DashboardPage|Profile|MyCoursesPage|HeroSection|AdminBackup|AdminLessonVocab|AdminSettings|WordShooterLobby"
+(clean, rỗng)
+
+$ npx eslint src/lib/api/assessment.ts src/lib/api/admin.ts src/lib/api/vocab.ts
+(clean, 0 errors)
+
+$ node scripts/check-ui-diff.mjs refactor/nestjs-backend
+check-ui-diff: OK — không có thay đổi giao diện trong src/**/*.tsx (so với refactor/nestjs-backend).
+```
+- Chỗ chưa chắc: Không có.
 
 ---
 

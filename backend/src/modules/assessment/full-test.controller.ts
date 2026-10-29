@@ -27,6 +27,7 @@ import {
 } from '../auth/guards/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 import {
+  AssessmentStatsOverviewDto,
   FullTestAnswerDetailDto,
   FullTestDto,
   FullTestQuestionDto,
@@ -42,6 +43,22 @@ import { FullTestService } from './full-test.service';
 @Controller('assessment')
 export class FullTestController {
   constructor(private readonly fullTests: FullTestService) {}
+
+  @Get('stats/overview')
+  @ApiOperation({
+    summary: 'Thống kê tổng quan câu hỏi và đề thi nền tảng (công khai)',
+  })
+  @ApiOkResponse({ type: AssessmentStatsOverviewDto })
+  getStatsOverview(): Promise<AssessmentStatsOverviewDto> {
+    return this.fullTests.getStatsOverview();
+  }
+
+  @Get('full-tests')
+  @ApiOperation({ summary: 'Danh sách tất cả đề thi Full Test (công khai)' })
+  @ApiOkResponse({ type: [FullTestDto] })
+  getAllFullTests(): Promise<FullTestDto[]> {
+    return this.fullTests.getAllFullTests();
+  }
 
   @Get('courses/:courseId/full-tests')
   @ApiOperation({

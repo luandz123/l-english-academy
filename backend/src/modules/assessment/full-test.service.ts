@@ -184,6 +184,17 @@ export class FullTestService {
     }
   }
 
+  /** Thay `DashboardPage.tsx:208`. Lấy toàn bộ đề thi full test. */
+  async getAllFullTests(): Promise<FullTestDto[]> {
+    const tests = await this.repo.findAllFullTests();
+    return tests.map((t) => this.mapper.toFullTestDto(t));
+  }
+
+  /** Thay `Profile.tsx:205-208` & `HeroSection.tsx:17`. */
+  getStatsOverview() {
+    return this.repo.getStatsOverview();
+  }
+
   private async canSee(
     user: AuthenticatedUser,
     ownerId: string,

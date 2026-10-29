@@ -7,8 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { listAdminSettings, saveSetting } from "@/lib/api/admin";
+import { listAdminSettings, saveSetting, getAdminUsers } from "@/lib/api/admin";
 import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -191,11 +190,8 @@ const AdminSettings = () => {
   const { data: admins = [] } = useQuery({
     queryKey: ["admin-users"],
     queryFn: async () => {
-      const { data: roles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
-      if (!roles?.length) return [];
-      const userIds = roles.map((r) => r.user_id);
-      const { data: profiles } = await supabase.from("profiles").select("*").in("user_id", userIds);
-      return profiles ?? [];
+      const { data } = await getAdminUsers();
+      return data ?? [];
     },
   });
 

@@ -14,6 +14,7 @@ import {
   QuizResultDto,
   QuizResultWithQuizDto,
   ReviewQuestionDto,
+  StudyTimeLeaderboardItemDto,
   SubmitQuizDto,
   SubmitQuizResponseDto,
   UserAnswerDto,
@@ -167,6 +168,11 @@ export class AssessmentService {
     }
     const questions = await this.repo.findQuestionsWithAnswers(quizId);
     return questions.map((q) => this.mapper.toReviewQuestionDto(q));
+  }
+
+  /** Thay `DashboardPage.tsx:310`. Tổng hợp thời gian làm bài của học viên. */
+  getStudyTimeLeaderboard(): Promise<StudyTimeLeaderboardItemDto[]> {
+    return this.repo.getStudyTimeLeaderboard();
   }
 
   private async canSeeResult(

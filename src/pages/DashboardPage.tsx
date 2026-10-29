@@ -2,7 +2,11 @@ import React, { useState, useMemo, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { listMyQuizResults } from "@/lib/api/assessment";
+import {
+  listMyQuizResults,
+  getAllFullTests,
+  getStudyTimeLeaderboard,
+} from "@/lib/api/assessment";
 import { listCourses } from "@/lib/api/catalog";
 import { listMyFullTestResults } from "@/lib/api/fullTest";
 import { listMyProgressRows } from "@/lib/api/learning";
@@ -204,10 +208,7 @@ export const DashboardPage: React.FC = () => {
   const { data: allFullTests = [] } = useQuery({
     queryKey: ["dashboard-all-full-tests"],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("full_tests")
-        .select("id, title, category, display_order, course_id")
-        .order("display_order", { ascending: true });
+      const { data } = await getAllFullTests();
       return data || [];
     },
   });
@@ -306,22 +307,8 @@ export const DashboardPage: React.FC = () => {
   const { data: studyTimeLeaderboard = [] } = useQuery({
     queryKey: ["dashboard-study-leaderboard"],
     queryFn: async () => {
-      const [testsRes, quizzesRes] = await Promise.all([
-        supabase.from("user_full_test_results").select("user_id, time_spent_seconds"),
-        supabase.from("user_quiz_results").select("user_id, time_spent_seconds"),
-      ]);
-      const userTimes: Record<string, number> = {};
-      (testsRes.data || []).forEach((r: any) => {
-        if (r.user_id && r.time_spent_seconds) {
-          userTimes[r.user_id] = (userTimes[r.user_id] || 0) + r.time_spent_seconds;
-        }
-      });
-      (quizzesRes.data || []).forEach((r: any) => {
-        if (r.user_id && r.time_spent_seconds) {
-          userTimes[r.user_id] = (userTimes[r.user_id] || 0) + r.time_spent_seconds;
-        }
-      });
-      return Object.entries(userTimes).sort((a, b) => b[1] - a[1]);
+      const { data } = await getStudyTimeLeaderboard();
+      return data || [];
     },
   });
 

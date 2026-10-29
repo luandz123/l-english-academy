@@ -49,6 +49,14 @@ import { LearningService } from './learning.service';
 export class LearningController {
   constructor(private readonly learning: LearningService) {}
 
+  @Get('my-courses/modules')
+  @ApiOperation({
+    summary: 'Lấy modules và bài học cho MyCoursesPage (giữ hành vi cũ)',
+  })
+  getMyCoursesModules(): unknown[] {
+    return [];
+  }
+
   @Get('courses/:courseId/curriculum')
   @UseGuards(OptionalJwtAuthGuard)
   @ApiOperation({

@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   getLessonQuizId,
   getLessonVocabWords,
+  getVocabPool,
   listVocabCategories,
   listVocabQuizzes,
   listVocabWords,
@@ -123,6 +124,16 @@ describe("vocab adapter (T-021)", () => {
     const { data, error } = await getLessonQuizId(999);
     expect(error).toBeNull();
     expect(data).toBeNull();
+  });
+
+  it("getVocabPool gọi endpoint pool với limit", async () => {
+    const fetchMock = mockFetch(200, [{ id: 1, word: "test", phonetic: null, definition_vi: "thử", audio_male_url: null }]);
+    const { data, error } = await getVocabPool(50);
+    expect(error).toBeNull();
+    expect(data).toHaveLength(1);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe("/api/v1/assessment/vocab/pool?limit=50");
+    expect(init?.method).toBe("GET");
   });
 
   it("lỗi HTTP trả { data: null, error }", async () => {

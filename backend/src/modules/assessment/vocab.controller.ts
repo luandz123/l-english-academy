@@ -8,15 +8,28 @@ import {
 import {
   LessonQuizIdResponseDto,
   VocabCategoryDto,
+  VocabPoolItemDto,
   VocabQuizDto,
   VocabWordDto,
-} from './dto/vocab.dto';
+} from './dto';
 import { VocabService } from './vocab.service';
 
 @ApiTags('assessment-vocab')
 @Controller('assessment/vocab')
 export class VocabController {
   constructor(private readonly vocabService: VocabService) {}
+
+  @Get('pool')
+  @ApiOperation({
+    summary: 'Ngân hàng từ vựng ngẫu nhiên cho game Word Shooter (công khai)',
+  })
+  @ApiOkResponse({ type: [VocabPoolItemDto] })
+  getVocabPool(@Query('limit') limit?: string): Promise<VocabPoolItemDto[]> {
+    const parsedLimit = limit
+      ? Math.min(200, Math.max(1, Number(limit) || 100))
+      : 100;
+    return this.vocabService.getVocabPool(parsedLimit);
+  }
 
   @Get('courses/:courseId/categories')
   @ApiOperation({

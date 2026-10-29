@@ -1,25 +1,36 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  bulkDeleteAdminVocabWords,
   createAdminFullTestQuestion,
+  createAdminLessonVocabQuiz,
+  createAdminVocabWordsBatch,
   createLessonQuiz,
   createModuleQuiz,
   createQuizQuestion,
   deleteAdminFullTestQuestion,
+  deleteAdminVocabWord,
   deleteModuleQuiz,
   deleteQuizQuestion,
   deleteQuizQuestions,
   duplicateAdminFullTestQuestion,
   getAdminFullTestDetail,
   getAdminFullTestQuestions,
+  getAdminLessonVocabQuiz,
+  getAdminLessonVocabWords,
+  getAllFullTests,
+  getAllLessonsForVocab,
+  getAssessmentStatsOverview,
   getDictationAnswers,
   getDictationLesson,
   getDictationQuiz,
   getDictationVocab,
   getLatestQuizResult,
+  getLessonQuestionsForVocab,
   getOrCreateDictationResult,
   getQuiz,
   getQuizResult,
   getQuizReview,
+  getStudyTimeLeaderboard,
   listAdminQuizQuestions,
   listMyQuizResults,
   listQuizQuestions,
@@ -33,6 +44,7 @@ import {
   submitQuiz,
   syncDictationSession,
   unmarkDictationQuestionDone,
+  updateAdminVocabWord,
   updateAdminFullTest,
   updateAdminFullTestQuestion,
   updateAdminQuestionGroup,
@@ -464,6 +476,86 @@ describe("assessment adapter", () => {
         expect(data?.score).toBe(0);
         const [url, init] = fetchMock.mock.calls[0];
         expect(url).toBe("/api/v1/assessment/dictation/quizzes/1/reset");
+        expect(init?.method).toBe("POST");
+      });
+    });
+
+    describe("T-033: Leftovers cleanup", () => {
+      it("getStudyTimeLeaderboard map backend response sang Array<[string, number]>", async () => {
+        const fetchMock = mockFetch(200, [
+          { user_id: "user-1", total_seconds: 3600 },
+          { user_id: "user-2", total_seconds: 1800 },
+        ]);
+        const { data, error } = await getStudyTimeLeaderboard();
+        expect(error).toBeNull();
+        expect(data).toEqual([
+          ["user-1", 3600],
+          ["user-2", 1800],
+        ]);
+        const [url, init] = fetchMock.mock.calls[0];
+        expect(url).toBe("/api/v1/assessment/leaderboard/study-time");
+        expect(init?.method).toBe("GET");
+      });
+
+      it("getAllFullTests gọi GET /api/v1/assessment/full-tests", async () => {
+        const mockTests = [{ id: 1, title: "Test 1", category: "Full Test", display_order: 1, course_id: null }];
+        const fetchMock = mockFetch(200, mockTests);
+        const { data, error } = await getAllFullTests();
+        expect(error).toBeNull();
+        expect(data).toEqual(mockTests);
+        const [url, init] = fetchMock.mock.calls[0];
+        expect(url).toBe("/api/v1/assessment/full-tests");
+        expect(init?.method).toBe("GET");
+      });
+
+      it("getAssessmentStatsOverview gọi GET /api/v1/assessment/stats/overview", async () => {
+        const overview = {
+          total_questions: 200,
+          listening_questions: 100,
+          reading_questions: 100,
+          total_full_tests: 1,
+          total_users: 5,
+        };
+        const fetchMock = mockFetch(200, overview);
+        const { data, error } = await getAssessmentStatsOverview();
+        expect(error).toBeNull();
+        expect(data).toEqual(overview);
+        const [url, init] = fetchMock.mock.calls[0];
+        expect(url).toBe("/api/v1/assessment/stats/overview");
+        expect(init?.method).toBe("GET");
+      });
+
+      it("getAdminLessonVocabQuiz gọi GET /api/v1/assessment/admin/vocab/lessons/:lessonId/quiz", async () => {
+        const quiz = { id: 10, category_id: null, title: "Từ vựng", total_questions: 5, display_order: 0, lesson_id: 1 };
+        const fetchMock = mockFetch(200, quiz);
+        const { data, error } = await getAdminLessonVocabQuiz(1);
+        expect(error).toBeNull();
+        expect(data).toEqual(quiz);
+        const [url, init] = fetchMock.mock.calls[0];
+        expect(url).toBe("/api/v1/assessment/admin/vocab/lessons/1/quiz");
+        expect(init?.method).toBe("GET");
+      });
+
+      it("createAdminVocabWordsBatch gọi POST /api/v1/assessment/admin/vocab/quizzes/:quizId/words", async () => {
+        const fetchMock = mockFetch(201, { count: 2 });
+        const { data, error } = await createAdminVocabWordsBatch(10, [
+          { word: "apple", definition_vi: "quả táo" },
+          { word: "banana", definition_vi: "quả chuối" },
+        ]);
+        expect(error).toBeNull();
+        expect(data).toEqual({ count: 2 });
+        const [url, init] = fetchMock.mock.calls[0];
+        expect(url).toBe("/api/v1/assessment/admin/vocab/quizzes/10/words");
+        expect(init?.method).toBe("POST");
+      });
+
+      it("bulkDeleteAdminVocabWords gọi POST /api/v1/assessment/admin/vocab/words/bulk-delete", async () => {
+        const fetchMock = mockFetch(200, { count: 3 });
+        const { data, error } = await bulkDeleteAdminVocabWords([1, 2, 3]);
+        expect(error).toBeNull();
+        expect(data).toEqual({ count: 3 });
+        const [url, init] = fetchMock.mock.calls[0];
+        expect(url).toBe("/api/v1/assessment/admin/vocab/words/bulk-delete");
         expect(init?.method).toBe("POST");
       });
     });

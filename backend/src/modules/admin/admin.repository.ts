@@ -1,7 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import type {
+import {
+  AdminActivityLog,
   AdminStudentNote,
+  AppRole,
   PlatformSetting,
   Prisma,
 } from '../../generated/prisma/client';
@@ -229,5 +231,247 @@ export class AdminRepository {
         expires_at: e.expiresAt ? e.expiresAt.toISOString() : null,
       })),
     };
+  }
+
+  async getBackupStats(): Promise<Record<string, number>> {
+    const [
+      courses,
+      lessons,
+      full_tests,
+      questions,
+      answers,
+      profiles,
+      user_full_test_results,
+      enrollments,
+      vocab_quizzes,
+      platform_settings,
+    ] = await Promise.all([
+      this.prisma.course.count(),
+      this.prisma.lesson.count(),
+      this.prisma.fullTest.count(),
+      this.prisma.question.count(),
+      this.prisma.answer.count(),
+      this.prisma.profile.count(),
+      this.prisma.userFullTestResult.count(),
+      this.prisma.enrollment.count(),
+      this.prisma.vocabQuiz.count(),
+      this.prisma.platformSetting.count(),
+    ]);
+    return {
+      courses,
+      lessons,
+      full_tests,
+      questions,
+      answers,
+      profiles,
+      user_full_test_results,
+      enrollments,
+      vocab_quizzes,
+      platform_settings,
+    };
+  }
+
+  async getBackupFullSnapshot(): Promise<Record<string, unknown[]>> {
+    const [
+      platform_settings,
+      course_categories,
+      courses,
+      modules,
+      lessons,
+      lesson_practices,
+      quizzes,
+      full_tests,
+      full_test_sections,
+      questions,
+      answers,
+      profiles,
+      user_roles,
+      enrollments,
+      user_full_test_results,
+      user_quiz_results,
+      user_lesson_progress,
+      vocab_categories,
+      vocab_quizzes,
+      vocab_questions,
+    ] = await Promise.all([
+      this.prisma.platformSetting.findMany(),
+      this.prisma.courseCategory.findMany(),
+      this.prisma.course.findMany(),
+      this.prisma.module.findMany(),
+      this.prisma.lesson.findMany(),
+      this.prisma.lessonPractice.findMany(),
+      this.prisma.quiz.findMany(),
+      this.prisma.fullTest.findMany(),
+      this.prisma.fullTestSection.findMany(),
+      this.prisma.question.findMany(),
+      this.prisma.answer.findMany(),
+      this.prisma.profile.findMany(),
+      this.prisma.userRole.findMany(),
+      this.prisma.enrollment.findMany(),
+      this.prisma.userFullTestResult.findMany(),
+      this.prisma.userQuizResult.findMany(),
+      this.prisma.userLessonProgress.findMany(),
+      this.prisma.vocabCategory.findMany(),
+      this.prisma.vocabQuiz.findMany(),
+      this.prisma.vocabQuestion.findMany(),
+    ]);
+
+    return {
+      platform_settings,
+      course_categories: course_categories.map((c) => ({
+        ...c,
+        id: Number(c.id),
+      })),
+      courses,
+      modules,
+      lessons,
+      lesson_practices,
+      quizzes,
+      full_tests,
+      full_test_sections,
+      questions,
+      answers,
+      profiles,
+      user_roles,
+      enrollments,
+      user_full_test_results,
+      user_quiz_results,
+      user_lesson_progress,
+      vocab_categories,
+      vocab_quizzes,
+      vocab_questions,
+    };
+  }
+
+  async getBackupStudents(): Promise<
+    {
+      user_id: string;
+      full_name: string | null;
+      email: string | null;
+      avatar_url: string | null;
+      updated_at: string | null;
+    }[]
+  > {
+    const profiles = await this.prisma.profile.findMany({
+      select: {
+        userId: true,
+        fullName: true,
+        email: true,
+        avatarUrl: true,
+        updatedAt: true,
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+    return profiles.map((p) => ({
+      user_id: p.userId,
+      full_name: p.fullName,
+      email: p.email,
+      avatar_url: p.avatarUrl,
+      updated_at: p.updatedAt ? p.updatedAt.toISOString() : null,
+    }));
+  }
+
+  async getBackupTestResults(): Promise<
+    {
+      id: number;
+      user_id: string;
+      test_id: number;
+      correct_answers: number | null;
+      listening_score: number | null;
+      reading_score: number | null;
+      total_score: number | null;
+      time_spent_seconds: number | null;
+      test_mode: string | null;
+      created_at: string | null;
+    }[]
+  > {
+    const results = await this.prisma.userFullTestResult.findMany({
+      select: {
+        id: true,
+        userId: true,
+        testId: true,
+        correctAnswers: true,
+        listeningScore: true,
+        readingScore: true,
+        totalScore: true,
+        timeSpentSeconds: true,
+        testMode: true,
+        completedAt: true,
+      },
+      orderBy: { completedAt: 'desc' },
+    });
+    return results.map((r) => ({
+      id: r.id,
+      user_id: r.userId,
+      test_id: r.testId,
+      correct_answers: r.correctAnswers,
+      listening_score: r.listeningScore,
+      reading_score: r.readingScore,
+      total_score: r.totalScore,
+      time_spent_seconds: r.timeSpentSeconds,
+      test_mode: r.testMode,
+      created_at: r.completedAt ? r.completedAt.toISOString() : null,
+    }));
+  }
+
+  async getBackupQuestionBank(): Promise<{
+    full_tests: { id: number; title: string; category: string }[];
+    questions: unknown[];
+    answers: unknown[];
+  }> {
+    const [questions, answers, fullTests] = await Promise.all([
+      this.prisma.question.findMany(),
+      this.prisma.answer.findMany(),
+      this.prisma.fullTest.findMany({
+        select: {
+          id: true,
+          title: true,
+          category: true,
+        },
+      }),
+    ]);
+    return {
+      full_tests: fullTests,
+      questions,
+      answers,
+    };
+  }
+
+  async findAdminUsers(): Promise<ProfileRecord[]> {
+    const adminRoles = await this.prisma.userRole.findMany({
+      where: { role: AppRole.admin },
+      select: { userId: true },
+    });
+    const userIds = adminRoles.map((r) => r.userId);
+    if (userIds.length === 0) return [];
+    return this.prisma.profile.findMany({
+      where: { userId: { in: userIds } },
+      orderBy: { fullName: 'asc' },
+    });
+  }
+
+  createActivityLog(data: {
+    adminId?: string;
+    action: string;
+    entityType?: string;
+    entityId?: string;
+    details?: Prisma.InputJsonValue;
+  }): Promise<AdminActivityLog> {
+    return this.prisma.adminActivityLog.create({
+      data: {
+        adminId: data.adminId,
+        action: data.action,
+        entityType: data.entityType,
+        entityId: data.entityId,
+        details: data.details,
+      },
+    });
+  }
+
+  findActivityLogs(limit = 100): Promise<AdminActivityLog[]> {
+    return this.prisma.adminActivityLog.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
   }
 }

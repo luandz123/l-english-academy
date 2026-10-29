@@ -447,3 +447,11 @@ export async function deletePractice(
   }
   return { data: null, error: null };
 }
+
+/** Lấy danh sách modules của các khóa học đã ghi danh (T-033 / #12). */
+export async function getMyCoursesModules(): Promise<{
+  data: any[] | null;
+  error: ApiError | null;
+}> {
+  return toResult(apiClient.get<any[]>('learning/my-courses/modules'));
+}

@@ -30,11 +30,15 @@ import {
 import { Roles, RolesGuard } from '../auth/guards/roles.guard';
 import { AdminService } from './admin.service';
 import {
+  AdminActivityLogDto,
+  AdminBackupStatsDto,
   AdminNoteDto,
+  CreateAdminActivityLogDto,
   CreateAdminNoteDto,
   SettingDto,
   UpdateSettingDto,
 } from './dto';
+import { ProfileDto } from '../auth/dto/profile.dto';
 
 @ApiTags('admin')
 @ApiBearerAuth()
@@ -101,5 +105,104 @@ export class AdminController {
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<AdminNoteDto> {
     return this.adminService.addStudentNote(user.id, userId, dto);
+  }
+
+  @Get('backup/stats')
+  @ApiOperation({
+    summary: 'Admin xem số lượng bản ghi các bảng để sao lưu (ADM-019)',
+  })
+  @ApiOkResponse({ type: AdminBackupStatsDto })
+  getBackupStats(): Promise<Record<string, number>> {
+    return this.adminService.getBackupStats();
+  }
+
+  @Get('backup/export-full')
+  @ApiOperation({
+    summary: 'Admin xuất bản snapshot toàn bộ dữ liệu hệ thống (ADM-019)',
+  })
+  getBackupFullSnapshot(): Promise<{
+    snapshot: Record<string, unknown[]>;
+    counts: Record<string, number>;
+  }> {
+    return this.adminService.getBackupFullSnapshot();
+  }
+
+  @Get('backup/export-students')
+  @ApiOperation({
+    summary: 'Admin xuất danh sách học viên dạng CSV (ADM-019)',
+  })
+  getBackupStudents(): Promise<
+    {
+      user_id: string;
+      full_name: string | null;
+      email: string | null;
+      avatar_url: string | null;
+      updated_at: string | null;
+    }[]
+  > {
+    return this.adminService.getBackupStudents();
+  }
+
+  @Get('backup/export-test-results')
+  @ApiOperation({
+    summary: 'Admin xuất kết quả thi Full Test dạng CSV (ADM-019)',
+  })
+  getBackupTestResults(): Promise<
+    {
+      id: number;
+      user_id: string;
+      test_id: number;
+      correct_answers: number | null;
+      listening_score: number | null;
+      reading_score: number | null;
+      total_score: number | null;
+      time_spent_seconds: number | null;
+      test_mode: string | null;
+      created_at: string | null;
+    }[]
+  > {
+    return this.adminService.getBackupTestResults();
+  }
+
+  @Get('backup/export-question-bank')
+  @ApiOperation({
+    summary: 'Admin xuất ngân hàng câu hỏi đề thi (ADM-019)',
+  })
+  getBackupQuestionBank(): Promise<{
+    full_tests: { id: number; title: string; category: string }[];
+    questions: unknown[];
+    answers: unknown[];
+  }> {
+    return this.adminService.getBackupQuestionBank();
+  }
+
+  @Get('users/admins')
+  @ApiOperation({
+    summary: 'Admin xem danh sách các tài khoản có quyền admin (ADM-019)',
+  })
+  @ApiOkResponse({ type: [ProfileDto] })
+  getAdminUsers(): Promise<ProfileDto[]> {
+    return this.adminService.getAdminUsers();
+  }
+
+  @Post('activity-log')
+  @ApiOperation({
+    summary: 'Ghi nhật ký hoạt động của admin (ADM-021)',
+  })
+  @ApiCreatedResponse({ type: AdminActivityLogDto })
+  createActivityLog(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: CreateAdminActivityLogDto,
+  ): Promise<AdminActivityLogDto> {
+    return this.adminService.createActivityLog(user.id, dto);
+  }
+
+  @Get('activity-log')
+  @ApiOperation({
+    summary: 'Xem danh sách nhật ký hoạt động admin (ADM-021)',
+  })
+  @ApiOkResponse({ type: [AdminActivityLogDto] })
+  getActivityLogs(): Promise<AdminActivityLogDto[]> {
+    return this.adminService.getActivityLogs();
   }
 }

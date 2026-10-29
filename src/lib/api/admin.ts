@@ -209,3 +209,143 @@ export async function getAdminStudents(): Promise<{
 }> {
   return toResult(apiClient.get<AdminStudentsRow>('admin/stats/students'));
 }
+
+// =========================================================================
+// T-033: Leftovers - Admin Backup, Activity Log & Admins
+// =========================================================================
+
+export interface AdminBackupStatsRow {
+  courses: number;
+  lessons: number;
+  full_tests: number;
+  questions: number;
+  answers: number;
+  profiles: number;
+  user_full_test_results: number;
+  enrollments: number;
+  vocab_quizzes: number;
+  platform_settings: number;
+}
+
+export interface AdminBackupSnapshotRow {
+  snapshot: Record<string, unknown[]>;
+  counts: Record<string, number>;
+}
+
+export interface AdminBackupStudentRow {
+  user_id: string;
+  full_name: string | null;
+  email: string | null;
+  avatar_url: string | null;
+  updated_at: string | null;
+}
+
+export interface AdminBackupTestResultRow {
+  id: number;
+  user_id: string;
+  test_id: number;
+  correct_answers: number | null;
+  listening_score: number | null;
+  reading_score: number | null;
+  total_score: number | null;
+  time_spent_seconds: number | null;
+  test_mode: string | null;
+  created_at: string | null;
+}
+
+export interface AdminBackupQuestionBankRow {
+  full_tests: Array<{ id: number; title: string; category: string }>;
+  questions: unknown[];
+  answers: unknown[];
+}
+
+export interface AdminActivityLogRow {
+  id: number;
+  admin_id: string;
+  action: string;
+  entity_type: string | null;
+  entity_id: string | null;
+  details: unknown;
+  created_at: string | null;
+}
+
+/** Admin xem danh sách tài khoản Admin (T-033). */
+export async function getAdminUsers(): Promise<{
+  data: ProfileRow[] | null;
+  error: ApiError | null;
+}> {
+  return toResult(apiClient.get<ProfileRow[]>('admin/users/admins'));
+}
+
+/** Admin xem thống kê số lượng bản ghi của 10 bảng dữ liệu (T-033). */
+export async function getBackupStats(): Promise<{
+  data: AdminBackupStatsRow | null;
+  error: ApiError | null;
+}> {
+  return toResult(apiClient.get<AdminBackupStatsRow>('admin/backup/stats'));
+}
+
+/** Admin tải toàn bộ bản ghi hệ thống dạng JSON snapshot (T-033). */
+export async function getBackupExportFull(): Promise<{
+  data: AdminBackupSnapshotRow | null;
+  error: ApiError | null;
+}> {
+  return toResult(
+    apiClient.get<AdminBackupSnapshotRow>('admin/backup/export-full'),
+  );
+}
+
+/** Admin xuất danh sách học viên (T-033). */
+export async function getBackupExportStudents(): Promise<{
+  data: AdminBackupStudentRow[] | null;
+  error: ApiError | null;
+}> {
+  return toResult(
+    apiClient.get<AdminBackupStudentRow[]>('admin/backup/export-students'),
+  );
+}
+
+/** Admin xuất danh sách kết quả Full Test (T-033). */
+export async function getBackupExportTestResults(): Promise<{
+  data: AdminBackupTestResultRow[] | null;
+  error: ApiError | null;
+}> {
+  return toResult(
+    apiClient.get<AdminBackupTestResultRow[]>(
+      'admin/backup/export-test-results',
+    ),
+  );
+}
+
+/** Admin xuất ngân hàng câu hỏi, đáp án, đề thi (T-033). */
+export async function getBackupExportQuestionBank(): Promise<{
+  data: AdminBackupQuestionBankRow | null;
+  error: ApiError | null;
+}> {
+  return toResult(
+    apiClient.get<AdminBackupQuestionBankRow>(
+      'admin/backup/export-question-bank',
+    ),
+  );
+}
+
+/** Admin ghi nhật ký hoạt động (T-033). admin_id tự động lấy từ JWT. */
+export async function createAdminActivityLog(payload: {
+  action: string;
+  entity_type?: string;
+  entity_id?: string;
+  details?: unknown;
+}): Promise<{ data: AdminActivityLogRow | null; error: ApiError | null }> {
+  return toResult(
+    apiClient.post<AdminActivityLogRow>('admin/activity-log', payload),
+  );
+}
+
+/** Admin xem nhật ký hoạt động (T-033). */
+export async function getAdminActivityLogs(
+  limit = 100,
+): Promise<{ data: AdminActivityLogRow[] | null; error: ApiError | null }> {
+  return toResult(
+    apiClient.get<AdminActivityLogRow[]>(`admin/activity-log?limit=${limit}`),
+  );
+}

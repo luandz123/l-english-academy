@@ -9,6 +9,8 @@ import type {
   Prisma,
   Question,
   Quiz,
+  VocabQuestion,
+  VocabQuiz,
 } from '../../generated/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 
@@ -426,5 +428,197 @@ export class AssessmentAdminRepository {
           a.question.displayOrder - b.question.displayOrder ||
           a.question.id - b.question.id,
       );
+  }
+
+  findVocabQuizByLessonId(lessonId: number): Promise<VocabQuiz | null> {
+    return this.prisma.vocabQuiz.findFirst({
+      where: { lessonId },
+    });
+  }
+
+  createVocabQuiz(data: {
+    lessonId: number;
+    title: string;
+    display_order?: number;
+  }): Promise<VocabQuiz> {
+    return this.prisma.vocabQuiz.create({
+      data: {
+        lessonId: data.lessonId,
+        title: data.title,
+        displayOrder: data.display_order ?? 0,
+        totalQuestions: 0,
+      },
+    });
+  }
+
+  findVocabWords(
+    quizId: number,
+    questionId?: number,
+  ): Promise<VocabQuestion[]> {
+    return this.prisma.vocabQuestion.findMany({
+      where: {
+        vocabQuizId: quizId,
+        ...(questionId ? { questionId } : {}),
+      },
+      orderBy: { displayOrder: 'asc' },
+    });
+  }
+
+  async createVocabWords(
+    quizId: number,
+    words: {
+      word: string;
+      definition_vi?: string | null;
+      definition_en?: string | null;
+      phonetic?: string | null;
+      audio_male_url?: string | null;
+      example_sentence?: string | null;
+      question_id?: number | null;
+      display_order?: number;
+    }[],
+  ): Promise<number> {
+    const existingCount = await this.prisma.vocabQuestion.count({
+      where: { vocabQuizId: quizId },
+    });
+    await this.prisma.vocabQuestion.createMany({
+      data: words.map((w, idx) => ({
+        vocabQuizId: quizId,
+        word: w.word,
+        definitionVi: w.definition_vi ?? null,
+        definitionEn: w.definition_en ?? null,
+        phonetic: w.phonetic ?? null,
+        audioMaleUrl: w.audio_male_url ?? null,
+        exampleSentence: w.example_sentence ?? null,
+        questionId: w.question_id ?? null,
+        displayOrder:
+          w.display_order !== undefined ? w.display_order : existingCount + idx,
+      })),
+    });
+    const totalCount = await this.prisma.vocabQuestion.count({
+      where: { vocabQuizId: quizId },
+    });
+    await this.prisma.vocabQuiz.update({
+      where: { id: quizId },
+      data: { totalQuestions: totalCount },
+    });
+    return words.length;
+  }
+
+  updateVocabWord(
+    id: number,
+    data: {
+      word?: string;
+      definition_vi?: string | null;
+      definition_en?: string | null;
+      phonetic?: string | null;
+      audio_male_url?: string | null;
+      example_sentence?: string | null;
+      question_id?: number | null;
+      display_order?: number;
+    },
+  ): Promise<VocabQuestion> {
+    return this.prisma.vocabQuestion.update({
+      where: { id },
+      data: {
+        ...(data.word !== undefined ? { word: data.word } : {}),
+        ...(data.definition_vi !== undefined
+          ? { definitionVi: data.definition_vi }
+          : {}),
+        ...(data.definition_en !== undefined
+          ? { definitionEn: data.definition_en }
+          : {}),
+        ...(data.phonetic !== undefined ? { phonetic: data.phonetic } : {}),
+        ...(data.audio_male_url !== undefined
+          ? { audioMaleUrl: data.audio_male_url }
+          : {}),
+        ...(data.example_sentence !== undefined
+          ? { exampleSentence: data.example_sentence }
+          : {}),
+        ...(data.question_id !== undefined
+          ? { questionId: data.question_id }
+          : {}),
+        ...(data.display_order !== undefined
+          ? { displayOrder: data.display_order }
+          : {}),
+      },
+    });
+  }
+
+  async deleteVocabWord(id: number): Promise<void> {
+    const word = await this.prisma.vocabQuestion.findUnique({
+      where: { id },
+      select: { vocabQuizId: true },
+    });
+    if (!word) return;
+    await this.prisma.vocabQuestion.delete({ where: { id } });
+    if (word.vocabQuizId) {
+      const count = await this.prisma.vocabQuestion.count({
+        where: { vocabQuizId: word.vocabQuizId },
+      });
+      await this.prisma.vocabQuiz.update({
+        where: { id: word.vocabQuizId },
+        data: { totalQuestions: count },
+      });
+    }
+  }
+
+  async bulkDeleteVocabWords(ids: number[]): Promise<number> {
+    const words = await this.prisma.vocabQuestion.findMany({
+      where: { id: { in: ids } },
+      select: { vocabQuizId: true },
+    });
+    const quizIds = [
+      ...new Set(
+        words
+          .map((w) => w.vocabQuizId)
+          .filter((qid): qid is number => qid !== null),
+      ),
+    ];
+    const res = await this.prisma.vocabQuestion.deleteMany({
+      where: { id: { in: ids } },
+    });
+    for (const quizId of quizIds) {
+      const count = await this.prisma.vocabQuestion.count({
+        where: { vocabQuizId: quizId },
+      });
+      await this.prisma.vocabQuiz.update({
+        where: { id: quizId },
+        data: { totalQuestions: count },
+      });
+    }
+    return res.count;
+  }
+
+  findAllLessonsForVocab(): Promise<
+    { id: number; title: string; moduleId: number | null }[]
+  > {
+    return this.prisma.lesson.findMany({
+      select: { id: true, title: true, moduleId: true },
+      orderBy: { id: 'desc' },
+    });
+  }
+
+  async findLessonQuestions(lessonId: number): Promise<
+    {
+      id: number;
+      question_text: string | null;
+      display_order: number;
+    }[]
+  > {
+    const lesson = await this.prisma.lesson.findUnique({
+      where: { id: lessonId },
+      select: { quizId: true },
+    });
+    if (!lesson || !lesson.quizId) return [];
+    const questions = await this.prisma.question.findMany({
+      where: { quizId: lesson.quizId },
+      select: { id: true, questionText: true, displayOrder: true },
+      orderBy: { displayOrder: 'asc' },
+    });
+    return questions.map((q) => ({
+      id: q.id,
+      question_text: q.questionText,
+      display_order: q.displayOrder,
+    }));
   }
 }

@@ -1,8 +1,10 @@
 import StudentLayout from "@/components/StudentLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { useGamification } from "@/hooks/useGamification";
-import { supabase } from "@/integrations/supabase/client";
-import { listMyQuizResults } from "@/lib/api/assessment";
+import {
+  listMyQuizResults,
+  getAssessmentStatsOverview,
+} from "@/lib/api/assessment";
 import { authClient, updateMyProfile } from "@/lib/api/auth";
 import { uploadAvatar } from "@/lib/api/media";
 import { listMyFullTestResults } from "@/lib/api/fullTest";
@@ -196,22 +198,12 @@ const Profile = () => {
   } = useQuery({
     queryKey: ["system-db-stats"],
     queryFn: async () => {
-      const [
-        { count: totalQuestions },
-        { count: listeningQuestions },
-        { count: readingQuestions },
-        { count: totalFullTests },
-      ] = await Promise.all([
-        supabase.from("questions").select("*", { count: "exact", head: true }),
-        supabase.from("questions").select("*", { count: "exact", head: true }).not("audio_url", "is", null),
-        supabase.from("questions").select("*", { count: "exact", head: true }).is("audio_url", null),
-        supabase.from("full_tests").select("*", { count: "exact", head: true }),
-      ]);
+      const { data } = await getAssessmentStatsOverview();
       return {
-        totalQuestions: totalQuestions || 24382,
-        listeningQuestions: listeningQuestions || 12676,
-        readingQuestions: readingQuestions || 11706,
-        totalFullTests: totalFullTests || 55,
+        totalQuestions: data?.total_questions || 24382,
+        listeningQuestions: data?.listening_questions || 12676,
+        readingQuestions: data?.reading_questions || 11706,
+        totalFullTests: data?.total_full_tests || 55,
       };
     },
     staleTime: 1000 * 60 * 30, // 30 phút

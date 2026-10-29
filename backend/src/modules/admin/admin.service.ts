@@ -7,6 +7,7 @@ import { Prisma } from '../../generated/prisma/client';
 import { AdminMapper } from './admin.mapper';
 import { AdminRepository } from './admin.repository';
 import {
+  AdminActivityLogDto,
   AdminCountsDto,
   AdminCourseEnrollmentsDto,
   AdminNoteDto,
@@ -14,11 +15,13 @@ import {
   AdminQuizScoresDto,
   AdminStudentsDto,
   AdminUserAnswerDto,
+  CreateAdminActivityLogDto,
   CreateAdminNoteDto,
   RecentEnrollmentDto,
   RecentQuizResultDto,
   SettingDto,
 } from './dto';
+import type { ProfileDto } from '../auth/dto/profile.dto';
 import {
   PUBLIC_SETTING_KEYS,
   PublicSettingKey,
@@ -157,5 +160,81 @@ export class AdminService {
       profiles: profiles.map((p) => this.mapper.toProfileDto(p)),
       enrollments,
     };
+  }
+
+  getBackupStats(): Promise<Record<string, number>> {
+    return this.repo.getBackupStats();
+  }
+
+  async getBackupFullSnapshot(): Promise<{
+    snapshot: Record<string, unknown[]>;
+    counts: Record<string, number>;
+  }> {
+    const snapshot = await this.repo.getBackupFullSnapshot();
+    const counts = Object.fromEntries(
+      Object.entries(snapshot).map(([k, v]) => [k, v.length]),
+    );
+    return { snapshot, counts };
+  }
+
+  getBackupStudents(): Promise<
+    {
+      user_id: string;
+      full_name: string | null;
+      email: string | null;
+      avatar_url: string | null;
+      updated_at: string | null;
+    }[]
+  > {
+    return this.repo.getBackupStudents();
+  }
+
+  getBackupTestResults(): Promise<
+    {
+      id: number;
+      user_id: string;
+      test_id: number;
+      correct_answers: number | null;
+      listening_score: number | null;
+      reading_score: number | null;
+      total_score: number | null;
+      time_spent_seconds: number | null;
+      test_mode: string | null;
+      created_at: string | null;
+    }[]
+  > {
+    return this.repo.getBackupTestResults();
+  }
+
+  getBackupQuestionBank(): Promise<{
+    full_tests: { id: number; title: string; category: string }[];
+    questions: unknown[];
+    answers: unknown[];
+  }> {
+    return this.repo.getBackupQuestionBank();
+  }
+
+  async getAdminUsers(): Promise<ProfileDto[]> {
+    const profiles = await this.repo.findAdminUsers();
+    return profiles.map((p) => this.mapper.toProfileDto(p));
+  }
+
+  async createActivityLog(
+    adminId: string,
+    dto: CreateAdminActivityLogDto,
+  ): Promise<AdminActivityLogDto> {
+    const log = await this.repo.createActivityLog({
+      adminId,
+      action: dto.action,
+      entityType: dto.entity_type,
+      entityId: dto.entity_id,
+      details: dto.details as unknown as Prisma.InputJsonValue,
+    });
+    return this.mapper.toAdminActivityLogDto(log);
+  }
+
+  async getActivityLogs(limit = 100): Promise<AdminActivityLogDto[]> {
+    const logs = await this.repo.findActivityLogs(limit);
+    return logs.map((l) => this.mapper.toAdminActivityLogDto(l));
   }
 }

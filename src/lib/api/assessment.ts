@@ -631,3 +631,229 @@ export async function resetDictation(
     ),
   );
 }
+
+// =========================================================================
+// T-033: Leftovers cleanup
+// =========================================================================
+
+export interface FullTestSummaryRow {
+  id: number;
+  title: string;
+  category: string;
+  display_order: number;
+  course_id: number | null;
+}
+
+export interface AssessmentStatsOverview {
+  total_questions: number;
+  listening_questions: number;
+  reading_questions: number;
+  total_full_tests: number;
+  total_users: number;
+}
+
+export interface AdminLessonVocabQuizRow {
+  id: number;
+  category_id: number | null;
+  title: string;
+  total_questions: number;
+  display_order: number;
+  lesson_id: number | null;
+}
+
+export interface AdminLessonVocabWordRow {
+  id: number;
+  vocab_quiz_id: number | null;
+  word: string;
+  phonetic: string | null;
+  definition_en: string | null;
+  definition_vi: string | null;
+  example_sentence: string | null;
+  image_url: string | null;
+  audio_male_url: string | null;
+  audio_female_url: string | null;
+  wrong_answer_1: string | null;
+  wrong_answer_2: string | null;
+  wrong_answer_3: string | null;
+  display_order: number;
+  question_id: number | null;
+}
+
+export interface AdminLessonOptionRow {
+  id: number;
+  title: string;
+  module_id: number | null;
+}
+
+export interface AdminLessonQuestionOptionRow {
+  id: number;
+  question_text: string | null;
+  display_order: number;
+}
+
+/** Lấy bảng xếp hạng tổng thời gian học (T-033). Server tính SUM(time_spent_seconds). */
+export async function getStudyTimeLeaderboard(): Promise<{
+  data: Array<[string, number]> | null;
+  error: ApiError | null;
+}> {
+  const res = await toResult(
+    apiClient.get<Array<{ user_id: string; total_seconds: number }>>(
+      'assessment/leaderboard/study-time',
+    ),
+  );
+  if (res.error || !res.data) {
+    return { data: null, error: res.error };
+  }
+  return {
+    data: res.data.map((item) => [item.user_id, item.total_seconds]),
+    error: null,
+  };
+}
+
+/** Lấy danh sách Full Tests cho Dashboard (T-033). */
+export async function getAllFullTests(): Promise<{
+  data: FullTestSummaryRow[] | null;
+  error: ApiError | null;
+}> {
+  return toResult(
+    apiClient.get<FullTestSummaryRow[]>('assessment/full-tests'),
+  );
+}
+
+/** Thống kê tổng quan nền tảng cho Profile & HeroSection (T-033). */
+export async function getAssessmentStatsOverview(): Promise<{
+  data: AssessmentStatsOverview | null;
+  error: ApiError | null;
+}> {
+  return toResult(
+    apiClient.get<AssessmentStatsOverview>('assessment/stats/overview'),
+  );
+}
+
+/** Admin lấy thông tin vocab quiz theo bài học (T-033). */
+export async function getAdminLessonVocabQuiz(
+  lessonId: number,
+): Promise<{ data: AdminLessonVocabQuizRow | null; error: ApiError | null }> {
+  return toResult(
+    apiClient.get<AdminLessonVocabQuizRow | null>(
+      `assessment/admin/vocab/lessons/${lessonId}/quiz`,
+    ),
+  );
+}
+
+/** Admin tạo vocab quiz cho bài học (T-033). */
+export async function createAdminLessonVocabQuiz(
+  lessonId: number,
+  body: { title: string; display_order?: number },
+): Promise<{ data: AdminLessonVocabQuizRow | null; error: ApiError | null }> {
+  return toResult(
+    apiClient.post<AdminLessonVocabQuizRow>(
+      `assessment/admin/vocab/lessons/${lessonId}/quiz`,
+      body,
+    ),
+  );
+}
+
+/** Admin lấy danh sách từ vựng của quiz (T-033). */
+export async function getAdminLessonVocabWords(
+  quizId: number,
+  questionId?: number | null,
+): Promise<{ data: AdminLessonVocabWordRow[] | null; error: ApiError | null }> {
+  const query = questionId ? `?questionId=${questionId}` : '';
+  return toResult(
+    apiClient.get<AdminLessonVocabWordRow[]>(
+      `assessment/admin/vocab/quizzes/${quizId}/words${query}`,
+    ),
+  );
+}
+
+/** Admin thêm danh sách từ vựng theo lô (T-033). */
+export async function createAdminVocabWordsBatch(
+  quizId: number,
+  words: Array<{
+    word: string;
+    definition_vi: string;
+    phonetic?: string | null;
+    audio_male_url?: string | null;
+    example_sentence?: string | null;
+    question_id?: number | null;
+    display_order?: number;
+  }>,
+): Promise<{ data: { count: number } | null; error: ApiError | null }> {
+  return toResult(
+    apiClient.post<{ count: number }>(
+      `assessment/admin/vocab/quizzes/${quizId}/words`,
+      { words },
+    ),
+  );
+}
+
+/** Admin cập nhật một từ vựng (T-033). */
+export async function updateAdminVocabWord(
+  id: number,
+  body: {
+    word?: string;
+    definition_vi?: string;
+    phonetic?: string | null;
+    audio_male_url?: string | null;
+    example_sentence?: string | null;
+    question_id?: number | null;
+    display_order?: number;
+  },
+): Promise<{ data: AdminLessonVocabWordRow | null; error: ApiError | null }> {
+  return toResult(
+    apiClient.put<AdminLessonVocabWordRow>(
+      `assessment/admin/vocab/words/${id}`,
+      body,
+    ),
+  );
+}
+
+/** Admin xóa một từ vựng (T-033). */
+export async function deleteAdminVocabWord(
+  id: number,
+): Promise<{ data: { count: number } | null; error: ApiError | null }> {
+  return toResult(
+    apiClient.delete<{ count: number }>(
+      `assessment/admin/vocab/words/${id}`,
+    ),
+  );
+}
+
+/** Admin xóa nhiều từ vựng (T-033). */
+export async function bulkDeleteAdminVocabWords(
+  ids: number[],
+): Promise<{ data: { count: number } | null; error: ApiError | null }> {
+  return toResult(
+    apiClient.post<{ count: number }>(
+      `assessment/admin/vocab/words/bulk-delete`,
+      { ids },
+    ),
+  );
+}
+
+/** Admin lấy danh sách bài học để gộp từ vựng (T-033). */
+export async function getAllLessonsForVocab(): Promise<{
+  data: AdminLessonOptionRow[] | null;
+  error: ApiError | null;
+}> {
+  return toResult(
+    apiClient.get<AdminLessonOptionRow[]>(
+      `assessment/admin/vocab/lessons`,
+    ),
+  );
+}
+
+/** Admin lấy danh sách câu hỏi của bài học để liên kết từ vựng (T-033). */
+export async function getLessonQuestionsForVocab(
+  lessonId: number,
+): Promise<{
+  data: AdminLessonQuestionOptionRow[] | null;
+  error: ApiError | null;
+}> {
+  return toResult(
+    apiClient.get<AdminLessonQuestionOptionRow[]>(
+      `assessment/admin/vocab/lessons/${lessonId}/questions`,
+    ),
+  );
+}

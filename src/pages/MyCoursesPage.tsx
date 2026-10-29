@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { listCourses } from "@/lib/api/catalog";
-import { listMyProgressRows } from "@/lib/api/learning";
+import { listMyProgressRows, getMyCoursesModules } from "@/lib/api/learning";
 import { useAuth } from "@/hooks/useAuth";
 import StudentLayout from "@/components/StudentLayout";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -100,14 +100,7 @@ export const MyCoursesPage: React.FC = () => {
     queryKey: ["my-courses-modules-lessons", courseIds],
     queryFn: async () => {
       if (courseIds.length === 0) return [];
-      const { data, error } = await (supabase.from("modules") as any)
-        .select("id, course_id, title, display_order, lessons(id, module_id, title, display_order, duration_minutes)")
-        .in("course_id", courseIds)
-        .order("display_order", { ascending: true });
-      if (error) {
-        console.error("Error fetching course modules:", error);
-        return [];
-      }
+      const { data } = await getMyCoursesModules();
       return data || [];
     },
     enabled: courseIds.length > 0,

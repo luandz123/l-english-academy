@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import type {
+  AdminActivityLog,
   AdminStudentNote,
   PlatformSetting,
   Prisma,
@@ -8,6 +9,7 @@ import { toProfileDto as toAuthProfileDto } from '../auth/auth.mapper';
 import type { ProfileDto } from '../auth/dto/profile.dto';
 import type { ProfileRecord } from './admin.repository';
 import {
+  AdminActivityLogDto,
   AdminNoteDto,
   RecentEnrollmentDto,
   RecentQuizResultDto,
@@ -94,5 +96,17 @@ export class AdminMapper {
 
   toProfileDto(p: ProfileRecord): ProfileDto {
     return toAuthProfileDto(p);
+  }
+
+  toAdminActivityLogDto(log: AdminActivityLog): AdminActivityLogDto {
+    return {
+      id: log.id,
+      admin_id: log.adminId,
+      action: log.action,
+      entity_type: log.entityType,
+      entity_id: log.entityId,
+      details: log.details,
+      created_at: log.createdAt ? log.createdAt.toISOString() : null,
+    };
   }
 }

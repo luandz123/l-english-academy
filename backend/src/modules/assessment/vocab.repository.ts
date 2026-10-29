@@ -84,4 +84,15 @@ export class VocabRepository {
       select: { quizId: true },
     });
   }
+
+  findVocabPool(limit: number = 100): Promise<VocabQuestion[]> {
+    return this.prisma.vocabQuestion.findMany({
+      where: {
+        word: { not: '' },
+        definitionVi: { not: null },
+      },
+      take: limit,
+      orderBy: [{ id: 'asc' }],
+    });
+  }
 }
