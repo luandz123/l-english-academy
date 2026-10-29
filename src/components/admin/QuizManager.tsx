@@ -7,13 +7,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Edit, Trash2, Upload, Download, Image, Music, Library, GripVertical, Check, ChevronRight, ArrowLeft, ArrowRight, FolderOpen, Folder } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { createAdminMaterial, listAdminMaterials, uploadMedia, uploadMediaSafe } from "@/lib/api/media";
 import { useToast } from "@/hooks/use-toast";
 import {
   createQuizQuestion,
   deleteQuizQuestion,
   deleteQuizQuestions,
+  getAdminLessonVocabQuiz,
+  getAdminLessonVocabWords,
+  getDictationLesson,
   getQuiz,
   listAdminQuizQuestions,
   patchQuiz,
@@ -515,7 +517,7 @@ const QuizManager = ({ quizId, courseId, lessonType, lessonId }: QuizManagerProp
   const { data: lessonIdFromQuiz } = useQuery({
     queryKey: ["lesson-id-from-quiz", quizId],
     queryFn: async () => {
-      const { data } = await supabase.from("lessons").select("id").eq("quiz_id", quizId).single();
+      const { data } = await getDictationLesson(quizId!);
       return data?.id;
     },
     enabled: !!quizId
@@ -594,11 +596,11 @@ const QuizManager = ({ quizId, courseId, lessonType, lessonId }: QuizManagerProp
     // Fetch vocabulary if it's dictation
     const vocabByQuestion: Record<number, any[]> = {};
     if (isDictation && effectiveLessonId) {
-      const { data: vQuiz } = await supabase.from("vocab_quizzes").select("id").eq("lesson_id", effectiveLessonId).maybeSingle();
+      const { data: vQuiz } = await getAdminLessonVocabQuiz(effectiveLessonId);
       if (vQuiz) {
-        const { data: vocabWords } = await supabase.from("vocab_questions").select("*").eq("vocab_quiz_id", vQuiz.id);
+        const { data: vocabWords } = await getAdminLessonVocabWords(vQuiz.id);
         if (vocabWords) {
-          vocabWords.forEach(w => {
+          vocabWords.forEach((w: any) => {
             if (w.question_id) {
               if (!vocabByQuestion[w.question_id]) vocabByQuestion[w.question_id] = [];
               vocabByQuestion[w.question_id].push(w);

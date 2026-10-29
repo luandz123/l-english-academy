@@ -9,7 +9,7 @@ import {
 } from "@/lib/api/assessment";
 import { listCourses } from "@/lib/api/catalog";
 import { listMyFullTestResults } from "@/lib/api/fullTest";
-import { listMyProgressRows } from "@/lib/api/learning";
+import { getCurriculum, listMyProgressRows } from "@/lib/api/learning";
 import { useAuth } from "@/hooks/useAuth";
 import { useGamification } from "@/hooks/useGamification";
 import StudentLayout from "@/components/StudentLayout";
@@ -147,9 +147,7 @@ export const DashboardPage: React.FC = () => {
     queryKey: ["dashboard-course-modules", ngheDocCourseId],
     queryFn: async () => {
       if (!ngheDocCourseId) return [];
-      const { data } = await (supabase.from("modules") as any)
-        .select("id, title, lessons(id, title)")
-        .eq("course_id", ngheDocCourseId);
+      const { data } = await getCurriculum(ngheDocCourseId);
       return data || [];
     },
     enabled: !!ngheDocCourseId,

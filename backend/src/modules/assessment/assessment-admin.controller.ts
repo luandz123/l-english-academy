@@ -41,6 +41,8 @@ import {
   CreateVocabWordsBatchDto,
   FullTestQuestionDto,
   ImportFullTestQuestionsDto,
+  ImportQuizQuestionsDto,
+  ImportQuizQuestionsResponseDto,
   PackageImportFullTestsDto,
   PatchQuizDto,
   QuizDto,
@@ -95,6 +97,27 @@ export class AssessmentAdminController {
     @Body() dto: SaveQuestionDto,
   ): Promise<ReviewQuestionDto> {
     return this.assessmentAdminService.createQuizQuestion(quizId, dto);
+  }
+
+  @Post('quizzes/:quizId/import-questions')
+  @ApiOperation({
+    summary: 'Admin import câu hỏi + đáp án + từ vựng cho quiz (T-034)',
+    description:
+      'Chạy trong 1 transaction, server đếm total_questions và tính display_order.',
+  })
+  @ApiCreatedResponse({ type: ImportQuizQuestionsResponseDto })
+  @ApiNotFoundResponse({
+    description:
+      'Quiz không tồn tại (QUIZ_NOT_FOUND) hoặc bài học không tồn tại (LESSON_NOT_FOUND)',
+  })
+  @ApiBadRequestResponse({ description: 'Dữ liệu không hợp lệ' })
+  @ApiUnauthorizedResponse({ description: 'Chưa đăng nhập' })
+  @ApiForbiddenResponse({ description: 'Không có quyền admin' })
+  importQuizQuestions(
+    @Param('quizId', ParseIntPipe) quizId: number,
+    @Body() dto: ImportQuizQuestionsDto,
+  ): Promise<ImportQuizQuestionsResponseDto> {
+    return this.assessmentAdminService.importQuizQuestions(quizId, dto);
   }
 
   @Post('quizzes/:quizId/questions/bulk-delete')

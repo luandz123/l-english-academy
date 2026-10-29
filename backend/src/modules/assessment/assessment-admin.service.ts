@@ -18,6 +18,8 @@ import {
   CreateVocabWordsBatchDto,
   FullTestQuestionDto,
   ImportFullTestQuestionsDto,
+  ImportQuizQuestionsDto,
+  ImportQuizQuestionsResponseDto,
   PackageImportFullTestsDto,
   PatchQuizDto,
   QuizDto,
@@ -100,6 +102,133 @@ export class AssessmentAdminService {
 
       const created = await tx.findQuestionById(question.id);
       return this.mapper.toReviewQuestionDto(created!);
+    });
+  }
+
+  async importQuizQuestions(
+    quizId: number,
+    dto: ImportQuizQuestionsDto,
+  ): Promise<ImportQuizQuestionsResponseDto> {
+    return this.repo.inTransaction(async (tx) => {
+      const quiz = await tx.findQuizById(quizId);
+      if (!quiz) {
+        throw new NotFoundException({
+          code: 'QUIZ_NOT_FOUND',
+          message: `Quiz #${quizId} không tồn tại`,
+        });
+      }
+
+      if (dto.effective_lesson_id) {
+        const lesson = await tx.findLessonById(dto.effective_lesson_id);
+        if (!lesson) {
+          throw new NotFoundException({
+            code: 'LESSON_NOT_FOUND',
+            message: `Bài học #${dto.effective_lesson_id} không tồn tại`,
+          });
+        }
+      }
+
+      const existingMaxOrder = await tx.getMaxQuestionDisplayOrder(quizId);
+      let nextOrder = existingMaxOrder + 1;
+
+      const insertedQuestions: Array<{
+        id: number;
+        vocabText?: string | null;
+      }> = [];
+      for (const q of dto.questions) {
+        const question = await tx.createQuestion({
+          quizId,
+          questionText: q.question_text ?? null,
+          questionType: q.question_type ?? 'multiple_choice',
+          displayOrder: nextOrder++,
+          translation: q.translation ?? null,
+          dictationKeywords: q.dictation_keywords ?? null,
+          audioUrl: q.audio_url ?? null,
+          imageUrl: q.image_url ?? null,
+        });
+
+        if (q.answers && q.answers.length > 0) {
+          await tx.createAnswers(
+            q.answers.map((ans, aIdx) => ({
+              questionId: question.id,
+              answerText: ans.text,
+              isCorrect: ans.is_correct ?? false,
+              explanation: ans.explanation ?? null,
+              displayOrder: aIdx,
+            })),
+          );
+        }
+
+        insertedQuestions.push({
+          id: question.id,
+          vocabText: q.vocab_text,
+        });
+      }
+
+      if (dto.effective_lesson_id) {
+        let vQuiz = await tx.findVocabQuizByLessonId(dto.effective_lesson_id);
+        const hasAnyVocab = insertedQuestions.some((iq) =>
+          Boolean(iq.vocabText),
+        );
+
+        if (!vQuiz && hasAnyVocab) {
+          const title = `Từ vựng - ${dto.quiz_title || quiz.title || 'Bài học'}`;
+          vQuiz = await tx.createVocabQuiz({
+            title,
+            lessonId: dto.effective_lesson_id,
+            display_order: 0,
+          });
+        }
+
+        if (vQuiz) {
+          const allVocabEntries: Array<{
+            word: string;
+            definition_vi?: string | null;
+            phonetic?: string | null;
+            audio_male_url?: string | null;
+            example_sentence?: string | null;
+            question_id?: number | null;
+            display_order?: number;
+          }> = [];
+
+          for (const iq of insertedQuestions) {
+            if (!iq.vocabText) continue;
+            const words = iq.vocabText
+              .split(';')
+              .map((v) => v.trim())
+              .filter(Boolean);
+
+            words.forEach((v, vIdx) => {
+              const [word, def, phonetic, example] = v
+                .split('|')
+                .map((s) => s.trim());
+              if (word) {
+                allVocabEntries.push({
+                  word,
+                  definition_vi: def || '',
+                  phonetic: phonetic || null,
+                  audio_male_url: null,
+                  example_sentence: example || null,
+                  question_id: iq.id,
+                  display_order: vIdx,
+                });
+              }
+            });
+          }
+
+          if (allVocabEntries.length > 0) {
+            await tx.createVocabWords(vQuiz.id, allVocabEntries);
+          }
+        }
+      }
+
+      const totalQuizQuestions = await tx.countQuestionsInQuiz(quizId);
+      await tx.updateQuizTotalQuestions(quizId, totalQuizQuestions);
+
+      return {
+        success: true,
+        count: insertedQuestions.length,
+      };
     });
   }
 

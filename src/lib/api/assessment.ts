@@ -925,3 +925,43 @@ export async function packageImportAdminFullTests(payload: {
     ),
   );
 }
+
+export interface ImportAdminQuizQuestionAnswerInput {
+  text: string;
+  is_correct: boolean;
+  explanation?: string | null;
+}
+
+export interface ImportAdminQuizQuestionInput {
+  question_text: string;
+  question_type: string;
+  translation?: string | null;
+  dictation_keywords?: string | null;
+  audio_url?: string | null;
+  image_url?: string | null;
+  answers: ImportAdminQuizQuestionAnswerInput[];
+  vocab_text?: string | null;
+}
+
+export interface ImportAdminQuizQuestionsInput {
+  questions: ImportAdminQuizQuestionInput[];
+  effective_lesson_id?: number | null;
+  quiz_title?: string | null;
+}
+
+/** Admin import câu hỏi + đáp án + từ vựng theo lô cho quiz trong 1 transaction (T-034). */
+export async function importAdminQuizQuestions(
+  quizId: number,
+  input: ImportAdminQuizQuestionsInput,
+): Promise<{
+  data: { success: boolean; count: number } | null;
+  error: ApiError | null;
+}> {
+  return toResult(
+    apiClient.post<{ success: boolean; count: number }>(
+      `assessment/admin/quizzes/${quizId}/import-questions`,
+      input,
+    ),
+  );
+}
+

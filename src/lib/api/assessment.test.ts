@@ -35,6 +35,7 @@ import {
   getQuizReview,
   getStudyTimeLeaderboard,
   importAdminFullTestQuestions,
+  importAdminQuizQuestions,
   listAdminQuizQuestions,
   listMyQuizResults,
   listQuizQuestions,
@@ -735,6 +736,26 @@ describe("assessment adapter", () => {
         expect(data).toEqual({ count: 3 });
         const [url, init] = fetchMock.mock.calls[0];
         expect(url).toBe("/api/v1/assessment/admin/vocab/words/bulk-delete");
+        expect(init?.method).toBe("POST");
+      });
+
+      it("importAdminQuizQuestions gọi POST /api/v1/assessment/admin/quizzes/:quizId/import-questions", async () => {
+        const fetchMock = mockFetch(201, { success: true, count: 2 });
+        const { data, error } = await importAdminQuizQuestions(42, {
+          questions: [
+            {
+              question_text: "Q1",
+              question_type: "multiple_choice",
+              answers: [{ text: "A", is_correct: true }],
+            },
+          ],
+          effective_lesson_id: 10,
+          quiz_title: "Quiz 1",
+        });
+        expect(error).toBeNull();
+        expect(data).toEqual({ success: true, count: 2 });
+        const [url, init] = fetchMock.mock.calls[0];
+        expect(url).toBe("/api/v1/assessment/admin/quizzes/42/import-questions");
         expect(init?.method).toBe("POST");
       });
     });

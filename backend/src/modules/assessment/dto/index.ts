@@ -7,3 +7,4 @@ export * from './assessment-admin.dto';
 export * from './dictation.dto';
 export * from './leftovers.dto';
 export * from './bulk-import.dto';
+export * from './import-quiz-questions.dto';
