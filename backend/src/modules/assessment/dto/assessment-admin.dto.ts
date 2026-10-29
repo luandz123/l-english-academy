@@ -8,9 +8,11 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  Max,
   Min,
   ValidateNested,
 } from 'class-validator';
+import { FullTestDto } from './full-test.dto';
 
 export class SaveAnswerItemDto {
   @ApiProperty({ example: 'Apple' })
@@ -127,4 +129,193 @@ export class SaveModuleQuizDto {
   @IsInt()
   @Min(0)
   time_limit_seconds?: number | null;
+}
+
+export class AdminFullTestCourseDto {
+  @ApiProperty({ example: 1 })
+  id!: number;
+
+  @ApiProperty({ example: 'Khóa TOEIC' })
+  title!: string;
+}
+
+export class AdminFullTestDetailDto extends FullTestDto {
+  @ApiPropertyOptional({ type: AdminFullTestCourseDto, nullable: true })
+  courses!: AdminFullTestCourseDto | null;
+}
+
+export class UpdateFullTestDto {
+  @ApiProperty({ example: 'Đề thi TOEIC 1' })
+  @IsString()
+  @IsNotEmpty()
+  title!: string;
+
+  @ApiPropertyOptional({ example: 'Mô tả đề thi', nullable: true })
+  @IsOptional()
+  @IsString()
+  description?: string | null;
+
+  @ApiPropertyOptional({ example: 'https://...', nullable: true })
+  @IsOptional()
+  @IsString()
+  audio_url?: string | null;
+
+  @ApiPropertyOptional({ example: '2026', default: '2026' })
+  @IsOptional()
+  @IsString()
+  category?: string | null;
+
+  @ApiPropertyOptional({ example: '2026-03-29T00:00:00.000Z', nullable: true })
+  @IsOptional()
+  @IsString()
+  release_date?: string | null;
+}
+
+export class SaveFullTestAnswerItemDto {
+  @ApiPropertyOptional({ example: 123 })
+  @IsOptional()
+  @IsInt()
+  id?: number;
+
+  @ApiProperty({ example: 'Option A' })
+  @IsString()
+  answer_text!: string;
+
+  @ApiPropertyOptional({ example: true, default: false })
+  @IsOptional()
+  @IsBoolean()
+  is_correct?: boolean;
+
+  @ApiPropertyOptional({ example: 'Giải thích', nullable: true })
+  @IsOptional()
+  @IsString()
+  explanation?: string | null;
+}
+
+export class CreateFullTestQuestionDto {
+  @ApiProperty({ example: 1, minimum: 1, maximum: 7 })
+  @IsInt()
+  @Min(1)
+  @Max(7)
+  part_number!: number;
+
+  @ApiProperty({ example: 1 })
+  @IsInt()
+  display_order!: number;
+
+  @ApiPropertyOptional({ example: 'What does the man want?', nullable: true })
+  @IsOptional()
+  @IsString()
+  question_text?: string | null;
+
+  @ApiPropertyOptional({ example: 'https://...', nullable: true })
+  @IsOptional()
+  @IsString()
+  audio_url?: string | null;
+
+  @ApiPropertyOptional({ example: 'https://...', nullable: true })
+  @IsOptional()
+  @IsString()
+  image_url?: string | null;
+
+  @ApiPropertyOptional({ example: 'Passage text...', nullable: true })
+  @IsOptional()
+  @IsString()
+  passage_text?: string | null;
+
+  @ApiPropertyOptional({ example: 'group_1', nullable: true })
+  @IsOptional()
+  @IsString()
+  group_id?: string | null;
+
+  @ApiPropertyOptional({ example: 'Transcript text...', nullable: true })
+  @IsOptional()
+  @IsString()
+  transcript?: string | null;
+
+  @ApiPropertyOptional({ example: 'Dịch nghĩa...', nullable: true })
+  @IsOptional()
+  @IsString()
+  translation?: string | null;
+
+  @ApiProperty({ type: [SaveFullTestAnswerItemDto], default: [] })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => SaveFullTestAnswerItemDto)
+  answers!: SaveFullTestAnswerItemDto[];
+}
+
+export class UpdateFullTestQuestionDto {
+  @ApiProperty({ example: 1 })
+  @IsInt()
+  display_order!: number;
+
+  @ApiPropertyOptional({ example: 'What does the man want?', nullable: true })
+  @IsOptional()
+  @IsString()
+  question_text?: string | null;
+
+  @ApiPropertyOptional({ example: 'https://...', nullable: true })
+  @IsOptional()
+  @IsString()
+  audio_url?: string | null;
+
+  @ApiPropertyOptional({ example: 'https://...', nullable: true })
+  @IsOptional()
+  @IsString()
+  image_url?: string | null;
+
+  @ApiPropertyOptional({ example: 'Passage text...', nullable: true })
+  @IsOptional()
+  @IsString()
+  passage_text?: string | null;
+
+  @ApiPropertyOptional({ example: 'group_1', nullable: true })
+  @IsOptional()
+  @IsString()
+  group_id?: string | null;
+
+  @ApiPropertyOptional({ example: 'Transcript text...', nullable: true })
+  @IsOptional()
+  @IsString()
+  transcript?: string | null;
+
+  @ApiPropertyOptional({ example: 'Dịch nghĩa...', nullable: true })
+  @IsOptional()
+  @IsString()
+  translation?: string | null;
+
+  @ApiProperty({ type: [SaveFullTestAnswerItemDto], default: [] })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => SaveFullTestAnswerItemDto)
+  answers!: SaveFullTestAnswerItemDto[];
+}
+
+export class UpdateQuestionGroupDto {
+  @ApiProperty({ type: [Number], example: [1, 2, 3] })
+  @IsArray()
+  @IsInt({ each: true })
+  @ArrayMinSize(1)
+  question_ids!: number[];
+
+  @ApiPropertyOptional({ example: 'Passage text...', nullable: true })
+  @IsOptional()
+  @IsString()
+  passage_text?: string | null;
+
+  @ApiPropertyOptional({ example: 'https://...', nullable: true })
+  @IsOptional()
+  @IsString()
+  audio_url?: string | null;
+
+  @ApiPropertyOptional({ example: 'https://...', nullable: true })
+  @IsOptional()
+  @IsString()
+  image_url?: string | null;
+
+  @ApiPropertyOptional({ example: 'group_1', nullable: true })
+  @IsOptional()
+  @IsString()
+  group_id?: string | null;
 }

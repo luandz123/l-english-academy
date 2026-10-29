@@ -30,7 +30,10 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles, RolesGuard } from '../auth/guards/roles.guard';
 import { AssessmentAdminService } from './assessment-admin.service';
 import {
+  AdminFullTestDetailDto,
   BulkDeleteQuestionsDto,
+  CreateFullTestQuestionDto,
+  FullTestQuestionDto,
   PatchQuizDto,
   QuizDto,
   ReorderQuestionsDto,
@@ -38,6 +41,9 @@ import {
   SaveModuleQuizDto,
   SaveQuestionDto,
   SetQuestionImagesDto,
+  UpdateFullTestDto,
+  UpdateFullTestQuestionDto,
+  UpdateQuestionGroupDto,
 } from './dto';
 
 @ApiTags('assessment-admin')
@@ -254,5 +260,146 @@ export class AssessmentAdminController {
     @Param('lessonId', ParseIntPipe) lessonId: number,
   ): Promise<QuizDto> {
     return this.assessmentAdminService.createLessonQuiz(lessonId);
+  }
+
+  // --- Full Test Admin Endpoints (T-024) ---
+
+  @Get('full-tests/:testId/questions')
+  @ApiOperation({
+    summary:
+      'Lấy toàn bộ câu hỏi và đáp án của đề thi Full Test kèm part_number',
+  })
+  @ApiOkResponse({ type: [FullTestQuestionDto] })
+  @ApiNotFoundResponse({
+    description: 'Đề thi không tồn tại (FULLTEST_NOT_FOUND)',
+  })
+  @ApiUnauthorizedResponse({ description: 'Chưa đăng nhập' })
+  @ApiForbiddenResponse({ description: 'Không có quyền admin' })
+  getFullTestQuestions(
+    @Param('testId', ParseIntPipe) testId: number,
+  ): Promise<FullTestQuestionDto[]> {
+    return this.assessmentAdminService.getFullTestQuestions(testId);
+  }
+
+  @Post('full-tests/:testId/questions')
+  @ApiOperation({
+    summary: 'Admin thêm câu hỏi mới vào đề thi Full Test',
+  })
+  @ApiCreatedResponse({ type: FullTestQuestionDto })
+  @ApiNotFoundResponse({
+    description: 'Đề thi không tồn tại (FULLTEST_NOT_FOUND)',
+  })
+  @ApiUnauthorizedResponse({ description: 'Chưa đăng nhập' })
+  @ApiForbiddenResponse({ description: 'Không có quyền admin' })
+  createFullTestQuestion(
+    @Param('testId', ParseIntPipe) testId: number,
+    @Body() dto: CreateFullTestQuestionDto,
+  ): Promise<FullTestQuestionDto> {
+    return this.assessmentAdminService.createFullTestQuestion(testId, dto);
+  }
+
+  @Put('full-tests/:testId/question-group')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: 'Admin cập nhật thông tin nhóm cho nhiều câu hỏi trong đề thi',
+  })
+  @ApiNoContentResponse({ description: 'Cập nhật nhóm thành công' })
+  @ApiNotFoundResponse({
+    description: 'Đề thi không tồn tại (FULLTEST_NOT_FOUND)',
+  })
+  @ApiBadRequestResponse({
+    description: 'ID câu hỏi không hợp lệ (QUESTION_IDS_INVALID)',
+  })
+  @ApiUnauthorizedResponse({ description: 'Chưa đăng nhập' })
+  @ApiForbiddenResponse({ description: 'Không có quyền admin' })
+  updateQuestionGroup(
+    @Param('testId', ParseIntPipe) testId: number,
+    @Body() dto: UpdateQuestionGroupDto,
+  ): Promise<void> {
+    return this.assessmentAdminService.updateQuestionGroup(testId, dto);
+  }
+
+  @Get('full-tests/:testId')
+  @ApiOperation({
+    summary: 'Lấy chi tiết đề thi Full Test cho admin',
+  })
+  @ApiOkResponse({ type: AdminFullTestDetailDto })
+  @ApiNotFoundResponse({
+    description: 'Đề thi không tồn tại (FULLTEST_NOT_FOUND)',
+  })
+  @ApiUnauthorizedResponse({ description: 'Chưa đăng nhập' })
+  @ApiForbiddenResponse({ description: 'Không có quyền admin' })
+  getFullTestDetail(
+    @Param('testId', ParseIntPipe) testId: number,
+  ): Promise<AdminFullTestDetailDto> {
+    return this.assessmentAdminService.getFullTestDetail(testId);
+  }
+
+  @Put('full-tests/:testId')
+  @ApiOperation({
+    summary: 'Admin cập nhật thông tin đề thi Full Test',
+  })
+  @ApiOkResponse({ type: AdminFullTestDetailDto })
+  @ApiNotFoundResponse({
+    description: 'Đề thi không tồn tại (FULLTEST_NOT_FOUND)',
+  })
+  @ApiUnauthorizedResponse({ description: 'Chưa đăng nhập' })
+  @ApiForbiddenResponse({ description: 'Không có quyền admin' })
+  updateFullTest(
+    @Param('testId', ParseIntPipe) testId: number,
+    @Body() dto: UpdateFullTestDto,
+  ): Promise<AdminFullTestDetailDto> {
+    return this.assessmentAdminService.updateFullTest(testId, dto);
+  }
+
+  @Post('fulltest-questions/:id/duplicate')
+  @ApiOperation({
+    summary: 'Admin nhân bản câu hỏi trong đề thi Full Test',
+  })
+  @ApiCreatedResponse({ type: FullTestQuestionDto })
+  @ApiNotFoundResponse({
+    description: 'Câu hỏi không tồn tại (QUESTION_NOT_FOUND)',
+  })
+  @ApiUnauthorizedResponse({ description: 'Chưa đăng nhập' })
+  @ApiForbiddenResponse({ description: 'Không có quyền admin' })
+  duplicateFullTestQuestion(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<FullTestQuestionDto> {
+    return this.assessmentAdminService.duplicateFullTestQuestion(id);
+  }
+
+  @Put('fulltest-questions/:id')
+  @ApiOperation({
+    summary: 'Admin cập nhật câu hỏi đề thi Full Test và đồng bộ đáp án',
+  })
+  @ApiOkResponse({ type: FullTestQuestionDto })
+  @ApiNotFoundResponse({
+    description: 'Câu hỏi không tồn tại (QUESTION_NOT_FOUND)',
+  })
+  @ApiBadRequestResponse({
+    description: 'Đáp án không thuộc câu hỏi (ANSWER_NOT_IN_QUESTION)',
+  })
+  @ApiUnauthorizedResponse({ description: 'Chưa đăng nhập' })
+  @ApiForbiddenResponse({ description: 'Không có quyền admin' })
+  updateFullTestQuestion(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateFullTestQuestionDto,
+  ): Promise<FullTestQuestionDto> {
+    return this.assessmentAdminService.updateFullTestQuestion(id, dto);
+  }
+
+  @Delete('fulltest-questions/:id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary:
+      'Admin xóa câu hỏi đề thi Full Test và cập nhật lại total_questions',
+  })
+  @ApiNoContentResponse({ description: 'Xóa câu hỏi thành công' })
+  @ApiUnauthorizedResponse({ description: 'Chưa đăng nhập' })
+  @ApiForbiddenResponse({ description: 'Không có quyền admin' })
+  async deleteFullTestQuestion(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<void> {
+    await this.assessmentAdminService.deleteFullTestQuestion(id);
   }
 }

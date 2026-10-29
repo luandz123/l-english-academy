@@ -3,6 +3,16 @@ import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  createAdminFullTestQuestion,
+  deleteAdminFullTestQuestion,
+  duplicateAdminFullTestQuestion,
+  getAdminFullTestDetail,
+  getAdminFullTestQuestions,
+  updateAdminFullTest,
+  updateAdminFullTestQuestion,
+  updateAdminQuestionGroup,
+} from "@/lib/api/assessment";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -143,17 +153,7 @@ const AdminFullTestQuestions = () => {
   const { data: testDetail, isLoading: loadingTestDetail } = useQuery({
     queryKey: ["admin-fulltest-detail", testId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("full_tests")
-        .select(`
-          *,
-          courses (
-            id,
-            title
-          )
-        `)
-        .eq("id", Number(testId))
-        .single();
+      const { data, error } = await getAdminFullTestDetail(Number(testId));
       if (error) throw error;
       return data;
     },
@@ -164,43 +164,9 @@ const AdminFullTestQuestions = () => {
   const { data: allQuestions = [], isLoading: loadingQuestions } = useQuery({
     queryKey: ["admin-fulltest-questions", testId],
     queryFn: async () => {
-      // 1. Get sections and quizzes
-      const { data: sections, error: secErr } = await supabase
-        .from("full_test_sections")
-        .select("part_number, quiz_id")
-        .eq("test_id", Number(testId));
-
-      if (secErr || !sections || sections.length === 0) return [];
-
-      const quizIds = sections.map((s) => s.quiz_id).filter(Boolean) as number[];
-      if (quizIds.length === 0) return [];
-
-      // 2. Fetch questions and answers
-      const { data: questions, error: qErr } = await supabase
-        .from("questions")
-        .select("*, answers(*)")
-        .in("quiz_id", quizIds);
-
-      if (qErr || !questions) return [];
-
-      // Sort and map questions
-      const mapped: Question[] = questions.map((q: any) => {
-        const sec = sections.find((s) => s.quiz_id === q.quiz_id);
-        const part = sec ? sec.part_number : 5;
-        return {
-          ...q,
-          part_number: part,
-          answers: (q.answers || []).sort((a: any, b: any) => a.display_order - b.display_order),
-        };
-      });
-
-      // Sort globally: by part_number, then by display_order
-      mapped.sort((a, b) => {
-        if (a.part_number !== b.part_number) return a.part_number - b.part_number;
-        return a.display_order - b.display_order;
-      });
-
-      return mapped;
+      const { data, error } = await getAdminFullTestQuestions(Number(testId));
+      if (error) throw error;
+      return (data ?? []) as unknown as Question[];
     },
     enabled: !!testId,
   });
@@ -251,16 +217,13 @@ const AdminFullTestQuestions = () => {
     mutationFn: async () => {
       if (!testTitle.trim()) throw new Error("Vui lòng nhập tên đề thi.");
 
-      const { error } = await supabase
-        .from("full_tests")
-        .update({
-          title: testTitle.trim(),
-          description: testDescription.trim() || null,
-          audio_url: testAudioUrl.trim() || null,
-          category: testCategory || "2026",
-          release_date: testReleaseDate ? new Date(testReleaseDate).toISOString() : null,
-        })
-        .eq("id", Number(testId));
+      const { error } = await updateAdminFullTest(Number(testId), {
+        title: testTitle.trim(),
+        description: testDescription.trim() || null,
+        audio_url: testAudioUrl.trim() || null,
+        category: testCategory || "2026",
+        release_date: testReleaseDate ? new Date(testReleaseDate).toISOString() : null,
+      });
 
       if (error) throw error;
     },
@@ -278,83 +241,24 @@ const AdminFullTestQuestions = () => {
   // 2. Add New Question Mutation
   const addQuestionMutation = useMutation({
     mutationFn: async () => {
-      // Find or create quiz_id for this part
-      const { data: section } = await supabase
-        .from("full_test_sections")
-        .select("id, quiz_id")
-        .eq("test_id", Number(testId))
-        .eq("part_number", addPart)
-        .maybeSingle();
+      const { error } = await createAdminFullTestQuestion(Number(testId), {
+        part_number: addPart,
+        display_order: Number(addDisplayOrder) || (allQuestions.length + 1),
+        question_text: addQuestionText.trim(),
+        audio_url: addAudioUrl.trim() || null,
+        image_url: addImageUrl.trim() || null,
+        passage_text: addPassageText.trim() || null,
+        group_id: addGroupId.trim() || null,
+        transcript: addTranscript.trim() || null,
+        translation: addTranslation.trim() || null,
+        answers: addAnswers.map((ans) => ({
+          answer_text: ans.answer_text.trim(),
+          is_correct: ans.is_correct,
+          explanation: ans.explanation?.trim() || null,
+        })),
+      });
 
-      let targetQuizId = section?.quiz_id;
-
-      if (!targetQuizId) {
-        // Create quiz for this part
-        const { data: newQuiz, error: qzErr } = await supabase
-          .from("quizzes")
-          .insert({
-            title: `Part ${addPart} - ${testDetail?.title || "Test"}`,
-            total_questions: 0,
-            display_order: addPart,
-          })
-          .select("id")
-          .single();
-
-        if (qzErr || !newQuiz) throw qzErr;
-
-        // Create section
-        const { data: newSec, error: secErr } = await supabase
-          .from("full_test_sections")
-          .insert({
-            test_id: Number(testId),
-            part_number: addPart,
-            quiz_id: newQuiz.id,
-          })
-          .select("id, quiz_id")
-          .single();
-
-        if (secErr || !newSec) throw secErr;
-        targetQuizId = newQuiz.id;
-      }
-
-      // Insert question
-      const { data: newQ, error: qErr } = await supabase
-        .from("questions")
-        .insert({
-          quiz_id: targetQuizId,
-          display_order: Number(addDisplayOrder) || (allQuestions.length + 1),
-          question_text: addQuestionText.trim(),
-          audio_url: addAudioUrl.trim() || null,
-          image_url: addImageUrl.trim() || null,
-          passage_text: addPassageText.trim() || null,
-          group_id: addGroupId.trim() || null,
-          transcript: addTranscript.trim() || null,
-          translation: addTranslation.trim() || null,
-        })
-        .select("id")
-        .single();
-
-      if (qErr || !newQ) throw qErr;
-
-      // Insert answers
-      const answersToInsert = addAnswers.map((ans, idx) => ({
-        question_id: newQ.id,
-        answer_text: ans.answer_text.trim(),
-        is_correct: ans.is_correct,
-        explanation: ans.explanation?.trim() || null,
-        display_order: idx,
-      }));
-
-      if (answersToInsert.length > 0) {
-        const { error: aErr } = await supabase.from("answers").insert(answersToInsert);
-        if (aErr) throw aErr;
-      }
-
-      // Update test total count
-      await supabase
-        .from("full_tests")
-        .update({ total_questions: allQuestions.length + 1 })
-        .eq("id", Number(testId));
+      if (error) throw error;
     },
     onSuccess: () => {
       toast({
@@ -374,58 +278,24 @@ const AdminFullTestQuestions = () => {
     mutationFn: async () => {
       if (!selectedQuestion) return;
 
-      // Update question
-      const { error: qErr } = await supabase
-        .from("questions")
-        .update({
-          display_order: Number(editDisplayOrder),
-          question_text: editQuestionText.trim(),
-          audio_url: editAudioUrl.trim() || null,
-          image_url: editImageUrl.trim() || null,
-          passage_text: editPassageText.trim() || null,
-          group_id: editGroupId.trim() || null,
-          transcript: editTranscript.trim() || null,
-          translation: editTranslation.trim() || null,
-        })
-        .eq("id", selectedQuestion.id);
+      const { error } = await updateAdminFullTestQuestion(selectedQuestion.id, {
+        display_order: Number(editDisplayOrder),
+        question_text: editQuestionText.trim(),
+        audio_url: editAudioUrl.trim() || null,
+        image_url: editImageUrl.trim() || null,
+        passage_text: editPassageText.trim() || null,
+        group_id: editGroupId.trim() || null,
+        transcript: editTranscript.trim() || null,
+        translation: editTranslation.trim() || null,
+        answers: editAnswers.map((ans) => ({
+          id: ans.id,
+          answer_text: ans.answer_text.trim(),
+          is_correct: ans.is_correct,
+          explanation: ans.explanation?.trim() || null,
+        })),
+      });
 
-      if (qErr) throw qErr;
-
-      // Clean up deleted answers if any were removed
-      const currentAnsIds = editAnswers.map((a) => a.id).filter(Boolean) as number[];
-      if (selectedQuestion.answers.length > 0) {
-        const toDeleteIds = selectedQuestion.answers
-          .map((a) => a.id)
-          .filter((id): id is number => !!id && !currentAnsIds.includes(id));
-
-        if (toDeleteIds.length > 0) {
-          await supabase.from("answers").delete().in("id", toDeleteIds);
-        }
-      }
-
-      // Update/Insert answers
-      for (let idx = 0; idx < editAnswers.length; idx++) {
-        const ans = editAnswers[idx];
-        if (ans.id) {
-          await supabase
-            .from("answers")
-            .update({
-              answer_text: ans.answer_text.trim(),
-              is_correct: ans.is_correct,
-              explanation: ans.explanation?.trim() || null,
-              display_order: idx,
-            })
-            .eq("id", ans.id);
-        } else {
-          await supabase.from("answers").insert({
-            question_id: selectedQuestion.id,
-            answer_text: ans.answer_text.trim(),
-            is_correct: ans.is_correct,
-            explanation: ans.explanation?.trim() || null,
-            display_order: idx,
-          });
-        }
-      }
+      if (error) throw error;
     },
     onSuccess: () => {
       toast({
@@ -447,14 +317,8 @@ const AdminFullTestQuestions = () => {
   // 4. Delete Question Mutation
   const deleteQuestionMutation = useMutation({
     mutationFn: async (questionId: number) => {
-      await supabase.from("answers").delete().eq("question_id", questionId);
-      const { error } = await supabase.from("questions").delete().eq("id", questionId);
+      const { error } = await deleteAdminFullTestQuestion(questionId);
       if (error) throw error;
-
-      await supabase
-        .from("full_tests")
-        .update({ total_questions: Math.max(0, allQuestions.length - 1) })
-        .eq("id", Number(testId));
     },
     onSuccess: () => {
       toast({ title: "Đã xóa câu hỏi thành công" });
@@ -468,36 +332,8 @@ const AdminFullTestQuestions = () => {
   // 5. Clone / Duplicate Question Mutation
   const duplicateQuestionMutation = useMutation({
     mutationFn: async (q: Question) => {
-      // Insert duplicate question
-      const { data: newQ, error: qErr } = await supabase
-        .from("questions")
-        .insert({
-          quiz_id: q.quiz_id,
-          display_order: q.display_order + 1,
-          question_text: `${q.question_text} (Bản sao)`,
-          audio_url: q.audio_url,
-          image_url: q.image_url,
-          passage_text: q.passage_text,
-          group_id: q.group_id,
-          transcript: q.transcript,
-          translation: q.translation,
-        })
-        .select("id")
-        .single();
-
-      if (qErr || !newQ) throw qErr;
-
-      // Insert cloned answers
-      if (q.answers.length > 0) {
-        const answersToInsert = q.answers.map((a) => ({
-          question_id: newQ.id,
-          answer_text: a.answer_text,
-          is_correct: a.is_correct,
-          explanation: a.explanation,
-          display_order: a.display_order,
-        }));
-        await supabase.from("answers").insert(answersToInsert);
-      }
+      const { error } = await duplicateAdminFullTestQuestion(q.id);
+      if (error) throw error;
     },
     onSuccess: () => {
       toast({ title: "Đã nhân bản câu hỏi thành công" });
@@ -515,15 +351,13 @@ const AdminFullTestQuestions = () => {
 
       const ids = selectedGroupQuestions.map((q) => q.id);
 
-      const { error } = await supabase
-        .from("questions")
-        .update({
-          passage_text: groupPassageText.trim() || null,
-          audio_url: groupAudioUrl.trim() || null,
-          image_url: groupImageUrl.trim() || null,
-          group_id: groupIdString.trim() || null,
-        })
-        .in("id", ids);
+      const { error } = await updateAdminQuestionGroup(Number(testId), {
+        question_ids: ids,
+        passage_text: groupPassageText.trim() || null,
+        audio_url: groupAudioUrl.trim() || null,
+        image_url: groupImageUrl.trim() || null,
+        group_id: groupIdString.trim() || null,
+      });
 
       if (error) throw error;
     },
