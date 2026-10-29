@@ -33,6 +33,7 @@ import {
   AdminModuleDto,
   CourseCategoryDto,
   CourseDto,
+  CourseJsonImportDto,
   ModuleDto,
   PatchCourseDto,
   PatchModuleDto,
@@ -294,5 +295,34 @@ export class CatalogAdminController {
     @Body() dto: SetFreeModuleDto,
   ): Promise<void> {
     await this.catalogAdminService.setFreeModule(courseId, dto);
+  }
+
+  @Post('courses/:courseId/import-json')
+  @ApiOperation({
+    summary:
+      'Admin import Module + Quizzes + Lessons + Questions từ JSON vào khóa học trong 1 transaction (ADM-014, ADD-002)',
+  })
+  @ApiCreatedResponse({
+    schema: {
+      type: 'object',
+      properties: {
+        module_id: { type: 'number' },
+        exams_count: { type: 'number' },
+        total_questions: { type: 'number' },
+      },
+    },
+  })
+  @ApiNotFoundResponse({ description: 'COURSE_NOT_FOUND' })
+  @ApiUnauthorizedResponse({ description: 'Chưa đăng nhập' })
+  @ApiForbiddenResponse({ description: 'Không phải admin' })
+  async importCourseJson(
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @Body() dto: CourseJsonImportDto,
+  ): Promise<{
+    module_id: number;
+    exams_count: number;
+    total_questions: number;
+  }> {
+    return this.catalogAdminService.importCourseJson(courseId, dto);
   }
 }

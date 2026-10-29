@@ -236,10 +236,7 @@ export async function updateQuizQuestion(
   body: SaveQuestionPayload,
 ): Promise<{ data: ReviewQuestionRow | null; error: ApiError | null }> {
   return toResult(
-    apiClient.put<ReviewQuestionRow>(
-      `assessment/admin/questions/${id}`,
-      body,
-    ),
+    apiClient.put<ReviewQuestionRow>(`assessment/admin/questions/${id}`, body),
   );
 }
 
@@ -419,14 +416,19 @@ export async function getAdminFullTestDetail(
   testId: number,
 ): Promise<{ data: AdminFullTestDetailRow | null; error: ApiError | null }> {
   return toResult(
-    apiClient.get<AdminFullTestDetailRow>(`assessment/admin/full-tests/${testId}`),
+    apiClient.get<AdminFullTestDetailRow>(
+      `assessment/admin/full-tests/${testId}`,
+    ),
   );
 }
 
 /** Admin lấy danh sách câu hỏi đề thi Full Test kèm part_number (T-024). */
 export async function getAdminFullTestQuestions(
   testId: number,
-): Promise<{ data: AdminFullTestQuestionRow[] | null; error: ApiError | null }> {
+): Promise<{
+  data: AdminFullTestQuestionRow[] | null;
+  error: ApiError | null;
+}> {
   return toResult(
     apiClient.get<AdminFullTestQuestionRow[]>(
       `assessment/admin/full-tests/${testId}/questions`,
@@ -500,14 +502,10 @@ export async function updateAdminQuestionGroup(
   body: UpdateQuestionGroupPayload,
 ): Promise<{ error: ApiError | null }> {
   const res = await toResult(
-    apiClient.put(
-      `assessment/admin/full-tests/${testId}/question-group`,
-      body,
-    ),
+    apiClient.put(`assessment/admin/full-tests/${testId}/question-group`, body),
   );
   return { error: res.error };
 }
-
 
 export interface DictationDetailResponse {
   quiz: QuizRow;
@@ -558,7 +556,9 @@ export async function getDictationVocab(
   quizId: number,
 ): Promise<{ data: VocabWordRow[] | null; error: ApiError | null }> {
   return toResult(
-    apiClient.get<VocabWordRow[]>(`assessment/dictation/quizzes/${quizId}/vocab`),
+    apiClient.get<VocabWordRow[]>(
+      `assessment/dictation/quizzes/${quizId}/vocab`,
+    ),
   );
 }
 
@@ -788,6 +788,25 @@ export async function createAdminVocabWordsBatch(
   );
 }
 
+/** Admin xóa đề thi Full Test và các quiz liên quan (T-028) */
+export async function deleteAdminFullTest(
+  id: number,
+): Promise<{ data: null; error: ApiError | null }> {
+  return toResult(apiClient.delete<null>(`assessment/admin/full-tests/${id}`));
+}
+
+/** Admin xóa hàng loạt đề thi Full Test (T-028) */
+export async function bulkDeleteAdminFullTests(
+  testIds: number[],
+): Promise<{ data: { count: number } | null; error: ApiError | null }> {
+  return toResult(
+    apiClient.post<{ count: number }>(
+      "assessment/admin/full-tests/bulk-delete",
+      { test_ids: testIds },
+    ),
+  );
+}
+
 /** Admin cập nhật một từ vựng (T-033). */
 export async function updateAdminVocabWord(
   id: number,
@@ -854,6 +873,55 @@ export async function getLessonQuestionsForVocab(
   return toResult(
     apiClient.get<AdminLessonQuestionOptionRow[]>(
       `assessment/admin/vocab/lessons/${lessonId}/questions`,
+    ),
+  );
+}
+
+/** Admin import danh sách câu hỏi cho một đề Full Test (T-028) */
+export async function importAdminFullTestQuestions(
+  testId: number,
+  payload: { audio_url?: string; questions: unknown[] } | unknown[],
+): Promise<{
+  data: { test_id: number; imported_questions: number } | null;
+  error: ApiError | null;
+}> {
+  const body = Array.isArray(payload) ? { questions: payload } : payload;
+  return toResult(
+    apiClient.post<{ test_id: number; imported_questions: number }>(
+      `assessment/admin/full-tests/${testId}/import-questions`,
+      body,
+    ),
+  );
+}
+
+/** Admin import câu hỏi vào đề thi đã chọn từ JSON (T-028) */
+export async function appendAdminFullTestQuestions(
+  testId: number,
+  payload: { audio_url?: string; questions: unknown[] },
+): Promise<{
+  data: { test_id: number; imported_questions: number } | null;
+  error: ApiError | null;
+}> {
+  return toResult(
+    apiClient.post<{ test_id: number; imported_questions: number }>(
+      `assessment/admin/full-tests/${testId}/append-questions`,
+      payload,
+    ),
+  );
+}
+
+/** Admin import trọn bộ đề thi Full Test vào khóa học (T-028) */
+export async function packageImportAdminFullTests(payload: {
+  course_title: string;
+  exams: unknown[];
+}): Promise<{
+  data: { course_id: number; exams_imported: number } | null;
+  error: ApiError | null;
+}> {
+  return toResult(
+    apiClient.post<{ course_id: number; exams_imported: number }>(
+      "assessment/admin/full-tests/package-import",
+      payload,
     ),
   );
 }

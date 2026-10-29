@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { deleteAdminFullTest, importAdminFullTestQuestions } from "@/lib/api/assessment";
 import { uploadMedia } from "@/lib/api/media";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -238,20 +239,8 @@ export const CourseFullTestManager = ({ courseId, courseTitle }: CourseFullTestM
   // Delete Test Mutation
   const deleteMutation = useMutation({
     mutationFn: async (testId: number) => {
-      const { data: sections } = await supabase
-        .from("full_test_sections")
-        .select("quiz_id")
-        .eq("test_id", testId);
-
-      const { error } = await supabase.from("full_tests").delete().eq("id", testId);
+      const { error } = await deleteAdminFullTest(testId);
       if (error) throw error;
-
-      if (sections && sections.length > 0) {
-        const quizIds = sections.map((s) => s.quiz_id).filter(Boolean);
-        if (quizIds.length > 0) {
-          await supabase.from("quizzes").delete().in("id", quizIds);
-        }
-      }
     },
     onSuccess: () => {
       toast({ title: "Đã xóa đề thi thành công" });
@@ -328,105 +317,16 @@ export const CourseFullTestManager = ({ courseId, courseTitle }: CourseFullTestM
 
     try {
       setIsImporting(true);
-      setImportProgress(10);
-      setImportStatusText("Đang kiểm tra các phần (sections) của đề thi...");
-
-      // Get sections for test
-      let { data: sections } = await supabase
-        .from("full_test_sections")
-        .select("id, part_number, quiz_id")
-        .eq("test_id", testForImport.id);
-
-      if (!sections || sections.length === 0) {
-        // Create 7 sections if not present
-        const secList = [];
-        for (let p = 1; p <= 7; p++) {
-          const { data: qz } = await supabase
-            .from("quizzes")
-            .insert({ title: `Part ${p} - ${testForImport.title}`, total_questions: 0, display_order: p })
-            .select("id")
-            .single();
-          if (qz) {
-            secList.push({ test_id: testForImport.id, part_number: p, quiz_id: qz.id });
-          }
-        }
-        const { data: insertedSec } = await supabase.from("full_test_sections").insert(secList).select("id, part_number, quiz_id");
-        sections = insertedSec || [];
-      }
-
       setImportProgress(30);
-      setImportStatusText("Đang xử lý câu hỏi và đáp án...");
+      setImportStatusText("Đang gửi câu hỏi lên máy chủ để import...");
 
-      // Group questions by part
-      let totalQuestionsImported = 0;
+      const { data, error: importErr } = await importAdminFullTestQuestions(
+        testForImport.id,
+        parsedData,
+      );
+      if (importErr) throw new Error(importErr.message);
 
-      for (let part = 1; part <= 7; part++) {
-        const partSection = sections.find((s) => s.part_number === part);
-        if (!partSection || !partSection.quiz_id) continue;
-
-        const partQuestions = parsedData.filter((q) => {
-          const qPart = q.part_number || q.part || (q.display_order ? (
-            q.display_order <= 6 ? 1 :
-            q.display_order <= 31 ? 2 :
-            q.display_order <= 70 ? 3 :
-            q.display_order <= 100 ? 4 :
-            q.display_order <= 130 ? 5 :
-            q.display_order <= 146 ? 6 : 7
-          ) : 5);
-          return qPart === part;
-        });
-
-        if (partQuestions.length === 0) continue;
-
-        for (const item of partQuestions) {
-          // Insert question
-          const { data: insertedQ, error: qErr } = await supabase
-            .from("questions")
-            .insert({
-              quiz_id: partSection.quiz_id,
-              display_order: item.display_order || (totalQuestionsImported + 1),
-              question_text: item.question_text || item.text || "",
-              audio_url: item.audio_url || null,
-              image_url: item.image_url || null,
-              passage_text: item.passage_text || item.passage || null,
-              transcript: item.transcript || null,
-              translation: item.translation || null,
-              group_id: item.group_id || null,
-            })
-            .select("id")
-            .single();
-
-          if (qErr || !insertedQ) continue;
-
-          // Insert answers
-          const rawAnswers = item.answers || item.options || [];
-          const answersToInsert = rawAnswers.map((ans: any, aIdx: number) => ({
-            question_id: insertedQ.id,
-            answer_text: typeof ans === "string" ? ans : (ans.answer_text || ans.text || ""),
-            is_correct: typeof ans === "object" ? !!ans.is_correct : (item.correct_answer === aIdx || item.correct === aIdx),
-            explanation: typeof ans === "object" ? ans.explanation || item.explanation || null : (item.explanation || null),
-            display_order: aIdx,
-          }));
-
-          if (answersToInsert.length > 0) {
-            await supabase.from("answers").insert(answersToInsert);
-          }
-
-          totalQuestionsImported++;
-        }
-
-        // Update quiz total_questions
-        await supabase
-          .from("quizzes")
-          .update({ total_questions: partQuestions.length })
-          .eq("id", partSection.quiz_id);
-      }
-
-      // Update full_tests total questions
-      await supabase
-        .from("full_tests")
-        .update({ total_questions: totalQuestionsImported })
-        .eq("id", testForImport.id);
+      const totalQuestionsImported = data?.imported_questions ?? parsedData.length;
 
       setImportProgress(100);
       setImportStatusText(`Đã nhập thành công ${totalQuestionsImported} câu hỏi!`);

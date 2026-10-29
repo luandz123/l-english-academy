@@ -3,6 +3,12 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  appendAdminFullTestQuestions,
+  bulkDeleteAdminFullTests,
+  deleteAdminFullTest,
+  packageImportAdminFullTests,
+} from "@/lib/api/assessment";
 import { uploadMedia as uploadMediaToStorage } from "@/lib/api/media";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -155,22 +161,8 @@ const AdminFullTestManager = () => {
   // Delete Test Mutation
   const deleteMutation = useMutation({
     mutationFn: async (testId: number) => {
-      // Get related quizzes to delete
-      const { data: sections } = await supabase
-        .from("full_test_sections")
-        .select("quiz_id")
-        .eq("test_id", testId);
-
-      // Delete test (cascade will delete sections, but we should clean quizzes if needed)
-      const { error } = await supabase.from("full_tests").delete().eq("id", testId);
+      const { error } = await deleteAdminFullTest(testId);
       if (error) throw error;
-
-      if (sections && sections.length > 0) {
-        const quizIds = sections.map((s) => s.quiz_id).filter(Boolean);
-        if (quizIds.length > 0) {
-          await supabase.from("quizzes").delete().in("id", quizIds);
-        }
-      }
     },
     onSuccess: () => {
       toast({ title: "Đã xóa đề thi thành công" });
@@ -185,22 +177,8 @@ const AdminFullTestManager = () => {
   // Bulk Delete Test Mutation
   const bulkDeleteMutation = useMutation({
     mutationFn: async (testIds: number[]) => {
-      // Get related quizzes to delete
-      const { data: sections } = await supabase
-        .from("full_test_sections")
-        .select("quiz_id")
-        .in("test_id", testIds);
-
-      // Delete tests (cascade will delete sections, but we should clean quizzes if needed)
-      const { error } = await supabase.from("full_tests").delete().in("id", testIds);
+      const { error } = await bulkDeleteAdminFullTests(testIds);
       if (error) throw error;
-
-      if (sections && sections.length > 0) {
-        const quizIds = sections.map((s) => s.quiz_id).filter(Boolean);
-        if (quizIds.length > 0) {
-          await supabase.from("quizzes").delete().in("id", quizIds);
-        }
-      }
     },
     onSuccess: () => {
       toast({ title: "Đã xóa các đề thi thành công" });
@@ -274,276 +252,82 @@ const AdminFullTestManager = () => {
       // Determine if this is a course-level import or single-exam import
       if (parsedData.course_title && Array.isArray(parsedData.exams)) {
         // --- 1. COURSE-WIDE IMPORT ---
-        setImportStatusText("Phát hiện dữ liệu Bộ Đề. Đang xử lý...");
-
-        let targetCourseId: number;
-        // Check if course already exists
-        const { data: existingCourse } = await supabase
-          .from("courses")
-          .select("id")
-          .eq("title", parsedData.course_title)
-          .maybeSingle();
-
-        if (existingCourse) {
-          targetCourseId = existingCourse.id;
-          setImportStatusText(`Sử dụng bộ đề hiện tại: "${parsedData.course_title}"...`);
-        } else {
-          setImportStatusText(`Đang tạo bộ đề mới: "${parsedData.course_title}"...`);
-          const { data: newCourse, error: courseErr } = await supabase
-            .from("courses")
-            .insert({
-              title: parsedData.course_title,
-              subtitle: "Bộ đề thi thử TOEIC sát đề thi thật 2026",
-              course_type: "fulltest",
-              is_active: true,
-              price: 0,
-              duration_months: 12,
-              instructor: "Cô Mai Phương",
-            })
-            .select("id")
-            .single();
-
-          if (courseErr) throw courseErr;
-          targetCourseId = newCourse.id;
-        }
+        setImportStatusText("Phát hiện dữ liệu Bộ Đề. Đang xử lý media...");
 
         const exams = parsedData.exams;
         const totalExams = exams.length;
+        const preparedExams: any[] = [];
+
+        // Media upload helper cached locally
+        const mediaCache: Record<string, string> = {};
+        const uploadMedia = async (url: string, index: number, type: "audio" | "image") => {
+          if (!url || !url.startsWith("http")) return url;
+          if (mediaCache[url]) {
+            return mediaCache[url];
+          }
+          if (url.includes("supabase.co") || url.includes("/storage/v1/object/public/materials")) {
+            return url;
+          }
+          try {
+            const res = await fetch(url);
+            if (!res.ok) return url;
+            const blob = await res.blob();
+            const ext = url.split(".").pop()?.split("?")[0] || (type === "audio" ? "mp3" : "jpg");
+            const { publicUrl } = await uploadMediaToStorage(
+              blob,
+              "full_test_media",
+              `package/part_${type}_${index}_${Date.now()}.${ext}`,
+            );
+            mediaCache[url] = publicUrl;
+            return publicUrl;
+          } catch (e) {
+            console.error(`Lỗi upload media: ${url}`, e);
+            return url;
+          }
+        };
 
         for (let exIdx = 0; exIdx < totalExams; exIdx++) {
           const exam = exams[exIdx];
           const examTitle = exam.exam_title || exam.title || `Đề thi số ${exIdx + 1}`;
 
-          const examProgressBase = Math.round((exIdx / totalExams) * 100);
+          const examProgressBase = Math.round((exIdx / totalExams) * 80);
           setImportProgress(examProgressBase);
-          setImportStatusText(`[Đề ${exIdx + 1}/${totalExams}] Bắt đầu xử lý "${examTitle}"...`);
+          setImportStatusText(`[Đề ${exIdx + 1}/${totalExams}] Bắt đầu xử lý media "${examTitle}"...`);
 
-          let testId: number;
-          // Check if exam already exists under this course
-          const { data: existingTest } = await supabase
-            .from("full_tests")
-            .select("id")
-            .eq("title", examTitle)
-            .eq("course_id", targetCourseId)
-            .maybeSingle();
-
-          if (existingTest) {
-            testId = existingTest.id;
-            setImportStatusText(`[Đề ${exIdx + 1}/${totalExams}] Đã tồn tại đề "${examTitle}". Đang dọn dẹp câu hỏi cũ...`);
-
-            // Clean up old questions for overwrite
-            const { data: oldSections } = await supabase
-              .from("full_test_sections")
-              .select("quiz_id")
-              .eq("test_id", testId);
-
-            if (oldSections && oldSections.length > 0) {
-              const quizIds = oldSections.map((s) => s.quiz_id);
-              await supabase.from("questions").delete().in("quiz_id", quizIds);
-            }
-          } else {
-            setImportStatusText(`[Đề ${exIdx + 1}/${totalExams}] Đang tạo đề thi "${examTitle}"...`);
-            const { data: newTest, error: testErr } = await supabase
-              .from("full_tests")
-              .insert({
-                title: examTitle,
-                course_id: targetCourseId,
-                audio_url: exam.audio_url || null,
-              })
-              .select("id")
-              .single();
-
-            if (testErr) throw testErr;
-            testId = newTest.id;
-
-            // Create 7 sections
-            const sectionsToInsert = [];
-            for (let part = 1; part <= 7; part++) {
-              const { data: newQuiz, error: quizError } = await supabase
-                .from("quizzes")
-                .insert({
-                  title: `Part ${part} - ${examTitle}`,
-                  total_questions: 0,
-                  display_order: part,
-                })
-                .select("id")
-                .single();
-
-              if (quizError) throw quizError;
-
-              sectionsToInsert.push({
-                test_id: testId,
-                part_number: part,
-                quiz_id: newQuiz.id,
-              });
-            }
-
-            const { error: secErr } = await supabase.from("full_test_sections").insert(sectionsToInsert);
-            if (secErr) throw secErr;
-          }
-
-          // Get sections mapping
-          const { data: sections, error: secErr } = await supabase
-            .from("full_test_sections")
-            .select("part_number, quiz_id")
-            .eq("test_id", testId);
-
-          if (secErr || !sections || sections.length === 0) {
-            throw new Error(`Không thể tìm thấy các Sections của đề "${examTitle}".`);
-          }
-
-          const quizMap: Record<number, number> = {};
-          sections.forEach((s) => {
-            quizMap[s.part_number] = s.quiz_id;
-          });
-
-          // Media upload helper cached locally
-          const mediaCache: Record<string, string> = {};
-          const uploadMedia = async (url: string, index: number, type: "audio" | "image") => {
-            if (!url || !url.startsWith("http")) return url;
-            if (mediaCache[url]) {
-              return mediaCache[url];
-            }
-            if (url.includes("supabase.co") || url.includes("/storage/v1/object/public/materials")) {
-              return url;
-            }
-            try {
-              const res = await fetch(url);
-              if (!res.ok) return url;
-              const blob = await res.blob();
-              const ext = url.split(".").pop()?.split("?")[0] || (type === "audio" ? "mp3" : "jpg");
-              const { publicUrl } = await uploadMediaToStorage(
-                blob,
-                "full_test_media",
-                `${testId}/part_${type}_${index}_${Date.now()}.${ext}`,
-              );
-              mediaCache[url] = publicUrl;
-              return publicUrl;
-            } catch (e) {
-              console.error(`Lỗi upload media: ${url}`, e);
-              return url;
-            }
-          };
-
-          // Audio nghe chung
+          let finalMainAudio = exam.audio_url || null;
           if (exam.audio_url) {
-            setImportStatusText(`[Đề ${exIdx + 1}/${totalExams}] Đang tải Audio nghe chung...`);
-            const finalMainAudio = await uploadMedia(exam.audio_url, 0, "audio");
-            await supabase
-              .from("full_tests")
-              .update({ audio_url: finalMainAudio })
-              .eq("id", testId);
+            finalMainAudio = await uploadMedia(exam.audio_url, 0, "audio");
           }
 
           const questionsArray = exam.questions || [];
-          const totalQs = questionsArray.length;
-          const parsedQuestions: any[] = [];
-          const allAnswers: any[] = [];
-
-          for (let i = 0; i < totalQs; i++) {
+          const preparedQuestions: any[] = [];
+          for (let i = 0; i < questionsArray.length; i++) {
             const q = questionsArray[i];
-            const part = q.part || q.part_number || 5;
-            const quizId = quizMap[part];
-
-            if (!quizId) continue;
-
             const currentStep = i + 1;
-            const subPct = Math.round((currentStep / totalQs) * 8); // 8% out of 10%
-            setImportProgress(examProgressBase + subPct);
-            setImportStatusText(`[Đề ${exIdx + 1}/${totalExams}] Đang xử lý media câu ${currentStep}/${totalQs}...`);
-
             const finalAudioUrl = q.audio_url ? await uploadMedia(q.audio_url, currentStep, "audio") : null;
             const finalImageUrl = q.image_url ? await uploadMedia(q.image_url, currentStep, "image") : null;
-
-            let questionText = q.question_text || "";
-            if (q.passage_text) {
-              questionText = `[PASSAGE]${q.passage_text}[ENDPASSAGE]${questionText}`;
-            }
-
-            parsedQuestions.push({
-              quiz_id: quizId,
-              question_text: questionText,
-              question_type: `part${part}`,
-              display_order: q.display_order || currentStep,
-              translation: q.translation || q.translation_text || null,
+            preparedQuestions.push({
+              ...q,
               audio_url: finalAudioUrl,
               image_url: finalImageUrl,
-              group_id: q.group_id ? String(q.group_id) : null,
-              transcript: q.transcript || null,
-              answers: q.answers || [],
             });
           }
 
-          setImportProgress(examProgressBase + 8);
-          setImportStatusText(`[Đề ${exIdx + 1}/${totalExams}] Đang lưu câu hỏi...`);
-
-          // Bulk insert questions
-          const insertedQs: any[] = [];
-          for (let i = 0; i < parsedQuestions.length; i += 20) {
-            const chunk = parsedQuestions.slice(i, i + 20);
-            const { data: inserted, error: qInsertErr } = await supabase
-              .from("questions")
-              .insert(
-                chunk.map((pq) => ({
-                  quiz_id: pq.quiz_id,
-                  question_text: pq.question_text,
-                  question_type: pq.question_type,
-                  display_order: pq.display_order,
-                  translation: pq.translation,
-                  audio_url: pq.audio_url,
-                  image_url: pq.image_url,
-                  group_id: pq.group_id,
-                  transcript: pq.transcript,
-                }))
-              )
-              .select("id");
-
-            if (qInsertErr) throw qInsertErr;
-            if (inserted) insertedQs.push(...inserted);
-          }
-
-          setImportProgress(examProgressBase + 9);
-          setImportStatusText(`[Đề ${exIdx + 1}/${totalExams}] Đang lưu đáp án giải thích...`);
-
-          // Bulk insert answers
-          parsedQuestions.forEach((pq, idx) => {
-            const questionId = insertedQs[idx]?.id;
-            if (!questionId) return;
-
-            pq.answers.forEach((ans: any, aIdx: number) => {
-              allAnswers.push({
-                question_id: questionId,
-                answer_text: ans.answer_text || ans.text || "",
-                is_correct: !!ans.is_correct || !!ans.correct,
-                explanation: ans.explanation || null,
-                display_order: ans.display_order !== undefined ? ans.display_order : aIdx,
-              });
-            });
+          preparedExams.push({
+            ...exam,
+            exam_title: examTitle,
+            audio_url: finalMainAudio,
+            questions: preparedQuestions,
           });
-
-          for (let i = 0; i < allAnswers.length; i += 50) {
-            const chunk = allAnswers.slice(i, i + 50);
-            const { error: ansInsertErr } = await supabase.from("answers").insert(chunk);
-            if (ansInsertErr) throw ansInsertErr;
-          }
-
-          // Update quiz totals
-          setImportStatusText(`[Đề ${exIdx + 1}/${totalExams}] Đang cập nhật số câu hỏi...`);
-          for (const part of Object.keys(quizMap)) {
-            const partNum = Number(part);
-            const quizId = quizMap[partNum];
-
-            const { count } = await supabase
-              .from("questions")
-              .select("id", { count: "exact", head: true })
-              .eq("quiz_id", quizId);
-
-            await supabase
-              .from("quizzes")
-              .update({ total_questions: count || 0 })
-              .eq("id", quizId);
-          }
         }
+
+        setImportProgress(90);
+        setImportStatusText("Đang gửi toàn bộ bộ đề lên máy chủ trong 1 transaction...");
+        const { error: pkgErr } = await packageImportAdminFullTests({
+          course_title: parsedData.course_title,
+          exams: preparedExams,
+        });
+        if (pkgErr) throw new Error(pkgErr.message);
 
         setImportProgress(100);
         setImportStatusText("Import trọn bộ đề thi thành công!");
@@ -562,21 +346,6 @@ const AdminFullTestManager = () => {
 
         const totalQs = questionsArray.length;
         setImportStatusText(`Đã tìm thấy ${totalQs} câu hỏi. Bắt đầu xử lý...`);
-
-        // Get sections mapping
-        const { data: sections, error: secErr } = await supabase
-          .from("full_test_sections")
-          .select("part_number, quiz_id")
-          .eq("test_id", selectedTestForImport.id);
-
-        if (secErr || !sections || sections.length === 0) {
-          throw new Error("Không thể tìm thấy các Sections của đề thi này. Hãy thử tạo lại đề.");
-        }
-
-        const quizMap: Record<number, number> = {};
-        sections.forEach((s) => {
-          quizMap[s.part_number] = s.quiz_id;
-        });
 
         // Media upload helper cached locally
         const mediaCache: Record<string, string> = {};
@@ -606,117 +375,48 @@ const AdminFullTestManager = () => {
           }
         };
 
+        let finalMainAudio: string | undefined = undefined;
         if (parsedData.audio_url && parsedData.audio_url !== selectedTestForImport.audio_url) {
           setImportStatusText("Đang tải và upload Audio nghe chung...");
-          const finalMainAudio = await uploadMedia(parsedData.audio_url, 0, "audio");
-          await supabase
-            .from("full_tests")
-            .update({ audio_url: finalMainAudio })
-            .eq("id", selectedTestForImport.id);
+          finalMainAudio = await uploadMedia(parsedData.audio_url, 0, "audio");
         }
 
-        const parsedQuestions: any[] = [];
-        const allAnswers: any[] = [];
-
+        const preparedQuestions: any[] = [];
         for (let i = 0; i < totalQs; i++) {
           const q = questionsArray[i];
-          const part = q.part || q.part_number || 5;
-          const quizId = quizMap[part];
-
-          if (!quizId) continue;
-
           const currentStep = i + 1;
           const pct = Math.round((currentStep / totalQs) * 80) + 5;
           setImportProgress(pct);
           setImportStatusText(`[${currentStep}/${totalQs}] Đang xử lý file phương tiện của câu ${currentStep}...`);
 
-          const finalAudioUrl = q.audio_url ? await uploadMedia(q.audio_url, currentStep, "audio") : null;
-          const finalImageUrl = q.image_url ? await uploadMedia(q.image_url, currentStep, "image") : null;
+          const finalAudioUrl = q.audio_url ? await uploadMedia(q.audio_url, currentStep, "audio") : undefined;
+          const finalImageUrl = q.image_url ? await uploadMedia(q.image_url, currentStep, "image") : undefined;
 
-          let questionText = q.question_text || "";
-          if (q.passage_text) {
-            questionText = `[PASSAGE]${q.passage_text}[ENDPASSAGE]${questionText}`;
-          }
-
-          parsedQuestions.push({
-            quiz_id: quizId,
-            question_text: questionText,
-            question_type: `part${part}`,
+          preparedQuestions.push({
+            part: q.part || q.part_number,
+            part_number: q.part_number || q.part,
+            question_text: q.question_text,
+            passage_text: q.passage_text,
             display_order: q.display_order || currentStep,
-            translation: q.translation || q.translation_text || null,
+            translation: q.translation || q.translation_text,
+            translation_text: q.translation_text || q.translation,
             audio_url: finalAudioUrl,
             image_url: finalImageUrl,
-            group_id: q.group_id ? String(q.group_id) : null,
-            transcript: q.transcript || null,
-            answers: q.answers || [],
+            group_id: q.group_id ? String(q.group_id) : undefined,
+            transcript: q.transcript,
+            answers: q.answers,
           });
         }
 
         setImportProgress(90);
-        setImportStatusText("Đang tạo các câu hỏi trên database...");
+        setImportStatusText("Đang lưu câu hỏi lên máy chủ...");
 
-        const insertedQs: any[] = [];
-        for (let i = 0; i < parsedQuestions.length; i += 20) {
-          const chunk = parsedQuestions.slice(i, i + 20);
-          const { data: inserted, error: qInsertErr } = await supabase
-            .from("questions")
-            .insert(
-              chunk.map((pq) => ({
-                quiz_id: pq.quiz_id,
-                question_text: pq.question_text,
-                question_type: pq.question_type,
-                display_order: pq.display_order,
-                translation: pq.translation,
-                audio_url: pq.audio_url,
-                image_url: pq.image_url,
-                group_id: pq.group_id,
-                transcript: pq.transcript,
-              }))
-            )
-            .select("id");
-
-          if (qInsertErr) throw qInsertErr;
-          if (inserted) insertedQs.push(...inserted);
-        }
-
-        setImportStatusText("Đang liên kết các đáp án giải thích...");
-
-        parsedQuestions.forEach((pq, idx) => {
-          const questionId = insertedQs[idx]?.id;
-          if (!questionId) return;
-
-          pq.answers.forEach((ans: any, aIdx: number) => {
-            allAnswers.push({
-              question_id: questionId,
-              answer_text: ans.answer_text || ans.text || "",
-              is_correct: !!ans.is_correct || !!ans.correct,
-              explanation: ans.explanation || null,
-              display_order: ans.display_order !== undefined ? ans.display_order : aIdx,
-            });
-          });
+        const { error: importErr } = await appendAdminFullTestQuestions(selectedTestForImport.id, {
+          audio_url: finalMainAudio,
+          questions: preparedQuestions,
         });
 
-        for (let i = 0; i < allAnswers.length; i += 50) {
-          const chunk = allAnswers.slice(i, i + 50);
-          const { error: ansInsertErr } = await supabase.from("answers").insert(chunk);
-          if (ansInsertErr) throw ansInsertErr;
-        }
-
-        setImportStatusText("Cập nhật lại số câu hỏi cho từng phần...");
-        for (const part of Object.keys(quizMap)) {
-          const partNum = Number(part);
-          const quizId = quizMap[partNum];
-
-          const { count } = await supabase
-            .from("questions")
-            .select("id", { count: "exact", head: true })
-            .eq("quiz_id", quizId);
-
-          await supabase
-            .from("quizzes")
-            .update({ total_questions: count || 0 })
-            .eq("id", quizId);
-        }
+        if (importErr) throw new Error(importErr.message);
 
         setImportProgress(100);
         setImportStatusText("Import hoàn tất thành công!");

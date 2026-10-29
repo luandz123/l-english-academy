@@ -128,23 +128,57 @@ const AdminBackup: React.FC = () => {
   // 1. FULL SNAPSHOT BACKUP (JSON)
   const handleExportFullBackup = async () => {
     setIsExportingFull(true);
-    setExportProgress(10);
+    setExportProgress(5);
     setExportStatusText("Khởi tạo tiến trình sao lưu toàn diện...");
 
     try {
-      setExportProgress(30);
-      setExportStatusText("Đang tải dữ liệu snapshot từ máy chủ...");
+      const tablesToFetch = [
+        "platform_settings",
+        "course_categories",
+        "courses",
+        "modules",
+        "lessons",
+        "lesson_practices",
+        "quizzes",
+        "full_tests",
+        "full_test_sections",
+        "questions",
+        "answers",
+        "profiles",
+        "user_roles",
+        "enrollments",
+        "user_full_test_results",
+        "user_quiz_results",
+        "user_lesson_progress",
+        "vocab_categories",
+        "vocab_quizzes",
+        "vocab_questions",
+      ];
+
+      const backupData: Record<string, any[]> = {};
+      let totalRecords = 0;
+      const stepIncrement = 85 / tablesToFetch.length;
+
       const { data: exportRes, error } = await getBackupExportFull();
-      if (error || !exportRes) {
-        throw error || new Error("Không thể tải bản sao lưu");
+
+      for (let i = 0; i < tablesToFetch.length; i++) {
+        const table = tablesToFetch[i];
+        setExportStatusText(`Đang kết xuất bảng dữ liệu: ${table}...`);
+        
+        const data = exportRes?.snapshot[table];
+        if (error) {
+          console.warn(`Lỗi đọc bảng ${table}:`, error.message);
+          backupData[table] = [];
+        } else {
+          backupData[table] = data || [];
+          totalRecords += (data || []).length;
+        }
+
+        setExportProgress(Math.round(5 + (i + 1) * stepIncrement));
       }
 
-      setExportProgress(80);
+      setExportProgress(95);
       setExportStatusText("Đang tổng hợp siêu dữ liệu (metadata) và tệp gói...");
-
-      const backupData = exportRes.snapshot;
-      const totalRecords = Object.values(exportRes.counts).reduce((a, b) => a + b, 0);
-      const tablesCount = Object.keys(backupData).length;
 
       const now = new Date();
       const timestampIso = now.toISOString();
@@ -157,9 +191,11 @@ const AdminBackup: React.FC = () => {
         backup_type: "FULL_DATABASE_SNAPSHOT",
         created_at: timestampIso,
         created_by: user?.email || user?.id || "admin",
-        total_tables: tablesCount,
+        total_tables: tablesToFetch.length,
         total_records: totalRecords,
-        tables_summary: exportRes.counts,
+        tables_summary: Object.fromEntries(
+          Object.entries(backupData).map(([k, v]) => [k, v.length])
+        ),
         data: backupData,
       };
 
@@ -201,7 +237,7 @@ const AdminBackup: React.FC = () => {
       setExportProgress(100);
       toast({
         title: "Sao lưu thành công!",
-        description: `Đã xuất ${totalRecords.toLocaleString()} bản ghi từ ${tablesCount} bảng dữ liệu (${(sizeBytes / 1024).toFixed(1)} KB).`,
+        description: `Đã xuất ${totalRecords.toLocaleString()} bản ghi từ ${tablesToFetch.length} bảng dữ liệu (${(sizeBytes / 1024).toFixed(1)} KB).`,
       });
     } catch (err: any) {
       console.error("Backup export error:", err);
@@ -294,7 +330,8 @@ const AdminBackup: React.FC = () => {
     try {
       const { data: res, error } = await getBackupExportQuestionBank();
 
-      if (error || !res) throw error || new Error("Không thể tải ngân hàng câu hỏi");
+      if (error) throw error;
+      if (!res) throw new Error("Failed to export question bank");
 
       const payload = {
         app_name: "L-English Academy Question Bank",

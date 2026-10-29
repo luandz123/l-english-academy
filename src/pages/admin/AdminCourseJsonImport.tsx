@@ -3,7 +3,7 @@ import AdminLayout from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { importCourseJson, listAdminCourses } from "@/lib/api/catalog";
 import { uploadMedia as uploadMediaFile } from "@/lib/api/media";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, CheckCircle, Loader2 } from "lucide-react";
@@ -36,11 +36,9 @@ const AdminCourseJsonImport = () => {
   const { data: courses = [] } = useQuery({
     queryKey: ["admin-courses-list"],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("courses")
-        .select("id, title")
-        .order("title");
-      return data ?? [];
+      const { data, error } = await listAdminCourses();
+      if (error) throw error;
+      return (data ?? []).map((c) => ({ id: c.id, title: c.title }));
     },
   });
 
@@ -122,154 +120,49 @@ const AdminCourseJsonImport = () => {
     const partTitle: string = jsonData.course_title ?? "Part mới";
 
     try {
-      // 1. Tạo Module (Part)
-      log("info", `Tạo module: "${partTitle}"...`);
-      const { data: existingModules } = await supabase
-        .from("modules")
-        .select("display_order")
-        .eq("course_id", cid)
-        .order("display_order", { ascending: false })
-        .limit(1);
-      const nextOrder = (existingModules?.[0]?.display_order ?? -1) + 1;
-
-      const { data: mod, error: modErr } = await supabase
-        .from("modules")
-        .insert({
-          course_id: cid,
-          title: partTitle,
-          display_order: nextOrder,
-        })
-        .select("id")
-        .single();
-      if (modErr) throw new Error(`Lỗi tạo module: ${modErr.message}`);
-      log("ok", `✅ Module tạo xong (id=${mod.id})`);
-
-      // 2. Loop qua từng exam
+      log("info", `Bắt đầu xử lý media cho ${exams.length} bài thi...`);
+      const preparedExams: any[] = [];
       for (let ei = 0; ei < exams.length; ei++) {
         const exam = exams[ei];
         const examTitle: string = exam.exam_title ?? `Đề ${ei + 1}`;
         const questions: any[] = exam.questions ?? [];
 
-        log("info", `  [${ei + 1}/${exams.length}] Quiz: "${examTitle}" (${questions.length} câu)`);
+        log("info", `  [${ei + 1}/${exams.length}] Xử lý: "${examTitle}" (${questions.length} câu)`);
 
         if (!questions.length) {
           log("warn", `    ⚠️ Không có câu hỏi. Bỏ qua.`);
           continue;
         }
 
-        // Tìm audio_url: ưu tiên exam-level, sau đó lấy từ câu hỏi đầu tiên có audio
-        const examAudioUrl: string | null =
-          exam.audio_url ||
-          questions.find((q: any) => q.audio_url)?.audio_url ||
-          null;
-
-        // 2a. Tạo Quiz
-        const { data: quiz, error: quizErr } = await supabase
-          .from("quizzes")
-          .insert({
-            module_id: mod.id,
-            title: examTitle,
-            total_questions: questions.length,
-            display_order: ei,
-            audio_url: examAudioUrl,
-          } as any)
-          .select("id")
-          .single();
-        if (quizErr) {
-          log("warn", `    ⚠️ Lỗi tạo quiz: ${quizErr.message}. Bỏ qua.`);
-          continue;
-        }
-
-        // 2b. Tạo Lesson (exam type) liên kết với quiz — cần thiết để hiển thị trên LearnPage
-        const { error: lessonErr } = await supabase
-          .from("lessons")
-          .insert({
-            module_id: mod.id,
-            title: examTitle,
-            lesson_type: "exam",
-            quiz_id: quiz.id,
-            display_order: ei,
-          } as any);
-        if (lessonErr) {
-          log("warn", `    ⚠️ Lỗi tạo lesson: ${lessonErr.message}`);
-        }
-
-        // 2b. Upload media + build questions payload
-        const questionsPayload: any[] = [];
-        const answersPayload: any[] = [];
-
+        const preparedQuestions: any[] = [];
         for (let qi = 0; qi < questions.length; qi++) {
           const q = questions[qi];
           const prefix = `e${ei + 1}_q${qi + 1}`;
-          const qType = PART_TYPE_MAP[q.part] ?? "multiple_choice";
-
-          // Build question_text: embed passage for part 6/7
-          let questionText: string = q.question_text ?? "";
-          if (q.passage_text && (q.part === 6 || q.part === 7)) {
-            // Only embed passage on first question of the group (or always, dedup on read)
-            questionText = `[PASSAGE]${q.passage_text}[ENDPASSAGE]${questionText}`;
-          }
-
           const audioUrl = await uploadMedia(q.audio_url, "audio", prefix);
           const imageUrl = await uploadMedia(q.image_url, "image", prefix);
 
-          questionsPayload.push({
-            quiz_id: quiz.id,
-            question_text: questionText,
-            question_type: qType,
-            display_order: qi,
-            translation: q.translation ?? null,
-            audio_url: audioUrl ?? null,
-            image_url: imageUrl ?? null,
-            transcript: q.transcript ?? null,
-            group_id: q.group_id ?? null,
+          preparedQuestions.push({
+            ...q,
+            audio_url: audioUrl,
+            image_url: imageUrl,
           });
         }
 
-        // 2c. Batch insert questions
-        const { data: insertedQs, error: qErr } = await supabase
-          .from("questions")
-          .insert(questionsPayload)
-          .select("id");
-        if (qErr) {
-          log("warn", `    ⚠️ Lỗi insert câu hỏi: ${qErr.message}`);
-          continue;
-        }
-
-        // 2d. Build answers payload
-        for (let qi = 0; qi < questions.length; qi++) {
-          const q = questions[qi];
-          const qId = insertedQs![qi].id;
-          const answers: any[] = q.answers ?? [];
-          for (const a of answers) {
-            answersPayload.push({
-              question_id: qId,
-              answer_text: a.answer_text ?? "",
-              is_correct: a.is_correct ?? false,
-              explanation: a.explanation ?? null,
-              display_order: a.display_order ?? 0,
-            });
-          }
-        }
-
-        // 2e. Batch insert answers
-        if (answersPayload.length > 0) {
-          const { error: aErr } = await supabase
-            .from("answers")
-            .insert(answersPayload);
-          if (aErr) log("warn", `    ⚠️ Lỗi insert đáp án: ${aErr.message}`);
-        }
-
-        // 2f. Update quiz total
-        await supabase
-          .from("quizzes")
-          .update({ total_questions: insertedQs!.length } as any)
-          .eq("id", quiz.id);
-
-        log("ok", `    ✅ Done: ${insertedQs!.length} câu, ${answersPayload.length} đáp án`);
+        preparedExams.push({
+          ...exam,
+          exam_title: examTitle,
+          questions: preparedQuestions,
+        });
       }
 
-      log("ok", `🎉 Import hoàn tất! ${exams.length} bài thi đã được tạo trong module "${partTitle}".`);
+      log("info", `Đang gửi toàn bộ dữ liệu lên máy chủ để tạo module và bài thi trong 1 transaction...`);
+      const { data: result, error: importErr } = await importCourseJson(cid, {
+        course_title: partTitle,
+        exams: preparedExams,
+      });
+      if (importErr) throw new Error(importErr.message);
+
+      log("ok", `🎉 Import hoàn tất! ${result?.exams_count ?? preparedExams.length} bài thi đã được tạo trong module "${partTitle}".`);
       queryClient.invalidateQueries({ queryKey: ["admin-course-modules", cid] });
       queryClient.invalidateQueries({ queryKey: ["admin-courses"] });
       setDone(true);

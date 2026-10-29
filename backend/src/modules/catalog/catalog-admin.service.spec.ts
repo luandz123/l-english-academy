@@ -94,6 +94,14 @@ function setup() {
         Promise.resolve({ ...CATEGORY_ROW, ...data }),
       ),
     deleteCategory: jest.fn().mockResolvedValue(CATEGORY_ROW),
+    createQuizRaw: jest.fn().mockResolvedValue({ id: 101 }),
+    createLessonRaw: jest.fn().mockResolvedValue({ id: 201 }),
+    createQuestionRaw: jest.fn().mockResolvedValue({ id: 301 }),
+    createAnswersRaw: jest.fn().mockResolvedValue({ count: 4 }),
+    updateQuizTotalQuestions: jest.fn().mockResolvedValue(undefined),
+    inTransaction: jest
+      .fn()
+      .mockImplementation((fn: (tx: unknown) => Promise<unknown>) => fn(repo)),
   };
 
   const service = new CatalogAdminService(
@@ -370,6 +378,118 @@ describe('CatalogAdminService', () => {
       const err = await httpError(service.deleteCategory(2));
       expect(err.status).toBe(409);
       expect(err.body.code).toBe('CATEGORY_HAS_COURSES');
+    });
+  });
+
+  describe('importCourseJson', () => {
+    it('ném 404 khi khóa học không tồn tại', async () => {
+      const { service, repo } = setup();
+      repo.findCourseById.mockResolvedValue(null);
+
+      const err = await httpError(
+        service.importCourseJson(999, {
+          course_title: 'Part 5 test',
+          exams: [],
+        }),
+      );
+      expect(err.status).toBe(404);
+      expect(err.body.code).toBe('COURSE_NOT_FOUND');
+    });
+
+    it('tạo module, quiz, lesson, question và answers thành công trong transaction với đúng quy tắc mapping cũ', async () => {
+      const { service, repo } = setup();
+      repo.courseExists.mockResolvedValue(true);
+
+      const res = await service.importCourseJson(1, {
+        course_title: 'Part 5 chuyên sâu',
+        exams: [
+          {
+            exam_title: 'Đề 1',
+            questions: [
+              {
+                part: 6,
+                question_text: 'Choose the best answer',
+                passage_text: 'Passage body',
+                answers: [
+                  {
+                    answer_text: 'A',
+                    is_correct: true,
+                    explanation: 'OK',
+                    display_order: 2,
+                  },
+                  { answer_text: 'B', is_correct: false },
+                ],
+              },
+              {
+                question_text: 'Question without part',
+                answers: [{ answer_text: 'X' }],
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(repo.createModule).toHaveBeenCalledWith({
+        courseId: 1,
+        title: 'Part 5 chuyên sâu',
+        description: null,
+        isFree: false,
+        displayOrder: 0,
+      });
+      expect(repo.createQuizRaw).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Đề 1',
+          totalQuestions: 2,
+        }),
+      );
+      // First question (part 6): embedded passage, part6 question_type
+      expect(repo.createQuestionRaw).toHaveBeenCalledWith(
+        expect.objectContaining({
+          questionText:
+            '[PASSAGE]Passage body[ENDPASSAGE]Choose the best answer',
+          questionType: 'part6',
+          displayOrder: 0,
+        }),
+      );
+      // Second question (no part): multiple_choice fallback
+      expect(repo.createQuestionRaw).toHaveBeenCalledWith(
+        expect.objectContaining({
+          questionText: 'Question without part',
+          questionType: 'multiple_choice',
+          displayOrder: 1,
+        }),
+      );
+      // Answers: display_order 2 (explicit) and 0 (default fallback)
+      expect(repo.createAnswersRaw).toHaveBeenCalledWith([
+        {
+          questionId: 301,
+          answerText: 'A',
+          isCorrect: true,
+          explanation: 'OK',
+          displayOrder: 2,
+        },
+        {
+          questionId: 301,
+          answerText: 'B',
+          isCorrect: false,
+          explanation: null,
+          displayOrder: 0,
+        },
+      ]);
+      expect(repo.createAnswersRaw).toHaveBeenCalledWith([
+        {
+          questionId: 301,
+          answerText: 'X',
+          isCorrect: false,
+          explanation: null,
+          displayOrder: 0,
+        },
+      ]);
+      expect(res).toEqual({
+        module_id: 10,
+        exams_count: 1,
+        total_questions: 2,
+      });
     });
   });
 });

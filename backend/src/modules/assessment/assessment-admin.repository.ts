@@ -621,4 +621,149 @@ export class AssessmentAdminRepository {
       display_order: q.displayOrder,
     }));
   }
+
+  findSectionsByTestId(testId: number): Promise<FullTestSection[]> {
+    return this.prisma.fullTestSection.findMany({
+      where: { testId },
+    });
+  }
+
+  findSectionsByTestIds(testIds: number[]): Promise<FullTestSection[]> {
+    return this.prisma.fullTestSection.findMany({
+      where: { testId: { in: testIds } },
+    });
+  }
+
+  deleteFullTest(id: number): Promise<FullTest> {
+    return this.prisma.fullTest.delete({
+      where: { id },
+    });
+  }
+
+  async deleteFullTests(ids: number[]): Promise<number> {
+    if (ids.length === 0) return 0;
+    const res = await this.prisma.fullTest.deleteMany({
+      where: { id: { in: ids } },
+    });
+    return res.count;
+  }
+
+  async deleteQuizzes(ids: number[]): Promise<number> {
+    if (ids.length === 0) return 0;
+    const res = await this.prisma.quiz.deleteMany({
+      where: { id: { in: ids } },
+    });
+    return res.count;
+  }
+
+  findCourseById(id: number): Promise<Course | null> {
+    return this.prisma.course.findUnique({
+      where: { id },
+    });
+  }
+
+  findCourseByTitle(title: string): Promise<Course | null> {
+    return this.prisma.course.findFirst({
+      where: { title },
+    });
+  }
+
+  createCourse(data: {
+    title: string;
+    subtitle?: string | null;
+    courseType: string;
+    isActive?: boolean;
+    price?: number;
+    instructor?: string;
+    durationMonths?: number;
+  }): Promise<Course> {
+    return this.prisma.course.create({
+      data: {
+        title: data.title,
+        subtitle: data.subtitle ?? 'Bộ đề thi thử TOEIC sát đề thi thật 2026',
+        courseType: data.courseType,
+        isActive: data.isActive ?? true,
+        price: data.price ?? 0,
+        instructor: data.instructor ?? 'Cô Mai Phương',
+        durationMonths: data.durationMonths ?? 12,
+      },
+    });
+  }
+
+  findFullTestByTitleAndCourse(
+    title: string,
+    courseId: number,
+  ): Promise<FullTest | null> {
+    return this.prisma.fullTest.findFirst({
+      where: { title, courseId },
+    });
+  }
+
+  createFullTest(data: {
+    title: string;
+    courseId: number;
+    audioUrl?: string | null;
+  }): Promise<FullTest> {
+    return this.prisma.fullTest.create({
+      data: {
+        title: data.title,
+        courseId: data.courseId,
+        audioUrl: data.audioUrl ?? null,
+      },
+    });
+  }
+
+  createFullTestSection(data: {
+    testId: number;
+    partNumber: number;
+    quizId: number;
+  }): Promise<FullTestSection> {
+    return this.prisma.fullTestSection.create({
+      data: {
+        testId: data.testId,
+        partNumber: data.partNumber,
+        quizId: data.quizId,
+      },
+    });
+  }
+
+  createQuizRaw(data: {
+    title: string;
+    totalQuestions: number;
+    displayOrder: number;
+  }): Promise<Quiz> {
+    return this.prisma.quiz.create({
+      data: {
+        title: data.title,
+        totalQuestions: data.totalQuestions,
+        displayOrder: data.displayOrder,
+      },
+    });
+  }
+
+  async deleteQuestionsByQuizIds(quizIds: number[]): Promise<number> {
+    if (quizIds.length === 0) return 0;
+    // Prisma cascade or delete answers first if needed
+    const questions = await this.prisma.question.findMany({
+      where: { quizId: { in: quizIds } },
+      select: { id: true },
+    });
+    const questionIds = questions.map((q) => q.id);
+    if (questionIds.length > 0) {
+      await this.prisma.answer.deleteMany({
+        where: { questionId: { in: questionIds } },
+      });
+      const res = await this.prisma.question.deleteMany({
+        where: { id: { in: questionIds } },
+      });
+      return res.count;
+    }
+    return 0;
+  }
+
+  countQuestionsByQuizId(quizId: number): Promise<number> {
+    return this.prisma.question.count({
+      where: { quizId },
+    });
+  }
 }

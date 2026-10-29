@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  appendAdminFullTestQuestions,
+  bulkDeleteAdminFullTests,
   bulkDeleteAdminVocabWords,
   createAdminFullTestQuestion,
   createAdminLessonVocabQuiz,
@@ -7,6 +9,7 @@ import {
   createLessonQuiz,
   createModuleQuiz,
   createQuizQuestion,
+  deleteAdminFullTest,
   deleteAdminFullTestQuestion,
   deleteAdminVocabWord,
   deleteModuleQuiz,
@@ -31,12 +34,14 @@ import {
   getQuizResult,
   getQuizReview,
   getStudyTimeLeaderboard,
+  importAdminFullTestQuestions,
   listAdminQuizQuestions,
   listMyQuizResults,
   listQuizQuestions,
   listResultAnswers,
   listUserQuizResults,
   markDictationQuestionDone,
+  packageImportAdminFullTests,
   patchQuiz,
   reorderQuizQuestions,
   resetDictation,
@@ -82,11 +87,31 @@ describe("assessment adapter", () => {
 
   it.each([
     ["getQuiz", () => getQuiz(5), "/api/v1/assessment/quizzes/5"],
-    ["listQuizQuestions", () => listQuizQuestions(5), "/api/v1/assessment/quizzes/5/questions"],
-    ["getQuizReview", () => getQuizReview(5), "/api/v1/assessment/quizzes/5/review"],
-    ["listResultAnswers", () => listResultAnswers(100), "/api/v1/assessment/results/100/answers"],
-    ["listMyQuizResults", () => listMyQuizResults(), "/api/v1/assessment/results/me"],
-    ["listUserQuizResults", () => listUserQuizResults("u-123"), "/api/v1/assessment/admin/users/u-123/results"],
+    [
+      "listQuizQuestions",
+      () => listQuizQuestions(5),
+      "/api/v1/assessment/quizzes/5/questions",
+    ],
+    [
+      "getQuizReview",
+      () => getQuizReview(5),
+      "/api/v1/assessment/quizzes/5/review",
+    ],
+    [
+      "listResultAnswers",
+      () => listResultAnswers(100),
+      "/api/v1/assessment/results/100/answers",
+    ],
+    [
+      "listMyQuizResults",
+      () => listMyQuizResults(),
+      "/api/v1/assessment/results/me",
+    ],
+    [
+      "listUserQuizResults",
+      () => listUserQuizResults("u-123"),
+      "/api/v1/assessment/admin/users/u-123/results",
+    ],
   ])("%s gọi GET đúng URL và trả nguyên data", async (_name, call, url) => {
     const fetchMock = mockFetch(200, [{ id: 1 }]);
     const { data, error } = await call();
@@ -98,7 +123,10 @@ describe("assessment adapter", () => {
   });
 
   it("submitQuiz gửi POST chỉ với đáp án đã chọn và thời gian, không gửi điểm", async () => {
-    const fetchMock = mockFetch(201, { result: RESULT, is_first_attempt: true });
+    const fetchMock = mockFetch(201, {
+      result: RESULT,
+      is_first_attempt: true,
+    });
     const answers = [
       { question_id: 1, selected_answer_id: 11 },
       { question_id: 2, selected_answer_id: null },
@@ -109,16 +137,26 @@ describe("assessment adapter", () => {
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toBe("/api/v1/assessment/quizzes/5/submit");
     expect(init?.method).toBe("POST");
-    expect(JSON.parse(init?.body as string)).toEqual({ answers, time_spent_seconds: 42 });
+    expect(JSON.parse(init?.body as string)).toEqual({
+      answers,
+      time_spent_seconds: 42,
+    });
   });
 
   it("getQuizResult: RESULT_NOT_FOUND → { data: null, error: null } như maybeSingle", async () => {
     mockFetch(404, { statusCode: 404, code: "RESULT_NOT_FOUND", message: "x" });
-    await expect(getQuizResult(100)).resolves.toEqual({ data: null, error: null });
+    await expect(getQuizResult(100)).resolves.toEqual({
+      data: null,
+      error: null,
+    });
   });
 
   it("getQuizResult: 404 khác (sai route) vẫn trả error", async () => {
-    mockFetch(404, { statusCode: 404, code: "NOT_FOUND", message: "Cannot GET" });
+    mockFetch(404, {
+      statusCode: 404,
+      code: "NOT_FOUND",
+      message: "Cannot GET",
+    });
     const { data, error } = await getQuizResult(100);
     expect(data).toBeNull();
     expect(error).toBeInstanceOf(ApiError);
@@ -126,13 +164,23 @@ describe("assessment adapter", () => {
 
   it("getLatestQuizResult bóc .result (bản ghi và null)", async () => {
     mockFetch(200, { result: RESULT });
-    await expect(getLatestQuizResult(5)).resolves.toEqual({ data: RESULT, error: null });
+    await expect(getLatestQuizResult(5)).resolves.toEqual({
+      data: RESULT,
+      error: null,
+    });
     mockFetch(200, { result: null });
-    await expect(getLatestQuizResult(5)).resolves.toEqual({ data: null, error: null });
+    await expect(getLatestQuizResult(5)).resolves.toEqual({
+      data: null,
+      error: null,
+    });
   });
 
   it("getQuizReview chưa nộp → 403 trả error, không ném", async () => {
-    mockFetch(403, { statusCode: 403, code: "QUIZ_NOT_ATTEMPTED", message: "x" });
+    mockFetch(403, {
+      statusCode: 403,
+      code: "QUIZ_NOT_ATTEMPTED",
+      message: "x",
+    });
     const { data, error } = await getQuizReview(5);
     expect(data).toBeNull();
     expect(error?.code).toBe("QUIZ_NOT_ATTEMPTED");
@@ -146,13 +194,21 @@ describe("assessment adapter", () => {
   });
 
   it("listMyQuizResults và listUserQuizResults gặp lỗi → trả { data: null, error }, không ném", async () => {
-    mockFetch(401, { statusCode: 401, code: "UNAUTHORIZED", message: "Chưa đăng nhập" });
+    mockFetch(401, {
+      statusCode: 401,
+      code: "UNAUTHORIZED",
+      message: "Chưa đăng nhập",
+    });
     const res1 = await listMyQuizResults();
     expect(res1.data).toBeNull();
     expect(res1.error).toBeInstanceOf(ApiError);
     expect(res1.error?.status).toBe(401);
 
-    mockFetch(403, { statusCode: 403, code: "FORBIDDEN", message: "Không phải admin" });
+    mockFetch(403, {
+      statusCode: 403,
+      code: "FORBIDDEN",
+      message: "Không phải admin",
+    });
     const res2 = await listUserQuizResults("u-123");
     expect(res2.data).toBeNull();
     expect(res2.error).toBeInstanceOf(ApiError);
@@ -213,9 +269,13 @@ describe("assessment adapter", () => {
       const { error } = await deleteQuizQuestions(10, [1, 2]);
       expect(error).toBeNull();
       const [url, init] = fetchMock.mock.calls[0];
-      expect(url).toBe("/api/v1/assessment/admin/quizzes/10/questions/bulk-delete");
+      expect(url).toBe(
+        "/api/v1/assessment/admin/quizzes/10/questions/bulk-delete",
+      );
       expect(init?.method).toBe("POST");
-      expect(JSON.parse(init?.body as string)).toEqual({ question_ids: [1, 2] });
+      expect(JSON.parse(init?.body as string)).toEqual({
+        question_ids: [1, 2],
+      });
     });
 
     it("reorderQuizQuestions gọi PUT /api/v1/assessment/admin/quizzes/:quizId/question-order", async () => {
@@ -225,7 +285,9 @@ describe("assessment adapter", () => {
       const [url, init] = fetchMock.mock.calls[0];
       expect(url).toBe("/api/v1/assessment/admin/quizzes/10/question-order");
       expect(init?.method).toBe("PUT");
-      expect(JSON.parse(init?.body as string)).toEqual({ question_ids: [2, 1] });
+      expect(JSON.parse(init?.body as string)).toEqual({
+        question_ids: [2, 1],
+      });
     });
 
     it("setQuizQuestionImages gọi PUT /api/v1/assessment/admin/quizzes/:quizId/question-images", async () => {
@@ -250,7 +312,11 @@ describe("assessment adapter", () => {
     });
 
     it("createModuleQuiz gọi POST /api/v1/assessment/admin/modules/:moduleId/quizzes", async () => {
-      const body = { title: "New Quiz", total_questions: 10, time_limit_seconds: 600 };
+      const body = {
+        title: "New Quiz",
+        total_questions: 10,
+        time_limit_seconds: 600,
+      };
       const fetchMock = mockFetch(201, { id: 20, ...body });
       const { data, error } = await createModuleQuiz(3, body);
       expect(error).toBeNull();
@@ -261,7 +327,11 @@ describe("assessment adapter", () => {
     });
 
     it("updateModuleQuiz gọi PUT /api/v1/assessment/admin/quizzes/:id", async () => {
-      const body = { title: "Updated Quiz", total_questions: 15, time_limit_seconds: 900 };
+      const body = {
+        title: "Updated Quiz",
+        total_questions: 15,
+        time_limit_seconds: 900,
+      };
       const fetchMock = mockFetch(200, { id: 20, ...body });
       const { data, error } = await updateModuleQuiz(20, body);
       expect(error).toBeNull();
@@ -291,7 +361,11 @@ describe("assessment adapter", () => {
     });
 
     it("getAdminFullTestDetail gọi GET /api/v1/assessment/admin/full-tests/:testId", async () => {
-      const fetchMock = mockFetch(200, { id: 5, title: "Full Test 1", courses: { id: 1, title: "Course 1" } });
+      const fetchMock = mockFetch(200, {
+        id: 5,
+        title: "Full Test 1",
+        courses: { id: 1, title: "Course 1" },
+      });
       const { data, error } = await getAdminFullTestDetail(5);
       expect(error).toBeNull();
       expect(data?.id).toBe(5);
@@ -302,7 +376,9 @@ describe("assessment adapter", () => {
     });
 
     it("getAdminFullTestQuestions gọi GET /api/v1/assessment/admin/full-tests/:testId/questions", async () => {
-      const fetchMock = mockFetch(200, [{ id: 10, part_number: 1, question_text: "Q1" }]);
+      const fetchMock = mockFetch(200, [
+        { id: 10, part_number: 1, question_text: "Q1" },
+      ]);
       const { data, error } = await getAdminFullTestQuestions(5);
       expect(error).toBeNull();
       expect(data).toHaveLength(1);
@@ -364,12 +440,17 @@ describe("assessment adapter", () => {
     });
 
     it("duplicateAdminFullTestQuestion gọi POST /api/v1/assessment/admin/fulltest-questions/:id/duplicate", async () => {
-      const fetchMock = mockFetch(201, { id: 16, question_text: "Q (Bản sao)" });
+      const fetchMock = mockFetch(201, {
+        id: 16,
+        question_text: "Q (Bản sao)",
+      });
       const { data, error } = await duplicateAdminFullTestQuestion(15);
       expect(error).toBeNull();
       expect(data?.id).toBe(16);
       const [url, init] = fetchMock.mock.calls[0];
-      expect(url).toBe("/api/v1/assessment/admin/fulltest-questions/15/duplicate");
+      expect(url).toBe(
+        "/api/v1/assessment/admin/fulltest-questions/15/duplicate",
+      );
       expect(init?.method).toBe("POST");
     });
 
@@ -384,7 +465,11 @@ describe("assessment adapter", () => {
     });
 
     it("lỗi 500 khi gọi adapter → trả { error: ApiError }, không ném", async () => {
-      mockFetch(500, { statusCode: 500, code: "INTERNAL_ERROR", message: "Server error" });
+      mockFetch(500, {
+        statusCode: 500,
+        code: "INTERNAL_ERROR",
+        message: "Server error",
+      });
       const res = await listAdminQuizQuestions(1);
       expect(res.data).toBeNull();
       expect(res.error).toBeInstanceOf(ApiError);
@@ -430,7 +515,9 @@ describe("assessment adapter", () => {
       });
 
       it("getDictationAnswers gọi GET /api/v1/assessment/dictation/quizzes/:quizId/answers", async () => {
-        const fetchMock = mockFetch(200, [{ id: 1, question_id: 101, is_correct: true }]);
+        const fetchMock = mockFetch(200, [
+          { id: 1, question_id: 101, is_correct: true },
+        ]);
         const { data, error } = await getDictationAnswers(1);
         expect(error).toBeNull();
         expect(data).toHaveLength(1);
@@ -439,43 +526,135 @@ describe("assessment adapter", () => {
       });
 
       it("markDictationQuestionDone gọi PUT /api/v1/assessment/dictation/quizzes/:quizId/questions/:questionId/done", async () => {
-        const fetchMock = mockFetch(200, { score: 1, correct_answers: 1, total_questions: 2 });
+        const fetchMock = mockFetch(200, {
+          score: 1,
+          correct_answers: 1,
+          total_questions: 2,
+        });
         const { data, error } = await markDictationQuestionDone(1, 101);
         expect(error).toBeNull();
         expect(data?.score).toBe(1);
         const [url, init] = fetchMock.mock.calls[0];
-        expect(url).toBe("/api/v1/assessment/dictation/quizzes/1/questions/101/done");
+        expect(url).toBe(
+          "/api/v1/assessment/dictation/quizzes/1/questions/101/done",
+        );
         expect(init?.method).toBe("PUT");
       });
 
       it("unmarkDictationQuestionDone gọi DELETE /api/v1/assessment/dictation/quizzes/:quizId/questions/:questionId/done", async () => {
-        const fetchMock = mockFetch(200, { score: 0, correct_answers: 0, total_questions: 2 });
+        const fetchMock = mockFetch(200, {
+          score: 0,
+          correct_answers: 0,
+          total_questions: 2,
+        });
         const { data, error } = await unmarkDictationQuestionDone(1, 101);
         expect(error).toBeNull();
         expect(data?.score).toBe(0);
         const [url, init] = fetchMock.mock.calls[0];
-        expect(url).toBe("/api/v1/assessment/dictation/quizzes/1/questions/101/done");
+        expect(url).toBe(
+          "/api/v1/assessment/dictation/quizzes/1/questions/101/done",
+        );
         expect(init?.method).toBe("DELETE");
       });
 
       it("syncDictationSession gọi POST /api/v1/assessment/dictation/quizzes/:quizId/sync", async () => {
-        const fetchMock = mockFetch(200, { score: 2, correct_answers: 2, total_questions: 2 });
+        const fetchMock = mockFetch(200, {
+          score: 2,
+          correct_answers: 2,
+          total_questions: 2,
+        });
         const { data, error } = await syncDictationSession(1, [101, 102]);
         expect(error).toBeNull();
         expect(data?.score).toBe(2);
         const [url, init] = fetchMock.mock.calls[0];
         expect(url).toBe("/api/v1/assessment/dictation/quizzes/1/sync");
         expect(init?.method).toBe("POST");
-        expect(JSON.parse(init?.body as string)).toEqual({ question_ids: [101, 102] });
+        expect(JSON.parse(init?.body as string)).toEqual({
+          question_ids: [101, 102],
+        });
       });
 
       it("resetDictation gọi POST /api/v1/assessment/dictation/quizzes/:quizId/reset", async () => {
-        const fetchMock = mockFetch(200, { score: 0, correct_answers: 0, total_questions: 2 });
+        const fetchMock = mockFetch(200, {
+          score: 0,
+          correct_answers: 0,
+          total_questions: 2,
+        });
         const { data, error } = await resetDictation(1);
         expect(error).toBeNull();
         expect(data?.score).toBe(0);
         const [url, init] = fetchMock.mock.calls[0];
         expect(url).toBe("/api/v1/assessment/dictation/quizzes/1/reset");
+        expect(init?.method).toBe("POST");
+      });
+
+      it("deleteAdminFullTest gọi DELETE /api/v1/assessment/admin/full-tests/:id", async () => {
+        const fetchMock = mockFetch(204);
+        const { error } = await deleteAdminFullTest(10);
+        expect(error).toBeNull();
+        const [url, init] = fetchMock.mock.calls[0];
+        expect(url).toBe("/api/v1/assessment/admin/full-tests/10");
+        expect(init?.method).toBe("DELETE");
+      });
+
+      it("bulkDeleteAdminFullTests gọi POST /api/v1/assessment/admin/full-tests/bulk-delete", async () => {
+        const fetchMock = mockFetch(200, { count: 3 });
+        const { data, error } = await bulkDeleteAdminFullTests([1, 2, 3]);
+        expect(error).toBeNull();
+        expect(data?.count).toBe(3);
+        const [url, init] = fetchMock.mock.calls[0];
+        expect(url).toBe("/api/v1/assessment/admin/full-tests/bulk-delete");
+        expect(init?.method).toBe("POST");
+        expect(JSON.parse(init?.body as string)).toEqual({
+          test_ids: [1, 2, 3],
+        });
+      });
+
+      it("importAdminFullTestQuestions gọi POST /api/v1/assessment/admin/full-tests/:testId/import-questions", async () => {
+        const fetchMock = mockFetch(201, {
+          test_id: 10,
+          imported_questions: 5,
+        });
+        const { data, error } = await importAdminFullTestQuestions(10, [
+          { question_text: "Q1" },
+        ]);
+        expect(error).toBeNull();
+        expect(data?.imported_questions).toBe(5);
+        const [url, init] = fetchMock.mock.calls[0];
+        expect(url).toBe(
+          "/api/v1/assessment/admin/full-tests/10/import-questions",
+        );
+        expect(init?.method).toBe("POST");
+      });
+
+      it("appendAdminFullTestQuestions gọi POST /api/v1/assessment/admin/full-tests/:testId/append-questions", async () => {
+        const fetchMock = mockFetch(201, {
+          test_id: 10,
+          imported_questions: 3,
+        });
+        const { data, error } = await appendAdminFullTestQuestions(10, {
+          audio_url: "audio.mp3",
+          questions: [{ question_text: "Q1" }],
+        });
+        expect(error).toBeNull();
+        expect(data?.imported_questions).toBe(3);
+        const [url, init] = fetchMock.mock.calls[0];
+        expect(url).toBe(
+          "/api/v1/assessment/admin/full-tests/10/append-questions",
+        );
+        expect(init?.method).toBe("POST");
+      });
+
+      it("packageImportAdminFullTests gọi POST /api/v1/assessment/admin/full-tests/package-import", async () => {
+        const fetchMock = mockFetch(201, { course_id: 5, exams_imported: 2 });
+        const { data, error } = await packageImportAdminFullTests({
+          course_title: "Full Test 2026",
+          exams: [{ exam_title: "Exam 1", questions: [] }],
+        });
+        expect(error).toBeNull();
+        expect(data?.exams_imported).toBe(2);
+        const [url, init] = fetchMock.mock.calls[0];
+        expect(url).toBe("/api/v1/assessment/admin/full-tests/package-import");
         expect(init?.method).toBe("POST");
       });
     });

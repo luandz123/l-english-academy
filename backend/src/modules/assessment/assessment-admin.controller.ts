@@ -32,12 +32,16 @@ import { Roles, RolesGuard } from '../auth/guards/roles.guard';
 import { AssessmentAdminService } from './assessment-admin.service';
 import {
   AdminFullTestDetailDto,
+  AppendFullTestQuestionsDto,
+  BulkDeleteFullTestsDto,
   BulkDeleteQuestionsDto,
   BulkDeleteVocabWordsDto,
   CreateFullTestQuestionDto,
   CreateLessonVocabQuizDto,
   CreateVocabWordsBatchDto,
   FullTestQuestionDto,
+  ImportFullTestQuestionsDto,
+  PackageImportFullTestsDto,
   PatchQuizDto,
   QuizDto,
   ReorderQuestionsDto,
@@ -493,5 +497,116 @@ export class AssessmentAdminController {
     @Param('lessonId', ParseIntPipe) lessonId: number,
   ) {
     return this.assessmentAdminService.getLessonQuestionsForVocab(lessonId);
+  }
+
+  @Delete('full-tests/:id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: 'Admin xóa đề thi Full Test và các quiz/section liên quan',
+  })
+  @ApiNoContentResponse({ description: 'Xóa đề thi thành công' })
+  @ApiNotFoundResponse({
+    description: 'Đề thi không tồn tại (FULLTEST_NOT_FOUND)',
+  })
+  @ApiUnauthorizedResponse({ description: 'Chưa đăng nhập' })
+  @ApiForbiddenResponse({ description: 'Không có quyền admin' })
+  async deleteFullTest(@Param('id', ParseIntPipe) id: number): Promise<void> {
+    await this.assessmentAdminService.deleteFullTest(id);
+  }
+
+  @Post('full-tests/bulk-delete')
+  @ApiOperation({
+    summary: 'Admin xóa hàng loạt đề thi Full Test và các quiz liên quan',
+  })
+  @ApiOkResponse({
+    schema: {
+      type: 'object',
+      properties: { count: { type: 'number' } },
+    },
+  })
+  @ApiUnauthorizedResponse({ description: 'Chưa đăng nhập' })
+  @ApiForbiddenResponse({ description: 'Không có quyền admin' })
+  async bulkDeleteFullTests(
+    @Body() dto: BulkDeleteFullTestsDto,
+  ): Promise<{ count: number }> {
+    return this.assessmentAdminService.bulkDeleteFullTests(dto);
+  }
+
+  @Post('full-tests/:testId/import-questions')
+  @ApiOperation({
+    summary: 'Admin import hàng loạt câu hỏi cho một đề thi Full Test',
+  })
+  @ApiCreatedResponse({
+    schema: {
+      type: 'object',
+      properties: {
+        test_id: { type: 'number' },
+        imported_questions: { type: 'number' },
+      },
+    },
+  })
+  @ApiNotFoundResponse({
+    description: 'Đề thi không tồn tại (FULLTEST_NOT_FOUND)',
+  })
+  @ApiUnauthorizedResponse({ description: 'Chưa đăng nhập' })
+  @ApiForbiddenResponse({ description: 'Không có quyền admin' })
+  async importFullTestQuestions(
+    @Param('testId', ParseIntPipe) testId: number,
+    @Body() dto: ImportFullTestQuestionsDto,
+  ): Promise<{ test_id: number; imported_questions: number }> {
+    return this.assessmentAdminService.importFullTestQuestions(testId, dto);
+  }
+
+  @Post('full-tests/:testId/append-questions')
+  @ApiOperation({
+    summary: 'Admin import câu hỏi vào đề thi đã chọn từ JSON',
+  })
+  @ApiCreatedResponse({
+    schema: {
+      type: 'object',
+      properties: {
+        test_id: { type: 'number' },
+        imported_questions: { type: 'number' },
+      },
+    },
+  })
+  @ApiNotFoundResponse({
+    description: 'Đề thi không tồn tại (FULLTEST_NOT_FOUND)',
+  })
+  @ApiBadRequestResponse({
+    description:
+      'Không tìm thấy section nào của đề thi (FULLTEST_SECTIONS_NOT_FOUND)',
+  })
+  @ApiUnauthorizedResponse({ description: 'Chưa đăng nhập' })
+  @ApiForbiddenResponse({ description: 'Không có quyền admin' })
+  async appendFullTestQuestions(
+    @Param('testId', ParseIntPipe) testId: number,
+    @Body() dto: AppendFullTestQuestionsDto,
+  ): Promise<{ test_id: number; imported_questions: number }> {
+    return this.assessmentAdminService.appendFullTestQuestions(testId, dto);
+  }
+
+  @Post('full-tests/package-import')
+  @ApiOperation({
+    summary: 'Admin import trọn bộ đề thi Full Test vào khóa học',
+  })
+  @ApiCreatedResponse({
+    schema: {
+      type: 'object',
+      properties: {
+        course_id: { type: 'number' },
+        exams_imported: { type: 'number' },
+      },
+    },
+  })
+  @ApiNotFoundResponse({
+    description: 'Khóa học không tồn tại (COURSE_NOT_FOUND)',
+  })
+  @ApiUnauthorizedResponse({ description: 'Chưa đăng nhập' })
+  @ApiForbiddenResponse({ description: 'Không có quyền admin' })
+  async packageImportFullTests(
+    @Body() dto: PackageImportFullTestsDto,
+  ): Promise<{ course_id: number; exams_imported: number }> {
+    return this.assessmentAdminService.packageImportFullTests(dto);
   }
 }

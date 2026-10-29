@@ -93,7 +93,7 @@ export default function AdminLessonVocab({ lessonId, lessonTitle, questionId }: 
       title: `Từ vựng - ${lessonTitle}`,
       display_order: 0,
     });
-    if (error || !data) throw error || new Error("Không thể tạo quiz");
+    if (error) throw error;
     queryClient.invalidateQueries({ queryKey: ["lesson-vocab-quiz", lessonId] });
     return data;
   };
