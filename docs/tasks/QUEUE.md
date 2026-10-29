@@ -9,6 +9,7 @@ Claude viết spec và cập nhật cột **Trạng thái**. Antigravity làm l�
 4. Mỗi task: `git checkout -b <nhánh>` từ `refactor/nestjs-backend` vừa pull → làm đúng spec → chạy lệnh mục 6 **sau commit cuối** → dán output **nguyên văn** vào mục 7 → commit → `git push -u origin <nhánh>`.
 5. Không tự sửa cột Trạng thái, `PARITY.md`, `PROGRESS.md`. Không merge vào `refactor/nestjs-backend`. Bị chặn → ghi mục 8 của spec, push, chuyển task kế.
 6. `FullTestExam.tsx`, `FullTestResult.tsx` chỉ Claude sửa. Payments chỉ làm đúng phạm vi T-015.
+7. **Từ T-025: task không có file spec sẵn → đọc `docs/tasks/BRIEFS.md`, tự khảo sát và tự viết spec theo mục "Quy trình" trong đó**, commit spec trước rồi code.
 
 ## Trạng thái
 Ký hiệu: ⏳ chờ · 🔨 đang làm · 🔍 chờ review · 🔁 TRẢ LẠI · ✅ merged
@@ -30,3 +31,10 @@ Ký hiệu: ⏳ chờ · 🔨 đang làm · 🔍 chờ review · 🔁 TRẢ LẠ
 | T-022 | [dọn 2 trang admin chi tiết](T-022-admin-detail-leftovers.md) | `task/T-022-admin-detail-leftovers` | — | ✅ merged |
 | T-023 | [admin quiz + câu hỏi](T-023-admin-quiz-questions.md) | `task/T-023-admin-quiz-questions` | T-022 | ✅ merged |
 | T-024 | [admin sửa câu hỏi Full Test](T-024-admin-fulltest-questions.md) | `task/T-024-admin-fulltest-questions` | T-023 | ✅ merged |
+| T-025 | [Dictation (#26a)](BRIEFS.md) | `task/T-025-dictation` | — | ⏳ chờ |
+| T-026 | [upload qua backend (#27)](BRIEFS.md) | `task/T-026-media-upload` | — | ⏳ chờ |
+| T-029 | [popup luyện tập LearnPage](BRIEFS.md) | `task/T-029-learn-practice-popup` | — | ⏳ chờ |
+| T-030 | [khảo sát realtime (chỉ khảo sát)](BRIEFS.md) | `task/T-030-realtime-survey` | — | ⏳ chờ |
+| T-027 | [thư viện tài liệu](BRIEFS.md) | `task/T-027-materials` | T-026 | ⏳ chờ |
+| T-028 | [import Full Test + khóa JSON](BRIEFS.md) | `task/T-028-bulk-import` | T-026 | ⏳ chờ |
+| T-033 | [dọn lẻ](BRIEFS.md) | `task/T-033-leftovers` | T-026 | ⏳ chờ |
