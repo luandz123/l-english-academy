@@ -242,3 +242,8 @@ af3a9d3 feat(assessment): admin quiz and question management APIs and integratio
 ## 8. Câu hỏi (người làm điền khi bị chặn)
 
 ## 9. Review (Claude điền)
+**PASS** (Claude, 2026-10-29) — merge vào `refactor/nestjs-backend`. Review trên `73b8069`.
+- Đúng mục 4: mọi thao tác ghi trong `$transaction`, đếm lại `total_questions` sau tạo/sửa/xóa, `display_order` server tính, kiểm id thuộc quiz (`QUESTION_IDS_INVALID`), `lessons/:id/quiz` chặn 409 khi đã có quiz. Frontend đúng bảng mục 3, giữ `autoImportMedia`, `setQueryData` và đoạn sắp đáp án.
+- Lệch nhỏ (chấp nhận, không đụng điểm/quyền): (1) `answer_text` được trim khi lưu (cũ lưu nguyên văn); (2) `time_limit_seconds = null` lưu thành `0` — `QuizPage` coi `0` và `null` như nhau (dùng mặc định); (3) xóa câu hỏi lỗi giờ hiện toast lỗi thay vì im lặng báo thành công.
+- Còn Supabase (đúng phạm vi): `QuizManager.tsx:522` (`lesson-id-from-quiz`), storage, materials, vocab.
+- Sau gộp: lint/typecheck sạch, unit 265/265, e2e 292/292, vitest 178/178, `check-ui-diff` OK, build OK; lint `QuizManager` +1 `any` do chính spec (`(q: any) => q.id`).
