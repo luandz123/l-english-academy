@@ -484,11 +484,6 @@ class SoundManager {
     } catch {}
   }
 
-  // Level Up / Match found chime
-  public playLevelUpSound() {
-    return this.playWaveClearSound();
-  }
-
   // Wave Clear celebration fanfare
   public playWaveClearSound() {
     if (this.isMuted) return;

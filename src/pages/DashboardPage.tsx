@@ -305,7 +305,7 @@ export const DashboardPage: React.FC = () => {
 
   // 8. Study time leaderboard (aggregating real test & quiz time of all users)
   const { data: studyTimeLeaderboard = [] } = useQuery({
-    queryKey: ["dashboard-study-leaderboard"],
+    queryKey: ["dashboard-study-leaderboard", user?.id],
     queryFn: async () => {
       const { data } = await getStudyTimeLeaderboard();
       return data || [];

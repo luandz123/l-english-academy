@@ -170,9 +170,18 @@ export class AssessmentService {
     return questions.map((q) => this.mapper.toReviewQuestionDto(q));
   }
 
-  /** Thay `DashboardPage.tsx:310`. Tổng hợp thời gian làm bài của học viên. */
-  getStudyTimeLeaderboard(): Promise<StudyTimeLeaderboardItemDto[]> {
-    return this.repo.getStudyTimeLeaderboard();
+  /** Thay `DashboardPage.tsx:310`. Tổng hợp thời gian làm bài của học viên theo RLS cũ. */
+  async getStudyTimeLeaderboard(
+    user: AuthenticatedUser | undefined,
+  ): Promise<StudyTimeLeaderboardItemDto[]> {
+    if (!user) {
+      return [];
+    }
+    const admin = await this.isAdmin(user);
+    if (admin) {
+      return this.repo.getStudyTimeLeaderboard();
+    }
+    return this.repo.getStudyTimeLeaderboard(user.id);
   }
 
   private async canSeeResult(

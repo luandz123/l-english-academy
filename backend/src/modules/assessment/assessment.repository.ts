@@ -160,9 +160,29 @@ export class AssessmentRepository {
     });
   }
 
-  async getStudyTimeLeaderboard(): Promise<
-    Array<{ user_id: string; total_seconds: number }>
-  > {
+  async getStudyTimeLeaderboard(
+    userId?: string,
+  ): Promise<Array<{ user_id: string; total_seconds: number }>> {
+    if (userId) {
+      const [testAgg, quizAgg] = await Promise.all([
+        this.prisma.userFullTestResult.aggregate({
+          _sum: { timeSpentSeconds: true },
+          where: { userId, timeSpentSeconds: { not: null } },
+        }),
+        this.prisma.userQuizResult.aggregate({
+          _sum: { timeSpentSeconds: true },
+          where: { userId, timeSpentSeconds: { not: null } },
+        }),
+      ]);
+      const totalSeconds =
+        (testAgg._sum.timeSpentSeconds ?? 0) +
+        (quizAgg._sum.timeSpentSeconds ?? 0);
+      if (totalSeconds <= 0) {
+        return [];
+      }
+      return [{ user_id: userId, total_seconds: totalSeconds }];
+    }
+
     const [testAgg, quizAgg] = await Promise.all([
       this.prisma.userFullTestResult.groupBy({
         by: ['userId'],
@@ -197,8 +217,8 @@ export class AssessmentRepository {
     return [...userMap.entries()]
       .sort((a, b) => b[1] - a[1])
       .slice(0, 100)
-      .map(([userId, totalSeconds]) => ({
-        user_id: userId,
+      .map(([id, totalSeconds]) => ({
+        user_id: id,
         total_seconds: totalSeconds,
       }));
   }

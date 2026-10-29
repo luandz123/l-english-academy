@@ -5,6 +5,7 @@ import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { setupApp } from '../src/setup-app';
+import { TokenService } from '../src/modules/auth/token.service';
 
 describe('Assessment Leaderboard & Stats Overview (e2e - T-033)', () => {
   let app: INestApplication<App>;
@@ -12,6 +13,19 @@ describe('Assessment Leaderboard & Stats Overview (e2e - T-033)', () => {
   const EMAIL_SUFFIX = '@leaderboard-test.com';
 
   const http = () => request(app.getHttpServer());
+  const bearer = (t: string) => ({ Authorization: `Bearer ${t}` });
+
+  async function userWithToken(
+    email: string,
+  ): Promise<{ id: string; token: string }> {
+    const user = await prisma.user.create({
+      data: { email, emailVerifiedAt: new Date() },
+    });
+    const { accessToken } = await app
+      .get(TokenService)
+      .signAccessToken({ id: user.id, email });
+    return { id: user.id, token: accessToken };
+  }
 
   async function cleanup(): Promise<void> {
     await prisma.user.deleteMany({
@@ -35,54 +49,107 @@ describe('Assessment Leaderboard & Stats Overview (e2e - T-033)', () => {
     await app.close();
   });
 
-  describe('GET /api/v1/assessment/leaderboard/study-time', () => {
-    it('trả về tổng thời gian học cộng dồn theo user_id sắp xếp giảm dần', async () => {
-      // Create 2 test users with results
-      const u1 = await prisma.user.create({
-        data: { email: `u1${EMAIL_SUFFIX}` },
-      });
-      const u2 = await prisma.user.create({
-        data: { email: `u2${EMAIL_SUFFIX}` },
+  describe('GET /api/v1/assessment/leaderboard/study-time (RLS parity)', () => {
+    let studentA: { id: string; token: string };
+    let studentB: { id: string; token: string };
+    let studentC: { id: string; token: string };
+    let admin: { id: string; token: string };
+    let fullTestId: number;
+
+    beforeAll(async () => {
+      studentA = await userWithToken(`studentA${EMAIL_SUFFIX}`);
+      studentB = await userWithToken(`studentB${EMAIL_SUFFIX}`);
+      studentC = await userWithToken(`studentC${EMAIL_SUFFIX}`);
+      admin = await userWithToken(`adminLeaderboard${EMAIL_SUFFIX}`);
+
+      await prisma.userRole.create({
+        data: { userId: admin.id, role: 'admin' },
       });
 
-      // Create a full test
       const ft = await prisma.fullTest.create({
         data: {
           title: 'Leaderboard Test Full',
           totalQuestions: 200,
         },
       });
+      fullTestId = ft.id;
 
-      // User 1: 500s from full test
+      // Student A: 500s from full test
       await prisma.userFullTestResult.create({
         data: {
-          userId: u1.id,
+          userId: studentA.id,
           testId: ft.id,
           timeSpentSeconds: 500,
           totalScore: 700,
         },
       });
 
-      // User 2: 1200s from full test
+      // Student B: 1200s from full test
       await prisma.userFullTestResult.create({
         data: {
-          userId: u2.id,
+          userId: studentB.id,
           testId: ft.id,
           timeSpentSeconds: 1200,
           totalScore: 850,
         },
       });
+    });
 
+    afterAll(async () => {
+      if (fullTestId) {
+        await prisma.fullTest
+          .delete({ where: { id: fullTestId } })
+          .catch(() => null);
+      }
+    });
+
+    it('khách (không có token) nhận []', async () => {
       const res = await http()
         .get('/api/v1/assessment/leaderboard/study-time')
         .expect(200);
 
-      expect(Array.isArray(res.body)).toBe(true);
-      const items = res.body as {
-        user_id: string;
-        total_seconds: number;
-      }[];
+      expect(res.body).toEqual([]);
+    });
+
+    it('học viên A chỉ nhận kết quả của chính mình, không thấy user_id của B', async () => {
+      const res = await http()
+        .get('/api/v1/assessment/leaderboard/study-time')
+        .set(bearer(studentA.token))
+        .expect(200);
+
+      const items = res.body as { user_id: string; total_seconds: number }[];
+      expect(items).toEqual([{ user_id: studentA.id, total_seconds: 500 }]);
+      expect(items.some((i) => i.user_id === studentB.id)).toBe(false);
+    });
+
+    it('học viên C chưa có kết quả nhận []', async () => {
+      const res = await http()
+        .get('/api/v1/assessment/leaderboard/study-time')
+        .set(bearer(studentC.token))
+        .expect(200);
+
+      expect(res.body).toEqual([]);
+    });
+
+    it('admin thấy cả học viên A và B, sắp xếp thời gian giảm dần', async () => {
+      const res = await http()
+        .get('/api/v1/assessment/leaderboard/study-time')
+        .set(bearer(admin.token))
+        .expect(200);
+
+      const items = res.body as { user_id: string; total_seconds: number }[];
       expect(items.length).toBeGreaterThanOrEqual(2);
+
+      const aItem = items.find((i) => i.user_id === studentA.id);
+      const bItem = items.find((i) => i.user_id === studentB.id);
+      expect(aItem).toBeDefined();
+      expect(bItem).toBeDefined();
+      expect(aItem?.total_seconds).toBe(500);
+      expect(bItem?.total_seconds).toBe(1200);
+
+      const bIdx = items.findIndex((i) => i.user_id === studentB.id);
+      const aIdx = items.findIndex((i) => i.user_id === studentA.id);
+      expect(bIdx).toBeLessThan(aIdx);
 
       // Verify privacy: items only contain user_id and total_seconds
       const sample = items[0] as Record<string, unknown>;
@@ -90,20 +157,6 @@ describe('Assessment Leaderboard & Stats Overview (e2e - T-033)', () => {
       expect(sample).toHaveProperty('total_seconds');
       expect(sample.score).toBeUndefined();
       expect(sample.answersDetail).toBeUndefined();
-
-      // Find u1 and u2
-      const u2Item = items.find((i) => i.user_id === u2.id);
-      const u1Item = items.find((i) => i.user_id === u1.id);
-      expect(u2Item?.total_seconds).toBe(1200);
-      expect(u1Item?.total_seconds).toBe(500);
-
-      // Check sorting: u2 before u1
-      const u2Idx = items.findIndex((i) => i.user_id === u2.id);
-      const u1Idx = items.findIndex((i) => i.user_id === u1.id);
-      expect(u2Idx).toBeLessThan(u1Idx);
-
-      // Cleanup full test
-      await prisma.fullTest.delete({ where: { id: ft.id } });
     });
   });
 

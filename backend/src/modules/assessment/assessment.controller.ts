@@ -50,12 +50,17 @@ export class AssessmentController {
   constructor(private readonly assessment: AssessmentService) {}
 
   @Get('leaderboard/study-time')
+  @UseGuards(OptionalJwtAuthGuard)
   @ApiOperation({
-    summary: 'Bảng xếp hạng tổng thời gian học tập của học viên (công khai)',
+    summary: 'Bảng xếp hạng tổng thời gian học tập của học viên',
+    description:
+      'Khách → [], học viên → chỉ tổng của chính mình, admin → mọi user.',
   })
   @ApiOkResponse({ type: [StudyTimeLeaderboardItemDto] })
-  getStudyTimeLeaderboard(): Promise<StudyTimeLeaderboardItemDto[]> {
-    return this.assessment.getStudyTimeLeaderboard();
+  getStudyTimeLeaderboard(
+    @CurrentUser() user: AuthenticatedUser | undefined,
+  ): Promise<StudyTimeLeaderboardItemDto[]> {
+    return this.assessment.getStudyTimeLeaderboard(user);
   }
 
   @Get('quizzes/:quizId')

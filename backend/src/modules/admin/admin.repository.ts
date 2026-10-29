@@ -10,6 +10,55 @@ import {
 
 export type ProfileRecord = Prisma.ProfileGetPayload<object>;
 
+export const BACKUP_TABLES = [
+  'platform_settings',
+  'course_categories',
+  'courses',
+  'modules',
+  'lessons',
+  'lesson_practices',
+  'quizzes',
+  'full_tests',
+  'full_test_sections',
+  'questions',
+  'answers',
+  'profiles',
+  'user_roles',
+  'enrollments',
+  'user_full_test_results',
+  'user_quiz_results',
+  'user_lesson_progress',
+  'vocab_categories',
+  'vocab_quizzes',
+  'vocab_questions',
+] as const;
+
+function serializeRowValue(val: unknown): unknown {
+  if (val === null || val === undefined) return val;
+  if (typeof val === 'bigint') return Number(val);
+  if (val instanceof Date) return val.toISOString();
+  if (
+    typeof val === 'object' &&
+    val !== null &&
+    'toNumber' in val &&
+    typeof (val as { toNumber: () => number }).toNumber === 'function'
+  ) {
+    return (val as { toNumber: () => number }).toNumber();
+  }
+  if (Array.isArray(val)) {
+    return val.map(serializeRowValue);
+  }
+  return val;
+}
+
+function serializeRow(row: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  for (const [key, val] of Object.entries(row)) {
+    result[key] = serializeRowValue(val);
+  }
+  return result;
+}
+
 @Injectable()
 export class AdminRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -272,75 +321,14 @@ export class AdminRepository {
   }
 
   async getBackupFullSnapshot(): Promise<Record<string, unknown[]>> {
-    const [
-      platform_settings,
-      course_categories,
-      courses,
-      modules,
-      lessons,
-      lesson_practices,
-      quizzes,
-      full_tests,
-      full_test_sections,
-      questions,
-      answers,
-      profiles,
-      user_roles,
-      enrollments,
-      user_full_test_results,
-      user_quiz_results,
-      user_lesson_progress,
-      vocab_categories,
-      vocab_quizzes,
-      vocab_questions,
-    ] = await Promise.all([
-      this.prisma.platformSetting.findMany(),
-      this.prisma.courseCategory.findMany(),
-      this.prisma.course.findMany(),
-      this.prisma.module.findMany(),
-      this.prisma.lesson.findMany(),
-      this.prisma.lessonPractice.findMany(),
-      this.prisma.quiz.findMany(),
-      this.prisma.fullTest.findMany(),
-      this.prisma.fullTestSection.findMany(),
-      this.prisma.question.findMany(),
-      this.prisma.answer.findMany(),
-      this.prisma.profile.findMany(),
-      this.prisma.userRole.findMany(),
-      this.prisma.enrollment.findMany(),
-      this.prisma.userFullTestResult.findMany(),
-      this.prisma.userQuizResult.findMany(),
-      this.prisma.userLessonProgress.findMany(),
-      this.prisma.vocabCategory.findMany(),
-      this.prisma.vocabQuiz.findMany(),
-      this.prisma.vocabQuestion.findMany(),
-    ]);
-
-    return {
-      platform_settings,
-      course_categories: course_categories.map((c) => ({
-        ...c,
-        id: Number(c.id),
-      })),
-      courses,
-      modules,
-      lessons,
-      lesson_practices,
-      quizzes,
-      full_tests,
-      full_test_sections,
-      questions,
-      answers,
-      profiles,
-      user_roles,
-      enrollments,
-      user_full_test_results,
-      user_quiz_results,
-      user_lesson_progress,
-      vocab_categories,
-      vocab_quizzes,
-      vocab_questions,
-    };
+    const tableQueries = BACKUP_TABLES.map(async (table) => {
+      const rows = await this.prisma.$queryRawUnsafe<Record<string, unknown>[]>(
+        `SELECT * FROM "${table}"`,
+      );
+      return [table, rows.map((r) => serializeRow(r))] as const;
+    });
+    const entries = await Promise.all(tableQueries);
+    return Object.fromEntries(entries);
   }
 
   async getBackupStudents(): Promise<
@@ -420,8 +408,12 @@ export class AdminRepository {
     answers: unknown[];
   }> {
     const [questions, answers, fullTests] = await Promise.all([
-      this.prisma.question.findMany(),
-      this.prisma.answer.findMany(),
+      this.prisma.$queryRawUnsafe<Record<string, unknown>[]>(
+        'SELECT * FROM "questions"',
+      ),
+      this.prisma.$queryRawUnsafe<Record<string, unknown>[]>(
+        'SELECT * FROM "answers"',
+      ),
       this.prisma.fullTest.findMany({
         select: {
           id: true,
@@ -432,8 +424,8 @@ export class AdminRepository {
     ]);
     return {
       full_tests: fullTests,
-      questions,
-      answers,
+      questions: questions.map((q) => serializeRow(q)),
+      answers: answers.map((a) => serializeRow(a)),
     };
   }
 
