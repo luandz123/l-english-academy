@@ -28,3 +28,4 @@ Ký hiệu: ⏳ chờ · 🔨 đang làm · 🔍 chờ review · 🔁 TRẢ LẠ
 | T-020 | [admin thống kê + học viên](T-020-admin-stats.md) | `task/T-020-admin-stats` | T-018 | ✅ merged |
 | T-021 | [từ vựng + flashcard](T-021-vocab-pages.md) | `task/T-021-vocab-pages` | — | ✅ merged |
 | T-022 | [dọn 2 trang admin chi tiết](T-022-admin-detail-leftovers.md) | `task/T-022-admin-detail-leftovers` | — | ⏳ chờ |
+| T-023 | [admin quiz + câu hỏi](T-023-admin-quiz-questions.md) | `task/T-023-admin-quiz-questions` | T-022 | ⏳ chờ |
