@@ -16,10 +16,10 @@ Dự án Supabase **phải giữ** sau cutover: Storage `materials` + Realtime +
 **Chốt (2026-10-29): nâng staging lên production**, không dựng bộ thứ hai. Service Render `lenglish-api` + DB Neon hiện tại trở thành production; dữ liệu test bị xóa và nội dung được copy lại ở ngày cutover. Lý do: chưa có người dùng thật (D-05), Render free chung 750 giờ/tháng, ít biến phải nhập lại. Đánh đổi: hết staging — cần lại thì tạo nhánh Neon + service Render mới.
 
 ## 1. Điều kiện bắt đầu
-- [x] QUEUE: T-033, T-034, T-035 ✅ merged. `grep -rn "supabase\.\(from\|rpc\|storage\|auth\)" src` chỉ còn `speakingService.ts` (hoãn #11).
+- [x] QUEUE: T-033, T-034, T-035 ✅ merged. file còn import Supabase client chỉ là Speaking (#11) và `supabase.channel` của game (#28) — xem T-035.
 - [x] CI `refactor/nestjs-backend` xanh; staging chạy được 6 luồng ở §5 (smoke test) — 2026-10-29.
 - [ ] Diễn tập rollback trên staging xong (§6), ghi thời gian thực tế.
-- [ ] `main` không có commit nào chưa vào nhánh refactor: `git log origin/refactor/nestjs-backend..origin/main` rỗng.
+- [x] `main` không có commit nào chưa vào nhánh refactor: `git log origin/refactor/nestjs-backend..origin/main` rỗng (kiểm 2026-10-29).
 - [ ] Đã chọn giờ ít người dùng; báo trước đóng băng nội dung (admin không sửa khóa học/đề trong lúc chuyển).
 
 ## 2. Chuẩn bị trước (không ảnh hưởng production)
