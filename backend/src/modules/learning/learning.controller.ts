@@ -12,9 +12,12 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import {
+  ApiBadRequestResponse,
   ApiBearerAuth,
   ApiCreatedResponse,
+  ApiForbiddenResponse,
   ApiNoContentResponse,
+  ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
@@ -35,6 +38,7 @@ import {
   MaterialDto,
   NoteDto,
   PracticeDto,
+  PracticeQuestionDto,
   UpdateLessonProgressDto,
 } from './dto';
 import { LearningService } from './learning.service';
@@ -182,5 +186,33 @@ export class LearningController {
     @Param('lessonId', ParseIntPipe) lessonId: number,
   ): Promise<PracticeDto[]> {
     return this.learning.getLessonPractices(lessonId);
+  }
+
+  @Get('lessons/:lessonId/practices/:practiceId/questions')
+  @UseGuards(OptionalJwtAuthGuard)
+  @ApiOperation({
+    summary: 'Danh sách câu hỏi kèm đáp án của popup luyện tập',
+    description:
+      'Chỉ trả về khi có quyền học bài học (canStudyLesson). Không có quyền → 403 (LESSON_LOCKED). ' +
+      'Practice phải thuộc đúng bài học (nếu không → 400 PRACTICE_NOT_IN_LESSON). ' +
+      'Không tìm thấy bài hoặc practice → 404.',
+  })
+  @ApiOkResponse({ type: [PracticeQuestionDto] })
+  @ApiBadRequestResponse({
+    description: 'Practice không thuộc bài học (PRACTICE_NOT_IN_LESSON)',
+  })
+  @ApiForbiddenResponse({
+    description: 'Không có quyền học bài này (LESSON_LOCKED)',
+  })
+  @ApiNotFoundResponse({
+    description:
+      'Bài học hoặc bài luyện tập không tồn tại (LESSON_NOT_FOUND, PRACTICE_NOT_FOUND)',
+  })
+  getPracticeQuestions(
+    @Param('lessonId', ParseIntPipe) lessonId: number,
+    @Param('practiceId', ParseIntPipe) practiceId: number,
+    @CurrentUser() user: AuthenticatedUser | undefined,
+  ): Promise<PracticeQuestionDto[]> {
+    return this.learning.getPracticeQuestions(lessonId, practiceId, user);
   }
 }

@@ -10,6 +10,7 @@ import {
   getMyEnrollment,
   listLessonMaterials,
   listLessonPractices,
+  listPracticeQuestions,
   listMyFavorites,
   listMyNotes,
   listMyProgress,
@@ -502,6 +503,58 @@ describe("learning adapter", () => {
 
       expect(data).toBeNull();
       expect(error).toBeInstanceOf(ApiError);
+    });
+  });
+
+  describe("listPracticeQuestions", () => {
+    it("gọi đúng URL và method GET", async () => {
+      const questions = [
+        {
+          id: 1,
+          quiz_id: 100,
+          question_text: "What is this?",
+          question_type: "multiple_choice",
+          image_url: null,
+          audio_url: null,
+          display_order: 1,
+          translation: null,
+          dictation_keywords: null,
+          explanation: "Explanation",
+          transcript: null,
+          knowledge_tag: null,
+          passage_text: null,
+          group_id: null,
+          answers: [
+            {
+              id: 10,
+              question_id: 1,
+              answer_text: "Option A",
+              display_order: 1,
+              is_correct: true,
+              explanation: null,
+            },
+          ],
+        },
+      ];
+      const fetchMock = mockFetch(200, questions);
+
+      const { data, error } = await listPracticeQuestions(50, 1);
+
+      expect(error).toBeNull();
+      expect(data).toEqual(questions);
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("/api/v1/learning/lessons/50/practices/1/questions");
+      expect(init?.method).toBe("GET");
+    });
+
+    it("trả về ApiError khi lỗi (403 LESSON_LOCKED)", async () => {
+      mockFetch(403, { statusCode: 403, code: "LESSON_LOCKED", message: "Bạn chưa có quyền học bài này" });
+      const { data, error } = await listPracticeQuestions(50, 1);
+
+      expect(data).toBeNull();
+      expect(error).toBeInstanceOf(ApiError);
+      expect(error?.status).toBe(403);
+      expect(error?.code).toBe("LESSON_LOCKED");
     });
   });
 

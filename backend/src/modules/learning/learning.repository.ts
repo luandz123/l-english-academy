@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import type {
+  Answer,
   Course,
   Enrollment,
   Lesson,
@@ -8,11 +9,14 @@ import type {
   Material,
   Module,
   Profile,
+  Question,
   Quiz,
   UserFavorite,
   UserLessonProgress,
   UserNote,
 } from '../../generated/prisma/client';
+
+export type QuestionWithAnswers = Question & { answers: Answer[] };
 
 export type ModuleWithLessons = Module & { lessons: Lesson[] };
 
@@ -321,6 +325,17 @@ export class LearningRepository {
   findPracticeById(id: number): Promise<LessonPractice | null> {
     return this.prisma.lessonPractice.findUnique({
       where: { id },
+    });
+  }
+
+  /** Lấy danh sách câu hỏi kèm đáp án của một quiz (như `select("*, answers(*)")`). */
+  findQuestionsWithAnswers(quizId: number): Promise<QuestionWithAnswers[]> {
+    return this.prisma.question.findMany({
+      where: { quizId },
+      include: {
+        answers: { orderBy: [{ displayOrder: 'asc' }, { id: 'asc' }] },
+      },
+      orderBy: [{ displayOrder: 'asc' }, { id: 'asc' }],
     });
   }
 

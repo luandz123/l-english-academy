@@ -120,6 +120,33 @@ export interface PracticeRow {
   quizzes: PracticeQuizRow | null;
 }
 
+export interface PracticeAnswerRow {
+  id: number;
+  question_id: number | null;
+  answer_text: string | null;
+  display_order: number;
+  is_correct: boolean | null;
+  explanation: string | null;
+}
+
+export interface PracticeQuestionRow {
+  id: number;
+  quiz_id: number | null;
+  question_text: string | null;
+  question_type: string | null;
+  image_url: string | null;
+  audio_url: string | null;
+  display_order: number;
+  translation: string | null;
+  dictation_keywords: string | null;
+  explanation: string | null;
+  transcript: string | null;
+  knowledge_tag: string | null;
+  passage_text: string | null;
+  group_id: string | null;
+  answers: PracticeAnswerRow[];
+}
+
 export interface SaveLessonPayload {
   title: string;
   lesson_type: string;
@@ -255,6 +282,17 @@ export async function listLessonPractices(
 ): Promise<{ data: PracticeRow[] | null; error: ApiError | null }> {
   return toResult(
     apiClient.get<PracticeRow[]>(`learning/lessons/${lessonId}/practices`),
+  );
+}
+
+export async function listPracticeQuestions(
+  lessonId: number,
+  practiceId: number,
+): Promise<{ data: PracticeQuestionRow[] | null; error: ApiError | null }> {
+  return toResult(
+    apiClient.get<PracticeQuestionRow[]>(
+      `learning/lessons/${lessonId}/practices/${practiceId}/questions`,
+    ),
   );
 }
 

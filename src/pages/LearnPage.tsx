@@ -5,7 +5,6 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { PlayCircle, CheckCircle, ChevronLeft, ChevronRight, Check, Loader2, FileQuestion, X, Headphones, PanelRightClose, PanelRight, Keyboard, Trophy, ChevronDown, Lock, Crown, Zap, Sparkles, ShieldCheck, Eye, EyeOff } from "lucide-react";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { listMyQuizResults } from "@/lib/api/assessment";
 import { getCourse } from "@/lib/api/catalog";
 import {
@@ -15,6 +14,7 @@ import {
   getMyEnrollment,
   listLessonMaterials,
   listLessonPractices,
+  listPracticeQuestions,
   listMyFavorites,
   listMyNotes,
   listMyProgress,
@@ -194,8 +194,9 @@ const LearnPage = () => {
   }, [currentLessonId]);
 
   const openPractice = async (practice: any) => {
-    if (!practice.quiz_id) return;
-    const { data } = await supabase.from("questions").select("*, answers(*)").eq("quiz_id", practice.quiz_id).order("display_order");
+    const lessonId = practice.lesson_id ?? currentLessonId;
+    if (!practice.quiz_id || !lessonId) return;
+    const { data } = await listPracticeQuestions(lessonId, practice.id);
     const qs = (data ?? []).map((q: any) => ({ ...q, answers: (q.answers ?? []).sort((a: any, b: any) => a.display_order - b.display_order) }));
     setPracticeQuestions(qs);
     setPracticeAnswers({});

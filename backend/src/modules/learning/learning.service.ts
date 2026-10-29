@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -15,6 +16,7 @@ import {
   MaterialDto,
   NoteDto,
   PracticeDto,
+  PracticeQuestionDto,
   UpdateLessonProgressDto,
 } from './dto';
 import {
@@ -315,6 +317,77 @@ export class LearningService {
   async getLessonPractices(lessonId: number): Promise<PracticeDto[]> {
     const practices = await this.repo.findPracticesByLesson(lessonId);
     return practices.map((p) => this.mapper.toPracticeDto(p));
+  }
+
+  /**
+   * Thay `LearnPage.tsx:198`. Lấy danh sách câu hỏi kèm đáp án của popup luyện tập.
+   * - Bài học không tồn tại → 404 LESSON_NOT_FOUND
+   * - Practice không tồn tại → 404 PRACTICE_NOT_FOUND
+   * - Practice không thuộc bài học → 400 PRACTICE_NOT_IN_LESSON
+   * - Không có quyền học bài (canStudyLesson) → 403 LESSON_LOCKED
+   * - Practice không gắn quiz → []
+   */
+  async getPracticeQuestions(
+    lessonId: number,
+    practiceId: number,
+    user: AuthenticatedUser | undefined,
+  ): Promise<PracticeQuestionDto[]> {
+    const lesson = await this.repo.findLessonAccess(lessonId);
+    if (!lesson) {
+      throw new NotFoundException({
+        code: 'LESSON_NOT_FOUND',
+        message: 'Bài học không tồn tại',
+      });
+    }
+
+    const practice = await this.repo.findPracticeById(practiceId);
+    if (!practice) {
+      throw new NotFoundException({
+        code: 'PRACTICE_NOT_FOUND',
+        message: 'Bài luyện tập không tồn tại',
+      });
+    }
+
+    if (practice.lessonId !== lessonId) {
+      throw new BadRequestException({
+        code: 'PRACTICE_NOT_IN_LESSON',
+        message: 'Bài luyện tập không thuộc bài học này',
+      });
+    }
+
+    const isAdmin = await this.isAdmin(user);
+    const courseId = lesson.module?.courseId ?? null;
+    const [course, enrollment] = await Promise.all([
+      courseId !== null ? this.catalog.findCourseById(courseId) : null,
+      user && !isAdmin && courseId !== null
+        ? this.repo.findEnrollment(user.id, courseId)
+        : null,
+    ]);
+
+    const allowed = canStudyLesson(
+      lessonAccessContext({
+        isAdmin,
+        enrollment,
+        now: new Date(),
+        course,
+        module: lesson.module,
+        lesson,
+      }),
+    );
+
+    if (!allowed) {
+      throw new ForbiddenException({
+        code: 'LESSON_LOCKED',
+        message: 'Bạn chưa có quyền học bài này',
+      });
+    }
+
+    if (!practice.quizId) {
+      return [];
+    }
+
+    const questions = await this.repo.findQuestionsWithAnswers(practice.quizId);
+    return questions.map((q) => this.mapper.toPracticeQuestionDto(q));
   }
 
   private async isAdmin(user: AuthenticatedUser | undefined): Promise<boolean> {

@@ -11,6 +11,7 @@ import type {
   EnrollmentResponseDto,
   LessonDto,
   MaterialDto,
+  PracticeQuestionDto,
 } from '../src/modules/learning/dto';
 
 /**
@@ -36,6 +37,9 @@ describe('LearningModule — quyền xem bài (e2e)', () => {
     hiddenLesson: 0,
     freeModuleLesson: 0,
     freeCourseLesson: 0,
+    paidPractice: 0,
+    freePractice: 0,
+    otherLessonPractice: 0,
   };
   const tokens = {
     enrolled: '',
@@ -50,6 +54,12 @@ describe('LearningModule — quyền xem bài (e2e)', () => {
   const bearer = (t: string) => ({ Authorization: `Bearer ${t}` });
 
   async function cleanup(): Promise<void> {
+    await prisma.lessonPractice.deleteMany();
+    await prisma.answer.deleteMany();
+    await prisma.question.deleteMany();
+    await prisma.quiz.deleteMany({
+      where: { title: 'Popup Quiz Test' },
+    });
     await prisma.material.deleteMany();
     await prisma.lesson.deleteMany();
     await prisma.module.deleteMany();
@@ -174,6 +184,71 @@ describe('LearningModule — quyền xem bài (e2e)', () => {
         },
       ],
     });
+
+    const quiz = await prisma.quiz.create({
+      data: {
+        title: 'Popup Quiz Test',
+        totalQuestions: 1,
+      },
+    });
+
+    const question = await prisma.question.create({
+      data: {
+        quizId: quiz.id,
+        questionText: 'Test Practice Question',
+        displayOrder: 1,
+      },
+    });
+
+    await prisma.answer.createMany({
+      data: [
+        {
+          questionId: question.id,
+          answerText: 'Correct Answer',
+          isCorrect: true,
+          displayOrder: 1,
+        },
+        {
+          questionId: question.id,
+          answerText: 'Wrong Answer',
+          isCorrect: false,
+          displayOrder: 2,
+        },
+      ],
+    });
+
+    const paidPractice = await prisma.lessonPractice.create({
+      data: {
+        lessonId: ids.paidLesson,
+        quizId: quiz.id,
+        triggerAtSeconds: 30,
+        title: 'Paid Practice',
+        displayOrder: 1,
+      },
+    });
+    ids.paidPractice = paidPractice.id;
+
+    const freePractice = await prisma.lessonPractice.create({
+      data: {
+        lessonId: ids.freeLesson,
+        quizId: quiz.id,
+        triggerAtSeconds: 30,
+        title: 'Free Practice',
+        displayOrder: 1,
+      },
+    });
+    ids.freePractice = freePractice.id;
+
+    const otherPractice = await prisma.lessonPractice.create({
+      data: {
+        lessonId: ids.freeCourseLesson,
+        quizId: quiz.id,
+        triggerAtSeconds: 15,
+        title: 'Other Practice',
+        displayOrder: 1,
+      },
+    });
+    ids.otherLessonPractice = otherPractice.id;
 
     const enrolled = await userWithToken('enrolled@learn.test');
     const other = await userWithToken('other@learn.test');
@@ -422,5 +497,113 @@ describe('LearningModule — quyền xem bài (e2e)', () => {
       'F',
     ]);
     expect(await materials(999999)).toEqual([]);
+  });
+
+  // --- popup practice questions (T-029) ---
+
+  it('practice questions: không có quyền (khách, học viên khác, hết hạn) → 403 LESSON_LOCKED', async () => {
+    // Khách không đăng nhập
+    const guestRes = await http()
+      .get(
+        `/api/v1/learning/lessons/${ids.paidLesson}/practices/${ids.paidPractice}/questions`,
+      )
+      .expect(403);
+    expect(guestRes.body).toMatchObject({
+      code: 'LESSON_LOCKED',
+    });
+
+    // Học viên không ghi danh khóa này
+    const otherRes = await http()
+      .get(
+        `/api/v1/learning/lessons/${ids.paidLesson}/practices/${ids.paidPractice}/questions`,
+      )
+      .set(bearer(tokens.other))
+      .expect(403);
+    expect(otherRes.body).toMatchObject({
+      code: 'LESSON_LOCKED',
+    });
+
+    // Ghi danh đã hết hạn
+    const expiredRes = await http()
+      .get(
+        `/api/v1/learning/lessons/${ids.paidLesson}/practices/${ids.paidPractice}/questions`,
+      )
+      .set(bearer(tokens.expired))
+      .expect(403);
+    expect(expiredRes.body).toMatchObject({
+      code: 'LESSON_LOCKED',
+    });
+  });
+
+  it('practice questions: có quyền (enrolled, admin) → 200 kèm đáp án đúng is_correct', async () => {
+    const res = await http()
+      .get(
+        `/api/v1/learning/lessons/${ids.paidLesson}/practices/${ids.paidPractice}/questions`,
+      )
+      .set(bearer(tokens.enrolled))
+      .expect(200);
+
+    const questions = res.body as PracticeQuestionDto[];
+    expect(questions).toHaveLength(1);
+    expect(questions[0].question_text).toBe('Test Practice Question');
+    expect(questions[0].answers).toHaveLength(2);
+    expect(questions[0].answers[0].is_correct).toBe(true);
+    expect(questions[0].answers[1].is_correct).toBe(false);
+
+    // Admin cũng xem được
+    const adminRes = await http()
+      .get(
+        `/api/v1/learning/lessons/${ids.paidLesson}/practices/${ids.paidPractice}/questions`,
+      )
+      .set(bearer(tokens.admin))
+      .expect(200);
+    expect(adminRes.body).toHaveLength(1);
+  });
+
+  it('practice questions: bài học miễn phí mở cho cả khách', async () => {
+    const res = await http()
+      .get(
+        `/api/v1/learning/lessons/${ids.freeLesson}/practices/${ids.freePractice}/questions`,
+      )
+      .expect(200);
+
+    const questions = res.body as PracticeQuestionDto[];
+    expect(questions).toHaveLength(1);
+  });
+
+  it('practice questions: practice của bài khác → 400 PRACTICE_NOT_IN_LESSON', async () => {
+    const res = await http()
+      .get(
+        `/api/v1/learning/lessons/${ids.paidLesson}/practices/${ids.otherLessonPractice}/questions`,
+      )
+      .set(bearer(tokens.admin))
+      .expect(400);
+
+    expect(res.body).toMatchObject({
+      code: 'PRACTICE_NOT_IN_LESSON',
+      message: 'Bài luyện tập không thuộc bài học này',
+    });
+  });
+
+  it('practice questions: bài học hoặc practice không tồn tại → 404', async () => {
+    const notFoundLesson = await http()
+      .get(
+        `/api/v1/learning/lessons/999999/practices/${ids.paidPractice}/questions`,
+      )
+      .set(bearer(tokens.admin))
+      .expect(404);
+    expect(notFoundLesson.body).toMatchObject({
+      code: 'LESSON_NOT_FOUND',
+    });
+
+    const notFoundPractice = await http()
+      .get(
+        `/api/v1/learning/lessons/${ids.paidLesson}/practices/999999/questions`,
+      )
+      .set(bearer(tokens.admin))
+      .expect(404);
+    expect(notFoundPractice.body).toMatchObject({
+      code: 'PRACTICE_NOT_FOUND',
+    });
   });
 });

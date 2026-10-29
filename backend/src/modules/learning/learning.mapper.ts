@@ -19,6 +19,7 @@ import {
   MaterialDto,
   NoteDto,
   PracticeDto,
+  PracticeQuestionDto,
 } from './dto';
 import type {
   EnrollmentWithCourseAndProfile,
@@ -26,6 +27,7 @@ import type {
   EnrollmentWithProfile,
   LessonPracticeWithQuiz,
   ModuleWithLessons,
+  QuestionWithAnswers,
 } from './learning.repository';
 
 @Injectable()
@@ -181,6 +183,33 @@ export class LearningMapper {
             full_name: enrollment.user.profile.fullName,
           }
         : null,
+    };
+  }
+
+  toPracticeQuestionDto(q: QuestionWithAnswers): PracticeQuestionDto {
+    return {
+      id: q.id,
+      quiz_id: q.quizId,
+      question_text: q.questionText,
+      question_type: q.questionType,
+      image_url: q.imageUrl,
+      audio_url: q.audioUrl,
+      display_order: q.displayOrder,
+      translation: q.translation,
+      dictation_keywords: q.dictationKeywords,
+      explanation: q.explanation,
+      transcript: q.transcript,
+      knowledge_tag: q.knowledgeTag,
+      passage_text: q.passageText,
+      group_id: q.groupId,
+      answers: q.answers.map((a) => ({
+        id: a.id,
+        question_id: a.questionId,
+        answer_text: a.answerText,
+        display_order: a.displayOrder,
+        is_correct: a.isCorrect,
+        explanation: a.explanation,
+      })),
     };
   }
 }

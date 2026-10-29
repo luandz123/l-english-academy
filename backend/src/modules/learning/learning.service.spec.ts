@@ -33,6 +33,8 @@ describe('LearningService', () => {
       findNotes: jest.fn(),
       createNote: jest.fn(),
       findPracticesByLesson: jest.fn(),
+      findPracticeById: jest.fn(),
+      findQuestionsWithAnswers: jest.fn(),
     };
 
     const mockAuth: Partial<jest.Mocked<AuthService>> = {
@@ -274,6 +276,166 @@ describe('LearningService', () => {
       expect(repo.findPracticesByLesson).toHaveBeenCalledWith(12);
       expect(list).toHaveLength(1);
       expect(list[0].quizzes?.title).toBe('Quiz 5');
+    });
+  });
+
+  describe('getPracticeQuestions', () => {
+    it('ném 404 LESSON_NOT_FOUND khi bài học không tồn tại', async () => {
+      repo.findLessonAccess.mockResolvedValue(null);
+
+      await expect(
+        service.getPracticeQuestions(999, 1, undefined),
+      ).rejects.toMatchObject({
+        response: {
+          code: 'LESSON_NOT_FOUND',
+        },
+      });
+    });
+
+    it('ném 404 PRACTICE_NOT_FOUND khi bài luyện tập không tồn tại', async () => {
+      repo.findLessonAccess.mockResolvedValue({
+        isFree: true,
+        module: { isFree: true, courseId: 1 },
+      });
+      repo.findPracticeById.mockResolvedValue(null);
+
+      await expect(
+        service.getPracticeQuestions(10, 999, undefined),
+      ).rejects.toMatchObject({
+        response: {
+          code: 'PRACTICE_NOT_FOUND',
+        },
+      });
+    });
+
+    it('ném 400 PRACTICE_NOT_IN_LESSON khi bài luyện tập thuộc bài học khác', async () => {
+      repo.findLessonAccess.mockResolvedValue({
+        isFree: true,
+        module: { isFree: true, courseId: 1 },
+      });
+      repo.findPracticeById.mockResolvedValue({
+        id: 1,
+        lessonId: 20, // khác với 10
+        quizId: 5,
+        triggerAtSeconds: 30,
+        title: 'Quiz 5',
+        displayOrder: 1,
+        createdAt: new Date(),
+      });
+
+      await expect(
+        service.getPracticeQuestions(10, 1, undefined),
+      ).rejects.toMatchObject({
+        response: {
+          code: 'PRACTICE_NOT_IN_LESSON',
+        },
+      });
+    });
+
+    it('ném 403 LESSON_LOCKED khi user không có quyền học bài', async () => {
+      repo.findLessonAccess.mockResolvedValue({
+        isFree: false,
+        module: { isFree: false, courseId: 1 },
+      });
+      repo.findPracticeById.mockResolvedValue({
+        id: 1,
+        lessonId: 10,
+        quizId: 5,
+        triggerAtSeconds: 30,
+        title: 'Quiz 5',
+        displayOrder: 1,
+        createdAt: new Date(),
+      });
+      repo.findEnrollment.mockResolvedValue(null);
+
+      await expect(
+        service.getPracticeQuestions(10, 1, {
+          id: mockUserId,
+          email: 'test@example.com',
+        }),
+      ).rejects.toMatchObject({
+        response: {
+          code: 'LESSON_LOCKED',
+        },
+      });
+    });
+
+    it('trả về [] khi practice không gắn quiz (quiz_id === null)', async () => {
+      repo.findLessonAccess.mockResolvedValue({
+        isFree: true,
+        module: { isFree: true, courseId: 1 },
+      });
+      repo.findPracticeById.mockResolvedValue({
+        id: 1,
+        lessonId: 10,
+        quizId: null,
+        triggerAtSeconds: 30,
+        title: 'Empty Practice',
+        displayOrder: 1,
+        createdAt: new Date(),
+      });
+
+      const res = await service.getPracticeQuestions(10, 1, undefined);
+      expect(res).toEqual([]);
+    });
+
+    it('trả về câu hỏi kèm đáp án đúng khi có quyền học bài', async () => {
+      repo.findLessonAccess.mockResolvedValue({
+        isFree: true,
+        module: { isFree: true, courseId: 1 },
+      });
+      repo.findPracticeById.mockResolvedValue({
+        id: 1,
+        lessonId: 10,
+        quizId: 5,
+        triggerAtSeconds: 30,
+        title: 'Quiz 5',
+        displayOrder: 1,
+        createdAt: new Date(),
+      });
+      repo.findQuestionsWithAnswers.mockResolvedValue([
+        {
+          id: 100,
+          quizId: 5,
+          questionText: 'Question 1',
+          questionType: 'multiple_choice',
+          imageUrl: null,
+          audioUrl: null,
+          displayOrder: 1,
+          translation: null,
+          dictationKeywords: null,
+          explanation: 'Exp',
+          transcript: null,
+          knowledgeTag: null,
+          passageText: null,
+          groupId: null,
+          answers: [
+            {
+              id: 1001,
+              questionId: 100,
+              answerText: 'A',
+              isCorrect: true,
+              explanation: 'Exp A',
+              displayOrder: 1,
+            },
+            {
+              id: 1002,
+              questionId: 100,
+              answerText: 'B',
+              isCorrect: false,
+              explanation: null,
+              displayOrder: 2,
+            },
+          ],
+        },
+      ]);
+
+      const res = await service.getPracticeQuestions(10, 1, undefined);
+      expect(res).toHaveLength(1);
+      expect(res[0].id).toBe(100);
+      expect(res[0].answers).toHaveLength(2);
+      expect(res[0].answers[0].is_correct).toBe(true);
+      expect(res[0].answers[1].is_correct).toBe(false);
     });
   });
 });
