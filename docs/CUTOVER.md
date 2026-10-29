@@ -18,7 +18,7 @@ Dự án Supabase **phải giữ** sau cutover: Storage `materials` + Realtime +
 ## 1. Điều kiện bắt đầu
 - [x] QUEUE: T-033, T-034, T-035 ✅ merged. file còn import Supabase client chỉ là Speaking (#11) và `supabase.channel` của game (#28) — xem T-035.
 - [x] CI `refactor/nestjs-backend` xanh; staging chạy được 6 luồng ở §5 (smoke test) — 2026-10-29.
-- [ ] Diễn tập rollback trên staging xong (§6), ghi thời gian thực tế.
+- [x] ~~Diễn tập rollback trên staging~~ — bỏ qua (chủ dự án, 2026-10-29): rollback = Vercel **Instant Rollback** bản production cũ (chỉ dùng Supabase, cutover chỉ đọc Supabase), chưa có người dùng thật.
 - [x] `main` không có commit nào chưa vào nhánh refactor: `git log origin/refactor/nestjs-backend..origin/main` rỗng (kiểm 2026-10-29).
 - [ ] Đã chọn giờ ít người dùng; báo trước đóng băng nội dung (admin không sửa khóa học/đề trong lúc chuyển).
 
