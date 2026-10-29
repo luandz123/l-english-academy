@@ -201,18 +201,142 @@ grep -rl "integrations/supabase/client" src --include=*.ts --include=*.tsx | gre
 
 ## 7. Kết quả (người làm điền)
 ### Checklist tự rà bảo mật (bắt buộc)
-- [ ] **Mọi id client gửi đều thuộc đúng đối tượng cha**: `course_id` được kiểm tra tồn tại khi tạo đề; `userId` đọc enrollments lấy từ JWT token.
-- [ ] **Mọi route đọc/ghi dữ liệu có quyền đều kiểm quyền**: guard `JwtAuthGuard` trên `my-enrollments`; `JwtAuthGuard` + `RolesGuard('admin')` trên mọi route admin mới.
-- [ ] **Dữ liệu người khác**: học viên chỉ đọc đúng ghi danh của chính mình; admin mới xem được danh sách đề và tìm kiếm từ vựng.
-- [ ] **Giới hạn đầu vào**: search giới hạn `take: 60` cố định ở server; các trường text có giới hạn độ dài.
-- [ ] **Giá trị nhạy cảm do server tính**: `display_order` của đề thi và 7 phần TOEIC do server tự tính.
-- [ ] **Ghi nhiều bước = một `$transaction`**: tạo đề thi + 7 quiz + 7 section diễn ra trong duy nhất 1 transaction.
-- [ ] **Lỗi dạng `{ code, message }`**: ném đúng cấu trúc chuẩn.
+- [x] **Mọi id client gửi đều thuộc đúng đối tượng cha**: `course_id` được kiểm tra tồn tại khi tạo đề; `userId` đọc enrollments lấy từ JWT token (không nhận từ client).
+- [x] **Mọi route đọc/ghi dữ liệu có quyền đều kiểm quyền**: guard `JwtAuthGuard` trên `GET /learning/my-enrollments`; `JwtAuthGuard` + `RolesGuard('admin')` trên mọi route admin mới (`/assessment/admin/full-tests`, `/assessment/admin/vocab/search`).
+- [x] **Dữ liệu người khác**: học viên chỉ đọc đúng ghi danh của chính mình (`req.user.id`); admin mới xem được danh sách đề và tìm kiếm từ vựng.
+- [x] **Giới hạn đầu vào**: search giới hạn `take: 60` cố định ở server; các trường text có giới hạn độ dài thông qua DTO + `class-validator`.
+- [x] **Giá trị nhạy cảm do server tính**: `display_order` của đề thi (max + 1) và 7 phần TOEIC (Part 1..7) do server tự sinh.
+- [x] **Ghi nhiều bước = một `$transaction`**: tạo đề thi + 7 quiz + 7 section diễn ra trong duy nhất 1 transaction Prisma (`$transaction`).
+- [x] **Lỗi dạng `{ code, message }`**: ném đúng cấu trúc chuẩn qua NestJS exception filter.
 
 - Commit(s):
+  - `cd5bd5c`: docs(tasks): write spec for T-035 multiline leftovers
+  - `12d1430`: feat(assessment,learning): migrate multiline supabase queries to nestjs endpoints (T-035)
 - File đã sửa:
+  - Backend:
+    - `backend/src/modules/learning/dto/enrollment.dto.ts`
+    - `backend/src/modules/learning/learning.repository.ts`
+    - `backend/src/modules/learning/learning.mapper.ts`
+    - `backend/src/modules/learning/learning.service.ts`
+    - `backend/src/modules/learning/learning.controller.ts`
+    - `backend/src/modules/assessment/dto/assessment-admin.dto.ts`
+    - `backend/src/modules/assessment/assessment-admin.repository.ts`
+    - `backend/src/modules/assessment/assessment.mapper.ts`
+    - `backend/src/modules/assessment/assessment-admin.service.ts`
+    - `backend/src/modules/assessment/assessment-admin.controller.ts`
+    - `backend/test/multiline-leftovers.e2e-spec.ts`
+  - Frontend:
+    - `src/lib/api/learning.ts`
+    - `src/lib/api/learning.test.ts`
+    - `src/lib/api/assessment.ts`
+    - `src/lib/api/assessment.test.ts`
+    - `src/pages/MyCoursesPage.tsx`
+    - `src/pages/DashboardPage.tsx`
+    - `src/App.tsx`
+    - `src/pages/admin/AdminFullTestManager.tsx`
+    - `src/components/admin/CourseFullTestManager.tsx`
+    - `src/pages/admin/AdminVocabPacks.tsx`
+    - `src/pages/admin/AdminFullTestQuestions.tsx`
+    - `src/pages/admin/AdminCourseNew.tsx`
+    - `src/components/admin/LessonManager.tsx`
 - Output lệnh kiểm tra:
-- Chỗ chưa chắc:
+  - `npm --prefix backend run lint`:
+    ```
+    > backend@0.0.1 lint
+    > eslint "{src,test}/**/*.ts"
+    (exit code 0)
+    ```
+  - `npm --prefix backend run build`:
+    ```
+    > backend@0.0.1 build
+    > nest build
+    (exit code 0)
+    ```
+  - `npm --prefix backend run test`:
+    ```
+    Test Suites: 26 passed, 26 total
+    Tests:       346 passed, 346 total
+    Snapshots:   0 total
+    Time:        21.983 s, estimated 23 s
+    Ran all test suites.
+    ```
+  - `npm --prefix backend run test:e2e -- multiline-leftovers.e2e-spec.ts`:
+    ```
+    PASS test/multiline-leftovers.e2e-spec.ts (13.375 s)
+      Multiline Leftovers E2E (T-035)
+        GET /learning/my-enrollments (T-035)
+          √ 401 khi không gửi token (133 ms)
+          √ 200 học viên lấy danh sách ghi danh của chính mình kèm courses (107 ms)
+        Admin Full Tests - GET /assessment/admin/full-tests (T-035)
+          √ 401 khi không token (34 ms)
+          √ 403 khi là học viên (41 ms)
+          √ 200 admin xem danh sách đề thi kèm courses và sections (91 ms)
+        Admin Full Tests - POST /assessment/admin/full-tests (T-035)
+          √ 401 khi không token (63 ms)
+          √ 403 khi là học viên (42 ms)
+          √ 201 admin tạo đề thi tự động tạo 7 quizzes và 7 sections trong 1 transaction (206 ms)
+        Admin Full Tests - PUT /assessment/admin/full-tests/:testId (T-035)
+          √ 401 khi không token (21 ms)
+          √ 403 khi là học viên (36 ms)
+          √ 200 admin cập nhật thông tin đề thi (93 ms)
+        Admin Vocab Search - GET /assessment/admin/vocab/search (T-035)
+          √ 401 khi không token (23 ms)
+          √ 403 khi là học viên (33 ms)
+          √ 200 admin tìm kiếm từ vựng (39 ms)
+
+    Test Suites: 1 passed, 1 total
+    Tests:       14 passed, 14 total
+    Snapshots:   0 total
+    Time:        13.724 s, estimated 15 s
+    Ran all test suites matching multiline-leftovers.e2e-spec.ts.
+    ```
+  - `npm test -- src/lib/api/learning.test.ts src/lib/api/assessment.test.ts`:
+    ```
+     ✓ src/lib/api/assessment.test.ts (58 tests) 144ms
+     ✓ src/lib/api/learning.test.ts (51 tests) 141ms
+
+     Test Files  2 passed (2)
+          Tests  109 passed (109)
+       Start at  20:02:28
+       Duration  5.19s
+    ```
+  - `npm test -- --run` (toàn bộ frontend vitest):
+    ```
+     Test Files  14 passed (14)
+          Tests  229 passed (229)
+    ```
+  - `npm run build` (frontend build):
+    ```
+    ✓ 2739 modules transformed.
+    ✓ built in 1m 27s
+    (exit code 0)
+    ```
+  - `npx tsc --noEmit -p tsconfig.app.json 2>&1 | grep "error TS" | grep -E "src/lib/api|MyCoursesPage|DashboardPage|App|AdminFullTestManager|CourseFullTestManager|AdminVocabPacks|AdminFullTestQuestions|AdminCourseNew|LessonManager"`:
+    ```
+    (empty / rỗng - không có lỗi TS)
+    ```
+  - `npx eslint src/lib/api/learning.ts src/lib/api/assessment.ts`:
+    ```
+    (exit code 0 - sạch hoàn toàn)
+    ```
+  - `node scripts/check-ui-diff.mjs refactor/nestjs-backend`:
+    ```
+    check-ui-diff: OK — không có thay đổi giao diện trong src/**/*.tsx (so với refactor/nestjs-backend).
+    ```
+  - Kiểm tra danh sách file còn import Supabase client:
+    `grep -rl "integrations/supabase/client" src --include=*.ts --include=*.tsx | grep -v "\.test\."`:
+    ```
+    src/components/game/WordShooter/WordShooterArena.tsx
+    src/components/game/WordShooter/WordShooterLobby.tsx
+    src/hooks/useVoiceRoom.ts
+    src/pages/SpeakingRoomsPage.tsx
+    src/services/speakingService.ts
+    ```
+    **Chứng minh chỉ còn phần đã quyết định giữ**:
+    - `src/components/game/WordShooter/WordShooterArena.tsx` & `WordShooterLobby.tsx`: chỉ sử dụng `supabase.channel()` cho realtime PvP matchmaking theo quyết định #28 (`docs/OPEN_QUESTIONS.md`).
+    - `src/hooks/useVoiceRoom.ts`, `src/pages/SpeakingRoomsPage.tsx`, `src/services/speakingService.ts`: toàn bộ chức năng Speaking Room WebRTC được hoãn lại theo quyết định #11 (`docs/OPEN_QUESTIONS.md`).
+    Không còn bất kỳ truy vấn dữ liệu nào (`supabase.from()`, `supabase.rpc()`, `supabase.storage`) trong toàn bộ frontend ngoại trừ các ngoại lệ đã được duyệt trên.
+- Chỗ chưa chắc: Không có.
 
 ---
 
