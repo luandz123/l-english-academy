@@ -9,6 +9,15 @@ Từ T-025, Claude chỉ viết **bản tóm tắt** dưới đây. Antigravity 
 4. Commit spec riêng (`docs(tasks): spec T-0xx`), **rồi** mới code. Gặp hành vi lạ hoặc ràng buộc không đủ rõ → ghi mục "Câu hỏi", làm phần còn lại, push.
 5. Kiểm tra như mọi task: chạy lệnh mục 6 **sau commit cuối**, dán output **nguyên văn**, push.
 
+### Tự rà bảo mật trước khi push (bắt buộc — dán checklist đã đánh dấu vào mục Kết quả)
+- [ ] **Mọi id client gửi đều thuộc đúng đối tượng cha**: câu hỏi thuộc quiz, đáp án thuộc câu, bài thuộc chương, practice thuộc bài… Id lạ → 400 `*_IDS_INVALID`/`*_NOT_IN_*`, không ghi gì. Có e2e gửi id của đối tượng khác.
+- [ ] **Mọi route đọc/ghi dữ liệu có quyền đều kiểm quyền**, không chỉ route đầu tiên (đọc đề có kiểm thì nộp, lưu, reset cũng phải kiểm). Có e2e người không có quyền → 403 ở **từng** route.
+- [ ] **Dữ liệu người khác**: route theo `:id` kiểm chủ sở hữu (hoặc admin); `user_id` chỉ lấy từ token.
+- [ ] **Giới hạn đầu vào**: mảng có `ArrayMaxSize`, chuỗi lớn có `MaxLength`, file có `limits.fileSize` **ở multer** (không chỉ kiểm sau khi đã đọc file), MIME + đuôi file khớp nhau; không nhận SVG/HTML từ học viên.
+- [ ] **Giá trị nhạy cảm do server tính**: điểm, tổng số câu (đếm thật), giá, `display_order`, hạn ghi danh. DTO không có trường đó (`forbidNonWhitelisted` tự chặn), có e2e gửi kèm → 400.
+- [ ] **Ghi nhiều bước = một `$transaction`**; lỗi giữa chừng không để lại bản ghi dở.
+- [ ] **Lỗi dạng `{ code, message }`**, không ném chuỗi trần.
+
 Luật chung nhắc lại: không sửa JSX/`className`/câu chữ/`queryKey`; giữ đúng cách xử lý lỗi cũ (chỗ cũ bỏ qua lỗi thì vẫn bỏ qua); client **không** gửi điểm, giá, quyền, `user_id`, `display_order`; route `/me` hay đoạn cố định khai báo **trước** `/:id`; e2e 3 vai (401/403/2xx) cho mọi route admin.
 
 ---
