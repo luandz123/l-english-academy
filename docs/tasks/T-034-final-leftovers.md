@@ -219,3 +219,15 @@ check-ui-diff: 3 thay đổi nằm ngoài vùng được sửa (so với refacto
 - Kết quả:
 - Lý do:
 
+
+---
+
+## Review (Claude, 2026-10-29) — ✅ PASS, merged
+
+- Một endpoint `import-questions` trong `$transaction`: câu + đáp án + từ vựng (tách `;` rồi `|`, `display_order = vIdx`, tạo `vocab_quizzes` `Từ vựng - …` nếu chưa có) + 2 bộ đếm do server đếm. e2e 3 vai + import đợt 2.
+- **Claude sửa khi merge:** `display_order` câu hỏi = số câu hiện có + i (như `existingCount={questions.length}` cũ), thay vì `max(display_order) + 1`.
+- `check-ui-diff`: chuỗi `Từ vựng - ${quizTitle}` chuyển sang server (dữ liệu ghi DB, không phải chữ giao diện) — duyệt.
+- Câu hỏi webhook ở `AdminSettings` → OPEN_QUESTIONS #30.
+- Sau merge: `supabase.(from|rpc|storage|auth)` trong `src` chỉ còn `speakingService.ts` (#11) và `integrations/lovable` (không file nào import).
+
+Kiểm tra sau gộp (merge/T-034, sau sửa): LINT_OK, TYPE_OK, unit 346/346, e2e 433/433, BUILD_OK, frontend 225/225, FE_LINT_OK, tsc (adapter + 3 trang) rỗng, `✓ built in 52.63s`.

@@ -128,8 +128,8 @@ export class AssessmentAdminService {
         }
       }
 
-      const existingMaxOrder = await tx.getMaxQuestionDisplayOrder(quizId);
-      let nextOrder = existingMaxOrder + 1;
+      // Như ImportDialog cũ: display_order = existingCount (= questions.length) + i
+      let nextOrder = await tx.countQuestionsInQuiz(quizId);
 
       const insertedQuestions: Array<{
         id: number;
