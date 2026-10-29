@@ -33,7 +33,7 @@ Ký hiệu: ⏳ chờ · 🔨 đang làm · 🔍 chờ review · 🔁 TRẢ LẠ
 | T-024 | [admin sửa câu hỏi Full Test](T-024-admin-fulltest-questions.md) | `task/T-024-admin-fulltest-questions` | T-023 | ✅ merged |
 | T-025 | [Dictation (#26a)](T-025-dictation.md) | `task/T-025-dictation` | — | ✅ merged |
 | T-026 | [upload qua backend (#27)](BRIEFS.md) — xem `docs/tasks/T-026-REVIEW.md` | `task/T-026-media-upload` | — | ✅ merged |
-| T-029 | [popup luyện tập LearnPage](T-029-learn-practice-popup.md) | `task/T-029-learn-practice-popup` | — | 🔨 đang làm |
+| T-029 | [popup luyện tập LearnPage](T-029-learn-practice-popup.md) | `task/T-029-learn-practice-popup` | — | 🔍 chờ review |
 | T-030 | [khảo sát realtime (chỉ khảo sát)](BRIEFS.md) | `task/T-030-realtime-survey` | — | ⏳ chờ |
 | T-027 | [thư viện tài liệu](BRIEFS.md) | `task/T-027-materials` | T-026 | ⏳ chờ |
 | T-028 | [import Full Test + khóa JSON](BRIEFS.md) | `task/T-028-bulk-import` | T-026 | ⏳ chờ |

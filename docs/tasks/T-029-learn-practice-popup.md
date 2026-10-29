@@ -92,13 +92,13 @@ export async function listPracticeQuestions(
 ```
 
 ## 5. Tiêu chí nghiệm thu
-- [ ] Endpoint `GET /api/v1/learning/lessons/:lessonId/practices/:practiceId/questions` trả về danh sách câu hỏi kèm `answers` với `is_correct`.
-- [ ] Trả về 403 `LESSON_LOCKED` khi user không có quyền học bài.
-- [ ] Trả về 400 `PRACTICE_NOT_IN_LESSON` khi practice thuộc bài học khác.
-- [ ] Trả về 404 `LESSON_NOT_FOUND` hoặc `PRACTICE_NOT_FOUND` khi không tìm thấy.
-- [ ] `LearnPage.tsx` không còn lệnh gọi `supabase.from("questions")` nào, không còn import `supabase`.
-- [ ] Unit test và e2e test pass 100%.
-- [ ] `node scripts/check-ui-diff.mjs refactor/nestjs-backend` sạch sẽ.
+- [x] Endpoint `GET /api/v1/learning/lessons/:lessonId/practices/:practiceId/questions` trả về danh sách câu hỏi kèm `answers` với `is_correct`.
+- [x] Trả về 403 `LESSON_LOCKED` khi user không có quyền học bài.
+- [x] Trả về 400 `PRACTICE_NOT_IN_LESSON` khi practice thuộc bài học khác.
+- [x] Trả về 404 `LESSON_NOT_FOUND` hoặc `PRACTICE_NOT_FOUND` khi không tìm thấy.
+- [x] `LearnPage.tsx` không còn lệnh gọi `supabase.from("questions")` nào, không còn import `supabase`.
+- [x] Unit test và e2e test pass 100%.
+- [x] `node scripts/check-ui-diff.mjs refactor/nestjs-backend` sạch sẽ.
 
 ## 6. Lệnh kiểm tra (dán output thật vào mục 7)
 ```bash
@@ -117,8 +117,96 @@ cd .. && npm test && npm run build && node scripts/check-ui-diff.mjs origin/refa
 - [x] **Lỗi dạng `{ code, message }`**: trả đúng định dạng `{ code: 'LESSON_LOCKED', message: ... }`, `{ code: 'PRACTICE_NOT_IN_LESSON', message: ... }`.
 
 - Commit(s):
+  - `0f1d456`: docs(tasks): spec T-029
+  - `2536bfe`: feat(learning): practice popup questions with lesson access check (T-029)
 - File đã sửa:
+  - `backend/src/modules/learning/dto/practice.dto.ts`
+  - `backend/src/modules/learning/learning.repository.ts`
+  - `backend/src/modules/learning/learning.mapper.ts`
+  - `backend/src/modules/learning/learning.service.ts`
+  - `backend/src/modules/learning/learning.controller.ts`
+  - `backend/src/modules/learning/learning.service.spec.ts`
+  - `backend/test/learning-access.e2e-spec.ts`
+  - `src/lib/api/learning.ts`
+  - `src/lib/api/learning.test.ts`
+  - `src/pages/LearnPage.tsx`
+  - `docs/tasks/T-029-learn-practice-popup.md`
+  - `docs/tasks/QUEUE.md`
 - Output lệnh kiểm tra:
+```bash
+# 1. Backend lint & typecheck
+$ cd backend && npm run lint && npm run typecheck
+> backend@0.0.1 lint
+> eslint "{src,test}/**/*.ts"
+> backend@0.0.1 typecheck
+> tsc --noEmit -p tsconfig.json
+# OK - exit code 0
+
+# 2. Backend unit tests
+$ npm test
+Test Suites: 25 passed, 25 total
+Tests:       325 passed, 325 total
+Snapshots:   0 total
+Time:        2.609 s
+
+# 3. Backend build
+$ npm run build
+> backend@0.0.1 build
+> nest build
+# OK - exit code 0
+
+# 4. Backend e2e tests
+$ npm run test:e2e
+PASS test/auth.e2e-spec.ts
+PASS test/learning-access.e2e-spec.ts (24 passed)
+PASS test/learning-admin.e2e-spec.ts
+PASS test/assessment-quiz.e2e-spec.ts
+PASS test/assessment-admin.e2e-spec.ts
+PASS test/media.e2e-spec.ts
+PASS test/payments.e2e-spec.ts
+PASS test/admin-stats.e2e-spec.ts
+PASS test/assessment-full-test.e2e-spec.ts
+PASS test/assessment-admin-fulltest.e2e-spec.ts
+PASS test/catalog-admin-courses.e2e-spec.ts
+PASS test/assessment-vocab.e2e-spec.ts
+PASS test/assessment-full-test-lists.e2e-spec.ts
+PASS test/catalog.e2e-spec.ts
+PASS test/dictation.e2e-spec.ts
+PASS test/learning-user-data.e2e-spec.ts
+PASS test/catalog-admin.e2e-spec.ts
+PASS test/platform-settings.e2e-spec.ts
+PASS test/payments-admin.e2e-spec.ts
+PASS test/admin-notes.e2e-spec.ts
+PASS test/assessment-results.e2e-spec.ts
+PASS test/health.e2e-spec.ts
+Test Suites: 22 passed, 22 total
+Tests:       361 passed, 361 total
+Snapshots:   0 total
+Time:        31.658 s
+
+# 5. Frontend tests
+$ npm test
+Test Files  14 passed (14)
+Tests       202 passed (202)
+Time        9.59s
+
+# 6. Frontend build
+$ npm run build
+✓ 2739 modules transformed.
+dist/index.html 1.71 kB
+dist/assets/LearnPage-D7Dnn8QU.js 40.82 kB
+✓ built in 27.63s
+
+# 7. UI Diff check
+$ node scripts/check-ui-diff.mjs origin/refactor/nestjs-backend
+check-ui-diff: OK — không có thay đổi giao diện trong src/**/*.tsx (so với origin/refactor/nestjs-backend).
+
+# 8. Typecheck & ESLint
+$ npx tsc --noEmit -p tsconfig.app.json 2>&1 | Select-String "error TS" | Select-String "src/lib/api|LearnPage"
+# rỗng (exit code 1)
+$ npx eslint src/lib/api/learning.ts
+# rỗng (exit code 0)
+```
 - Chỗ chưa chắc: Không có
 
 ## 8. Câu hỏi (người làm điền khi bị chặn)
@@ -127,3 +215,4 @@ Không có.
 ## 9. Review (Claude điền)
 - Kết quả:
 - Lý do:
+
