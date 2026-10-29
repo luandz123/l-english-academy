@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -27,20 +28,34 @@ export class DictationService {
     private readonly learning: LearningService,
   ) {}
 
-  async getDictationQuiz(
+  private async assertQuizAccessible(
     quizId: number,
     user?: AuthenticatedUser,
-  ): Promise<DictationQuizDetailDto> {
+  ) {
     const quiz = await this.repo.findQuizById(quizId);
     if (!quiz) {
-      throw new NotFoundException('QUIZ_NOT_FOUND');
+      throw new NotFoundException({
+        code: 'QUIZ_NOT_FOUND',
+        message: `Không tìm thấy quiz ${quizId}`,
+      });
     }
 
     const canTake = await this.learning.canTakeQuiz(quizId, user);
     if (!canTake) {
-      throw new ForbiddenException('QUIZ_LOCKED');
+      throw new ForbiddenException({
+        code: 'QUIZ_LOCKED',
+        message: 'Bạn chưa có quyền làm bài này',
+      });
     }
 
+    return quiz;
+  }
+
+  async getDictationQuiz(
+    quizId: number,
+    user?: AuthenticatedUser,
+  ): Promise<DictationQuizDetailDto> {
+    const quiz = await this.assertQuizAccessible(quizId, user);
     const questions = await this.repo.findQuestionsWithAnswers(quizId);
     return this.dictationMapper.toDictationQuizDetailDto(quiz, questions);
   }
@@ -61,13 +76,9 @@ export class DictationService {
     quizId: number,
     user: AuthenticatedUser,
   ): Promise<QuizResultDto> {
-    const quiz = await this.repo.findQuizById(quizId);
-    if (!quiz) {
-      throw new NotFoundException('QUIZ_NOT_FOUND');
-    }
-
+    await this.assertQuizAccessible(quizId, user);
     const questions = await this.repo.findQuestionsWithAnswers(quizId);
-    const total = quiz.totalQuestions || questions.length;
+    const total = questions.length;
     const result = await this.repo.findOrCreateLatestResult(
       user.id,
       quizId,
@@ -80,6 +91,7 @@ export class DictationService {
     quizId: number,
     user: AuthenticatedUser,
   ): Promise<DictationUserAnswerDto[]> {
+    await this.assertQuizAccessible(quizId, user);
     const resultIds = await this.repo.findAllResultIdsForQuiz(user.id, quizId);
     const answers = await this.repo.findCompletedAnswers(resultIds);
     return answers.map((a) => this.dictationMapper.toDictationUserAnswerDto(a));
@@ -90,14 +102,19 @@ export class DictationService {
     questionId: number,
     user: AuthenticatedUser,
   ): Promise<DictationProgressResponseDto> {
+    await this.assertQuizAccessible(quizId, user);
+
     return this.repo.inTransaction(async (txRepo) => {
-      const quiz = await txRepo.findQuizById(quizId);
-      if (!quiz) {
-        throw new NotFoundException('QUIZ_NOT_FOUND');
+      const questions = await txRepo.findQuestionsWithAnswers(quizId);
+      const validIds = new Set(questions.map((q) => q.id));
+      if (!validIds.has(questionId)) {
+        throw new BadRequestException({
+          code: 'QUESTION_IDS_INVALID',
+          message: 'Câu hỏi không thuộc đề thi này',
+        });
       }
 
-      const questions = await txRepo.findQuestionsWithAnswers(quizId);
-      const total = quiz.totalQuestions || questions.length;
+      const total = questions.length;
       const result = await txRepo.findOrCreateLatestResult(
         user.id,
         quizId,
@@ -126,14 +143,19 @@ export class DictationService {
     questionId: number,
     user: AuthenticatedUser,
   ): Promise<DictationProgressResponseDto> {
+    await this.assertQuizAccessible(quizId, user);
+
     return this.repo.inTransaction(async (txRepo) => {
-      const quiz = await txRepo.findQuizById(quizId);
-      if (!quiz) {
-        throw new NotFoundException('QUIZ_NOT_FOUND');
+      const questions = await txRepo.findQuestionsWithAnswers(quizId);
+      const validIds = new Set(questions.map((q) => q.id));
+      if (!validIds.has(questionId)) {
+        throw new BadRequestException({
+          code: 'QUESTION_IDS_INVALID',
+          message: 'Câu hỏi không thuộc đề thi này',
+        });
       }
 
-      const questions = await txRepo.findQuestionsWithAnswers(quizId);
-      const total = quiz.totalQuestions || questions.length;
+      const total = questions.length;
       const result = await txRepo.findLatestQuizResult(user.id, quizId);
       const resultIds = await txRepo.findAllResultIdsForQuiz(user.id, quizId);
 
@@ -162,14 +184,21 @@ export class DictationService {
     questionIds: number[],
     user: AuthenticatedUser,
   ): Promise<DictationProgressResponseDto> {
+    await this.assertQuizAccessible(quizId, user);
+
     return this.repo.inTransaction(async (txRepo) => {
-      const quiz = await txRepo.findQuizById(quizId);
-      if (!quiz) {
-        throw new NotFoundException('QUIZ_NOT_FOUND');
+      const questions = await txRepo.findQuestionsWithAnswers(quizId);
+      const validIds = new Set(questions.map((q) => q.id));
+      for (const qId of questionIds) {
+        if (!validIds.has(qId)) {
+          throw new BadRequestException({
+            code: 'QUESTION_IDS_INVALID',
+            message: 'Một hoặc nhiều câu hỏi không thuộc đề thi này',
+          });
+        }
       }
 
-      const questions = await txRepo.findQuestionsWithAnswers(quizId);
-      const total = quiz.totalQuestions || questions.length;
+      const total = questions.length;
       const result = await txRepo.findOrCreateLatestResult(
         user.id,
         quizId,
@@ -200,14 +229,11 @@ export class DictationService {
     quizId: number,
     user: AuthenticatedUser,
   ): Promise<DictationProgressResponseDto> {
-    return this.repo.inTransaction(async (txRepo) => {
-      const quiz = await txRepo.findQuizById(quizId);
-      if (!quiz) {
-        throw new NotFoundException('QUIZ_NOT_FOUND');
-      }
+    await this.assertQuizAccessible(quizId, user);
 
+    return this.repo.inTransaction(async (txRepo) => {
       const questions = await txRepo.findQuestionsWithAnswers(quizId);
-      const total = quiz.totalQuestions || questions.length;
+      const total = questions.length;
       const resultIds = await txRepo.findAllResultIdsForQuiz(user.id, quizId);
 
       await txRepo.resetAllForQuiz(resultIds);

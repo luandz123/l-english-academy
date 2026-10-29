@@ -1,4 +1,8 @@
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import type { LearningService } from '../learning/learning.service';
 import { AssessmentMapper } from './assessment.mapper';
 import { DictationMapper } from './dictation.mapper';
@@ -10,7 +14,7 @@ const QUIZ = {
   id: 1,
   moduleId: 10,
   title: 'Dictation Quiz',
-  totalQuestions: 2,
+  totalQuestions: 99, // Should be ignored in favor of questions.length (2)
   timeLimitSeconds: 0,
   displayOrder: 1,
   audioUrl: 'https://example.com/audio.mp3',
@@ -160,18 +164,26 @@ function setup(opts: { canTake?: boolean; quizExists?: boolean } = {}) {
 
 describe('DictationService', () => {
   describe('getDictationQuiz', () => {
-    it('throws 404 when quiz not found', async () => {
+    it('throws 404 QUIZ_NOT_FOUND when quiz not found', async () => {
       const { service } = setup({ quizExists: false });
-      await expect(service.getDictationQuiz(999, USER)).rejects.toThrow(
-        NotFoundException,
-      );
+      const err = await service
+        .getDictationQuiz(999, USER)
+        .catch((e: unknown) => e);
+      expect(err).toBeInstanceOf(NotFoundException);
+      expect((err as NotFoundException).getResponse()).toMatchObject({
+        code: 'QUIZ_NOT_FOUND',
+      });
     });
 
-    it('throws 403 when quiz is locked', async () => {
+    it('throws 403 QUIZ_LOCKED when quiz is locked', async () => {
       const { service } = setup({ canTake: false });
-      await expect(service.getDictationQuiz(1, USER)).rejects.toThrow(
-        ForbiddenException,
-      );
+      const err = await service
+        .getDictationQuiz(1, USER)
+        .catch((e: unknown) => e);
+      expect(err).toBeInstanceOf(ForbiddenException);
+      expect((err as ForbiddenException).getResponse()).toMatchObject({
+        code: 'QUIZ_LOCKED',
+      });
     });
 
     it('returns quiz detail with transcript and answers when allowed', async () => {
@@ -204,15 +216,41 @@ describe('DictationService', () => {
   });
 
   describe('getOrCreateResult', () => {
-    it('returns latest result', async () => {
-      const { service } = setup();
+    it('throws 403 QUIZ_LOCKED when quiz is locked', async () => {
+      const { service } = setup({ canTake: false });
+      const err = await service
+        .getOrCreateResult(1, USER)
+        .catch((e: unknown) => e);
+      expect(err).toBeInstanceOf(ForbiddenException);
+      expect((err as ForbiddenException).getResponse()).toMatchObject({
+        code: 'QUIZ_LOCKED',
+      });
+    });
+
+    it('returns latest result with real questions count', async () => {
+      const { service, mockRepo } = setup();
       const res = await service.getOrCreateResult(1, USER);
       expect(res.id).toBe(10);
-      expect(res.score).toBe(1);
+      expect(mockRepo.findOrCreateLatestResult).toHaveBeenCalledWith(
+        USER.id,
+        1,
+        2, // questions.length
+      );
     });
   });
 
   describe('getUserAnswers', () => {
+    it('throws 403 QUIZ_LOCKED when quiz is locked', async () => {
+      const { service } = setup({ canTake: false });
+      const err = await service
+        .getUserAnswers(1, USER)
+        .catch((e: unknown) => e);
+      expect(err).toBeInstanceOf(ForbiddenException);
+      expect((err as ForbiddenException).getResponse()).toMatchObject({
+        code: 'QUIZ_LOCKED',
+      });
+    });
+
     it('returns user answers', async () => {
       const { service } = setup();
       const res = await service.getUserAnswers(1, USER);
@@ -223,6 +261,28 @@ describe('DictationService', () => {
   });
 
   describe('markQuestionDone', () => {
+    it('throws 403 QUIZ_LOCKED when quiz is locked', async () => {
+      const { service } = setup({ canTake: false });
+      const err = await service
+        .markQuestionDone(1, 101, USER)
+        .catch((e: unknown) => e);
+      expect(err).toBeInstanceOf(ForbiddenException);
+      expect((err as ForbiddenException).getResponse()).toMatchObject({
+        code: 'QUIZ_LOCKED',
+      });
+    });
+
+    it('throws 400 QUESTION_IDS_INVALID when question does not belong to quiz', async () => {
+      const { service } = setup();
+      const err = await service
+        .markQuestionDone(1, 999, USER)
+        .catch((e: unknown) => e);
+      expect(err).toBeInstanceOf(BadRequestException);
+      expect((err as BadRequestException).getResponse()).toMatchObject({
+        code: 'QUESTION_IDS_INVALID',
+      });
+    });
+
     it('upserts answer and updates score in transaction', async () => {
       const { service, mockRepo } = setup();
       mockRepo.countDoneQuestions.mockResolvedValue(2);
@@ -237,6 +297,28 @@ describe('DictationService', () => {
   });
 
   describe('unmarkQuestionDone', () => {
+    it('throws 403 QUIZ_LOCKED when quiz is locked', async () => {
+      const { service } = setup({ canTake: false });
+      const err = await service
+        .unmarkQuestionDone(1, 101, USER)
+        .catch((e: unknown) => e);
+      expect(err).toBeInstanceOf(ForbiddenException);
+      expect((err as ForbiddenException).getResponse()).toMatchObject({
+        code: 'QUIZ_LOCKED',
+      });
+    });
+
+    it('throws 400 QUESTION_IDS_INVALID when question does not belong to quiz', async () => {
+      const { service } = setup();
+      const err = await service
+        .unmarkQuestionDone(1, 999, USER)
+        .catch((e: unknown) => e);
+      expect(err).toBeInstanceOf(BadRequestException);
+      expect((err as BadRequestException).getResponse()).toMatchObject({
+        code: 'QUESTION_IDS_INVALID',
+      });
+    });
+
     it('unmarks question and updates score', async () => {
       const { service, mockRepo } = setup();
       mockRepo.countDoneQuestions.mockResolvedValue(0);
@@ -249,6 +331,29 @@ describe('DictationService', () => {
   });
 
   describe('syncSession', () => {
+    it('throws 403 QUIZ_LOCKED when quiz is locked', async () => {
+      const { service } = setup({ canTake: false });
+      const err = await service
+        .syncSession(1, [101], USER)
+        .catch((e: unknown) => e);
+      expect(err).toBeInstanceOf(ForbiddenException);
+      expect((err as ForbiddenException).getResponse()).toMatchObject({
+        code: 'QUIZ_LOCKED',
+      });
+    });
+
+    it('throws 400 QUESTION_IDS_INVALID when any question id not in quiz', async () => {
+      const { service, mockRepo } = setup();
+      const err = await service
+        .syncSession(1, [101, 999], USER)
+        .catch((e: unknown) => e);
+      expect(err).toBeInstanceOf(BadRequestException);
+      expect((err as BadRequestException).getResponse()).toMatchObject({
+        code: 'QUESTION_IDS_INVALID',
+      });
+      expect(mockRepo.upsertUserAnswer).not.toHaveBeenCalled();
+    });
+
     it('upserts all question ids in session and updates score', async () => {
       const { service, mockRepo } = setup();
       mockRepo.countDoneQuestions.mockResolvedValue(2);
@@ -261,6 +366,15 @@ describe('DictationService', () => {
   });
 
   describe('resetAll', () => {
+    it('throws 403 QUIZ_LOCKED when quiz is locked', async () => {
+      const { service } = setup({ canTake: false });
+      const err = await service.resetAll(1, USER).catch((e: unknown) => e);
+      expect(err).toBeInstanceOf(ForbiddenException);
+      expect((err as ForbiddenException).getResponse()).toMatchObject({
+        code: 'QUIZ_LOCKED',
+      });
+    });
+
     it('resets all answers and scores to 0', async () => {
       const { service, mockRepo } = setup();
 

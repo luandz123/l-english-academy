@@ -12,6 +12,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import {
+  ApiBadRequestResponse,
   ApiBearerAuth,
   ApiForbiddenResponse,
   ApiNotFoundResponse,
@@ -88,6 +89,7 @@ export class DictationController {
   })
   @ApiOkResponse({ type: QuizResultDto })
   @ApiUnauthorizedResponse({ description: 'Chưa đăng nhập' })
+  @ApiForbiddenResponse({ description: 'QUIZ_LOCKED' })
   @ApiNotFoundResponse({ description: 'QUIZ_NOT_FOUND' })
   getOrCreateResult(
     @Param('quizId', ParseIntPipe) quizId: number,
@@ -104,6 +106,8 @@ export class DictationController {
   })
   @ApiOkResponse({ type: [DictationUserAnswerDto] })
   @ApiUnauthorizedResponse({ description: 'Chưa đăng nhập' })
+  @ApiForbiddenResponse({ description: 'QUIZ_LOCKED' })
+  @ApiNotFoundResponse({ description: 'QUIZ_NOT_FOUND' })
   getUserAnswers(
     @Param('quizId', ParseIntPipe) quizId: number,
     @CurrentUser() user: AuthenticatedUser,
@@ -118,7 +122,9 @@ export class DictationController {
     summary: 'Đánh dấu hoàn thành một câu hỏi, server tính lại điểm',
   })
   @ApiOkResponse({ type: DictationProgressResponseDto })
+  @ApiBadRequestResponse({ description: 'QUESTION_IDS_INVALID' })
   @ApiUnauthorizedResponse({ description: 'Chưa đăng nhập' })
+  @ApiForbiddenResponse({ description: 'QUIZ_LOCKED' })
   @ApiNotFoundResponse({ description: 'QUIZ_NOT_FOUND' })
   markQuestionDone(
     @Param('quizId', ParseIntPipe) quizId: number,
@@ -135,7 +141,9 @@ export class DictationController {
     summary: 'Hủy đánh dấu hoàn thành một câu hỏi, server tính lại điểm',
   })
   @ApiOkResponse({ type: DictationProgressResponseDto })
+  @ApiBadRequestResponse({ description: 'QUESTION_IDS_INVALID' })
   @ApiUnauthorizedResponse({ description: 'Chưa đăng nhập' })
+  @ApiForbiddenResponse({ description: 'QUIZ_LOCKED' })
   @ApiNotFoundResponse({ description: 'QUIZ_NOT_FOUND' })
   unmarkQuestionDone(
     @Param('quizId', ParseIntPipe) quizId: number,
@@ -153,7 +161,9 @@ export class DictationController {
     summary: 'Đồng bộ danh sách câu đã hoàn thành trong session khi nộp bài',
   })
   @ApiOkResponse({ type: DictationProgressResponseDto })
+  @ApiBadRequestResponse({ description: 'QUESTION_IDS_INVALID' })
   @ApiUnauthorizedResponse({ description: 'Chưa đăng nhập' })
+  @ApiForbiddenResponse({ description: 'QUIZ_LOCKED' })
   @ApiNotFoundResponse({ description: 'QUIZ_NOT_FOUND' })
   syncSession(
     @Param('quizId', ParseIntPipe) quizId: number,
@@ -172,6 +182,7 @@ export class DictationController {
   })
   @ApiOkResponse({ type: DictationProgressResponseDto })
   @ApiUnauthorizedResponse({ description: 'Chưa đăng nhập' })
+  @ApiForbiddenResponse({ description: 'QUIZ_LOCKED' })
   @ApiNotFoundResponse({ description: 'QUIZ_NOT_FOUND' })
   resetAll(
     @Param('quizId', ParseIntPipe) quizId: number,

@@ -392,5 +392,95 @@ describe('AssessmentModule — dictation (e2e)', () => {
       const answers = bAnswers.body as DictationUserAnswerDto[];
       expect(answers).toHaveLength(0);
     });
+
+    it('rejects foreign question_id with 400 QUESTION_IDS_INVALID and preserves score (rule 5)', async () => {
+      // Current score of user A
+      const beforeRes = await http()
+        .get(`/api/v1/assessment/dictation/quizzes/${quizId}/result`)
+        .set(bearer(tokens.a));
+      const scoreBefore = (beforeRes.body as QuizResultDto).score;
+
+      // 1. PUT invalid question_id
+      const putRes = await http()
+        .put(
+          `/api/v1/assessment/dictation/quizzes/${quizId}/questions/999999/done`,
+        )
+        .set(bearer(tokens.a));
+      expect(putRes.status).toBe(400);
+      expect(putRes.body).toMatchObject({ code: 'QUESTION_IDS_INVALID' });
+
+      // 2. DELETE invalid question_id
+      const delRes = await http()
+        .delete(
+          `/api/v1/assessment/dictation/quizzes/${quizId}/questions/999999/done`,
+        )
+        .set(bearer(tokens.a));
+      expect(delRes.status).toBe(400);
+      expect(delRes.body).toMatchObject({ code: 'QUESTION_IDS_INVALID' });
+
+      // 3. POST sync with mixed/invalid question_ids
+      const syncRes = await http()
+        .post(`/api/v1/assessment/dictation/quizzes/${quizId}/sync`)
+        .set(bearer(tokens.a))
+        .send({ question_ids: [questionIds[0], 999999] });
+      expect(syncRes.status).toBe(400);
+      expect(syncRes.body).toMatchObject({ code: 'QUESTION_IDS_INVALID' });
+
+      // Score must not change
+      const afterRes = await http()
+        .get(`/api/v1/assessment/dictation/quizzes/${quizId}/result`)
+        .set(bearer(tokens.a));
+      expect((afterRes.body as QuizResultDto).score).toBe(scoreBefore);
+    });
+
+    it('denies access (403 QUIZ_LOCKED) on all progress routes when user has no access, and creates no user_quiz_results', async () => {
+      // User A attempts to access locked quiz routes
+      const resultRes = await http()
+        .get(`/api/v1/assessment/dictation/quizzes/${lockedQuizId}/result`)
+        .set(bearer(tokens.a));
+      expect(resultRes.status).toBe(403);
+      expect(resultRes.body).toMatchObject({ code: 'QUIZ_LOCKED' });
+
+      const answersRes = await http()
+        .get(`/api/v1/assessment/dictation/quizzes/${lockedQuizId}/answers`)
+        .set(bearer(tokens.a));
+      expect(answersRes.status).toBe(403);
+      expect(answersRes.body).toMatchObject({ code: 'QUIZ_LOCKED' });
+
+      const putRes = await http()
+        .put(
+          `/api/v1/assessment/dictation/quizzes/${lockedQuizId}/questions/1/done`,
+        )
+        .set(bearer(tokens.a));
+      expect(putRes.status).toBe(403);
+      expect(putRes.body).toMatchObject({ code: 'QUIZ_LOCKED' });
+
+      const delRes = await http()
+        .delete(
+          `/api/v1/assessment/dictation/quizzes/${lockedQuizId}/questions/1/done`,
+        )
+        .set(bearer(tokens.a));
+      expect(delRes.status).toBe(403);
+      expect(delRes.body).toMatchObject({ code: 'QUIZ_LOCKED' });
+
+      const syncRes = await http()
+        .post(`/api/v1/assessment/dictation/quizzes/${lockedQuizId}/sync`)
+        .set(bearer(tokens.a))
+        .send({ question_ids: [1] });
+      expect(syncRes.status).toBe(403);
+      expect(syncRes.body).toMatchObject({ code: 'QUIZ_LOCKED' });
+
+      const resetRes = await http()
+        .post(`/api/v1/assessment/dictation/quizzes/${lockedQuizId}/reset`)
+        .set(bearer(tokens.a));
+      expect(resetRes.status).toBe(403);
+      expect(resetRes.body).toMatchObject({ code: 'QUIZ_LOCKED' });
+
+      // Verify no user_quiz_results were created for lockedQuizId
+      const resultsInDb = await prisma.userQuizResult.findMany({
+        where: { quizId: lockedQuizId },
+      });
+      expect(resultsInDb).toHaveLength(0);
+    });
   });
 });
