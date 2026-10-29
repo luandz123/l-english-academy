@@ -74,9 +74,7 @@ export class AssessmentAdminRepository {
     return agg._max.displayOrder !== null ? agg._max.displayOrder + 1 : 0;
   }
 
-  createQuestion(
-    data: Prisma.QuestionUncheckedCreateInput,
-  ): Promise<Question> {
+  createQuestion(data: Prisma.QuestionUncheckedCreateInput): Promise<Question> {
     return this.prisma.question.create({ data });
   }
 
@@ -103,7 +101,10 @@ export class AssessmentAdminRepository {
     return res.count;
   }
 
-  updateQuestionDisplayOrder(id: number, displayOrder: number): Promise<Question> {
+  updateQuestionDisplayOrder(
+    id: number,
+    displayOrder: number,
+  ): Promise<Question> {
     return this.prisma.question.update({
       where: { id },
       data: { displayOrder },
@@ -227,4 +228,3 @@ export class AssessmentAdminRepository {
     });
   }
 }
-

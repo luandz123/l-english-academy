@@ -299,10 +299,7 @@ export class AssessmentAdminService {
     return this.mapper.toQuizDto(quiz);
   }
 
-  async updateModuleQuiz(
-    id: number,
-    dto: SaveModuleQuizDto,
-  ): Promise<QuizDto> {
+  async updateModuleQuiz(id: number, dto: SaveModuleQuizDto): Promise<QuizDto> {
     const quiz = await this.repo.findQuizById(id);
     if (!quiz) {
       throw new NotFoundException({
@@ -365,4 +362,3 @@ export class AssessmentAdminService {
     });
   }
 }
-

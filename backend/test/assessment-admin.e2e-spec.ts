@@ -7,10 +7,7 @@ import { AppRole } from '../src/generated/prisma/enums';
 import { TokenService } from '../src/modules/auth/token.service';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { setupApp } from '../src/setup-app';
-import type {
-  QuizDto,
-  ReviewQuestionDto,
-} from '../src/modules/assessment/dto';
+import type { QuizDto, ReviewQuestionDto } from '../src/modules/assessment/dto';
 
 interface RbacRouteCase {
   name: string;
@@ -281,8 +278,7 @@ describe('AssessmentAdmin (e2e)', () => {
       {
         name: 'PUT /questions/:id',
         method: 'put',
-        path: () =>
-          `/api/v1/assessment/admin/questions/${rbacQuestionId}`,
+        path: () => `/api/v1/assessment/admin/questions/${rbacQuestionId}`,
         body: () => ({
           question_text: `${PREFIX} RBAC Updated Question`,
           answers: [{ answer_text: 'Option B', is_correct: true }],
@@ -307,8 +303,7 @@ describe('AssessmentAdmin (e2e)', () => {
       {
         name: 'PUT /quizzes/:quizId/question-order',
         method: 'put',
-        path: () =>
-          `/api/v1/assessment/admin/quizzes/${quizId}/question-order`,
+        path: () => `/api/v1/assessment/admin/quizzes/${quizId}/question-order`,
         body: () => ({ question_ids: [question1Id, question2Id] }),
         expectedAdminStatus: 204,
       },
@@ -402,7 +397,11 @@ describe('AssessmentAdmin (e2e)', () => {
           answers: [
             { answer_text: 'Option 1', is_correct: true, explanation: 'Exp 1' },
             { answer_text: '   ', is_correct: false }, // Rỗng -> bỏ qua
-            { answer_text: 'Option 2', is_correct: false, explanation: 'Exp 2' },
+            {
+              answer_text: 'Option 2',
+              is_correct: false,
+              explanation: 'Exp 2',
+            },
           ],
         })
         .expect(201);
@@ -515,7 +514,10 @@ describe('AssessmentAdmin (e2e)', () => {
         .set(bearer(adminToken))
         .send({
           items: [
-            { question_id: question1Id, image_url: 'https://cdn.example.com/q1.png' },
+            {
+              question_id: question1Id,
+              image_url: 'https://cdn.example.com/q1.png',
+            },
             { question_id: question2Id, image_url: null },
           ],
         })
@@ -541,18 +543,24 @@ describe('AssessmentAdmin (e2e)', () => {
     it('POST /quizzes/:quizId/questions/bulk-delete: xóa nhiều câu; id quiz khác → 400, không xóa gì', async () => {
       // ID quiz khác -> 400
       await http()
-        .post(`/api/v1/assessment/admin/quizzes/${quizId}/questions/bulk-delete`)
+        .post(
+          `/api/v1/assessment/admin/quizzes/${quizId}/questions/bulk-delete`,
+        )
         .set(bearer(adminToken))
         .send({ question_ids: [question1Id, otherQuestionId] })
         .expect(400);
 
       // question1Id vẫn còn
-      let q1 = await prisma.question.findUnique({ where: { id: question1Id } });
+      const q1 = await prisma.question.findUnique({
+        where: { id: question1Id },
+      });
       expect(q1).not.toBeNull();
 
       // Xóa createdQId
       await http()
-        .post(`/api/v1/assessment/admin/quizzes/${quizId}/questions/bulk-delete`)
+        .post(
+          `/api/v1/assessment/admin/quizzes/${quizId}/questions/bulk-delete`,
+        )
         .set(bearer(adminToken))
         .send({ question_ids: [createdQId] })
         .expect(204);
@@ -691,6 +699,12 @@ describe('AssessmentAdmin (e2e)', () => {
       // Gọi lần 2 -> 409
       await http()
         .post(`/api/v1/assessment/admin/lessons/${lessonNoQuizId}/quiz`)
+        .set(bearer(adminToken))
+        .expect(409);
+
+      // Gọi với bài học đã có sẵn quiz -> 409
+      await http()
+        .post(`/api/v1/assessment/admin/lessons/${lessonWithQuizId}/quiz`)
         .set(bearer(adminToken))
         .expect(409);
     });

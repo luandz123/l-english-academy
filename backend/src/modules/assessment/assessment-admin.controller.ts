@@ -230,9 +230,7 @@ export class AssessmentAdminController {
   @ApiNoContentResponse({ description: 'Xóa thành công hoặc không tồn tại' })
   @ApiUnauthorizedResponse({ description: 'Chưa đăng nhập' })
   @ApiForbiddenResponse({ description: 'Không có quyền admin' })
-  async deleteModuleQuiz(
-    @Param('id', ParseIntPipe) id: number,
-  ): Promise<void> {
+  async deleteModuleQuiz(@Param('id', ParseIntPipe) id: number): Promise<void> {
     await this.assessmentAdminService.deleteModuleQuiz(id);
   }
 
@@ -258,4 +256,3 @@ export class AssessmentAdminController {
     return this.assessmentAdminService.createLessonQuiz(lessonId);
   }
 }
-
