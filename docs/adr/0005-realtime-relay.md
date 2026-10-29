@@ -1,6 +1,6 @@
 # ADR 0005: Một RealtimeGateway Socket.IO dạng relay thay Supabase Realtime
 
-- **Trạng thái**: Đã chấp thuận
+- **Trạng thái**: Đã chấp thuận — **hoãn thực hiện** (2026-10-29, OPEN_QUESTIONS #11, #28): đợt refactor này giữ Supabase Realtime Broadcast cho PvP và signaling mesh; phần phòng nói làm sau cắt cầu. Xem `docs/tasks/T-030-realtime-survey.md`.
 - **Ngày**: 2026-10-25
 - **Người quyết định**: Chủ dự án (DECISIONS D-21, C-05)
 - **Tài liệu tham chiếu**: [DECISIONS.md](../DECISIONS.md)

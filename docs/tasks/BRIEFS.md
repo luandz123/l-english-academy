@@ -53,9 +53,10 @@ Luật chung nhắc lại: không sửa JSX/`className`/câu chữ/`queryKey`; g
 ## T-030 · Khảo sát realtime (Speaking + Games) — quyết định #28, **chỉ khảo sát, không code**
 - Đọc `speakingService.ts`, `useVoiceRoom.ts`, `SpeakingRoomsPage.tsx`, `api/speaking-token.ts`, `WordShooterLobby.tsx`, `WordShooterArena.tsx`, `AdminGamesConfig.tsx`, các migration `speaking_*`, `word_shooter_*` (nếu có) và `docs/adr/0005-realtime-relay.md`.
 - Viết `docs/tasks/T-030-realtime-survey.md`: với **mỗi** chỗ gọi Supabase ghi (1) bảng/kênh realtime/RPC dùng, (2) có phụ thuộc `auth.uid()`/RLS không (tức là sẽ hỏng sau cắt cầu), (3) đề xuất tối thiểu để chạy được sau cắt cầu (vd. token LiveKit qua backend, dữ liệu phòng qua API, realtime giữ nguyên nếu không cần auth). Push rồi chuyển task kế. Claude quyết và viết tóm tắt T-031/T-032 sau.
+- **Đã chốt (2026-10-29):** #11 hoãn phòng nói sau cắt cầu → **không có T-031/T-032 trong đợt này**. Broadcast (PvP, signaling mesh) giữ nguyên. Không sửa `speakingService.ts`, `useVoiceRoom.ts`, `SpeakingRoomsPage.tsx`, `api/speaking-token.ts`, kênh `lobby-pvp-*`/`arena-pvp-*`.
 
 ## T-033 · Dọn lẻ — phụ thuộc T-026
 - `AdminBackup.tsx` (ADM-019): xuất dữ liệu qua endpoint admin (đọc nhiều bảng) — **chỉ đọc**, giữ định dạng file xuất cũ.
 - `admin_activity_log` (ADM-021): endpoint admin đọc nhật ký (trang nào đang đọc thì chuyển).
-- `DashboardPage.tsx` bảng xếp hạng thời gian học (`:310`) + danh sách mọi đề (`:208`), `Profile.tsx` đếm số đề (`:207`), `MyCoursesPage.tsx:103` (giữ lỗi cột `duration_minutes` như cũ — #12 chưa quyết, trả `[]` như hiện tại thì ghi rõ), `HeroSection.tsx`, `AdminLessonVocab.tsx`, `AdminGamesConfig.tsx` (phần không realtime), `utils/audioUrl.ts`, `integrations/lovable`.
+- `DashboardPage.tsx` bảng xếp hạng thời gian học (`:310`) + danh sách mọi đề (`:208`), `Profile.tsx` đếm số đề (`:207`), `MyCoursesPage.tsx:103` (giữ lỗi cột `duration_minutes` như cũ — #12 chưa quyết, trả `[]` như hiện tại thì ghi rõ), `HeroSection.tsx`, `AdminLessonVocab.tsx`, `AdminGamesConfig.tsx` (phần không realtime), `WordShooterLobby.tsx:199` (đọc `vocab_questions` → API từ vựng đã có; **không** đụng kênh broadcast), `utils/audioUrl.ts`, `integrations/lovable`.
 - Bảng xếp hạng: endpoint trả **tổng thời gian theo user** (server cộng), không trả từng dòng kết quả của người khác.
