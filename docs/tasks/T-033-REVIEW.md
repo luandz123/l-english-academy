@@ -1,4 +1,4 @@
-# Review T-033 (Claude, 2026-10-29) — 🔁 TRẢ LẠI
+# Review T-033 (Claude, 2026-10-29) — ✅ PASS (lần 2)
 
 Review trên `97373ad`. Phần tốt: route admin guard cấp class, danh sách admin không lộ `users.password_hash`, `MyCoursesPage` giữ `[]` như cũ (#12), `WordShooterLobby` chỉ đổi phần đọc từ vựng, không đụng broadcast. Phải sửa 4 điểm rồi push lại cùng nhánh:
 
@@ -17,3 +17,26 @@ Review trên `97373ad`. Phần tốt: route admin guard cấp class, danh sách 
 4. **e2e 3 vai cho mọi route admin mới** (BRIEFS "e2e 3 vai cho mọi route admin"): hiện chỉ `backup/stats` có 401/403. Thêm 401 (không token) + 403 (học viên) cho: `backup/export-*`, `activity-log` (GET/POST), `users/admins`, và toàn bộ `assessment/admin/vocab/*`.
 
 Sau khi sửa: chạy lại toàn bộ lệnh kiểm tra (kể cả `tsc` cho adapter + các trang đã sửa), dán output nguyên văn **sau commit cuối**, push lại `task/T-033-leftovers`, đổi QUEUE về 🔍.
+
+---
+
+## Lần 2 (trên `4fad0dd`) — ✅ PASS, merged
+
+- Leaderboard theo RLS cũ (khách `[]`, học viên chỉ mình, admin tất cả) + e2e 3 vai; queryKey thêm `user?.id` (#21 — ngoại lệ `check-ui-diff` đã duyệt).
+- Backup: `SELECT *` theo danh sách bảng cố định (khớp `AdminBackup.tsx` cũ) → khóa snake_case; serialize BigInt/Decimal/Date.
+- `playLevelUpSound` đã bỏ; lỗi tsc `WordShooterLobby.tsx:374` là lỗi có sẵn của code cũ (gọi hàm không tồn tại) — giữ, ghi OPEN_QUESTIONS #29.
+- e2e 401/403 cho mọi route admin mới.
+- **Claude sửa khi merge:** `assessment-admin.service.spec.ts` thiếu tham số `VocabMapper` (TS2554 sau khi gộp với T-028); `getMyCoursesModules` dùng `any` → `unknown[]`.
+- Sót: `DashboardPage.tsx:150` (`modules` theo khóa Nghe-Đọc) không có trong brief T-033 → chuyển T-034.
+
+Kiểm tra sau gộp (merge/T-033, sau sửa):
+```
+LINT_OK / TYPE_OK
+Tests:       346 passed, 346 total
+Tests:       427 passed, 427 total
+BUILD_OK
+Tests  224 passed (224)
+FE_LINT_OK
+tsc (adapter + trang đã sửa): chỉ WordShooterLobby.tsx:374 (lỗi có sẵn, xem trên)
+✓ built in 51.72s
+```

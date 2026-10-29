@@ -66,4 +66,5 @@ Luật chung nhắc lại: không sửa JSX/`className`/câu chữ/`queryKey`; g
 - `QuizManager.tsx:518` (lesson theo `quiz_id`), `:597-599` (từ vựng theo bài) → endpoint đã có ở `vocab.controller.ts` (`lessons/:lessonId/quiz-id`, `lessons/:ref/words`) hoặc endpoint admin T-033; không tạo trùng.
 - ~~`AdminSettings.tsx:194-197` danh sách admin~~ — đã làm trong T-033 (`GET /admin/users/admins`).
 - `AdminSettings.tsx:79,94` hiển thị và gọi thử `/api/payment-webhook` (Vercel function cũ). Webhook mới là `POST /api/v1/payments/webhooks/sepay`. **Đổi chuỗi đường dẫn** là đổi dữ liệu hiển thị cho admin cấu hình SePay → ghi mục "Câu hỏi", làm phần còn lại, **không** tự đổi.
+- `DashboardPage.tsx:150` (`modules` + `lessons(id, title)` theo `course_id` của khóa Nghe-Đọc) → endpoint đọc đã có trong Catalog/Learning nếu đúng shape, không tạo trùng. (Sót ở T-033.)
 - Sau task: `grep -rn "supabase\.\(from\|rpc\|storage\)" src` chỉ còn phần Speaking đã hoãn (#11).
