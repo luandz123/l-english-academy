@@ -3,8 +3,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Upload, Trash2, FileText, Image, Music, FolderPlus, Folder, FolderOpen, ChevronRight, Copy, ArrowLeft, Home, Edit } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { uploadMediaSafe } from "@/lib/api/media";
+import {
+  createAdminMaterial,
+  deleteAdminMaterial,
+  deleteAdminMaterialFolder,
+  listAdminMaterials,
+  renameAdminMaterialFolder,
+  uploadMediaSafe,
+} from "@/lib/api/media";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -38,10 +44,7 @@ const AdminMaterials = () => {
   const { data: materials = [], isLoading } = useQuery({
     queryKey: ["admin-materials"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("materials")
-        .select("*, courses(title)")
-        .order("created_at", { ascending: false });
+      const { data, error } = await listAdminMaterials();
       if (error) throw error;
       return data ?? [];
     },
@@ -49,7 +52,7 @@ const AdminMaterials = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      const { error } = await supabase.from("materials").delete().eq("id", id);
+      const { error } = await deleteAdminMaterial(id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -63,16 +66,7 @@ const AdminMaterials = () => {
 
   const renameFolderMutation = useMutation({
     mutationFn: async ({ oldPath, newPath }: { oldPath: string; newPath: string }) => {
-      const { data: toUpdate } = await supabase.from("materials").select("id, folder_path");
-      if (!toUpdate) return;
-
-      for (const item of toUpdate) {
-        const fp = item.folder_path || "";
-        if (fp === oldPath || fp.startsWith(oldPath + "/")) {
-          const updatedPath = fp.replace(oldPath, newPath);
-          await supabase.from("materials").update({ folder_path: updatedPath }).eq("id", item.id);
-        }
-      }
+      await renameAdminMaterialFolder(oldPath, newPath);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-materials"] });
@@ -85,19 +79,7 @@ const AdminMaterials = () => {
 
   const deleteFolderMutation = useMutation({
     mutationFn: async (folderPath: string) => {
-      const { data: toDelete } = await supabase.from("materials").select("id, folder_path");
-      if (!toDelete) return;
-
-      const idsToDelete = toDelete
-        .filter(item => {
-          const fp = item.folder_path || "";
-          return fp === folderPath || fp.startsWith(folderPath + "/");
-        })
-        .map(item => item.id);
-
-      if (idsToDelete.length > 0) {
-        await supabase.from("materials").delete().in("id", idsToDelete);
-      }
+      await deleteAdminMaterialFolder(folderPath);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-materials"] });
@@ -144,8 +126,10 @@ const AdminMaterials = () => {
       const ext = file.name.split(".").pop()?.toLowerCase() ?? "pdf";
       const fileType = ["mp3", "wav", "ogg", "m4a"].includes(ext) ? "audio" : ["jpg", "jpeg", "png", "gif", "webp", "svg"].includes(ext) ? "image" : ["mp4", "webm", "mov"].includes(ext) ? "video" : "pdf";
       
-      const { error: insertErr } = await supabase.from("materials").insert({
-        title: file.name, file_url: urlData.publicUrl, file_type: fileType,
+      const { error: insertErr } = await createAdminMaterial({
+        title: file.name,
+        file_url: urlData.publicUrl,
+        file_type: fileType,
         folder_path: folderPath,
       });
       

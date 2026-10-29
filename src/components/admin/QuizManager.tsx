@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Edit, Trash2, Upload, Download, Image, Music, Library, GripVertical, Check, ChevronRight, ArrowLeft, ArrowRight, FolderOpen, Folder } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { uploadMedia, uploadMediaSafe } from "@/lib/api/media";
+import { createAdminMaterial, listAdminMaterials, uploadMedia, uploadMediaSafe } from "@/lib/api/media";
 import { useToast } from "@/hooks/use-toast";
 import {
   createQuizQuestion,
@@ -168,7 +168,7 @@ const QuizManager = ({ quizId, courseId, lessonType, lessonId }: QuizManagerProp
   const { data: materials = [] } = useQuery({
     queryKey: ["admin-materials-all"],
     queryFn: async () => {
-      const { data } = await supabase.from("materials").select("*").order("created_at", { ascending: false });
+      const { data } = await listAdminMaterials();
       return data ?? [];
     },
   });
@@ -239,7 +239,7 @@ const QuizManager = ({ quizId, courseId, lessonType, lessonId }: QuizManagerProp
         `${Date.now()}_${filePrefix ? filePrefix + "_" : ""}${sanitizedName}`,
       );
       
-      await supabase.from("materials").insert({
+      await createAdminMaterial({
         title: title || sanitizedName,
         file_url: publicUrl,
         file_type: type,

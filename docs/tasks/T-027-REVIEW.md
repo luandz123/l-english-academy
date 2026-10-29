@@ -1,4 +1,4 @@
-# Review T-027 (Claude, 2026-10-29) — 🔁 TRẢ LẠI
+# Review T-027 (Claude, 2026-10-29) — ✅ PASS (lần 2)
 
 Review trên `8cb91fa`. Logic đúng: guard admin cấp class, `rename-folder`/`delete-folder` trong `$transaction`, quy tắc khớp thư mục và `replace` giống code cũ, thứ tự sắp xếp giữ đúng (theo khóa: `display_order`; toàn bộ: `created_at desc`), e2e 3 vai cho cả 5 route. Phải sửa 2 điểm rồi push lại cùng nhánh:
 
@@ -13,3 +13,24 @@ Review trên `8cb91fa`. Logic đúng: guard admin cấp class, `rename-folder`/`
    → Gọi `await deleteAdminMaterial(matId);` / `await renameAdminMaterialFolder(...)` / `await deleteAdminMaterialFolder(...)` **không** throw. Giữ `if (error) throw error;` ở chỗ cũ có kiểm (`deleteMutation`, `addMaterialMutation`, upload `insertErr`).
 
 Sau khi sửa: chạy lại toàn bộ lệnh kiểm tra (kể cả `tsc` cho `src/lib/api/media.ts` và 4 file trang), dán output nguyên văn **sau commit cuối**, push lại `task/T-027-materials`, đổi QUEUE về 🔍.
+
+---
+
+## Lần 2 (trên `d04bc0e`) — ✅ PASS, merged
+
+- `MaterialsRepository` (có `inTransaction`) + `MaterialsMapper`; service không còn gọi Prisma.
+- 3 chỗ cũ bỏ qua lỗi đã trả về như cũ; giữ throw ở `deleteMutation`, `addMaterialMutation`, upload.
+
+Kiểm tra sau gộp (merge/T-027):
+```
+LINT_TYPE_OK
+Tests:       335 passed, 335 total
+Tests:       373 passed, 373 total
+BUILD_OK
+Tests  207 passed (207)
+FE_LINT_OK
+tsc: (rỗng — adapter + 4 trang)
+check-ui-diff: OK — không có thay đổi giao diện trong src/**/*.tsx (so với refactor/nestjs-backend).
+from("materials") còn lại: 0
+✓ built in 31.54s
+```

@@ -8,8 +8,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { uploadMedia } from "@/lib/api/media";
+import {
+  createAdminMaterial,
+  deleteAdminMaterial,
+  listAdminMaterials,
+  uploadMedia,
+} from "@/lib/api/media";
 import {
   getAdminCourseModules,
   getCourse,
@@ -175,7 +179,7 @@ const AdminCourseDetail = () => {
   const { data: materials = [] } = useQuery({
     queryKey: ["admin-course-materials", id],
     queryFn: async () => {
-      const { data } = await supabase.from("materials").select("*").eq("course_id", id).order("display_order");
+      const { data } = await listAdminMaterials({ course_id: id });
       return data ?? [];
     },
   });
@@ -188,8 +192,11 @@ const AdminCourseDetail = () => {
 
   const addMaterialMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("materials").insert({
-        course_id: id, title: matTitle, file_url: matUrl, file_type: matType,
+      const { error } = await createAdminMaterial({
+        course_id: id,
+        title: matTitle,
+        file_url: matUrl,
+        file_type: matType,
         display_order: materials.length,
       });
       if (error) throw error;
@@ -207,7 +214,7 @@ const AdminCourseDetail = () => {
 
   const deleteMaterialMutation = useMutation({
     mutationFn: async (matId: number) => {
-      await supabase.from("materials").delete().eq("id", matId);
+      await deleteAdminMaterial(matId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-course-materials", id] });
