@@ -173,6 +173,9 @@ git log --oneline -3 && git diff --stat refactor/nestjs-backend
 - Commit(s):
   - `5329aef docs(tasks): spec T-025 dictation`
   - `7015232 feat(assessment): dictation APIs and frontend integration (T-025)`
+  - `21668b6 docs(assessment): update verification results for T-025`
+  - `ec72fdf fix(assessment): validate question_id, enforce quiz access, and standardize errors (T-025 review)`
+  - `c10776b style(assessment): format assertQuizAccessible`
 - File đã sửa:
   - `backend/src/modules/assessment/assessment.module.ts`
   - `backend/src/modules/assessment/dictation.controller.ts`
@@ -203,67 +206,67 @@ $ npm --prefix backend test
 > backend@0.0.1 test
 > node --experimental-vm-modules node_modules/jest/bin/jest.js
 
-PASS src/modules/catalog/catalog.mapper.spec.ts
 PASS src/common/filters/all-exceptions.filter.spec.ts
-PASS src/modules/auth/guards/optional-jwt-auth.guard.spec.ts
+PASS src/modules/catalog/catalog.mapper.spec.ts
 PASS src/modules/auth/guards/jwt-auth.guard.spec.ts
-PASS src/modules/catalog/catalog-admin.service.spec.ts
-PASS src/modules/assessment/quiz-grading.spec.ts
-PASS src/modules/learning/learning.mapper.spec.ts
+PASS src/modules/auth/guards/optional-jwt-auth.guard.spec.ts
 PASS src/modules/assessment/vocab.service.spec.ts
+PASS src/modules/assessment/quiz-grading.spec.ts
+PASS src/modules/catalog/catalog-admin.service.spec.ts
 PASS src/modules/admin/admin.service.spec.ts
-PASS src/modules/learning/lesson-access.spec.ts
-PASS src/modules/payments/payment-rules.spec.ts
-PASS src/modules/assessment/assessment-admin.service.spec.ts
 PASS src/modules/payments/payments.service.spec.ts
-PASS src/modules/learning/learning-quiz-access.spec.ts
-PASS src/common/transforms/to-optional-boolean.spec.ts
-PASS src/modules/assessment/toeic-scoring.spec.ts
+PASS src/modules/payments/payment-rules.spec.ts
 PASS src/config/env.schema.spec.ts
-PASS src/modules/assessment/assessment.service.spec.ts
+PASS src/modules/learning/learning.mapper.spec.ts
+PASS src/modules/learning/lesson-access.spec.ts
+PASS src/modules/learning/learning-quiz-access.spec.ts
+PASS src/modules/assessment/assessment-admin.service.spec.ts
+PASS src/modules/assessment/toeic-scoring.spec.ts
+PASS src/common/transforms/to-optional-boolean.spec.ts
 PASS src/modules/auth/auth.mapper.spec.ts
-PASS src/modules/assessment/dictation.service.spec.ts
+PASS src/modules/assessment/assessment.service.spec.ts
 PASS src/mail/gmail-api.transport.spec.ts
 PASS src/modules/catalog/catalog.service.spec.ts
 PASS src/modules/learning/learning-admin.service.spec.ts
 PASS src/modules/learning/learning.service.spec.ts
+PASS src/modules/assessment/dictation.service.spec.ts
 
 Test Suites: 24 passed, 24 total
-Tests:       296 passed, 296 total
+Tests:       305 passed, 305 total
 Snapshots:   0 total
-Time:        2.396 s
+Time:        2.802 s
 Ran all test suites.
 
 $ npm --prefix backend run test:e2e
 > backend@0.0.1 test:e2e
 > node --experimental-vm-modules node_modules/jest/bin/jest.js --config ./test/jest-e2e.json --runInBand
 
-PASS test/auth.e2e-spec.ts (20.105 s)
-PASS test/learning-admin.e2e-spec.ts (5.829 s)
-PASS test/assessment-admin.e2e-spec.ts
-PASS test/admin-stats.e2e-spec.ts
-PASS test/health.e2e-spec.ts
-PASS test/assessment-full-test.e2e-spec.ts
-PASS test/assessment-admin-fulltest.e2e-spec.ts
-PASS test/admin-notes.e2e-spec.ts
-PASS test/assessment-quiz.e2e-spec.ts
-PASS test/learning-access.e2e-spec.ts
-PASS test/assessment-vocab.e2e-spec.ts (5.37 s)
+PASS test/auth.e2e-spec.ts (19.388 s)
 PASS test/dictation.e2e-spec.ts
-PASS test/catalog.e2e-spec.ts
+PASS test/learning-admin.e2e-spec.ts (5.274 s)
+PASS test/assessment-admin.e2e-spec.ts
+PASS test/assessment-admin-fulltest.e2e-spec.ts
+PASS test/assessment-full-test.e2e-spec.ts
+PASS test/catalog-admin-courses.e2e-spec.ts
+PASS test/assessment-quiz.e2e-spec.ts
+PASS test/admin-stats.e2e-spec.ts
+PASS test/learning-access.e2e-spec.ts
 PASS test/learning-user-data.e2e-spec.ts
-PASS test/payments.e2e-spec.ts (5.149 s)
-PASS test/payments-admin.e2e-spec.ts
-PASS test/platform-settings.e2e-spec.ts
-PASS test/catalog-admin.e2e-spec.ts
-PASS test/catalog-admin-courses.e2e-spec.ts (5.682 s)
-PASS test/assessment-full-test-lists.e2e-spec.ts
 PASS test/assessment-results.e2e-spec.ts
+PASS test/catalog.e2e-spec.ts
+PASS test/catalog-admin.e2e-spec.ts
+PASS test/assessment-vocab.e2e-spec.ts
+PASS test/payments.e2e-spec.ts
+PASS test/payments-admin.e2e-spec.ts
+PASS test/admin-notes.e2e-spec.ts
+PASS test/platform-settings.e2e-spec.ts
+PASS test/assessment-full-test-lists.e2e-spec.ts
+PASS test/health.e2e-spec.ts
 
 Test Suites: 21 passed, 21 total
-Tests:       340 passed, 340 total
+Tests:       342 passed, 342 total
 Snapshots:   0 total
-Time:        98.773 s, estimated 105 s
+Time:        100.702 s
 Ran all test suites.
 
 $ npm --prefix backend run build
@@ -301,7 +304,7 @@ transforming...
 ✓ 2738 modules transformed.
 rendering chunks...
 computing gzip size...
-✓ built in 37.28s
+✓ built in 32.21s
 
 $ node scripts/check-ui-diff.mjs refactor/nestjs-backend
 check-ui-diff: OK — không có thay đổi giao diện trong src/**/*.tsx (so với refactor/nestjs-backend).
@@ -309,24 +312,26 @@ check-ui-diff: OK — không có thay đổi giao diện trong src/**/*.tsx (so 
 $ git grep -n "supabase" src/pages/DictationPage.tsx
 (Exit code 1 - No matches found)
 
-$ git log --oneline -3 && git diff --stat refactor/nestjs-backend
-7015232 feat(assessment): dictation APIs and frontend integration (T-025)
-5329aef docs(tasks): spec T-025 dictation
-6abfe62 docs(tasks): briefs T-025..T-033, decisions #26-#28, Antigravity writes specs
+$ git log --oneline -5 && git diff --stat refactor/nestjs-backend
+c10776b style(assessment): format assertQuizAccessible
+ec72fdf fix(assessment): validate question_id, enforce quiz access, and standardize errors (T-025 review)
+0364278 Merge remote-tracking branch 'origin/refactor/nestjs-backend' into task/T-025-dictation
+ee72d4b docs: return T-025 for score and access fixes
+21668b6 docs(assessment): update verification results for T-025
  .../src/modules/assessment/assessment.module.ts    |   8 +
- .../src/modules/assessment/dictation.controller.ts | 182 ++++++++++
+ .../src/modules/assessment/dictation.controller.ts | 193 ++++++++
  backend/src/modules/assessment/dictation.mapper.ts |  31 ++
- .../src/modules/assessment/dictation.repository.ts | 198 +++++++++++
- .../modules/assessment/dictation.service.spec.ts   | 273 ++++++++++++++
- .../src/modules/assessment/dictation.service.ts    | 222 ++++++++++++
+ .../src/modules/assessment/dictation.repository.ts | 198 +++++++++
+ .../modules/assessment/dictation.service.spec.ts   | 387 ++++++++++++++++
+ .../src/modules/assessment/dictation.service.ts    | 245 +++++++++++
  .../src/modules/assessment/dto/dictation.dto.ts    |  51 +++
  backend/src/modules/assessment/dto/index.ts        |   1 +
- backend/test/dictation.e2e-spec.ts                 | 396 +++++++++++++++++++++
- docs/tasks/T-025-dictation.md                      | 182 ++++++++++
+ backend/test/dictation.e2e-spec.ts                 | 486 +++++++++++++++++++++
+ docs/tasks/T-025-dictation.md                      | 337 ++++++++++++++
  src/lib/api/assessment.test.ts                     |  98 +++++
- src/lib/api/assessment.ts                          | 124 +++++++
- src/pages/DictationPage.tsx                        | 237 ++----------
- 13 files changed, 1800 insertions(+), 203 deletions(-)
+ src/lib/api/assessment.ts                          | 124 ++++++
+ src/pages/DictationPage.tsx                        | 237 ++--------
+ 13 files changed, 2193 insertions(+), 203 deletions(-)
 ```
 - Chỗ chưa chắc: Không có
 
