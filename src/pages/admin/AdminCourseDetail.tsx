@@ -214,8 +214,7 @@ const AdminCourseDetail = () => {
 
   const deleteMaterialMutation = useMutation({
     mutationFn: async (matId: number) => {
-      const { error } = await deleteAdminMaterial(matId);
-      if (error) throw error;
+      await deleteAdminMaterial(matId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-course-materials", id] });

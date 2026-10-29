@@ -66,8 +66,7 @@ const AdminMaterials = () => {
 
   const renameFolderMutation = useMutation({
     mutationFn: async ({ oldPath, newPath }: { oldPath: string; newPath: string }) => {
-      const { error } = await renameAdminMaterialFolder(oldPath, newPath);
-      if (error) throw error;
+      await renameAdminMaterialFolder(oldPath, newPath);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-materials"] });
@@ -80,8 +79,7 @@ const AdminMaterials = () => {
 
   const deleteFolderMutation = useMutation({
     mutationFn: async (folderPath: string) => {
-      const { error } = await deleteAdminMaterialFolder(folderPath);
-      if (error) throw error;
+      await deleteAdminMaterialFolder(folderPath);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-materials"] });

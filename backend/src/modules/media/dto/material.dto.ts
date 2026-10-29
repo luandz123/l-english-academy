@@ -128,4 +128,3 @@ export class DeleteFolderDto {
   @MaxLength(500)
   folder_path!: string;
 }
-

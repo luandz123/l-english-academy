@@ -1,28 +1,22 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { PrismaService } from '../../prisma/prisma.service';
+import { MaterialsMapper } from './materials.mapper';
+import { MaterialsRepository } from './materials.repository';
 import { MaterialsService } from './materials.service';
 
 describe('MaterialsService', () => {
   let service: MaterialsService;
-  let prisma: {
-    material: {
-      findMany: jest.Mock;
-      findUnique: jest.Mock;
-      create: jest.Mock;
-      delete: jest.Mock;
-      deleteMany: jest.Mock;
-      update: jest.Mock;
-    };
-    course: {
-      findUnique: jest.Mock;
-    };
-    lesson: {
-      findUnique: jest.Mock;
-    };
-    quiz: {
-      findUnique: jest.Mock;
-    };
-    $transaction: jest.Mock;
+  let repository: {
+    findMany: jest.Mock;
+    findById: jest.Mock;
+    findCourseById: jest.Mock;
+    findLessonById: jest.Mock;
+    findQuizById: jest.Mock;
+    create: jest.Mock;
+    delete: jest.Mock;
+    findAllForFolderOps: jest.Mock;
+    updateFolderPath: jest.Mock;
+    deleteManyByIds: jest.Mock;
+    inTransaction: jest.Mock;
   };
 
   const mockMaterial = {
@@ -40,33 +34,28 @@ describe('MaterialsService', () => {
   };
 
   beforeEach(async () => {
-    prisma = {
-      material: {
-        findMany: jest.fn(),
-        findUnique: jest.fn(),
-        create: jest.fn(),
-        delete: jest.fn(),
-        deleteMany: jest.fn(),
-        update: jest.fn(),
-      },
-      course: {
-        findUnique: jest.fn(),
-      },
-      lesson: {
-        findUnique: jest.fn(),
-      },
-      quiz: {
-        findUnique: jest.fn(),
-      },
-      $transaction: jest.fn((callback: (tx: unknown) => Promise<unknown>) =>
-        callback(prisma),
+    repository = {
+      findMany: jest.fn(),
+      findById: jest.fn(),
+      findCourseById: jest.fn(),
+      findLessonById: jest.fn(),
+      findQuizById: jest.fn(),
+      create: jest.fn(),
+      delete: jest.fn(),
+      findAllForFolderOps: jest.fn(),
+      updateFolderPath: jest.fn(),
+      deleteManyByIds: jest.fn(),
+      inTransaction: jest.fn(
+        (callback: (txRepo: unknown) => Promise<unknown>) =>
+          callback(repository),
       ),
     };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         MaterialsService,
-        { provide: PrismaService, useValue: prisma },
+        MaterialsMapper,
+        { provide: MaterialsRepository, useValue: repository },
       ],
     }).compile();
 
@@ -74,29 +63,27 @@ describe('MaterialsService', () => {
   });
 
   describe('listMaterials', () => {
-    it('lấy danh sách không filter: sắp xếp created_at desc', async () => {
-      prisma.material.findMany.mockResolvedValue([mockMaterial]);
+    it('lấy danh sách không filter: gọi repository.findMany không điều kiện', async () => {
+      repository.findMany.mockResolvedValue([mockMaterial]);
 
       const res = await service.listMaterials();
 
-      expect(prisma.material.findMany).toHaveBeenCalledWith({
-        where: {},
-        include: { course: { select: { title: true } } },
-        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      expect(repository.findMany).toHaveBeenCalledWith({
+        courseId: undefined,
+        folderPath: undefined,
       });
       expect(res).toHaveLength(1);
       expect(res[0].courses?.title).toBe('TOEIC Course');
     });
 
-    it('lấy danh sách theo course_id: sắp xếp display_order asc', async () => {
-      prisma.material.findMany.mockResolvedValue([mockMaterial]);
+    it('lấy danh sách theo course_id: gọi repository.findMany với courseId', async () => {
+      repository.findMany.mockResolvedValue([mockMaterial]);
 
       const res = await service.listMaterials({ course_id: 10 });
 
-      expect(prisma.material.findMany).toHaveBeenCalledWith({
-        where: { courseId: 10 },
-        include: { course: { select: { title: true } } },
-        orderBy: [{ displayOrder: 'asc' }, { id: 'asc' }],
+      expect(repository.findMany).toHaveBeenCalledWith({
+        courseId: 10,
+        folderPath: undefined,
       });
       expect(res).toHaveLength(1);
     });
@@ -104,7 +91,7 @@ describe('MaterialsService', () => {
 
   describe('createMaterial', () => {
     it('ném 400 COURSE_NOT_FOUND khi course_id không tồn tại', async () => {
-      prisma.course.findUnique.mockResolvedValue(null);
+      repository.findCourseById.mockResolvedValue(null);
 
       await expect(
         service.createMaterial({
@@ -118,7 +105,7 @@ describe('MaterialsService', () => {
     });
 
     it('ném 400 LESSON_NOT_FOUND khi lesson_id không tồn tại', async () => {
-      prisma.lesson.findUnique.mockResolvedValue(null);
+      repository.findLessonById.mockResolvedValue(null);
 
       await expect(
         service.createMaterial({
@@ -132,7 +119,7 @@ describe('MaterialsService', () => {
     });
 
     it('ném 400 QUIZ_NOT_FOUND khi quiz_id không tồn tại', async () => {
-      prisma.quiz.findUnique.mockResolvedValue(null);
+      repository.findQuizById.mockResolvedValue(null);
 
       await expect(
         service.createMaterial({
@@ -146,7 +133,7 @@ describe('MaterialsService', () => {
     });
 
     it('tạo thành công tài liệu khi dữ liệu hợp lệ', async () => {
-      prisma.material.create.mockResolvedValue(mockMaterial);
+      repository.create.mockResolvedValue(mockMaterial);
 
       const res = await service.createMaterial({
         title: 'Doc 1',
@@ -155,7 +142,7 @@ describe('MaterialsService', () => {
         folder_path: '/pdfs',
       });
 
-      expect(prisma.material.create).toHaveBeenCalled();
+      expect(repository.create).toHaveBeenCalled();
       expect(res.id).toBe(1);
       expect(res.title).toBe('Doc 1');
     });
@@ -163,7 +150,7 @@ describe('MaterialsService', () => {
 
   describe('deleteMaterial', () => {
     it('ném 404 MATERIAL_NOT_FOUND khi id không tồn tại', async () => {
-      prisma.material.findUnique.mockResolvedValue(null);
+      repository.findById.mockResolvedValue(null);
 
       await expect(service.deleteMaterial(999)).rejects.toMatchObject({
         response: { code: 'MATERIAL_NOT_FOUND' },
@@ -171,60 +158,52 @@ describe('MaterialsService', () => {
     });
 
     it('xóa thành công khi tài liệu tồn tại', async () => {
-      prisma.material.findUnique.mockResolvedValue(mockMaterial);
-      prisma.material.delete.mockResolvedValue(mockMaterial);
+      repository.findById.mockResolvedValue(mockMaterial);
+      repository.delete.mockResolvedValue(mockMaterial);
 
       await service.deleteMaterial(1);
 
-      expect(prisma.material.delete).toHaveBeenCalledWith({ where: { id: 1 } });
+      expect(repository.delete).toHaveBeenCalledWith(1);
     });
   });
 
   describe('renameFolder', () => {
     it('đổi tên folder_path cho các tài liệu khớp tiền tố trong một transaction', async () => {
-      prisma.material.findMany.mockResolvedValue([
+      repository.findAllForFolderOps.mockResolvedValue([
         { id: 1, folderPath: '/old/sub' },
         { id: 2, folderPath: '/old' },
         { id: 3, folderPath: '/other' },
       ]);
-      prisma.material.update.mockResolvedValue({});
+      repository.updateFolderPath.mockResolvedValue(undefined);
 
       const result = await service.renameFolder({
         old_path: '/old',
         new_path: '/new',
       });
 
-      expect(prisma.$transaction).toHaveBeenCalled();
+      expect(repository.inTransaction).toHaveBeenCalled();
       expect(result.count).toBe(2);
-      expect(prisma.material.update).toHaveBeenCalledWith({
-        where: { id: 1 },
-        data: { folderPath: '/new/sub' },
-      });
-      expect(prisma.material.update).toHaveBeenCalledWith({
-        where: { id: 2 },
-        data: { folderPath: '/new' },
-      });
+      expect(repository.updateFolderPath).toHaveBeenCalledWith(1, '/new/sub');
+      expect(repository.updateFolderPath).toHaveBeenCalledWith(2, '/new');
     });
   });
 
   describe('deleteFolder', () => {
     it('xóa các tài liệu khớp folder_path trong một transaction', async () => {
-      prisma.material.findMany.mockResolvedValue([
+      repository.findAllForFolderOps.mockResolvedValue([
         { id: 10, folderPath: '/folder/a' },
         { id: 11, folderPath: '/folder' },
         { id: 12, folderPath: '/another' },
       ]);
-      prisma.material.deleteMany.mockResolvedValue({ count: 2 });
+      repository.deleteManyByIds.mockResolvedValue(2);
 
       const result = await service.deleteFolder({
         folder_path: '/folder',
       });
 
-      expect(prisma.$transaction).toHaveBeenCalled();
+      expect(repository.inTransaction).toHaveBeenCalled();
       expect(result.count).toBe(2);
-      expect(prisma.material.deleteMany).toHaveBeenCalledWith({
-        where: { id: { in: [10, 11] } },
-      });
+      expect(repository.deleteManyByIds).toHaveBeenCalledWith([10, 11]);
     });
   });
 });

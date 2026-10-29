@@ -3,8 +3,6 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
-import type { Material } from '../../generated/prisma/client';
 import {
   AdminMaterialDto,
   CreateMaterialDto,
@@ -12,46 +10,30 @@ import {
   ListMaterialsQueryDto,
   RenameFolderDto,
 } from './dto';
-
-type MaterialWithCourse = Material & {
-  course?: { title: string } | null;
-};
+import { MaterialsMapper } from './materials.mapper';
+import { MaterialsRepository } from './materials.repository';
 
 @Injectable()
 export class MaterialsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly repository: MaterialsRepository,
+    private readonly mapper: MaterialsMapper,
+  ) {}
 
   async listMaterials(
     query?: ListMaterialsQueryDto,
   ): Promise<AdminMaterialDto[]> {
-    const where: { courseId?: number; folderPath?: string } = {};
-    if (query?.course_id !== undefined) {
-      where.courseId = query.course_id;
-    }
-    if (query?.folder_path !== undefined) {
-      where.folderPath = query.folder_path;
-    }
-
-    const isCourseScoped = query?.course_id !== undefined;
-
-    const materials = await this.prisma.material.findMany({
-      where,
-      include: {
-        course: { select: { title: true } },
-      },
-      orderBy: isCourseScoped
-        ? [{ displayOrder: 'asc' }, { id: 'asc' }]
-        : [{ createdAt: 'desc' }, { id: 'desc' }],
+    const materials = await this.repository.findMany({
+      courseId: query?.course_id,
+      folderPath: query?.folder_path,
     });
 
-    return materials.map((m) => this.toDto(m));
+    return materials.map((m) => this.mapper.toAdminDto(m));
   }
 
   async createMaterial(dto: CreateMaterialDto): Promise<AdminMaterialDto> {
     if (dto.course_id !== undefined) {
-      const course = await this.prisma.course.findUnique({
-        where: { id: dto.course_id },
-      });
+      const course = await this.repository.findCourseById(dto.course_id);
       if (!course) {
         throw new BadRequestException({
           code: 'COURSE_NOT_FOUND',
@@ -61,9 +43,7 @@ export class MaterialsService {
     }
 
     if (dto.lesson_id !== undefined) {
-      const lesson = await this.prisma.lesson.findUnique({
-        where: { id: dto.lesson_id },
-      });
+      const lesson = await this.repository.findLessonById(dto.lesson_id);
       if (!lesson) {
         throw new BadRequestException({
           code: 'LESSON_NOT_FOUND',
@@ -73,9 +53,7 @@ export class MaterialsService {
     }
 
     if (dto.quiz_id !== undefined) {
-      const quiz = await this.prisma.quiz.findUnique({
-        where: { id: dto.quiz_id },
-      });
+      const quiz = await this.repository.findQuizById(dto.quiz_id);
       if (!quiz) {
         throw new BadRequestException({
           code: 'QUIZ_NOT_FOUND',
@@ -84,29 +62,22 @@ export class MaterialsService {
       }
     }
 
-    const created = await this.prisma.material.create({
-      data: {
-        title: dto.title,
-        fileUrl: dto.file_url,
-        fileType: dto.file_type ?? 'pdf',
-        folderPath: dto.folder_path ?? '/',
-        courseId: dto.course_id ?? null,
-        lessonId: dto.lesson_id ?? null,
-        quizId: dto.quiz_id ?? null,
-        displayOrder: dto.display_order ?? 0,
-      },
-      include: {
-        course: { select: { title: true } },
-      },
+    const created = await this.repository.create({
+      title: dto.title,
+      fileUrl: dto.file_url,
+      fileType: dto.file_type ?? 'pdf',
+      folderPath: dto.folder_path ?? '/',
+      courseId: dto.course_id ?? null,
+      lessonId: dto.lesson_id ?? null,
+      quizId: dto.quiz_id ?? null,
+      displayOrder: dto.display_order ?? 0,
     });
 
-    return this.toDto(created);
+    return this.mapper.toAdminDto(created);
   }
 
   async deleteMaterial(id: number): Promise<void> {
-    const existing = await this.prisma.material.findUnique({
-      where: { id },
-    });
+    const existing = await this.repository.findById(id);
     if (!existing) {
       throw new NotFoundException({
         code: 'MATERIAL_NOT_FOUND',
@@ -114,16 +85,12 @@ export class MaterialsService {
       });
     }
 
-    await this.prisma.material.delete({
-      where: { id },
-    });
+    await this.repository.delete(id);
   }
 
   async renameFolder(dto: RenameFolderDto): Promise<{ count: number }> {
-    return this.prisma.$transaction(async (tx) => {
-      const all = await tx.material.findMany({
-        select: { id: true, folderPath: true },
-      });
+    return this.repository.inTransaction(async (txRepo) => {
+      const all = await txRepo.findAllForFolderOps();
 
       const matching = all.filter((m) => {
         const fp = m.folderPath || '';
@@ -133,10 +100,7 @@ export class MaterialsService {
       for (const m of matching) {
         const fp = m.folderPath || '';
         const updatedPath = fp.replace(dto.old_path, dto.new_path);
-        await tx.material.update({
-          where: { id: m.id },
-          data: { folderPath: updatedPath },
-        });
+        await txRepo.updateFolderPath(m.id, updatedPath);
       }
 
       return { count: matching.length };
@@ -144,10 +108,8 @@ export class MaterialsService {
   }
 
   async deleteFolder(dto: DeleteFolderDto): Promise<{ count: number }> {
-    return this.prisma.$transaction(async (tx) => {
-      const all = await tx.material.findMany({
-        select: { id: true, folderPath: true },
-      });
+    return this.repository.inTransaction(async (txRepo) => {
+      const all = await txRepo.findAllForFolderOps();
 
       const idsToDelete = all
         .filter((m) => {
@@ -157,29 +119,10 @@ export class MaterialsService {
         .map((m) => m.id);
 
       if (idsToDelete.length > 0) {
-        await tx.material.deleteMany({
-          where: { id: { in: idsToDelete } },
-        });
+        await txRepo.deleteManyByIds(idsToDelete);
       }
 
       return { count: idsToDelete.length };
     });
   }
-
-  private toDto(m: MaterialWithCourse): AdminMaterialDto {
-    return {
-      id: m.id,
-      lesson_id: m.lessonId,
-      quiz_id: m.quizId,
-      course_id: m.courseId,
-      title: m.title,
-      file_url: m.fileUrl,
-      file_type: m.fileType,
-      display_order: m.displayOrder,
-      created_at: m.createdAt ? m.createdAt.toISOString() : null,
-      folder_path: m.folderPath,
-      courses: m.course ? { title: m.course.title } : null,
-    };
-  }
 }
-
