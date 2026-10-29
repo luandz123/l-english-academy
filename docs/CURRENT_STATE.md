@@ -6,7 +6,7 @@
 
 ## 1. Cấu Trúc Thư Mục & Công Nghệ Đang Dùng
 
-### 1.1. Công nghệ & Thư viện chính (Trích xuất từ [package.json](file:///c:/Users/lenovo/l-english-academy/package.json))
+### 1.1. Công nghệ & Thư viện chính (Trích xuất từ [package.json](../package.json))
 
 | Hạng mục | Công nghệ / Thư viện | Version | Ghi chú & Vai trò |
 | :--- | :--- | :--- | :--- |
@@ -75,68 +75,68 @@ c:\Users\lenovo\l-english-academy\
 
 ## 2. Danh Sách Toàn Bộ Route/Trang Và Chức Năng Của Từng Trang
 
-Được cấu hình tập trung tại [src/App.tsx](file:///c:/Users/lenovo/l-english-academy/src/App.tsx).
+Được cấu hình tập trung tại [src/App.tsx](../src/App.tsx).
 
 ### 2.1. Nhóm Trang Công Khai (Public Routes)
 
 | Đường dẫn (URL) | Component file | Chức năng chính |
 | :--- | :--- | :--- |
-| `/` | [Index.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/Index.tsx) | Trang chủ landing page giới thiệu học viện, banner khóa học, danh mục, bảng so sánh gói VIP, feedback học viên, FAQ, tích hợp modal thanh toán. |
-| `/login` | [Login.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/Login.tsx) | Đăng nhập tài khoản bằng Email/Password hoặc Google OAuth; hỗ trợ lưu redirect URL. |
-| `/register` | [Register.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/Register.tsx) | Đăng ký tài khoản học viên mới; kiểm tra mật khẩu đạt chuẩn bảo mật 8 ký tự; hỗ trợ Google Sign Up. |
-| `/forgot-password` | [ForgotPassword.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/ForgotPassword.tsx) | Gửi email liên kết khôi phục mật khẩu. |
-| `/reset-password` | [ResetPassword.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/ResetPassword.tsx) | Nhập mật khẩu mới sau khi xác thực token từ email. |
-| `/auth/callback` | [AuthCallback.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/AuthCallback.tsx) | Đón nhận OAuth redirect từ Google, trao đổi PKCE authorization code lấy Session. |
-| `/games` | [GamesHub.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/GamesHub.tsx) | Sảnh trò chơi học từ vựng (Word Defense, Word Shooter), BXH mùa giải, shop bộ từ vựng. |
-| `/games/word-shooter` | [WordShooterGame.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/WordShooterGame.tsx) | Game bắn tàu vũ trụ luyện gõ từ vựng tiếng Anh (hỗ trợ solo & thi đấu PvP thời gian thực). |
-| `/games/word-defense` | [WordDefenseGame.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/WordDefenseGame.tsx) | Game thủ thành luyện từ vựng phong cách Plants vs Zombies. |
-| `*` | [NotFound.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/NotFound.tsx) | Trang 404 tùy biến giao diện neon galaxy. |
+| `/` | [Index.tsx](../src/pages/Index.tsx) | Trang chủ landing page giới thiệu học viện, banner khóa học, danh mục, bảng so sánh gói VIP, feedback học viên, FAQ, tích hợp modal thanh toán. |
+| `/login` | [Login.tsx](../src/pages/Login.tsx) | Đăng nhập tài khoản bằng Email/Password hoặc Google OAuth; hỗ trợ lưu redirect URL. |
+| `/register` | [Register.tsx](../src/pages/Register.tsx) | Đăng ký tài khoản học viên mới; kiểm tra mật khẩu đạt chuẩn bảo mật 8 ký tự; hỗ trợ Google Sign Up. |
+| `/forgot-password` | [ForgotPassword.tsx](../src/pages/ForgotPassword.tsx) | Gửi email liên kết khôi phục mật khẩu. |
+| `/reset-password` | [ResetPassword.tsx](../src/pages/ResetPassword.tsx) | Nhập mật khẩu mới sau khi xác thực token từ email. |
+| `/auth/callback` | [AuthCallback.tsx](../src/pages/AuthCallback.tsx) | Đón nhận OAuth redirect từ Google, trao đổi PKCE authorization code lấy Session. |
+| `/games` | [GamesHub.tsx](../src/pages/GamesHub.tsx) | Sảnh trò chơi học từ vựng (Word Defense, Word Shooter), BXH mùa giải, shop bộ từ vựng. |
+| `/games/word-shooter` | [WordShooterGame.tsx](../src/pages/WordShooterGame.tsx) | Game bắn tàu vũ trụ luyện gõ từ vựng tiếng Anh (hỗ trợ solo & thi đấu PvP thời gian thực). |
+| `/games/word-defense` | [WordDefenseGame.tsx](../src/pages/WordDefenseGame.tsx) | Game thủ thành luyện từ vựng phong cách Plants vs Zombies. |
+| `*` | [NotFound.tsx](../src/pages/NotFound.tsx) | Trang 404 tùy biến giao diện neon galaxy. |
 
 ### 2.2. Nhóm Trang Học Viên (Protected - Yêu cầu đăng nhập)
 
 | Đường dẫn (URL) | Component file | Chức năng chính |
 | :--- | :--- | :--- |
-| `/dashboard` | [DashboardPage.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/DashboardPage.tsx) | Trung tâm học tập: khóa học đang học, tiến độ hoàn thành, nhiệm vụ hàng ngày, rương báu, streak. |
-| `/profile` | [Profile.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/Profile.tsx) | Xem và chỉnh sửa thông tin cá nhân, cập nhật avatar, đổi mật khẩu, xem thống kê làm bài & trạng thái VIP. |
-| `/my-courses` | [MyCoursesPage.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/MyCoursesPage.tsx) | Danh sách khóa học học viên đã đăng ký hoặc đã kích hoạt. |
-| `/courses/:courseId/learn` | [LearnPage.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/LearnPage.tsx) | Không gian xem video bài giảng, popup bài tập ngắt quãng (timed practice), ghi chú cá nhân, tài liệu đính kèm. |
-| `/courses/:courseId/quiz/:quizId` | [QuizPage.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/QuizPage.tsx) | Làm bài tập trắc nghiệm theo bài học, đếm ngược thời gian, lưu nháp câu trả lời. |
-| `/courses/:courseId/quiz/:quizId/result` | [QuizResult.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/QuizResult.tsx) | Xem điểm số, số câu đúng/sai, giải thích chi tiết từng câu và audio nghe lại. |
-| `/courses/:courseId/vocab` | [VocabPage.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/VocabPage.tsx) | Danh sách chủ đề từ vựng của khóa flashcard. |
-| `/courses/:courseId/vocab-lesson/:lessonId` | [VocabLessonPage.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/VocabLessonPage.tsx) | Học từ vựng flashcard tương tác lật thẻ, nghe phát âm giọng nam/nữ, ví dụ câu, làm quiz từ vựng. |
-| `/courses/:courseId/dictation/:quizId` | [DictationPage.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/DictationPage.tsx) | Luyện nghe chép chính tả (Dictation) tương tác cao với waveform audio, phân tích lỗi sai từng ký tự/từ. |
-| `/part2-coach` | [Part2CoachPage.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/Part2CoachPage.tsx) | Huấn luyện viên luyện nghe phản xạ Part 2 TOEIC theo cụm bẫy (Wh-questions, Yes/No, tag question...). |
-| `/courses/:courseId/fulltest` | [FullTestList.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/FullTestList.tsx) | Danh sách đề Full Test trong khóa học. |
-| `/courses/:courseId/fulltest/:testId` | [FullTestExam.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/FullTestExam.tsx) | Phòng thi thử TOEIC 200 câu chuẩn ETS: chế độ thi thật (2 tiếng) hoặc luyện tập từng Part. |
-| `/courses/:courseId/fulltest/:testId/result` | [FullTestResult.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/FullTestResult.tsx) | Bảng điểm TOEIC chi tiết (Listening/Reading quy đổi thang 990), phân tích điểm yếu từng Part. |
-| `/fulltests` | [FullTestsPage.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/FullTestsPage.tsx) | Kho đề thi Full Test tổng hợp. |
-| `/listening` | [ListeningPage.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/ListeningPage.tsx) | Kho bài học luyện nghe chọn lọc. |
-| `/library` | [LibraryPage.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/LibraryPage.tsx) | Kho tài liệu PDF, audio bổ trợ. |
-| `/speaking` | [SpeakingRoomsPage.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/SpeakingRoomsPage.tsx) | Sảnh phòng đàm thoại tiếng Anh: ghép phòng ngẫu nhiên theo trình độ (A1-C2), tạo phòng riêng với mật mã, trò chuyện giọng nói qua WebRTC/LiveKit. |
+| `/dashboard` | [DashboardPage.tsx](../src/pages/DashboardPage.tsx) | Trung tâm học tập: khóa học đang học, tiến độ hoàn thành, nhiệm vụ hàng ngày, rương báu, streak. |
+| `/profile` | [Profile.tsx](../src/pages/Profile.tsx) | Xem và chỉnh sửa thông tin cá nhân, cập nhật avatar, đổi mật khẩu, xem thống kê làm bài & trạng thái VIP. |
+| `/my-courses` | [MyCoursesPage.tsx](../src/pages/MyCoursesPage.tsx) | Danh sách khóa học học viên đã đăng ký hoặc đã kích hoạt. |
+| `/courses/:courseId/learn` | [LearnPage.tsx](../src/pages/LearnPage.tsx) | Không gian xem video bài giảng, popup bài tập ngắt quãng (timed practice), ghi chú cá nhân, tài liệu đính kèm. |
+| `/courses/:courseId/quiz/:quizId` | [QuizPage.tsx](../src/pages/QuizPage.tsx) | Làm bài tập trắc nghiệm theo bài học, đếm ngược thời gian, lưu nháp câu trả lời. |
+| `/courses/:courseId/quiz/:quizId/result` | [QuizResult.tsx](../src/pages/QuizResult.tsx) | Xem điểm số, số câu đúng/sai, giải thích chi tiết từng câu và audio nghe lại. |
+| `/courses/:courseId/vocab` | [VocabPage.tsx](../src/pages/VocabPage.tsx) | Danh sách chủ đề từ vựng của khóa flashcard. |
+| `/courses/:courseId/vocab-lesson/:lessonId` | [VocabLessonPage.tsx](../src/pages/VocabLessonPage.tsx) | Học từ vựng flashcard tương tác lật thẻ, nghe phát âm giọng nam/nữ, ví dụ câu, làm quiz từ vựng. |
+| `/courses/:courseId/dictation/:quizId` | [DictationPage.tsx](../src/pages/DictationPage.tsx) | Luyện nghe chép chính tả (Dictation) tương tác cao với waveform audio, phân tích lỗi sai từng ký tự/từ. |
+| `/part2-coach` | [Part2CoachPage.tsx](../src/pages/Part2CoachPage.tsx) | Huấn luyện viên luyện nghe phản xạ Part 2 TOEIC theo cụm bẫy (Wh-questions, Yes/No, tag question...). |
+| `/courses/:courseId/fulltest` | [FullTestList.tsx](../src/pages/FullTestList.tsx) | Danh sách đề Full Test trong khóa học. |
+| `/courses/:courseId/fulltest/:testId` | [FullTestExam.tsx](../src/pages/FullTestExam.tsx) | Phòng thi thử TOEIC 200 câu chuẩn ETS: chế độ thi thật (2 tiếng) hoặc luyện tập từng Part. |
+| `/courses/:courseId/fulltest/:testId/result` | [FullTestResult.tsx](../src/pages/FullTestResult.tsx) | Bảng điểm TOEIC chi tiết (Listening/Reading quy đổi thang 990), phân tích điểm yếu từng Part. |
+| `/fulltests` | [FullTestsPage.tsx](../src/pages/FullTestsPage.tsx) | Kho đề thi Full Test tổng hợp. |
+| `/listening` | [ListeningPage.tsx](../src/pages/ListeningPage.tsx) | Kho bài học luyện nghe chọn lọc. |
+| `/library` | [LibraryPage.tsx](../src/pages/LibraryPage.tsx) | Kho tài liệu PDF, audio bổ trợ. |
+| `/speaking` | [SpeakingRoomsPage.tsx](../src/pages/SpeakingRoomsPage.tsx) | Sảnh phòng đàm thoại tiếng Anh: ghép phòng ngẫu nhiên theo trình độ (A1-C2), tạo phòng riêng với mật mã, trò chuyện giọng nói qua WebRTC/LiveKit. |
 
 ### 2.3. Nhóm Trang Quản Trị (Admin Routes - Yêu cầu role `admin`)
 
-Được bảo vệ bởi [src/components/AdminRoute.tsx](file:///c:/Users/lenovo/l-english-academy/src/components/AdminRoute.tsx).
+Được bảo vệ bởi [src/components/AdminRoute.tsx](../src/components/AdminRoute.tsx).
 
 | Đường dẫn (URL) | Component file | Chức năng chính |
 | :--- | :--- | :--- |
-| `/admin/dashboard` | [AdminDashboard.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/admin/AdminDashboard.tsx) | Bảng điều khiển tổng quan: thống kê học viên, doanh thu, đơn hàng, biểu đồ học tập. |
-| `/admin/courses` | [AdminCourses.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/admin/AdminCourses.tsx) | Quản lý danh sách khóa học (bật/tắt hiển thị, xóa, lọc theo thể loại). |
-| `/admin/courses/new` | [AdminCourseNew.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/admin/AdminCourseNew.tsx) | Tạo khóa học mới, upload ảnh thumbnail. |
-| `/admin/courses/:courseId` | [AdminCourseDetail.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/admin/AdminCourseDetail.tsx) | Chi tiết khóa học: quản lý cấu trúc cây Module (Part) -> Lesson -> Quiz. |
-| `/admin/categories` | [AdminCategories.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/admin/AdminCategories.tsx) | Quản lý danh mục khóa học (TOEIC, Cấp 3, Tiếng Anh Căn Bản). |
-| `/admin/fulltests` | [AdminFullTestManager.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/admin/AdminFullTestManager.tsx) | Quản lý ngân hàng đề thi Full Test 200 câu, audio bài thi, import đề ETS. |
-| `/admin/fulltests/:testId/questions` | [AdminFullTestQuestions.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/admin/AdminFullTestQuestions.tsx) | Soạn thảo 200 câu hỏi đề thi thử, upload audio, ảnh passage, dịch nghĩa, lời giải thích. |
-| `/admin/import-json` | [AdminCourseJsonImport.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/admin/AdminCourseJsonImport.tsx) | Nhập tự động toàn bộ khóa học từ file JSON (tự tải và đẩy audio/image lên Supabase Storage). |
-| `/admin/students` | [AdminStudents.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/admin/AdminStudents.tsx) | Danh sách học viên, tìm kiếm theo email/tên, xem trạng thái VIP PRO. |
-| `/admin/students/:userId` | [AdminStudentDetail.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/admin/AdminStudentDetail.tsx) | Chi tiết học viên: lịch sử làm bài, các khóa học đã ghi danh, ghi chú quản trị viên. |
-| `/admin/enrollments` | [AdminEnrollments.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/admin/AdminEnrollments.tsx) | Quản lý đơn thanh toán SePay, danh sách ghi danh khóa học, kích hoạt PRO thủ công. |
-| `/admin/materials` | [AdminMaterials.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/admin/AdminMaterials.tsx) | Quản lý kho tài nguyên học liệu (PDF, MP3) theo cây thư mục. |
-| `/admin/games` | [AdminGamesConfig.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/admin/AdminGamesConfig.tsx) | Cấu hình bật/tắt trò chơi trên Arcade Hub, chọn preset 3D avatar, đổi màu theme. |
-| `/admin/vocab-packs` | [AdminVocabPacks.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/admin/AdminVocabPacks.tsx) | Quản lý các bộ từ vựng dùng cho trò chơi (nhập từ vựng, cấp độ, audio). |
-| `/admin/reports` | [AdminReports.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/admin/AdminReports.tsx) | Báo cáo chi tiết hoạt động học tập, tỷ lệ đỗ đề thi, điểm trung bình. |
-| `/admin/backup` | [AdminBackup.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/admin/AdminBackup.tsx) | Thống kê số lượng bản ghi của 10 bảng cốt lõi, xuất dữ liệu JSON/CSV từ trình duyệt. |
-| `/admin/settings` | [AdminSettings.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/admin/AdminSettings.tsx) | Cấu hình cổng thanh toán SePay/VietQR (STK ngân hàng, giá VIP), cài đặt nội dung Homepage Showcase. |
+| `/admin/dashboard` | [AdminDashboard.tsx](../src/pages/admin/AdminDashboard.tsx) | Bảng điều khiển tổng quan: thống kê học viên, doanh thu, đơn hàng, biểu đồ học tập. |
+| `/admin/courses` | [AdminCourses.tsx](../src/pages/admin/AdminCourses.tsx) | Quản lý danh sách khóa học (bật/tắt hiển thị, xóa, lọc theo thể loại). |
+| `/admin/courses/new` | [AdminCourseNew.tsx](../src/pages/admin/AdminCourseNew.tsx) | Tạo khóa học mới, upload ảnh thumbnail. |
+| `/admin/courses/:courseId` | [AdminCourseDetail.tsx](../src/pages/admin/AdminCourseDetail.tsx) | Chi tiết khóa học: quản lý cấu trúc cây Module (Part) -> Lesson -> Quiz. |
+| `/admin/categories` | [AdminCategories.tsx](../src/pages/admin/AdminCategories.tsx) | Quản lý danh mục khóa học (TOEIC, Cấp 3, Tiếng Anh Căn Bản). |
+| `/admin/fulltests` | [AdminFullTestManager.tsx](../src/pages/admin/AdminFullTestManager.tsx) | Quản lý ngân hàng đề thi Full Test 200 câu, audio bài thi, import đề ETS. |
+| `/admin/fulltests/:testId/questions` | [AdminFullTestQuestions.tsx](../src/pages/admin/AdminFullTestQuestions.tsx) | Soạn thảo 200 câu hỏi đề thi thử, upload audio, ảnh passage, dịch nghĩa, lời giải thích. |
+| `/admin/import-json` | [AdminCourseJsonImport.tsx](../src/pages/admin/AdminCourseJsonImport.tsx) | Nhập tự động toàn bộ khóa học từ file JSON (tự tải và đẩy audio/image lên Supabase Storage). |
+| `/admin/students` | [AdminStudents.tsx](../src/pages/admin/AdminStudents.tsx) | Danh sách học viên, tìm kiếm theo email/tên, xem trạng thái VIP PRO. |
+| `/admin/students/:userId` | [AdminStudentDetail.tsx](../src/pages/admin/AdminStudentDetail.tsx) | Chi tiết học viên: lịch sử làm bài, các khóa học đã ghi danh, ghi chú quản trị viên. |
+| `/admin/enrollments` | [AdminEnrollments.tsx](../src/pages/admin/AdminEnrollments.tsx) | Quản lý đơn thanh toán SePay, danh sách ghi danh khóa học, kích hoạt PRO thủ công. |
+| `/admin/materials` | [AdminMaterials.tsx](../src/pages/admin/AdminMaterials.tsx) | Quản lý kho tài nguyên học liệu (PDF, MP3) theo cây thư mục. |
+| `/admin/games` | [AdminGamesConfig.tsx](../src/pages/admin/AdminGamesConfig.tsx) | Cấu hình bật/tắt trò chơi trên Arcade Hub, chọn preset 3D avatar, đổi màu theme. |
+| `/admin/vocab-packs` | [AdminVocabPacks.tsx](../src/pages/admin/AdminVocabPacks.tsx) | Quản lý các bộ từ vựng dùng cho trò chơi (nhập từ vựng, cấp độ, audio). |
+| `/admin/reports` | [AdminReports.tsx](../src/pages/admin/AdminReports.tsx) | Báo cáo chi tiết hoạt động học tập, tỷ lệ đỗ đề thi, điểm trung bình. |
+| `/admin/backup` | [AdminBackup.tsx](../src/pages/admin/AdminBackup.tsx) | Thống kê số lượng bản ghi của 10 bảng cốt lõi, xuất dữ liệu JSON/CSV từ trình duyệt. |
+| `/admin/settings` | [AdminSettings.tsx](../src/pages/admin/AdminSettings.tsx) | Cấu hình cổng thanh toán SePay/VietQR (STK ngân hàng, giá VIP), cài đặt nội dung Homepage Showcase. |
 
 ---
 
@@ -148,47 +148,47 @@ Dưới đây là bảng tổng hợp tất cả các thao tác tương tác cơ
 
 | Bảng cơ sở dữ liệu | File nguồn gọi trực tiếp | Thao tác | Mô tả nghiệp vụ |
 | :--- | :--- | :--- | :--- |
-| `profiles` | [useAuth.tsx](file:///c:/Users/lenovo/l-english-academy/src/hooks/useAuth.tsx#L101)<br>[Profile.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/Profile.tsx#L585)<br>[Register.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/Register.tsx#L64)<br>[speakingService.ts](file:///c:/Users/lenovo/l-english-academy/src/services/speakingService.ts#L91)<br>[AdminStudents.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/admin/AdminStudents.tsx#L38) | `SELECT`, `INSERT`, `UPDATE`, `UPSERT` | Đọc thông tin học viên, họ tên, avatar, trạng thái `is_pro`, cập nhật profile cá nhân, danh sách học viên cho admin. |
-| `user_roles` | [useAuth.tsx](file:///c:/Users/lenovo/l-english-academy/src/hooks/useAuth.tsx#L106)<br>[Login.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/Login.tsx#L81)<br>[AuthCallback.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/AuthCallback.tsx#L44)<br>[AdminStudents.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/admin/AdminStudents.tsx#L45) | `SELECT` | Kiểm tra quyền `role = 'admin'` để bảo vệ các tuyến `/admin/*`. |
-| `courses` | [App.tsx](file:///c:/Users/lenovo/l-english-academy/src/App.tsx#L38)<br>[LearnPage.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/LearnPage.tsx#L43)<br>[AdminCourses.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/admin/AdminCourses.tsx#L33)<br>[AdminCourseNew.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/admin/AdminCourseNew.tsx#L80)<br>[AdminCourseDetail.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/admin/AdminCourseDetail.tsx#L46) | `SELECT`, `INSERT`, `UPDATE`, `DELETE` | Đọc danh sách khóa học, hiển thị thông tin khóa học, CRUD khóa học từ trang quản trị. |
-| `course_categories` | [AdminCategories.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/admin/AdminCategories.tsx#L37)<br>[AdminCourseNew.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/admin/AdminCourseNew.tsx#L45) | `SELECT`, `INSERT`, `UPDATE`, `DELETE` | Đọc và quản lý danh mục phân loại khóa học. |
-| `modules` | [LearnPage.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/LearnPage.tsx#L51)<br>[MyCoursesPage.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/MyCoursesPage.tsx#L106)<br>[AdminCourseDetail.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/admin/AdminCourseDetail.tsx#L55) | `SELECT`, `INSERT`, `UPDATE`, `DELETE` | Quản lý các chương học (Part 1 - Part 7) theo khóa học. |
-| `lessons` | [LearnPage.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/LearnPage.tsx#L52)<br>[VocabLessonPage.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/VocabLessonPage.tsx#L64)<br>[LessonManager.tsx](file:///c:/Users/lenovo/l-english-academy/src/components/admin/LessonManager.tsx#L70) | `SELECT`, `INSERT`, `UPDATE`, `DELETE` | Đọc danh sách bài giảng, video url, PDF đính kèm, CRUD bài học. |
-| `lesson_practices` | [LearnPage.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/LearnPage.tsx#L131)<br>[LessonManager.tsx](file:///c:/Users/lenovo/l-english-academy/src/components/admin/LessonManager.tsx#L245) | `SELECT`, `INSERT`, `DELETE` | Quản lý bài tập popup chèn vào thời điểm `trigger_at_seconds` trong video. |
-| `quizzes` | [QuizPage.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/QuizPage.tsx#L207)<br>[QuizResult.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/QuizResult.tsx#L65)<br>[QuizManager.tsx](file:///c:/Users/lenovo/l-english-academy/src/components/admin/QuizManager.tsx#L85) | `SELECT`, `INSERT`, `UPDATE`, `DELETE` | Quản lý thông tin bài tập trắc nghiệm, thời gian làm bài, audio chung. |
-| `questions` | [QuizPage.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/QuizPage.tsx#L220)<br>[QuizResult.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/QuizResult.tsx#L47)<br>[DictationPage.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/DictationPage.tsx#L330)<br>[AdminFullTestQuestions.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/admin/AdminFullTestQuestions.tsx#L145) | `SELECT`, `INSERT`, `UPDATE`, `DELETE` | Đọc và lưu trữ câu hỏi, passage text, transcript, audio/image URL, giải thích. |
-| `answers` | [QuizPage.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/QuizPage.tsx#L221)<br>[QuizManager.tsx](file:///c:/Users/lenovo/l-english-academy/src/components/admin/QuizManager.tsx#L440)<br>[AdminFullTestQuestions.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/admin/AdminFullTestQuestions.tsx#L475) | `SELECT`, `INSERT`, `UPDATE`, `DELETE` | Đọc các lựa chọn đáp án A, B, C, D (kèm `is_correct`), thêm/sửa đáp án từ trang Admin. |
-| `materials` | [LearnPage.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/LearnPage.tsx#L118)<br>[AdminMaterials.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/admin/AdminMaterials.tsx#L70) | `SELECT`, `INSERT`, `UPDATE`, `DELETE` | Đọc và quản lý tài liệu học tập PDF/audio đính kèm khóa học/bài học. |
-| `enrollments` | [LearnPage.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/LearnPage.tsx#L34)<br>[MyCoursesPage.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/MyCoursesPage.tsx#L75)<br>[AdminEnrollments.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/admin/AdminEnrollments.tsx#L50) | `SELECT`, `INSERT`, `DELETE` | Kiểm tra quyền truy cập khóa học của học viên, quản lý danh sách ghi danh từ Admin. |
-| `user_lesson_progress` | [LearnPage.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/LearnPage.tsx#L73)<br>[DashboardPage.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/DashboardPage.tsx#L155) | `SELECT`, `INSERT`, `UPDATE` | Lưu trạng thái bài học đã hoàn thành (`is_completed`), thời lượng đã xem video. |
-| `user_quiz_results` | [QuizPage.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/QuizPage.tsx#L305)<br>[QuizResult.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/QuizResult.tsx#L84)<br>[DashboardPage.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/DashboardPage.tsx#L170) | `SELECT`, `INSERT` | Lưu và hiển thị kết quả làm bài tập trắc nghiệm (điểm, thời gian làm, số câu đúng). |
-| `user_answers` | [QuizPage.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/QuizPage.tsx#L321)<br>[QuizResult.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/QuizResult.tsx#L111) | `SELECT`, `INSERT` | Lưu và hiển thị chi tiết câu trả lời học viên đã chọn cho từng câu hỏi trong quiz. |
-| `vocab_categories` | [VocabPage.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/VocabPage.tsx#L28) | `SELECT` | Đọc danh mục từ vựng khóa Flashcard. |
-| `vocab_quizzes` | [VocabPage.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/VocabPage.tsx#L41)<br>[VocabLessonPage.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/VocabLessonPage.tsx#L48) | `SELECT` | Đọc các bộ từ vựng (Day 1, Day 2...) theo danh mục. |
-| `vocab_questions` | [VocabPage.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/VocabPage.tsx#L55)<br>[VocabLessonPage.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/VocabLessonPage.tsx#L81) | `SELECT` | Đọc chi tiết từ vựng (từ, phiên âm, định nghĩa Anh/Việt, ví dụ, audio nam/nữ). |
-| `full_tests` | [App.tsx](file:///c:/Users/lenovo/l-english-academy/src/App.tsx#L67)<br>[FullTestExam.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/FullTestExam.tsx#L313)<br>[FullTestList.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/FullTestList.tsx#L35)<br>[AdminFullTestManager.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/admin/AdminFullTestManager.tsx#L115) | `SELECT`, `INSERT`, `UPDATE`, `DELETE` | Đọc danh sách đề thi Full Test, audio full đề, tạo và quản lý đề thi ETS. |
-| `full_test_sections` | [FullTestExam.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/FullTestExam.tsx#L320)<br>[AdminFullTestQuestions.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/admin/AdminFullTestQuestions.tsx#L125) | `SELECT`, `INSERT`, `DELETE` | Liên kết đề Full Test với 7 phần thi (Part 1 - Part 7). |
-| `user_full_test_results` | [FullTestExam.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/FullTestExam.tsx#L756)<br>[FullTestResult.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/FullTestResult.tsx#L90)<br>[Profile.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/Profile.tsx#L240) | `SELECT`, `INSERT` | Lưu và hiển thị kết quả thi thử TOEIC (điểm Listening, Reading, tổng điểm, answers_detail). |
-| `full_test_answer_details`| [FullTestExam.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/FullTestExam.tsx#L785)<br>[FullTestResult.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/FullTestResult.tsx#L130) | `SELECT`, `INSERT` | Lưu và hiển thị chi tiết câu trả lời của 200 câu thi TOEIC (part, đáp án chọn, đúng/sai). |
-| `user_notes` | [LearnPage.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/LearnPage.tsx#L109) | `SELECT`, `INSERT`, `DELETE` | Học viên ghi chú cá nhân dưới từng bài giảng video. |
-| `user_favorites` | [LearnPage.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/LearnPage.tsx#L83) | `SELECT`, `INSERT`, `DELETE` | Đánh dấu bài học yêu thích. |
-| `admin_student_notes` | [AdminStudentDetail.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/admin/AdminStudentDetail.tsx#L80) | `SELECT`, `INSERT`, `DELETE` | Quản trị viên ghi chú về tình hình học tập của học viên. |
-| `admin_activity_log` | [AdminDashboard.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/admin/AdminDashboard.tsx#L70) | `SELECT`, `INSERT` | Đọc và ghi nhật ký hoạt động hệ thống của Admin. |
-| `platform_settings` | [homepageShowcaseService.ts](file:///c:/Users/lenovo/l-english-academy/src/services/homepageShowcaseService.ts#L362)<br>[vocabPacksService.ts](file:///c:/Users/lenovo/l-english-academy/src/services/vocabPacksService.ts#L32)<br>[AdminSettings.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/admin/AdminSettings.tsx#L135) | `SELECT`, `UPSERT` | Lưu trữ JSON cấu hình trang chủ (`homepage_showcase_config`), kho từ vựng game (`game_vocab_packs`), STK ngân hàng. |
-| `payment_orders` | [UpgradeProModal.tsx](file:///c:/Users/lenovo/l-english-academy/src/components/UpgradeProModal.tsx#L145)<br>[AdminEnrollments.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/admin/AdminEnrollments.tsx#L65) | `SELECT`, `INSERT`, `UPDATE` | Khởi tạo đơn thanh toán VIP PRO, kiểm tra trạng thái thanh toán từ frontend. |
-| `speaking_rooms` | [speakingService.ts](file:///c:/Users/lenovo/l-english-academy/src/services/speakingService.ts#L41) | `SELECT`, `INSERT`, `UPDATE`, `DELETE` | Danh sách phòng nói tiếng Anh, tạo phòng mới, đổi chủ phòng, đóng phòng. |
-| `speaking_room_members` | [speakingService.ts](file:///c:/Users/lenovo/l-english-academy/src/services/speakingService.ts#L81) | `SELECT`, `INSERT`, `UPDATE`, `DELETE` | Danh sách thành viên trong phòng, trạng thái bật/tắt mic, đang nói, rời phòng. |
-| `speaking_sessions` | [speakingService.ts](file:///c:/Users/lenovo/l-english-academy/src/services/speakingService.ts#L333) | `SELECT`, `INSERT`, `UPDATE` | Ghi nhận phiên luyện nói, tính tổng thời lượng nói tiếng Anh tích lũy. |
+| `profiles` | [useAuth.tsx](../src/hooks/useAuth.tsx#L101)<br>[Profile.tsx](../src/pages/Profile.tsx#L585)<br>[Register.tsx](../src/pages/Register.tsx#L64)<br>[speakingService.ts](../src/services/speakingService.ts#L91)<br>[AdminStudents.tsx](../src/pages/admin/AdminStudents.tsx#L38) | `SELECT`, `INSERT`, `UPDATE`, `UPSERT` | Đọc thông tin học viên, họ tên, avatar, trạng thái `is_pro`, cập nhật profile cá nhân, danh sách học viên cho admin. |
+| `user_roles` | [useAuth.tsx](../src/hooks/useAuth.tsx#L106)<br>[Login.tsx](../src/pages/Login.tsx#L81)<br>[AuthCallback.tsx](../src/pages/AuthCallback.tsx#L44)<br>[AdminStudents.tsx](../src/pages/admin/AdminStudents.tsx#L45) | `SELECT` | Kiểm tra quyền `role = 'admin'` để bảo vệ các tuyến `/admin/*`. |
+| `courses` | [App.tsx](../src/App.tsx#L38)<br>[LearnPage.tsx](../src/pages/LearnPage.tsx#L43)<br>[AdminCourses.tsx](../src/pages/admin/AdminCourses.tsx#L33)<br>[AdminCourseNew.tsx](../src/pages/admin/AdminCourseNew.tsx#L80)<br>[AdminCourseDetail.tsx](../src/pages/admin/AdminCourseDetail.tsx#L46) | `SELECT`, `INSERT`, `UPDATE`, `DELETE` | Đọc danh sách khóa học, hiển thị thông tin khóa học, CRUD khóa học từ trang quản trị. |
+| `course_categories` | [AdminCategories.tsx](../src/pages/admin/AdminCategories.tsx#L37)<br>[AdminCourseNew.tsx](../src/pages/admin/AdminCourseNew.tsx#L45) | `SELECT`, `INSERT`, `UPDATE`, `DELETE` | Đọc và quản lý danh mục phân loại khóa học. |
+| `modules` | [LearnPage.tsx](../src/pages/LearnPage.tsx#L51)<br>[MyCoursesPage.tsx](../src/pages/MyCoursesPage.tsx#L106)<br>[AdminCourseDetail.tsx](../src/pages/admin/AdminCourseDetail.tsx#L55) | `SELECT`, `INSERT`, `UPDATE`, `DELETE` | Quản lý các chương học (Part 1 - Part 7) theo khóa học. |
+| `lessons` | [LearnPage.tsx](../src/pages/LearnPage.tsx#L52)<br>[VocabLessonPage.tsx](../src/pages/VocabLessonPage.tsx#L64)<br>[LessonManager.tsx](../src/components/admin/LessonManager.tsx#L70) | `SELECT`, `INSERT`, `UPDATE`, `DELETE` | Đọc danh sách bài giảng, video url, PDF đính kèm, CRUD bài học. |
+| `lesson_practices` | [LearnPage.tsx](../src/pages/LearnPage.tsx#L131)<br>[LessonManager.tsx](../src/components/admin/LessonManager.tsx#L245) | `SELECT`, `INSERT`, `DELETE` | Quản lý bài tập popup chèn vào thời điểm `trigger_at_seconds` trong video. |
+| `quizzes` | [QuizPage.tsx](../src/pages/QuizPage.tsx#L207)<br>[QuizResult.tsx](../src/pages/QuizResult.tsx#L65)<br>[QuizManager.tsx](../src/components/admin/QuizManager.tsx#L85) | `SELECT`, `INSERT`, `UPDATE`, `DELETE` | Quản lý thông tin bài tập trắc nghiệm, thời gian làm bài, audio chung. |
+| `questions` | [QuizPage.tsx](../src/pages/QuizPage.tsx#L220)<br>[QuizResult.tsx](../src/pages/QuizResult.tsx#L47)<br>[DictationPage.tsx](../src/pages/DictationPage.tsx#L330)<br>[AdminFullTestQuestions.tsx](../src/pages/admin/AdminFullTestQuestions.tsx#L145) | `SELECT`, `INSERT`, `UPDATE`, `DELETE` | Đọc và lưu trữ câu hỏi, passage text, transcript, audio/image URL, giải thích. |
+| `answers` | [QuizPage.tsx](../src/pages/QuizPage.tsx#L221)<br>[QuizManager.tsx](../src/components/admin/QuizManager.tsx#L440)<br>[AdminFullTestQuestions.tsx](../src/pages/admin/AdminFullTestQuestions.tsx#L475) | `SELECT`, `INSERT`, `UPDATE`, `DELETE` | Đọc các lựa chọn đáp án A, B, C, D (kèm `is_correct`), thêm/sửa đáp án từ trang Admin. |
+| `materials` | [LearnPage.tsx](../src/pages/LearnPage.tsx#L118)<br>[AdminMaterials.tsx](../src/pages/admin/AdminMaterials.tsx#L70) | `SELECT`, `INSERT`, `UPDATE`, `DELETE` | Đọc và quản lý tài liệu học tập PDF/audio đính kèm khóa học/bài học. |
+| `enrollments` | [LearnPage.tsx](../src/pages/LearnPage.tsx#L34)<br>[MyCoursesPage.tsx](../src/pages/MyCoursesPage.tsx#L75)<br>[AdminEnrollments.tsx](../src/pages/admin/AdminEnrollments.tsx#L50) | `SELECT`, `INSERT`, `DELETE` | Kiểm tra quyền truy cập khóa học của học viên, quản lý danh sách ghi danh từ Admin. |
+| `user_lesson_progress` | [LearnPage.tsx](../src/pages/LearnPage.tsx#L73)<br>[DashboardPage.tsx](../src/pages/DashboardPage.tsx#L155) | `SELECT`, `INSERT`, `UPDATE` | Lưu trạng thái bài học đã hoàn thành (`is_completed`), thời lượng đã xem video. |
+| `user_quiz_results` | [QuizPage.tsx](../src/pages/QuizPage.tsx#L305)<br>[QuizResult.tsx](../src/pages/QuizResult.tsx#L84)<br>[DashboardPage.tsx](../src/pages/DashboardPage.tsx#L170) | `SELECT`, `INSERT` | Lưu và hiển thị kết quả làm bài tập trắc nghiệm (điểm, thời gian làm, số câu đúng). |
+| `user_answers` | [QuizPage.tsx](../src/pages/QuizPage.tsx#L321)<br>[QuizResult.tsx](../src/pages/QuizResult.tsx#L111) | `SELECT`, `INSERT` | Lưu và hiển thị chi tiết câu trả lời học viên đã chọn cho từng câu hỏi trong quiz. |
+| `vocab_categories` | [VocabPage.tsx](../src/pages/VocabPage.tsx#L28) | `SELECT` | Đọc danh mục từ vựng khóa Flashcard. |
+| `vocab_quizzes` | [VocabPage.tsx](../src/pages/VocabPage.tsx#L41)<br>[VocabLessonPage.tsx](../src/pages/VocabLessonPage.tsx#L48) | `SELECT` | Đọc các bộ từ vựng (Day 1, Day 2...) theo danh mục. |
+| `vocab_questions` | [VocabPage.tsx](../src/pages/VocabPage.tsx#L55)<br>[VocabLessonPage.tsx](../src/pages/VocabLessonPage.tsx#L81) | `SELECT` | Đọc chi tiết từ vựng (từ, phiên âm, định nghĩa Anh/Việt, ví dụ, audio nam/nữ). |
+| `full_tests` | [App.tsx](../src/App.tsx#L67)<br>[FullTestExam.tsx](../src/pages/FullTestExam.tsx#L313)<br>[FullTestList.tsx](../src/pages/FullTestList.tsx#L35)<br>[AdminFullTestManager.tsx](../src/pages/admin/AdminFullTestManager.tsx#L115) | `SELECT`, `INSERT`, `UPDATE`, `DELETE` | Đọc danh sách đề thi Full Test, audio full đề, tạo và quản lý đề thi ETS. |
+| `full_test_sections` | [FullTestExam.tsx](../src/pages/FullTestExam.tsx#L320)<br>[AdminFullTestQuestions.tsx](../src/pages/admin/AdminFullTestQuestions.tsx#L125) | `SELECT`, `INSERT`, `DELETE` | Liên kết đề Full Test với 7 phần thi (Part 1 - Part 7). |
+| `user_full_test_results` | [FullTestExam.tsx](../src/pages/FullTestExam.tsx#L756)<br>[FullTestResult.tsx](../src/pages/FullTestResult.tsx#L90)<br>[Profile.tsx](../src/pages/Profile.tsx#L240) | `SELECT`, `INSERT` | Lưu và hiển thị kết quả thi thử TOEIC (điểm Listening, Reading, tổng điểm, answers_detail). |
+| `full_test_answer_details`| [FullTestExam.tsx](../src/pages/FullTestExam.tsx#L785)<br>[FullTestResult.tsx](../src/pages/FullTestResult.tsx#L130) | `SELECT`, `INSERT` | Lưu và hiển thị chi tiết câu trả lời của 200 câu thi TOEIC (part, đáp án chọn, đúng/sai). |
+| `user_notes` | [LearnPage.tsx](../src/pages/LearnPage.tsx#L109) | `SELECT`, `INSERT`, `DELETE` | Học viên ghi chú cá nhân dưới từng bài giảng video. |
+| `user_favorites` | [LearnPage.tsx](../src/pages/LearnPage.tsx#L83) | `SELECT`, `INSERT`, `DELETE` | Đánh dấu bài học yêu thích. |
+| `admin_student_notes` | [AdminStudentDetail.tsx](../src/pages/admin/AdminStudentDetail.tsx#L80) | `SELECT`, `INSERT`, `DELETE` | Quản trị viên ghi chú về tình hình học tập của học viên. |
+| `admin_activity_log` | [AdminDashboard.tsx](../src/pages/admin/AdminDashboard.tsx#L70) | `SELECT`, `INSERT` | Đọc và ghi nhật ký hoạt động hệ thống của Admin. |
+| `platform_settings` | [homepageShowcaseService.ts](../src/services/homepageShowcaseService.ts#L362)<br>[vocabPacksService.ts](../src/services/vocabPacksService.ts#L32)<br>[AdminSettings.tsx](../src/pages/admin/AdminSettings.tsx#L135) | `SELECT`, `UPSERT` | Lưu trữ JSON cấu hình trang chủ (`homepage_showcase_config`), kho từ vựng game (`game_vocab_packs`), STK ngân hàng. |
+| `payment_orders` | [UpgradeProModal.tsx](../src/components/UpgradeProModal.tsx#L145)<br>[AdminEnrollments.tsx](../src/pages/admin/AdminEnrollments.tsx#L65) | `SELECT`, `INSERT`, `UPDATE` | Khởi tạo đơn thanh toán VIP PRO, kiểm tra trạng thái thanh toán từ frontend. |
+| `speaking_rooms` | [speakingService.ts](../src/services/speakingService.ts#L41) | `SELECT`, `INSERT`, `UPDATE`, `DELETE` | Danh sách phòng nói tiếng Anh, tạo phòng mới, đổi chủ phòng, đóng phòng. |
+| `speaking_room_members` | [speakingService.ts](../src/services/speakingService.ts#L81) | `SELECT`, `INSERT`, `UPDATE`, `DELETE` | Danh sách thành viên trong phòng, trạng thái bật/tắt mic, đang nói, rời phòng. |
+| `speaking_sessions` | [speakingService.ts](../src/services/speakingService.ts#L333) | `SELECT`, `INSERT`, `UPDATE` | Ghi nhận phiên luyện nói, tính tổng thời lượng nói tiếng Anh tích lũy. |
 
 ### 3.2. Lệnh gọi Stored Procedure (RPC) từ Frontend
 
 | Tên Stored Procedure (RPC) | File & Vị trí gọi | Tham số truyền vào | Mục đích |
 | :--- | :--- | :--- | :--- |
-| `complete_payment_order` | [UpgradeProModal.tsx:300](file:///c:/Users/lenovo/l-english-academy/src/components/UpgradeProModal.tsx#L300)<br>[AdminEnrollments.tsx:110](file:///c:/Users/lenovo/l-english-academy/src/pages/admin/AdminEnrollments.tsx#L110) | `p_order_code, p_transfer_amount, p_bank_tx_id, p_transaction_content` | Kích hoạt đơn thanh toán, tự động nâng cấp tài khoản lên `is_pro = true`, tự động ghi danh vào tất cả khóa học. |
-| `check_payment_order_status` | [UpgradeProModal.tsx:222](file:///c:/Users/lenovo/l-english-academy/src/components/UpgradeProModal.tsx#L222) | `p_order_code` | Tra cứu trạng thái đơn hàng (bỏ qua RLS). |
-| `join_speaking_room` | [speakingService.ts:256](file:///c:/Users/lenovo/l-english-academy/src/services/speakingService.ts#L256) | `p_room_id, p_passcode` | Tham gia phòng luyện nói nguyên tử (atomic): khóa hàng phòng kiểm tra sức chứa và mật khẩu, thêm thành viên. |
-| `leave_speaking_room` | [speakingService.ts:363](file:///c:/Users/lenovo/l-english-academy/src/services/speakingService.ts#L363) | `p_room_id, p_session_id` | Rời phòng đàm thoại, cập nhật thời lượng vào `profiles.total_speaking_seconds`, chuyển giao vai trò chủ phòng nếu host rời phòng. |
-| `match_speaking_room` | [speakingService.ts:430](file:///c:/Users/lenovo/l-english-academy/src/services/speakingService.ts#L430) | `p_level, p_topics` | Thuật toán ghép phòng nói thông minh theo cấp độ và sở thích chủ đề chung. |
+| `complete_payment_order` | [UpgradeProModal.tsx:300](../src/components/UpgradeProModal.tsx#L300)<br>[AdminEnrollments.tsx:110](../src/pages/admin/AdminEnrollments.tsx#L110) | `p_order_code, p_transfer_amount, p_bank_tx_id, p_transaction_content` | Kích hoạt đơn thanh toán, tự động nâng cấp tài khoản lên `is_pro = true`, tự động ghi danh vào tất cả khóa học. |
+| `check_payment_order_status` | [UpgradeProModal.tsx:222](../src/components/UpgradeProModal.tsx#L222) | `p_order_code` | Tra cứu trạng thái đơn hàng (bỏ qua RLS). |
+| `join_speaking_room` | [speakingService.ts:256](../src/services/speakingService.ts#L256) | `p_room_id, p_passcode` | Tham gia phòng luyện nói nguyên tử (atomic): khóa hàng phòng kiểm tra sức chứa và mật khẩu, thêm thành viên. |
+| `leave_speaking_room` | [speakingService.ts:363](../src/services/speakingService.ts#L363) | `p_room_id, p_session_id` | Rời phòng đàm thoại, cập nhật thời lượng vào `profiles.total_speaking_seconds`, chuyển giao vai trò chủ phòng nếu host rời phòng. |
+| `match_speaking_room` | [speakingService.ts:430](../src/services/speakingService.ts#L430) | `p_level, p_topics` | Thuật toán ghép phòng nói thông minh theo cấp độ và sở thích chủ đề chung. |
 
 ### 3.3. Thao tác Supabase Storage
 
@@ -196,37 +196,37 @@ Toàn bộ ứng dụng sử dụng duy nhất **1 bucket**: `materials`.
 
 | Thao tác Storage | File & Vị trí gọi | Đường dẫn lưu trữ (Path) | Mục đích |
 | :--- | :--- | :--- | :--- |
-| `upload` + `getPublicUrl` | [Profile.tsx:566](file:///c:/Users/lenovo/l-english-academy/src/pages/Profile.tsx#L566) | `avatars/{userId}_{timestamp}.{ext}` | Tải lên ảnh đại diện cá nhân của học viên. |
-| `upload` + `getPublicUrl` | [AdminMaterials.tsx:134](file:///c:/Users/lenovo/l-english-academy/src/pages/admin/AdminMaterials.tsx#L134) | `{folderPath}/{timestamp}_{filename}` | Tải lên tài liệu PDF, audio bài học cho học viên. |
-| `upload` + `getPublicUrl` | [AdminCourseNew.tsx:65](file:///c:/Users/lenovo/l-english-academy/src/pages/admin/AdminCourseNew.tsx#L65)<br>[AdminCourseDetail.tsx:117](file:///c:/Users/lenovo/l-english-academy/src/pages/admin/AdminCourseDetail.tsx#L117) | `course_thumbnails/{timestamp}_{filename}` | Tải lên ảnh bìa khóa học. |
-| `upload` + `getPublicUrl` | [QuizManager.tsx:225, 312, 547](file:///c:/Users/lenovo/l-english-academy/src/components/admin/QuizManager.tsx#L225) | `quiz_media/{timestamp}_{filename}` | Tải lên audio câu hỏi trắc nghiệm, hình ảnh câu hỏi Part 1. |
-| `upload` + `getPublicUrl` | [AdminFullTestManager.tsx:415, 596](file:///c:/Users/lenovo/l-english-academy/src/pages/admin/AdminFullTestManager.tsx#L415) | `fulltest_media/{timestamp}_{filename}` | Tải lên audio full đề thi TOEIC và hình ảnh đoạn văn. |
-| `upload` + `getPublicUrl` | [AdminGamesConfig.tsx:214](file:///c:/Users/lenovo/l-english-academy/src/pages/admin/AdminGamesConfig.tsx#L214) | `game_assets/{timestamp}_{filename}` | Tải lên hình ảnh tùy chỉnh cho trò chơi Arcade. |
+| `upload` + `getPublicUrl` | [Profile.tsx:566](../src/pages/Profile.tsx#L566) | `avatars/{userId}_{timestamp}.{ext}` | Tải lên ảnh đại diện cá nhân của học viên. |
+| `upload` + `getPublicUrl` | [AdminMaterials.tsx:134](../src/pages/admin/AdminMaterials.tsx#L134) | `{folderPath}/{timestamp}_{filename}` | Tải lên tài liệu PDF, audio bài học cho học viên. |
+| `upload` + `getPublicUrl` | [AdminCourseNew.tsx:65](../src/pages/admin/AdminCourseNew.tsx#L65)<br>[AdminCourseDetail.tsx:117](../src/pages/admin/AdminCourseDetail.tsx#L117) | `course_thumbnails/{timestamp}_{filename}` | Tải lên ảnh bìa khóa học. |
+| `upload` + `getPublicUrl` | [QuizManager.tsx:225, 312, 547](../src/components/admin/QuizManager.tsx#L225) | `quiz_media/{timestamp}_{filename}` | Tải lên audio câu hỏi trắc nghiệm, hình ảnh câu hỏi Part 1. |
+| `upload` + `getPublicUrl` | [AdminFullTestManager.tsx:415, 596](../src/pages/admin/AdminFullTestManager.tsx#L415) | `fulltest_media/{timestamp}_{filename}` | Tải lên audio full đề thi TOEIC và hình ảnh đoạn văn. |
+| `upload` + `getPublicUrl` | [AdminGamesConfig.tsx:214](../src/pages/admin/AdminGamesConfig.tsx#L214) | `game_assets/{timestamp}_{filename}` | Tải lên hình ảnh tùy chỉnh cho trò chơi Arcade. |
 
 ### 3.4. Thao tác Supabase Realtime Subscriptions
 
 | Kênh Realtime (Channel) | File & Vị trí | Sự kiện lắng nghe | Mục đích |
 | :--- | :--- | :--- | :--- |
-| `public-speaking-rooms-sync` | [SpeakingRoomsPage.tsx:100](file:///c:/Users/lenovo/l-english-academy/src/pages/SpeakingRoomsPage.tsx#L100) | `postgres_changes` trên `speaking_rooms` và `speaking_room_members` | Cập nhật tức thời số lượng người tham gia các phòng nói ngoài sảnh chờ. |
-| `speaking-room:${roomId}` | [useVoiceRoom.ts:334](file:///c:/Users/lenovo/l-english-academy/src/hooks/useVoiceRoom.ts#L334) | `broadcast` (sự kiện `signal`, `mute`, `speaking`) + `postgres_changes` | Truyền tín hiệu WebRTC SDP Offer/Answer và ICE Candidate (mesh signaling), cập nhật trạng thái mic thành viên. |
-| `order-watch-${orderCode}` | [UpgradeProModal.tsx:161](file:///c:/Users/lenovo/l-english-academy/src/components/UpgradeProModal.tsx#L161) | `postgres_changes` (`UPDATE` trên bảng `payment_orders` với filter `order_code=eq.${orderCode}`) | Tự động đóng modal và hiển thị pháo hoa chúc mừng ngay khi SePay webhook cập nhật trạng thái `completed`. |
-| `lobby-pvp-${code}` | [WordShooterLobby.tsx:456](file:///c:/Users/lenovo/l-english-academy/src/components/game/WordShooter/WordShooterLobby.tsx#L456) | `broadcast` (`lobby_event`) + `presence` | Đồng bộ trạng thái sẵn sàng, mã phòng, người tham gia trận đấu Word Shooter PvP. |
-| `arena-pvp-${roomId}` | [WordShooterArena.tsx:777](file:///c:/Users/lenovo/l-english-academy/src/components/game/WordShooter/WordShooterArena.tsx#L777) | `broadcast` (`game_event`) | Đồng bộ đòn tấn công từ vựng, sát thương, máu và điểm số trận đấu đối kháng thời gian thực. |
+| `public-speaking-rooms-sync` | [SpeakingRoomsPage.tsx:100](../src/pages/SpeakingRoomsPage.tsx#L100) | `postgres_changes` trên `speaking_rooms` và `speaking_room_members` | Cập nhật tức thời số lượng người tham gia các phòng nói ngoài sảnh chờ. |
+| `speaking-room:${roomId}` | [useVoiceRoom.ts:334](../src/hooks/useVoiceRoom.ts#L334) | `broadcast` (sự kiện `signal`, `mute`, `speaking`) + `postgres_changes` | Truyền tín hiệu WebRTC SDP Offer/Answer và ICE Candidate (mesh signaling), cập nhật trạng thái mic thành viên. |
+| `order-watch-${orderCode}` | [UpgradeProModal.tsx:161](../src/components/UpgradeProModal.tsx#L161) | `postgres_changes` (`UPDATE` trên bảng `payment_orders` với filter `order_code=eq.${orderCode}`) | Tự động đóng modal và hiển thị pháo hoa chúc mừng ngay khi SePay webhook cập nhật trạng thái `completed`. |
+| `lobby-pvp-${code}` | [WordShooterLobby.tsx:456](../src/components/game/WordShooter/WordShooterLobby.tsx#L456) | `broadcast` (`lobby_event`) + `presence` | Đồng bộ trạng thái sẵn sàng, mã phòng, người tham gia trận đấu Word Shooter PvP. |
+| `arena-pvp-${roomId}` | [WordShooterArena.tsx:777](../src/components/game/WordShooter/WordShooterArena.tsx#L777) | `broadcast` (`game_event`) | Đồng bộ đòn tấn công từ vựng, sát thương, máu và điểm số trận đấu đối kháng thời gian thực. |
 
 ### 3.5. Thao tác Supabase Auth
 
 | Hàm Supabase Auth | File & Vị trí gọi | Mục đích |
 | :--- | :--- | :--- |
-| `auth.signInWithPassword` | [Login.tsx:69](file:///c:/Users/lenovo/l-english-academy/src/pages/Login.tsx#L69) | Đăng nhập tài khoản bằng email & mật khẩu. |
-| `auth.signUp` | [Register.tsx:48](file:///c:/Users/lenovo/l-english-academy/src/pages/Register.tsx#L48) | Đăng ký tài khoản học viên mới. |
-| `auth.signInWithOAuth` | [googleOAuth.ts:22](file:///c:/Users/lenovo/l-english-academy/src/lib/googleOAuth.ts#L22) | Đăng nhập bằng tài khoản Google (OAuth 2.0 PKCE). |
-| `auth.exchangeCodeForSession` | [AuthCallback.tsx:85](file:///c:/Users/lenovo/l-english-academy/src/pages/AuthCallback.tsx#L85) | Đổi mã authorization code lấy Access Token & Refresh Token. |
-| `auth.resetPasswordForEmail` | [ForgotPassword.tsx:18](file:///c:/Users/lenovo/l-english-academy/src/pages/ForgotPassword.tsx#L18) | Gửi email liên kết khôi phục mật khẩu. |
-| `auth.updateUser` | [ResetPassword.tsx:37](file:///c:/Users/lenovo/l-english-academy/src/pages/ResetPassword.tsx#L37)<br>[Profile.tsx:603, 635, 680](file:///c:/Users/lenovo/l-english-academy/src/pages/Profile.tsx#L603) | Cập nhật mật khẩu mới, cập nhật email, cập nhật user metadata. |
-| `auth.signOut` | [useAuth.tsx:293](file:///c:/Users/lenovo/l-english-academy/src/hooks/useAuth.tsx#L293) | Đăng xuất người dùng, xóa localStorage session. |
-| `auth.getSession` | [useAuth.tsx:219](file:///c:/Users/lenovo/l-english-academy/src/hooks/useAuth.tsx#L219)<br>[speakingService.ts:537](file:///c:/Users/lenovo/l-english-academy/src/services/speakingService.ts#L537) | Lấy JWT session hiện hành từ localStorage. |
-| `auth.refreshSession` | [client.ts:27](file:///c:/Users/lenovo/l-english-academy/src/integrations/supabase/client.ts#L27)<br>[useAuth.tsx:267](file:///c:/Users/lenovo/l-english-academy/src/hooks/useAuth.tsx#L267) | Tự động làm mới access token khi nhận mã HTTP 401 hoặc khi chuyển tab. |
-| `auth.onAuthStateChange` | [useAuth.tsx:196](file:///c:/Users/lenovo/l-english-academy/src/hooks/useAuth.tsx#L196) | Lắng nghe các sự kiện `SIGNED_IN`, `SIGNED_OUT`, `TOKEN_REFRESHED`. |
+| `auth.signInWithPassword` | [Login.tsx:69](../src/pages/Login.tsx#L69) | Đăng nhập tài khoản bằng email & mật khẩu. |
+| `auth.signUp` | [Register.tsx:48](../src/pages/Register.tsx#L48) | Đăng ký tài khoản học viên mới. |
+| `auth.signInWithOAuth` | [googleOAuth.ts:22](../src/lib/googleOAuth.ts#L22) | Đăng nhập bằng tài khoản Google (OAuth 2.0 PKCE). |
+| `auth.exchangeCodeForSession` | [AuthCallback.tsx:85](../src/pages/AuthCallback.tsx#L85) | Đổi mã authorization code lấy Access Token & Refresh Token. |
+| `auth.resetPasswordForEmail` | [ForgotPassword.tsx:18](../src/pages/ForgotPassword.tsx#L18) | Gửi email liên kết khôi phục mật khẩu. |
+| `auth.updateUser` | [ResetPassword.tsx:37](../src/pages/ResetPassword.tsx#L37)<br>[Profile.tsx:603, 635, 680](../src/pages/Profile.tsx#L603) | Cập nhật mật khẩu mới, cập nhật email, cập nhật user metadata. |
+| `auth.signOut` | [useAuth.tsx:293](../src/hooks/useAuth.tsx#L293) | Đăng xuất người dùng, xóa localStorage session. |
+| `auth.getSession` | [useAuth.tsx:219](../src/hooks/useAuth.tsx#L219)<br>[speakingService.ts:537](../src/services/speakingService.ts#L537) | Lấy JWT session hiện hành từ localStorage. |
+| `auth.refreshSession` | [client.ts:27](../src/integrations/supabase/client.ts#L27)<br>[useAuth.tsx:267](../src/hooks/useAuth.tsx#L267) | Tự động làm mới access token khi nhận mã HTTP 401 hoặc khi chuyển tab. |
+| `auth.onAuthStateChange` | [useAuth.tsx:196](../src/hooks/useAuth.tsx#L196) | Lắng nghe các sự kiện `SIGNED_IN`, `SIGNED_OUT`, `TOKEN_REFRESHED`. |
 
 ---
 
@@ -658,7 +658,7 @@ $$;
 
 ## 6. Luồng Xác Thực (Authentication Flow)
 
-Hiện tại toàn bộ luồng Auth được xử lý bởi Supabase Auth (GoTrue) kết hợp với Client Interceptor trong [src/integrations/supabase/client.ts](file:///c:/Users/lenovo/l-english-academy/src/integrations/supabase/client.ts) và [src/hooks/useAuth.tsx](file:///c:/Users/lenovo/l-english-academy/src/hooks/useAuth.tsx):
+Hiện tại toàn bộ luồng Auth được xử lý bởi Supabase Auth (GoTrue) kết hợp với Client Interceptor trong [src/integrations/supabase/client.ts](../src/integrations/supabase/client.ts) và [src/hooks/useAuth.tsx](../src/hooks/useAuth.tsx):
 
 ```mermaid
 sequenceDiagram
@@ -704,7 +704,7 @@ sequenceDiagram
 
 ### Các chi tiết kỹ thuật về Session & Token:
 - **Lưu Session**: `localStorage` (khóa tự động do Supabase SDK quản lý + khóa cache profile tùy biến `lenglish_cached_profile`).
-- **Thời hạn hoạt động (Inactivity Policy)**: [useAuth.tsx](file:///c:/Users/lenovo/l-english-academy/src/hooks/useAuth.tsx#L38) cài đặt cơ chế kiểm tra `SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000`. Nếu người dùng không có bất kỳ tương tác nào (mousedown, keydown, scroll...) trong vòng 7 ngày, client sẽ tự động gọi `signOut()` và xóa cache.
+- **Thời hạn hoạt động (Inactivity Policy)**: [useAuth.tsx](../src/hooks/useAuth.tsx#L38) cài đặt cơ chế kiểm tra `SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000`. Nếu người dùng không có bất kỳ tương tác nào (mousedown, keydown, scroll...) trong vòng 7 ngày, client sẽ tự động gọi `signOut()` và xóa cache.
 - **Làm mới chủ động (Proactive Refresh)**: Khi người dùng chuyển tab và quay trở lại (`window.onfocus` hoặc `visibilitychange`), nếu thời hạn token còn dưới 5 phút, client sẽ chủ động gọi `supabase.auth.refreshSession()`.
 - **Cơ chế chống nghẽn Refresh 401 (Deduplicated Token Refresh)**: Hàm `refreshAuthSession()` trong `client.ts` gom các yêu cầu 401 đồng thời thành 1 promise duy nhất nhằm chống race condition và token reuse rejection.
 
@@ -713,19 +713,19 @@ sequenceDiagram
 ## 7. Edge Functions, Storage Bucket & Realtime Subscription
 
 ### 7.1. Supabase Edge Functions (Deno Runtime)
-Nằm trong thư mục [supabase/functions/](file:///c:/Users/lenovo/l-english-academy/supabase/functions/):
+Nằm trong thư mục [supabase/functions/](../supabase/functions):
 
-1. **`create-test-accounts`** ([index.ts](file:///c:/Users/lenovo/l-english-academy/supabase/functions/create-test-accounts/index.ts)):
+1. **`create-test-accounts`** ([index.ts](../supabase/functions/create-test-accounts/index.ts)):
    - Mục đích: Script khởi tạo tài khoản kiểm thử cho môi trường dev.
    - Tài khoản Admin: `admin@lenglish.vn` / `Admin@123456` (gán role `admin`).
    - Tài khoản Student: `student@lenglish.vn` / `Student@123456` (ghi danh khóa 1, 2, 5; tạo mẫu tiến độ học và kết quả thi).
    - *Hiện trạng*: Độc lập, không có component frontend nào gọi tới.
-2. **`manage-students`** ([index.ts](file:///c:/Users/lenovo/l-english-academy/supabase/functions/manage-students/index.ts)):
+2. **`manage-students`** ([index.ts](../supabase/functions/manage-students/index.ts)):
    - Mục đích: API cho Admin tạo học viên mới thông qua `supabase.auth.admin.createUser()` có `email_confirm: true`.
    - *Hiện trạng*: Chưa được kết nối từ UI AdminStudents.
 
 ### 7.2. Vercel Serverless Functions (Node / Edge Runtime)
-Nằm trong thư mục [api/](file:///c:/Users/lenovo/l-english-academy/api/):
+Nằm trong thư mục [api/](../api):
 
 1. **`api/payment-webhook.ts`**:
    - Nhận POST request từ cổng thanh toán SePay.
@@ -773,7 +773,7 @@ Nằm trong thư mục [api/](file:///c:/Users/lenovo/l-english-academy/api/):
 ### 8.2. Dịch vụ bên ngoài đang tích hợp
 
 1. **Cổng thanh toán tự động SePay & VietQR**:
-   - Tạo mã QR chuyển khoản động: `https://qr.sepay.vn/img?bank=...&acc=...&amount=...&des=...` ([homepageShowcaseService.ts:353](file:///c:/Users/lenovo/l-english-academy/src/services/homepageShowcaseService.ts#L353)).
+   - Tạo mã QR chuyển khoản động: `https://qr.sepay.vn/img?bank=...&acc=...&amount=...&des=...` ([homepageShowcaseService.ts:353](../src/services/homepageShowcaseService.ts#L353)).
    - Webhook 24/7 nhận thông báo biến động tài khoản ngân hàng từ SePay.
 2. **Google OAuth 2.0**:
    - Đăng nhập một chạm bằng tài khoản Google.
@@ -794,13 +794,13 @@ Nằm trong thư mục [api/](file:///c:/Users/lenovo/l-english-academy/api/):
 
 | Nghiệp vụ | Hiện trạng tại Frontend | Rủi ro & Bất cập | Kiến trúc NestJS chuẩn cần chuyển sang |
 | :--- | :--- | :--- | :--- |
-| **Chấm điểm Quiz & Bài tập** | Tính trong [QuizPage.tsx:292](file:///c:/Users/lenovo/l-english-academy/src/pages/QuizPage.tsx#L292): Client so sánh ID đáp án với `is_correct` rồi insert điểm `score` vào DB. | Học viên có thể gian lận bằng cách can thiệp fetch/console để gửi điểm 10/10. | `POST /quizzes/:id/submit`: Client chỉ gửi mảng `{ questionId, selectedAnswerId }`. NestJS tự truy vấn DB, đối chiếu đáp án đúng và lưu điểm. |
-| **Quy đổi điểm thi TOEIC Full Test** | Tính trong [FullTestExam.tsx:738](file:///c:/Users/lenovo/l-english-academy/src/pages/FullTestExam.tsx#L738) bằng 2 hàm bảng điểm ETS Listening/Reading trên client. | Thang điểm và kết quả thi 990 có thể bị làm giả trước khi gửi vào `user_full_test_results`. | `POST /full-tests/:id/submit`: Backend chạy hàm scale điểm ETS chuẩn, tính điểm Listening, Reading và ghi nhận thời gian thi thực tế. |
-| **Kiểm tra quyền xem bài học (Access Control)** | [LearnPage.tsx:34](file:///c:/Users/lenovo/l-english-academy/src/pages/LearnPage.tsx#L34) tự query bảng `enrollments` hoặc kiểm tra `is_free`. | Bất kỳ ai gọi trực tiếp Supabase REST API đều có thể lấy trọn vẹn `video_url` và `pdf_url` của khóa trả phí vì RLS của `lessons` là `SELECT USING (true)`. | `GET /lessons/:id`: NestJS kiểm tra User có đang sở hữu khóa học hoặc gói VIP hay không rồi mới trả về signed video URL / tài liệu. |
-| **Hệ thống Gamification (XP, Streak, Rương quà, Nhiệm vụ)** | Toàn bộ nằm trong [useGamification.ts](file:///c:/Users/lenovo/l-english-academy/src/hooks/useGamification.ts): lưu mốc XP, nhiệm vụ ngày, streak vào `localStorage` của trình duyệt. | Đổi trình duyệt, xóa cookie hoặc sang máy khác là mất sạch Streak và XP. BXH tuần cũng chỉ có mỗi học viên đó. | Tạo các bảng `user_gamification`, `user_quests`, `user_streaks` trong PostgreSQL. NestJS xử lý cộng XP, kiểm tra streak daily cronjob và trả về Leaderboard thật của toàn bộ học viên. |
-| **Xếp Hạng Game Word Shooter (Đấu Xếp Hạng)** | Toàn bộ rank (Đồng -> Chiến Tướng), điểm dũng khí, số sao lưu ở `localStorage` trong [wordShooterRankService.ts:176](file:///c:/Users/lenovo/l-english-academy/src/services/wordShooterRankService.ts#L176). | Học viên F12 sửa số sao tùy thích; không có bảng xếp hạng tổng thể nhiều người chơi thực thụ. | `POST /games/word-shooter/match-result`: Sau mỗi trận đấu, backend ghi nhận kết quả, cộng/trừ sao, cập nhật bảng xếp hạng liên người chơi. |
-| **Nhập Khóa Học & Đề Thi từ JSON** | [AdminCourseJsonImport.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/admin/AdminCourseJsonImport.tsx) chạy vòng lặp trên trình duyệt gọi hàng chục request upload file và insert câu hỏi. | Không có transaction. Nếu mất mạng giữa chừng, khóa học bị lỗi nửa chừng, rác CSDL. | `POST /admin/courses/import-json`: Admin chỉ upload 1 file JSON lên NestJS. NestJS thực hiện trong 1 Transaction CSDL (nếu lỗi tự rollback toàn bộ). |
-| **Bảo mật Đơn hàng & Nâng cấp VIP PRO** | [UpgradeProModal.tsx:145](file:///c:/Users/lenovo/l-english-academy/src/components/UpgradeProModal.tsx#L145) tự tạo bản ghi `payment_orders` từ client. | Bất kỳ ai cũng có thể giả mạo giá tiền `amount: 1000` hoặc tự đổi trạng thái đơn sang `completed`. | `POST /payments/create-order`: Backend sinh mã đơn, tính đúng số tiền niêm yết trong DB, tạo mã QR bảo mật. Webhook từ SePay chỉ cho phép Backend xác thực IP/Secret. |
+| **Chấm điểm Quiz & Bài tập** | Tính trong [QuizPage.tsx:292](../src/pages/QuizPage.tsx#L292): Client so sánh ID đáp án với `is_correct` rồi insert điểm `score` vào DB. | Học viên có thể gian lận bằng cách can thiệp fetch/console để gửi điểm 10/10. | `POST /quizzes/:id/submit`: Client chỉ gửi mảng `{ questionId, selectedAnswerId }`. NestJS tự truy vấn DB, đối chiếu đáp án đúng và lưu điểm. |
+| **Quy đổi điểm thi TOEIC Full Test** | Tính trong [FullTestExam.tsx:738](../src/pages/FullTestExam.tsx#L738) bằng 2 hàm bảng điểm ETS Listening/Reading trên client. | Thang điểm và kết quả thi 990 có thể bị làm giả trước khi gửi vào `user_full_test_results`. | `POST /full-tests/:id/submit`: Backend chạy hàm scale điểm ETS chuẩn, tính điểm Listening, Reading và ghi nhận thời gian thi thực tế. |
+| **Kiểm tra quyền xem bài học (Access Control)** | [LearnPage.tsx:34](../src/pages/LearnPage.tsx#L34) tự query bảng `enrollments` hoặc kiểm tra `is_free`. | Bất kỳ ai gọi trực tiếp Supabase REST API đều có thể lấy trọn vẹn `video_url` và `pdf_url` của khóa trả phí vì RLS của `lessons` là `SELECT USING (true)`. | `GET /lessons/:id`: NestJS kiểm tra User có đang sở hữu khóa học hoặc gói VIP hay không rồi mới trả về signed video URL / tài liệu. |
+| **Hệ thống Gamification (XP, Streak, Rương quà, Nhiệm vụ)** | Toàn bộ nằm trong [useGamification.ts](../src/hooks/useGamification.ts): lưu mốc XP, nhiệm vụ ngày, streak vào `localStorage` của trình duyệt. | Đổi trình duyệt, xóa cookie hoặc sang máy khác là mất sạch Streak và XP. BXH tuần cũng chỉ có mỗi học viên đó. | Tạo các bảng `user_gamification`, `user_quests`, `user_streaks` trong PostgreSQL. NestJS xử lý cộng XP, kiểm tra streak daily cronjob và trả về Leaderboard thật của toàn bộ học viên. |
+| **Xếp Hạng Game Word Shooter (Đấu Xếp Hạng)** | Toàn bộ rank (Đồng -> Chiến Tướng), điểm dũng khí, số sao lưu ở `localStorage` trong [wordShooterRankService.ts:176](../src/services/wordShooterRankService.ts#L176). | Học viên F12 sửa số sao tùy thích; không có bảng xếp hạng tổng thể nhiều người chơi thực thụ. | `POST /games/word-shooter/match-result`: Sau mỗi trận đấu, backend ghi nhận kết quả, cộng/trừ sao, cập nhật bảng xếp hạng liên người chơi. |
+| **Nhập Khóa Học & Đề Thi từ JSON** | [AdminCourseJsonImport.tsx](../src/pages/admin/AdminCourseJsonImport.tsx) chạy vòng lặp trên trình duyệt gọi hàng chục request upload file và insert câu hỏi. | Không có transaction. Nếu mất mạng giữa chừng, khóa học bị lỗi nửa chừng, rác CSDL. | `POST /admin/courses/import-json`: Admin chỉ upload 1 file JSON lên NestJS. NestJS thực hiện trong 1 Transaction CSDL (nếu lỗi tự rollback toàn bộ). |
+| **Bảo mật Đơn hàng & Nâng cấp VIP PRO** | [UpgradeProModal.tsx:145](../src/components/UpgradeProModal.tsx#L145) tự tạo bản ghi `payment_orders` từ client. | Bất kỳ ai cũng có thể giả mạo giá tiền `amount: 1000` hoặc tự đổi trạng thái đơn sang `completed`. | `POST /payments/create-order`: Backend sinh mã đơn, tính đúng số tiền niêm yết trong DB, tạo mã QR bảo mật. Webhook từ SePay chỉ cho phép Backend xác thực IP/Secret. |
 
 ---
 
@@ -808,26 +808,26 @@ Nằm trong thư mục [api/](file:///c:/Users/lenovo/l-english-academy/api/):
 
 ### 10.1. File Quá Lớn (Monolithic "God Components")
 Codebase có nhiều file kích thước khổng lồ vượt xa tiêu chuẩn bảo trì, chứa hỗn hợp UI + State + Data Fetching + Audio Synthesis + Math Logic:
-- [src/pages/DictationPage.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/DictationPage.tsx): **4.614 dòng (~201 KB)** - Một trong những component đơn lẻ lớn nhất, xử lý hàng chục trạng thái âm thanh và DOM events.
-- [src/pages/FullTestExam.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/FullTestExam.tsx): **2.332 dòng (~109 KB)**.
-- [src/pages/admin/AdminFullTestQuestions.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/admin/AdminFullTestQuestions.tsx): **82 KB**.
-- [src/pages/DashboardPage.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/DashboardPage.tsx): **77 KB**.
-- [src/pages/Profile.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/Profile.tsx): **72 KB**.
-- [src/pages/admin/AdminSettings.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/admin/AdminSettings.tsx): **67 KB**.
-- [src/pages/LearnPage.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/LearnPage.tsx): **66 KB**.
-- [src/pages/admin/AdminVocabPacks.tsx](file:///c:/Users/lenovo/l-english-academy/src/pages/admin/AdminVocabPacks.tsx): **64 KB**.
+- [src/pages/DictationPage.tsx](../src/pages/DictationPage.tsx): **4.614 dòng (~201 KB)** - Một trong những component đơn lẻ lớn nhất, xử lý hàng chục trạng thái âm thanh và DOM events.
+- [src/pages/FullTestExam.tsx](../src/pages/FullTestExam.tsx): **2.332 dòng (~109 KB)**.
+- [src/pages/admin/AdminFullTestQuestions.tsx](../src/pages/admin/AdminFullTestQuestions.tsx): **82 KB**.
+- [src/pages/DashboardPage.tsx](../src/pages/DashboardPage.tsx): **77 KB**.
+- [src/pages/Profile.tsx](../src/pages/Profile.tsx): **72 KB**.
+- [src/pages/admin/AdminSettings.tsx](../src/pages/admin/AdminSettings.tsx): **67 KB**.
+- [src/pages/LearnPage.tsx](../src/pages/LearnPage.tsx): **66 KB**.
+- [src/pages/admin/AdminVocabPacks.tsx](../src/pages/admin/AdminVocabPacks.tsx): **64 KB**.
 
 ### 10.2. Nợ Dữ Liệu Tĩnh Nặng Trong Client Bundle
-- [src/data/part2CoachData.ts](file:///c:/Users/lenovo/l-english-academy/src/data/part2CoachData.ts): Nặng **414 KB** dữ liệu JSON tĩnh được `import` thẳng vào JavaScript bundle của client.
-- [src/data/toeic600Data.ts](file:///c:/Users/lenovo/l-english-academy/src/data/toeic600Data.ts): Nặng **177 KB** dữ liệu tĩnh nhúng trực tiếp.
+- [src/data/part2CoachData.ts](../src/data/part2CoachData.ts): Nặng **414 KB** dữ liệu JSON tĩnh được `import` thẳng vào JavaScript bundle của client.
+- [src/data/toeic600Data.ts](../src/data/toeic600Data.ts): Nặng **177 KB** dữ liệu tĩnh nhúng trực tiếp.
 *Hậu quả*: Tăng kích thước gói tải ban đầu của người dùng, không thể cập nhật nội dung bài học nếu không build và deploy lại toàn bộ frontend.
 
 ### 10.3. Hardcoded Fallback Credentials Trong Mã Nguồn
-- Trong [src/integrations/supabase/client.ts:5-6](file:///c:/Users/lenovo/l-english-academy/src/integrations/supabase/client.ts#L5-L6) và các tệp trong `api/` (`check-payment.ts`, `payment-webhook.ts`, `simulate-payment.ts`, `speaking-token.ts`), URL dự án `ovjungvdsvzhzhobkryu.supabase.co` và chuỗi JWT anon key dài được gán cứng làm giá trị dự phòng.
-- Trong [src/utils/audioUrl.ts:12](file:///c:/Users/lenovo/l-english-academy/src/utils/audioUrl.ts#L12) còn sót lại domain Supabase cũ `squqwkxgsxqojhqmdvbo.supabase.co`.
+- Trong [src/integrations/supabase/client.ts:5-6](../src/integrations/supabase/client.ts#L5-L6) và các tệp trong `api/` (`check-payment.ts`, `payment-webhook.ts`, `simulate-payment.ts`, `speaking-token.ts`), URL dự án `ovjungvdsvzhzhobkryu.supabase.co` và chuỗi JWT anon key dài được gán cứng làm giá trị dự phòng.
+- Trong [src/utils/audioUrl.ts:12](../src/utils/audioUrl.ts#L12) còn sót lại domain Supabase cũ `squqwkxgsxqojhqmdvbo.supabase.co`.
 
 ### 10.4. Nguy Cơ Nghẽn Băng Thông Với WebRTC Mesh Trong Phòng Luyện Nói
-- Hàm [useVoiceRoom.ts](file:///c:/Users/lenovo/l-english-academy/src/hooks/useVoiceRoom.ts) sử dụng WebRTC Mesh Signaling qua Supabase Realtime Broadcast.
+- Hàm [useVoiceRoom.ts](../src/hooks/useVoiceRoom.ts) sử dụng WebRTC Mesh Signaling qua Supabase Realtime Broadcast.
 - Mỗi client phải duy trì $N - 1$ kết nối P2P và upload stream giọng nói của mình tới tất cả người khác. Khi phòng đạt 4-5 người hoặc mạng học viên yếu (3G/4G), âm thanh dễ bị méo, giật hoặc mất gói tin.
 
 ### 10.5. Sự Rời Rạc Trong Hạ Tầng Backend Hiện Tại

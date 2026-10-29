@@ -4,7 +4,7 @@
 > **Dự án**: L-English Academy  
 > **Kiến trúc mục tiêu**: React (Vite) + NestJS (Modular Monolith) + PostgreSQL  
 > **Chiến lược chuyển đổi**: Strangler Fig Pattern (Chuyển đổi từng phần, không downtime)  
-> **Tài liệu tham chiếu**: [CURRENT_STATE.md](file:///c:/Users/lenovo/l-english-academy/docs/CURRENT_STATE.md), [AGENTS.md](file:///c:/Users/lenovo/l-english-academy/AGENTS.md)
+> **Tài liệu tham chiếu**: [CURRENT_STATE.md](CURRENT_STATE.md), [AGENTS.md](../AGENTS.md)
 
 ---
 
@@ -83,7 +83,7 @@ graph TB
 | **Giao tiếp Realtime** | **SSE + Socket.IO** | - **Server-Sent Events (SSE)**: Dành riêng cho trạng thái đơn thanh toán (`/api/v1/payments/orders/:code/stream`), nhẹ hơn WebSocket, tự động reconnect.<br/>- **Socket.IO Gateway**: Dành cho phòng luyện nói (danh sách thành viên vào/ra, giơ tay) và Game Word Shooter PvP. |
 | **Đàm thoại Voice** | **LiveKit SFU 100%** | **Bỏ hoàn toàn WebRTC mesh P2P** cũ (vốn gây nghẽn băng thông học viên khi phòng > 3 người). Mọi phòng nói đều kết nối qua LiveKit SFU; backend chỉ làm nhiệm vụ cấp JWT LiveKit token. |
 | **Lưu trữ tệp (Storage)**| **StorageService Interface** | Thiết kế interface độc lập: môi trường dev dùng Local Storage / MinIO; môi trường production dùng Cloudflare R2 hoặc AWS S3. Trả về signed URL có thời hạn cho video và tài liệu khóa học trả phí. |
-| **Dữ liệu tĩnh lớn** | **Nạp vào CSDL** | Chuyển hai file tĩnh nặng trong bundle client ([part2CoachData.ts](file:///c:/Users/lenovo/l-english-academy/src/data/part2CoachData.ts) - 414KB và [toeic600Data.ts](file:///c:/Users/lenovo/l-english-academy/src/data/toeic600Data.ts) - 177KB) thành bảng CSDL, giúp giảm 600KB bundle client ban đầu và cho phép cập nhật nội dung không cần build lại frontend. |
+| **Dữ liệu tĩnh lớn** | **Nạp vào CSDL** | Chuyển hai file tĩnh nặng trong bundle client ([part2CoachData.ts](../src/data/part2CoachData.ts) - 414KB và [toeic600Data.ts](../src/data/toeic600Data.ts) - 177KB) thành bảng CSDL, giúp giảm 600KB bundle client ban đầu và cho phép cập nhật nội dung không cần build lại frontend. |
 | **Chuẩn API** | **REST /api/v1 + OpenAPI** | Tuân thủ RESTful convention, OpenAPI 3.0 với `@nestjs/swagger`, DTO validation tự động qua `class-validator` và `class-transformer`. |
 
 ---

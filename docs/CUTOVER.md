@@ -123,3 +123,17 @@ Render `lenglish-api` không cần đổi lại để rollback (bản cũ không
 | Ngày | Người làm | Thời gian rollback | Ghi chú |
 |---|---|---|---|
 | | | | |
+
+## 7. Nhật ký cutover (2026-10-29)
+| Giờ (UTC) | Bước | Kết quả |
+|---|---|---|
+| ~15:00 | Xác minh đích là DB Neon của `lenglish-api` (có kết quả + đơn test từ staging) | đúng `ep-sparkling-river-…` |
+| ~15:05 | `TRUNCATE users, payment_orders, admin_activity_log … CASCADE` | 16 bảng dữ liệu người dùng = 0, nội dung còn nguyên |
+| ~15:08 | `copy-content.mjs --truncate` + `verify-content.mjs` | 15 bảng (~129k dòng) khớp số dòng **và** md5 |
+| ~15:10 | Render: nhánh `main`, `PAYMENT_SIMULATION_ENABLED=false`, `FRONTEND_URL`/`CORS_ORIGINS` = `https://luandz123-l-english-academy.vercel.app` | — |
+| ~15:12 | Merge [PR #2](https://github.com/luandz123/l-english-academy/pull/2) (`85d3b4c`) | CI xanh, migration + deploy Render, Vercel production |
+| ~15:14 | Đăng ký admin + `grant-admin.mjs` | đạt |
+| ~15:20 | Giao dịch thật lần 1 (đơn `LEA15941`) | **lỗi**: SePay vẫn gọi URL cũ `/api/payment-webhook` (Vercel function Supabase) → đơn `pending` |
+| ~15:36 | Đổi URL webhook SePay → `/api/v1/payments/webhooks/sepay`; giao dịch thật lần 2 (đơn `LEA93720`) | `completed`, Pro, ghi danh 3 khóa, có `admin_activity_log` |
+
+**Bài học:** đổi URL webhook trên SePay **trước** giao dịch thử (#30 — trang `/admin/settings` vẫn hiện URL cũ). Đơn `LEA15941` đã nhận tiền: gửi lại webhook từ log SePay hoặc admin duyệt tay ở `/admin/enrollments`.
