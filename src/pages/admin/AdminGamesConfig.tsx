@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { uploadMedia } from "@/lib/api/media";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "react-router-dom";
 import {
@@ -209,19 +210,12 @@ export default function AdminGamesConfig() {
     try {
       const fileExt = file.name.split(".").pop() || "png";
       const fileName = `game-avatar-${gameId}-${Date.now()}.${fileExt}`;
-      const filePath = `game-avatars/${fileName}`;
 
-      const { error: uploadError } = await supabase.storage.from("materials").upload(filePath, file, {
-        upsert: true,
-      });
-
-      if (!uploadError) {
-        const { data: urlData } = supabase.storage.from("materials").getPublicUrl(filePath);
-        if (urlData?.publicUrl) {
-          handleUpdateGame(gameId, { avatar_url: urlData.publicUrl });
-          toast({ title: "Tải lên ảnh đại diện thành công!" });
-          return;
-        }
+      const { publicUrl } = await uploadMedia(file, "game-avatars", fileName);
+      if (publicUrl) {
+        handleUpdateGame(gameId, { avatar_url: publicUrl });
+        toast({ title: "Tải lên ảnh đại diện thành công!" });
+        return;
       }
 
       // Fallback: Read as base64 data URL

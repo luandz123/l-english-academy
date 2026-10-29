@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { uploadMedia } from "@/lib/api/media";
 import {
   getAdminCourseModules,
   getCourse,
@@ -116,14 +117,8 @@ const AdminCourseDetail = () => {
 
     try {
       setIsUploading(true);
-      const sanitizedName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '');
-      const path = `course-thumbnails/${Date.now()}_${sanitizedName}`;
-      
-      const { error: uploadErr } = await supabase.storage.from("materials").upload(path, file);
-      if (uploadErr) throw uploadErr;
-
-      const { data: urlData } = supabase.storage.from("materials").getPublicUrl(path);
-      setThumbnailUrl(urlData.publicUrl);
+      const { publicUrl } = await uploadMedia(file, "course-thumbnails");
+      setThumbnailUrl(publicUrl);
       toast({ title: "Tải ảnh lên thành công" });
     } catch (error: any) {
       toast({ title: "Lỗi tải ảnh lên", description: error.message, variant: "destructive" });

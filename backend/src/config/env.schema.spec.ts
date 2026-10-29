@@ -57,7 +57,21 @@ describe('validateEnv', () => {
         GMAIL_CLIENT_ID: 'a',
         GMAIL_CLIENT_SECRET: 'b',
         GMAIL_REFRESH_TOKEN: 'c',
+        SUPABASE_URL: 'https://test.supabase.co',
+        SUPABASE_SERVICE_ROLE_KEY: 'secret-role-key',
       }).MAIL_PROVIDER,
     ).toBe('gmail_api');
+  });
+
+  it('production dùng STORAGE_PROVIDER=supabase bắt buộc có SUPABASE_URL và SUPABASE_SERVICE_ROLE_KEY', () => {
+    expect(() =>
+      validateEnv({
+        ...BASE,
+        NODE_ENV: 'production',
+        FRONTEND_URL: 'https://x.vercel.app',
+        SMTP_USER: 'smtp_user',
+        STORAGE_PROVIDER: 'supabase',
+      }),
+    ).toThrow(/SUPABASE_SERVICE_ROLE_KEY/);
   });
 });

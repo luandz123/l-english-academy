@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { uploadMedia } from "@/lib/api/media";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, CheckCircle, Loader2 } from "lucide-react";
 
@@ -85,15 +86,12 @@ const AdminCourseJsonImport = () => {
       const rawName =
         externalUrl.split("/").pop()?.split("?")[0] || `${type}_${Date.now()}`;
       const sanitized = rawName.replace(/[^a-zA-Z0-9.\-_]/g, "");
-      const path = `quiz_media/${Date.now()}_${prefix}_${sanitized}`;
-      const { error } = await supabase.storage
-        .from("materials")
-        .upload(path, blob);
-      if (error) return externalUrl;
-      const { data: urlData } = supabase.storage
-        .from("materials")
-        .getPublicUrl(path);
-      return urlData.publicUrl;
+      const { publicUrl } = await uploadMedia(
+        blob,
+        "quiz_media",
+        `${Date.now()}_${prefix}_${sanitized}`,
+      );
+      return publicUrl;
     } catch {
       return externalUrl;
     }

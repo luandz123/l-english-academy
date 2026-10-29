@@ -52,3 +52,8 @@ services:
         sync: false
       - key: PAYMENT_SIMULATION_ENABLED # service này là staging: cho nút giả lập thanh toán
         value: "true"
+      # Supabase Storage (T-026)
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false

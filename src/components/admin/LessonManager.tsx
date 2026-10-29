@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Edit, Trash2, Video, FileQuestion, BookOpen, ChevronDown, ChevronRight, GripVertical, FileText, Upload, Volume2, Eye, EyeOff, Unlock, Lock } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { uploadMedia } from "@/lib/api/media";
 import { useToast } from "@/hooks/use-toast";
 import {
   createLesson,
@@ -231,15 +232,8 @@ const LessonManager = ({ moduleId, courseId, lessons, quizzes }: LessonManagerPr
     if (!file) return;
     setUploadingPdf(true);
     try {
-      const sanitizedName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '');
-      const path = `lesson_pdfs/${Date.now()}_${sanitizedName}`;
-      const { error: uploadErr } = await supabase.storage.from("materials").upload(path, file, { upsert: true });
-      if (uploadErr) {
-        toast({ title: "Lỗi upload", description: uploadErr.message, variant: "destructive" });
-        return;
-      }
-      const { data: urlData } = supabase.storage.from("materials").getPublicUrl(path);
-      setPdfUrl(urlData.publicUrl);
+      const { publicUrl } = await uploadMedia(file, "lesson_pdfs");
+      setPdfUrl(publicUrl);
       toast({ title: "Đã tải PDF lên thành công" });
     } catch (err: any) {
       toast({ title: "Lỗi upload", description: err.message, variant: "destructive" });

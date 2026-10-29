@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { uploadMedia } from "@/lib/api/media";
 import { createCourse, listAdminCategories } from "@/lib/api/catalog";
 import { Upload, Plus, Layers, ArrowLeft } from "lucide-react";
 
@@ -56,14 +57,8 @@ const AdminCourseNew = () => {
 
     try {
       setIsUploading(true);
-      const sanitizedName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, "");
-      const path = `course-thumbnails/${Date.now()}_${sanitizedName}`;
-
-      const { error: uploadErr } = await supabase.storage.from("materials").upload(path, file);
-      if (uploadErr) throw uploadErr;
-
-      const { data: urlData } = supabase.storage.from("materials").getPublicUrl(path);
-      update("thumbnail_url", urlData.publicUrl);
+      const { publicUrl } = await uploadMedia(file, "course-thumbnails");
+      update("thumbnail_url", publicUrl);
       toast({ title: "Tải ảnh lên thành công" });
     } catch (error: any) {
       toast({ title: "Lỗi tải ảnh lên", description: error.message, variant: "destructive" });
