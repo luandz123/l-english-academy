@@ -362,7 +362,7 @@ export interface AdminFullTestDetailRow {
   } | null;
 }
 
-export interface AdminFullTestQuestionRow extends AdminQuizQuestionRow {
+export interface AdminFullTestQuestionRow extends ReviewQuestionRow {
   part_number: number;
 }
 

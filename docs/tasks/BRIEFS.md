@@ -8,6 +8,7 @@ Từ T-025, Claude chỉ viết **bản tóm tắt** dưới đây. Antigravity 
 3. Viết mục 4 "Đặc tả" theo **ràng buộc** của bản tóm tắt + mẫu đã có (T-009, T-012, T-019, T-023: controller admin riêng, guard cấp class, `inTransaction`, DTO class-validator, mapper, 404/400/409 có `code`).
 4. Commit spec riêng (`docs(tasks): spec T-0xx`), **rồi** mới code. Gặp hành vi lạ hoặc ràng buộc không đủ rõ → ghi mục "Câu hỏi", làm phần còn lại, push.
 5. Kiểm tra như mọi task: chạy lệnh mục 6 **sau commit cuối**, dán output **nguyên văn**, push.
+6. **Thêm vào lệnh kiểm tra của mọi spec** (vì `vite build` không kiểm kiểu): `npx tsc --noEmit -p tsconfig.app.json 2>&1 | grep "error TS" | grep -E "src/lib/api|<file trang đã sửa>"` phải **rỗng**, và `npx eslint src/lib/api/<file>.ts` sạch.
 
 ### Tự rà bảo mật trước khi push (bắt buộc — dán checklist đã đánh dấu vào mục Kết quả)
 - [ ] **Mọi id client gửi đều thuộc đúng đối tượng cha**: câu hỏi thuộc quiz, đáp án thuộc câu, bài thuộc chương, practice thuộc bài… Id lạ → 400 `*_IDS_INVALID`/`*_NOT_IN_*`, không ghi gì. Có e2e gửi id của đối tượng khác.
