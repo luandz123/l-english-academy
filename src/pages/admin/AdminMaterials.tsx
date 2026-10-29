@@ -136,8 +136,8 @@ const AdminMaterials = () => {
         "uploads",
         `${Date.now()}_${i}_${sanitizedName}`,
       );
-      if (uploadErr || !urlData) {
-        toast({ title: "Lỗi upload", description: uploadErr?.message || "Lỗi tải lên", variant: "destructive" });
+      if (uploadErr) {
+        toast({ title: "Lỗi upload", description: uploadErr.message, variant: "destructive" });
         continue;
       }
       

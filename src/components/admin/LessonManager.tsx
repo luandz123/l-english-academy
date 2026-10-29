@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Edit, Trash2, Video, FileQuestion, BookOpen, ChevronDown, ChevronRight, GripVertical, FileText, Upload, Volume2, Eye, EyeOff, Unlock, Lock } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { uploadMedia } from "@/lib/api/media";
+import { uploadMediaSafe } from "@/lib/api/media";
 import { useToast } from "@/hooks/use-toast";
 import {
   createLesson,
@@ -232,8 +232,12 @@ const LessonManager = ({ moduleId, courseId, lessons, quizzes }: LessonManagerPr
     if (!file) return;
     setUploadingPdf(true);
     try {
-      const { publicUrl } = await uploadMedia(file, "lesson_pdfs");
-      setPdfUrl(publicUrl);
+      const { error: uploadErr, data: urlData } = await uploadMediaSafe(file, "lesson_pdfs");
+      if (uploadErr) {
+        toast({ title: "Lỗi upload", description: uploadErr.message, variant: "destructive" });
+        return;
+      }
+      setPdfUrl(urlData!.publicUrl);
       toast({ title: "Đã tải PDF lên thành công" });
     } catch (err: any) {
       toast({ title: "Lỗi upload", description: err.message, variant: "destructive" });

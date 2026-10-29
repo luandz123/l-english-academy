@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Edit, Trash2, Upload, Download, Image, Music, Library, GripVertical, Check, ChevronRight, ArrowLeft, ArrowRight, FolderOpen, Folder } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { uploadMedia } from "@/lib/api/media";
+import { uploadMedia, uploadMediaSafe } from "@/lib/api/media";
 import { useToast } from "@/hooks/use-toast";
 import {
   createQuizQuestion,
@@ -317,13 +317,18 @@ const QuizManager = ({ quizId, courseId, lessonType, lessonId }: QuizManagerProp
     
     setUploadingMedia(true);
     try {
-      const { publicUrl } = await uploadMedia(file, "quiz_media");
+      const { data: urlData, error: uploadErr } = await uploadMediaSafe(file, "quiz_media");
+      
+      if (uploadErr) {
+        toast({ title: "Lỗi upload", description: uploadErr.message, variant: "destructive" });
+        return;
+      }
       
       if (type === "image") {
-        setQImageUrl(publicUrl);
+        setQImageUrl(urlData!.publicUrl);
         toast({ title: "Đã tải ảnh lên thành công" });
       } else {
-        setQAudioUrl(publicUrl);
+        setQAudioUrl(urlData!.publicUrl);
         toast({ title: "Đã tải audio lên thành công" });
       }
     } catch (err: any) {
@@ -522,8 +527,12 @@ const QuizManager = ({ quizId, courseId, lessonType, lessonId }: QuizManagerProp
     if (!file) return;
     setUploadingMedia(true);
     try {
-      const { publicUrl } = await uploadMedia(file, "quiz_audio");
-      setWizardAudioUrl(publicUrl);
+      const { data: urlData, error: uploadErr } = await uploadMediaSafe(file, "quiz_audio");
+      if (uploadErr) {
+        toast({ title: "Lỗi upload audio", description: uploadErr.message, variant: "destructive" });
+        return;
+      }
+      setWizardAudioUrl(urlData!.publicUrl);
       toast({ title: "Đã tải audio lên" });
     } catch (err: any) {
       toast({ title: "Lỗi", description: err.message, variant: "destructive" });
