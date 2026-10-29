@@ -1,14 +1,26 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  createLessonQuiz,
+  createModuleQuiz,
+  createQuizQuestion,
+  deleteModuleQuiz,
+  deleteQuizQuestion,
+  deleteQuizQuestions,
   getLatestQuizResult,
   getQuiz,
   getQuizResult,
   getQuizReview,
+  listAdminQuizQuestions,
   listMyQuizResults,
   listQuizQuestions,
   listResultAnswers,
   listUserQuizResults,
+  patchQuiz,
+  reorderQuizQuestions,
+  setQuizQuestionImages,
   submitQuiz,
+  updateModuleQuiz,
+  updateQuizQuestion,
 } from "./assessment";
 import { ApiError } from "./client";
 
@@ -116,5 +128,145 @@ describe("assessment adapter", () => {
     expect(res2.data).toBeNull();
     expect(res2.error).toBeInstanceOf(ApiError);
     expect(res2.error?.status).toBe(403);
+  });
+
+  describe("admin assessment adapters (T-023)", () => {
+    it("listAdminQuizQuestions gọi GET /api/v1/assessment/admin/quizzes/:quizId/questions", async () => {
+      const mockQuestions = [{ id: 1, question_text: "Q1" }];
+      const fetchMock = mockFetch(200, mockQuestions);
+      const { data, error } = await listAdminQuizQuestions(10);
+      expect(error).toBeNull();
+      expect(data).toEqual(mockQuestions);
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("/api/v1/assessment/admin/quizzes/10/questions");
+      expect(init?.method).toBe("GET");
+    });
+
+    it("createQuizQuestion gọi POST /api/v1/assessment/admin/quizzes/:quizId/questions", async () => {
+      const body = {
+        question_text: "Q1",
+        answers: [{ answer_text: "A", is_correct: true }],
+      };
+      const fetchMock = mockFetch(201, { id: 1, ...body });
+      const { data, error } = await createQuizQuestion(10, body);
+      expect(error).toBeNull();
+      expect(data?.id).toBe(1);
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("/api/v1/assessment/admin/quizzes/10/questions");
+      expect(init?.method).toBe("POST");
+    });
+
+    it("updateQuizQuestion gọi PUT /api/v1/assessment/admin/questions/:id", async () => {
+      const body = {
+        question_text: "Q1 updated",
+        answers: [{ answer_text: "B", is_correct: true }],
+      };
+      const fetchMock = mockFetch(200, { id: 5, ...body });
+      const { data, error } = await updateQuizQuestion(5, body);
+      expect(error).toBeNull();
+      expect(data?.id).toBe(5);
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("/api/v1/assessment/admin/questions/5");
+      expect(init?.method).toBe("PUT");
+    });
+
+    it("deleteQuizQuestion gọi DELETE /api/v1/assessment/admin/questions/:id", async () => {
+      const fetchMock = mockFetch(204);
+      const { error } = await deleteQuizQuestion(5);
+      expect(error).toBeNull();
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("/api/v1/assessment/admin/questions/5");
+      expect(init?.method).toBe("DELETE");
+    });
+
+    it("deleteQuizQuestions gọi POST /api/v1/assessment/admin/quizzes/:quizId/questions/bulk-delete", async () => {
+      const fetchMock = mockFetch(204);
+      const { error } = await deleteQuizQuestions(10, [1, 2]);
+      expect(error).toBeNull();
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("/api/v1/assessment/admin/quizzes/10/questions/bulk-delete");
+      expect(init?.method).toBe("POST");
+      expect(JSON.parse(init?.body as string)).toEqual({ question_ids: [1, 2] });
+    });
+
+    it("reorderQuizQuestions gọi PUT /api/v1/assessment/admin/quizzes/:quizId/question-order", async () => {
+      const fetchMock = mockFetch(204);
+      const { error } = await reorderQuizQuestions(10, [2, 1]);
+      expect(error).toBeNull();
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("/api/v1/assessment/admin/quizzes/10/question-order");
+      expect(init?.method).toBe("PUT");
+      expect(JSON.parse(init?.body as string)).toEqual({ question_ids: [2, 1] });
+    });
+
+    it("setQuizQuestionImages gọi PUT /api/v1/assessment/admin/quizzes/:quizId/question-images", async () => {
+      const items = [{ question_id: 1, image_url: "img.png" }];
+      const fetchMock = mockFetch(204);
+      const { error } = await setQuizQuestionImages(10, items);
+      expect(error).toBeNull();
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("/api/v1/assessment/admin/quizzes/10/question-images");
+      expect(init?.method).toBe("PUT");
+      expect(JSON.parse(init?.body as string)).toEqual({ items });
+    });
+
+    it("patchQuiz gọi PATCH /api/v1/assessment/admin/quizzes/:quizId", async () => {
+      const fetchMock = mockFetch(200, { id: 10, audio_url: "audio.mp3" });
+      const { data, error } = await patchQuiz(10, { audio_url: "audio.mp3" });
+      expect(error).toBeNull();
+      expect(data?.audio_url).toBe("audio.mp3");
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("/api/v1/assessment/admin/quizzes/10");
+      expect(init?.method).toBe("PATCH");
+    });
+
+    it("createModuleQuiz gọi POST /api/v1/assessment/admin/modules/:moduleId/quizzes", async () => {
+      const body = { title: "New Quiz", total_questions: 10, time_limit_seconds: 600 };
+      const fetchMock = mockFetch(201, { id: 20, ...body });
+      const { data, error } = await createModuleQuiz(3, body);
+      expect(error).toBeNull();
+      expect(data?.id).toBe(20);
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("/api/v1/assessment/admin/modules/3/quizzes");
+      expect(init?.method).toBe("POST");
+    });
+
+    it("updateModuleQuiz gọi PUT /api/v1/assessment/admin/quizzes/:id", async () => {
+      const body = { title: "Updated Quiz", total_questions: 15, time_limit_seconds: 900 };
+      const fetchMock = mockFetch(200, { id: 20, ...body });
+      const { data, error } = await updateModuleQuiz(20, body);
+      expect(error).toBeNull();
+      expect(data?.id).toBe(20);
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("/api/v1/assessment/admin/quizzes/20");
+      expect(init?.method).toBe("PUT");
+    });
+
+    it("deleteModuleQuiz gọi DELETE /api/v1/assessment/admin/quizzes/:id", async () => {
+      const fetchMock = mockFetch(204);
+      const { error } = await deleteModuleQuiz(20);
+      expect(error).toBeNull();
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("/api/v1/assessment/admin/quizzes/20");
+      expect(init?.method).toBe("DELETE");
+    });
+
+    it("createLessonQuiz gọi POST /api/v1/assessment/admin/lessons/:lessonId/quiz", async () => {
+      const fetchMock = mockFetch(201, { id: 30, title: "Quiz - Lesson" });
+      const { data, error } = await createLessonQuiz(7);
+      expect(error).toBeNull();
+      expect(data?.id).toBe(30);
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("/api/v1/assessment/admin/lessons/7/quiz");
+      expect(init?.method).toBe("POST");
+    });
+
+    it("lỗi 500 khi gọi adapter → trả { error: ApiError }, không ném", async () => {
+      mockFetch(500, { statusCode: 500, code: "INTERNAL_ERROR", message: "Server error" });
+      const res = await listAdminQuizQuestions(1);
+      expect(res.data).toBeNull();
+      expect(res.error).toBeInstanceOf(ApiError);
+      expect(res.error?.status).toBe(500);
+    });
   });
 });

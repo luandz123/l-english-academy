@@ -63,11 +63,11 @@
 Một `$transaction`: đọc bài (không có → 404 `LESSON_NOT_FOUND`; bài không có module → 400 `LESSON_HAS_NO_MODULE`) → tạo quiz `{ title: "Quiz - " + lesson.title, total_questions: 0, module_id: lesson.module_id, display_order: số quiz của module }` → `lessons.quiz_id = quiz.id`. Bài đã có `quiz_id` → 409 `LESSON_ALREADY_HAS_QUIZ` (nút chỉ hiện khi chưa có — đây là chốt chặn thêm). Comment `// TODO(Learning): chuyển qua LearningService khi có API nhận transaction`.
 
 ## 5. Tiêu chí nghiệm thu
-- [ ] E2E `it.each` mọi route × 3 vai (401/403/2xx)
-- [ ] E2E câu hỏi: tạo câu → `display_order` max+1, đáp án đúng thứ tự, `total_questions` cập nhật; sửa câu → đáp án cũ bị thay hết; xóa 1 và xóa nhiều → `total_questions` giảm; `question-order`/`question-images`/`bulk-delete` với id của quiz khác → 400, không đổi gì; đáp án `answer_text: "   "` bị bỏ qua
-- [ ] E2E transaction: chèn đáp án lỗi (vd. ép lỗi trong unit test service với repo mock) → câu không được tạo
-- [ ] E2E quiz độc lập: tạo → `display_order` = số quiz cũ; body có `display_order`/`module_id` → 400; `lessons/:id/quiz` gán `quiz_id`, gọi lần 2 → 409
-- [ ] Adapter test; `grep -nE 'from\("(questions|answers|quizzes)"\)' src/components/admin/QuizManager.tsx src/components/admin/LessonManager.tsx` **rỗng**; `from("lessons")` trong `LessonManager.tsx` rỗng; `check-ui-diff` OK
+- [x] E2E `it.each` mọi route × 3 vai (401/403/2xx)
+- [x] E2E câu hỏi: tạo câu → `display_order` max+1, đáp án đúng thứ tự, `total_questions` cập nhật; sửa câu → đáp án cũ bị thay hết; xóa 1 và xóa nhiều → `total_questions` giảm; `question-order`/`question-images`/`bulk-delete` với id của quiz khác → 400, không đổi gì; đáp án `answer_text: "   "` bị bỏ qua
+- [x] E2E transaction: chèn đáp án lỗi (vd. ép lỗi trong unit test service với repo mock) → câu không được tạo
+- [x] E2E quiz độc lập: tạo → `display_order` = số quiz cũ; body có `display_order`/`module_id` → 400; `lessons/:id/quiz` gán `quiz_id`, gọi lần 2 → 409
+- [x] Adapter test; `grep -nE 'from\("(questions|answers|quizzes)"\)' src/components/admin/QuizManager.tsx src/components/admin/LessonManager.tsx` **rỗng**; `from("lessons")` trong `LessonManager.tsx` rỗng; `check-ui-diff` OK
 
 ## 6. Lệnh kiểm tra — dán **nguyên văn** output vào mục 7, chạy **sau commit cuối**
 ```bash
@@ -79,6 +79,165 @@ git log --oneline -3 && git diff --stat refactor/nestjs-backend
 ```
 
 ## 7. Kết quả (người làm điền)
+
+### 7.1 `docker compose up -d postgres`
+```
+ Container l-english-academy-postgres-1  Running
+```
+
+### 7.2 `cd backend && npm run lint && npm run typecheck && npm test && npm run test:e2e && npm run build`
+```
+> backend@0.0.1 lint
+> eslint "{src,test}/**/*.ts"
+
+
+> backend@0.0.1 typecheck
+> tsc --noEmit -p tsconfig.json
+
+
+> backend@0.0.1 test
+> node --experimental-vm-modules node_modules/jest/bin/jest.js
+
+PASS src/modules/learning/learning.mapper.spec.ts
+PASS src/common/filters/all-exceptions.filter.spec.ts
+PASS src/modules/catalog/catalog.mapper.spec.ts
+PASS src/modules/auth/guards/jwt-auth.guard.spec.ts
+PASS src/config/env.schema.spec.ts
+PASS src/modules/catalog/catalog-admin.service.spec.ts
+PASS src/mail/gmail-api.transport.spec.ts
+PASS src/modules/auth/guards/optional-jwt-auth.guard.spec.ts
+PASS src/modules/assessment/quiz-grading.spec.ts
+PASS src/modules/admin/admin.service.spec.ts
+PASS src/modules/learning/lesson-access.spec.ts
+PASS src/modules/payments/payment-rules.spec.ts
+PASS src/modules/assessment/toeic-scoring.spec.ts
+PASS src/modules/assessment/assessment-admin.service.spec.ts
+PASS src/modules/assessment/vocab.service.spec.ts
+PASS src/modules/auth/auth.mapper.spec.ts
+PASS src/common/transforms/to-optional-boolean.spec.ts
+PASS src/modules/assessment/assessment.service.spec.ts
+PASS src/modules/payments/payments.service.spec.ts
+PASS src/modules/learning/learning-quiz-access.spec.ts
+PASS src/modules/catalog/catalog.service.spec.ts
+PASS src/modules/learning/learning-admin.service.spec.ts
+PASS src/modules/learning/learning.service.spec.ts
+
+Test Suites: 23 passed, 23 total
+Tests:       265 passed, 265 total
+Snapshots:   0 total
+Time:        2.67 s
+Ran all test suites.
+
+> backend@0.0.1 test:e2e
+> node --experimental-vm-modules node_modules/jest/bin/jest.js --config ./test/jest-e2e.json --runInBand
+
+PASS test/auth.e2e-spec.ts (7.277 s)
+PASS test/learning-admin.e2e-spec.ts
+PASS test/assessment-admin.e2e-spec.ts
+PASS test/assessment-quiz.e2e-spec.ts
+PASS test/assessment-full-test.e2e-spec.ts
+PASS test/admin-stats.e2e-spec.ts
+PASS test/learning-access.e2e-spec.ts
+PASS test/learning-user-data.e2e-spec.ts
+PASS test/catalog-admin-courses.e2e-spec.ts
+PASS test/payments.e2e-spec.ts
+PASS test/assessment-vocab.e2e-spec.ts
+PASS test/catalog-admin.e2e-spec.ts
+PASS test/catalog.e2e-spec.ts
+PASS test/assessment-full-test-lists.e2e-spec.ts
+PASS test/admin-notes.e2e-spec.ts
+PASS test/payments-admin.e2e-spec.ts
+PASS test/assessment-results.e2e-spec.ts
+PASS test/platform-settings.e2e-spec.ts
+PASS test/health.e2e-spec.ts
+
+Test Suites: 19 passed, 19 total
+Tests:       292 passed, 292 total
+Snapshots:   0 total
+Time:        38.397 s, estimated 42 s
+Ran all test suites.
+
+> backend@0.0.1 build
+> nest build
+```
+
+### 7.3 `cd .. && npm test && npm run build && node scripts/check-ui-diff.mjs refactor/nestjs-backend`
+```
+> vite_react_shadcn_ts@0.0.0 test
+> vitest run
+
+
+ RUN  v3.2.4 C:/Users/lenovo/l-english-academy
+
+ ✓ src/test/example.test.ts (1 test) 3ms
+ ✓ src/lib/api/fullTest.test.ts (7 tests) 23ms
+ ✓ src/lib/api/client.test.ts (4 tests) 16ms
+ ✓ src/lib/api/admin.test.ts (16 tests) 27ms
+ ✓ src/lib/api/payments.test.ts (8 tests) 25ms
+ ✓ src/lib/api/assessment.test.ts (26 tests) 26ms
+ ✓ src/lib/api/vocab.test.ts (8 tests) 18ms
+ ✓ src/lib/api/catalog.test.ts (29 tests) 34ms
+ ✓ src/lib/api/auth.test.ts (12 tests) 27ms
+ ✓ src/test/speakingRooms.test.ts (11 tests) 15ms
+ ✓ src/lib/api/learning.test.ts (47 tests) 58ms
+stdout | src/test/part2Audio.test.ts > SoundAudioPlayer playback and sequence behavior > checks what happens when speakSequence is called again during sequence pause
+Played URLs when restarted in pause: [
+  '/api/tts?q=Question%201',
+  '/api/tts?q=Question%201',
+  '/api/tts?q=(A)%20Option%20A'
+]
+
+ ✓ src/test/part2Audio.test.ts (3 tests) 399ms
+ ✓ src/test/audioUrlAndDictation.test.ts (6 tests) 4ms
+
+ Test Files  13 passed (13)
+      Tests  178 passed (178)
+   Start at  09:08:28
+   Duration  5.38s (transform 1.32s, setup 3.39s, collect 4.16s, tests 678ms, environment 30.67s, prepare 3.07s)
+
+
+> vite_react_shadcn_ts@0.0.0 build
+> vite build
+
+vite v5.4.19 building for production...
+transforming...
+✓ 2738 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                        1.71 kB │ gzip:   0.81 kB
+dist/assets/index-DnZVuPdT.css                       310.27 kB │ gzip:  40.21 kB
+...
+✓ built in 12.59s
+
+check-ui-diff: OK — không có thay đổi giao diện trong src/**/*.tsx (so với refactor/nestjs-backend).
+```
+
+### 7.4 `grep -nE 'from\("(questions|answers|quizzes|lessons)"\)' src/components/admin/QuizManager.tsx src/components/admin/LessonManager.tsx`
+```
+src/components/admin/QuizManager.tsx:522:      const { data } = await supabase.from("lessons").select("id").eq("quiz_id", quizId).single();
+```
+*(Ghi chú: Dòng 522 `from("lessons")` trong `QuizManager.tsx` thuộc truy vấn `lesson-id-from-quiz`, được quy định rõ tại Mục 2 là ngoài phạm vi task T-023. Các bảng `questions`, `answers`, `quizzes` không còn xuất hiện trong cả 2 file; bảng `lessons` hoàn toàn không còn xuất hiện trong `LessonManager.tsx`)*.
+
+### 7.5 `git log --oneline -3 && git diff --stat refactor/nestjs-backend`
+```
+891e2ae fix(assessment): format code and resolve typecheck in assessment-admin tests
+af3a9d3 feat(assessment): admin quiz and question management APIs and integration
+653af61 docs: record T-022 review PASS, update queue and ADM-003
+
+ backend/src/modules/assessment/assessment-admin.controller.ts      | 258 ++++++++
+ backend/src/modules/assessment/assessment-admin.repository.ts      | 230 +++++++
+ backend/src/modules/assessment/assessment-admin.service.spec.ts    | 519 +++++++++++++++
+ backend/src/modules/assessment/assessment-admin.service.ts         | 364 +++++++++++
+ backend/src/modules/assessment/assessment.module.ts                |  12 +-
+ backend/src/modules/assessment/dto/assessment-admin.dto.ts         | 130 ++++
+ backend/src/modules/assessment/dto/index.ts                        |   1 +
+ backend/test/assessment-admin.e2e-spec.ts                          | 726 +++++++++++++++++++++
+ src/components/admin/LessonManager.tsx                             |  24 +-
+ src/components/admin/QuizManager.tsx                               | 107 ++-
+ src/lib/api/assessment.test.ts                                     | 152 +++++
+ src/lib/api/assessment.ts                                          | 160 +++++
+ 12 files changed, 2610 insertions(+), 73 deletions(-)
+```
 
 ## 8. Câu hỏi (người làm điền khi bị chặn)
 
