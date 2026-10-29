@@ -127,6 +127,30 @@ describe('MediaService', () => {
       });
     });
 
+    it('ném lỗi INVALID_FILE_TYPE khi MIME là image/svg+xml (SVG bị cấm)', async () => {
+      const file = {
+        originalname: 'vector.svg',
+        mimetype: 'image/svg+xml',
+        size: 100,
+        buffer: Buffer.from('<svg></svg>'),
+      };
+      await expect(service.uploadAvatar(userId, file)).rejects.toMatchObject({
+        response: { code: 'INVALID_FILE_TYPE' },
+      });
+    });
+
+    it('ném lỗi INVALID_FILE_TYPE khi phần mở rộng không khớp MIME (vd: .svg với image/png)', async () => {
+      const file = {
+        originalname: 'sneaky.svg',
+        mimetype: 'image/png',
+        size: 100,
+        buffer: Buffer.from('fake-png'),
+      };
+      await expect(service.uploadAvatar(userId, file)).rejects.toMatchObject({
+        response: { code: 'INVALID_FILE_TYPE' },
+      });
+    });
+
     it('upload avatar mặc định vào profiles/avatars/ với userId', async () => {
       const file = {
         originalname: 'my-avatar.png',

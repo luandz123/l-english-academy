@@ -184,6 +184,37 @@ describe('MediaModule (e2e)', () => {
       expect(res.body).toMatchObject({ code: 'INVALID_FILE_TYPE' });
     });
 
+    it('400 khi tải file SVG (bị cấm vì lý do an toàn)', async () => {
+      const res = await http()
+        .post('/api/v1/media/avatar')
+        .set(bearer(studentToken))
+        .attach('file', Buffer.from('<svg></svg>'), 'avatar.svg')
+        .expect(400);
+
+      expect(res.body).toMatchObject({ code: 'INVALID_FILE_TYPE' });
+    });
+
+    it('400 khi phần mở rộng không khớp MIME type (ảnh .svg gửi dưới dạng png)', async () => {
+      const res = await http()
+        .post('/api/v1/media/avatar')
+        .set(bearer(studentToken))
+        .attach('file', Buffer.from([0x89, 0x50, 0x4e, 0x47]), 'sneaky.svg')
+        .expect(400);
+
+      expect(res.body).toMatchObject({ code: 'INVALID_FILE_TYPE' });
+    });
+
+    it('400/413 FILE_TOO_LARGE khi file avatar vượt quá 5MB (multer chặn, không sập server)', async () => {
+      const sixMbBuffer = Buffer.alloc(6 * 1024 * 1024);
+      const res = await http()
+        .post('/api/v1/media/avatar')
+        .set(bearer(studentToken))
+        .attach('file', sixMbBuffer, 'avatar.png');
+
+      expect([400, 413]).toContain(res.status);
+      expect(res.body).toMatchObject({ code: 'FILE_TOO_LARGE' });
+    });
+
     it('201 học viên tải avatar thành công', async () => {
       const res = await http()
         .post('/api/v1/media/avatar')

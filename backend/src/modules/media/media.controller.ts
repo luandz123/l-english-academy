@@ -25,7 +25,12 @@ import {
 } from '../auth/guards/jwt-auth.guard';
 import { Roles, RolesGuard } from '../auth/guards/roles.guard';
 import { MediaResponseDto, UploadAvatarDto, UploadMediaDto } from './dto';
-import { MediaService, type UploadFileInput } from './media.service';
+import {
+  MAX_AVATAR_FILE_SIZE,
+  MAX_MEDIA_FILE_SIZE,
+  MediaService,
+  type UploadFileInput,
+} from './media.service';
 
 @ApiTags('media')
 @Controller('media')
@@ -74,7 +79,12 @@ export class MediaController {
   @ApiResponse({ status: 400, description: 'Tệp hoặc thư mục không hợp lệ' })
   @ApiResponse({ status: 401, description: 'Chưa đăng nhập' })
   @ApiResponse({ status: 403, description: 'Không có quyền admin' })
-  @UseInterceptors(FileInterceptor('file'))
+  @ApiResponse({ status: 413, description: 'Tệp vượt quá dung lượng cho phép' })
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: MAX_MEDIA_FILE_SIZE, files: 1 },
+    }),
+  )
   async uploadMedia(
     @UploadedFile() file: UploadFileInput | undefined,
     @Body() dto: UploadMediaDto,
@@ -118,7 +128,12 @@ export class MediaController {
   })
   @ApiResponse({ status: 400, description: 'Tệp không hợp lệ hoặc quá lớn' })
   @ApiResponse({ status: 401, description: 'Chưa đăng nhập' })
-  @UseInterceptors(FileInterceptor('file'))
+  @ApiResponse({ status: 413, description: 'Tệp vượt quá dung lượng cho phép' })
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: MAX_AVATAR_FILE_SIZE, files: 1 },
+    }),
+  )
   async uploadAvatar(
     @CurrentUser() user: AuthenticatedUser,
     @UploadedFile() file: UploadFileInput | undefined,

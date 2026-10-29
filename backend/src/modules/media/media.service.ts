@@ -18,8 +18,14 @@ export const ALLOWED_AVATAR_MIME_TYPES = [
   'image/png',
   'image/webp',
   'image/gif',
-  'image/svg+xml',
 ];
+
+export const MIME_TO_EXTENSIONS: Record<string, string[]> = {
+  'image/jpeg': ['jpg', 'jpeg'],
+  'image/png': ['png'],
+  'image/webp': ['webp'],
+  'image/gif': ['gif'],
+};
 
 export interface UploadFileInput {
   originalname: string;
@@ -112,16 +118,22 @@ export class MediaService {
     if (!ALLOWED_AVATAR_MIME_TYPES.includes(file.mimetype)) {
       throw new BadRequestException({
         code: 'INVALID_FILE_TYPE',
-        message:
-          'Định dạng ảnh không hợp lệ (chỉ hỗ trợ JPG, PNG, WebP, GIF, SVG)',
+        message: 'Định dạng ảnh không hợp lệ (chỉ hỗ trợ JPG, PNG, WebP, GIF)',
+      });
+    }
+
+    const rawExt = file.originalname?.split('.').pop()?.toLowerCase() || '';
+    const cleanExt = rawExt.replace(/[^a-zA-Z0-9]/g, '');
+    const validExts = MIME_TO_EXTENSIONS[file.mimetype] || [];
+
+    if (!cleanExt || !validExts.includes(cleanExt)) {
+      throw new BadRequestException({
+        code: 'INVALID_FILE_TYPE',
+        message: 'Phần mở rộng của tệp không khớp với định dạng ảnh cho phép',
       });
     }
 
     const subfolder = dto?.folder === 'covers' ? 'covers' : 'avatars';
-    const rawExt = file.originalname?.split('.').pop() || '';
-    const cleanExt =
-      rawExt.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() ||
-      (file.mimetype === 'image/png' ? 'png' : 'jpg');
     const random = Math.random().toString(36).substring(2, 7);
     const filename = `${userId}-${Date.now()}-${random}.${cleanExt}`;
     const path = `profiles/${subfolder}/${filename}`;
