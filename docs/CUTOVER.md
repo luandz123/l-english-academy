@@ -62,6 +62,7 @@ Kiểm tra: `verify-content` khớp số dòng + md5 cả 15 bảng. Lệch → 
    cd backend && DATABASE_URL=<neon direct> node scripts/grant-admin.mjs <email> --confirm <email>
    ```
 2. **SePay** → Webhooks: URL `https://<domain production>/api/v1/payments/webhooks/sepay`, API Key = `SEPAY_WEBHOOK_API_KEY`.
+   Lưu ý (#30): trang `/admin/settings` vẫn hiển thị URL cũ `/api/payment-webhook` — **không** dùng URL đó.
 3. Giao dịch thật 2.000đ (§5 luồng 5). Đơn phải `completed`, tài khoản thành Pro, `admin_activity_log` có dòng.
 4. Từ giờ không push nhánh `refactor/nestjs-backend` nữa (job `deploy-staging-frontend` vẫn gắn alias staging nhưng backend đã là production).
 
