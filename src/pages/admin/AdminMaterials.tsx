@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Search, Upload, Trash2, FileText, Image, Music, FolderPlus, Folder, FolderOpen, ChevronRight, Copy, ArrowLeft, Home, Edit } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { uploadMediaSafe } from "@/lib/api/media";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -130,14 +131,16 @@ const AdminMaterials = () => {
       }
 
       const sanitizedName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '');
-      const path = `uploads/${Date.now()}_${i}_${sanitizedName}`;
-      const { error: uploadErr } = await supabase.storage.from("materials").upload(path, file);
+      const { data: urlData, error: uploadErr } = await uploadMediaSafe(
+        file,
+        "uploads",
+        `${Date.now()}_${i}_${sanitizedName}`,
+      );
       if (uploadErr) {
         toast({ title: "Lỗi upload", description: uploadErr.message, variant: "destructive" });
         continue;
       }
       
-      const { data: urlData } = supabase.storage.from("materials").getPublicUrl(path);
       const ext = file.name.split(".").pop()?.toLowerCase() ?? "pdf";
       const fileType = ["mp3", "wav", "ogg", "m4a"].includes(ext) ? "audio" : ["jpg", "jpeg", "png", "gif", "webp", "svg"].includes(ext) ? "image" : ["mp4", "webm", "mov"].includes(ext) ? "video" : "pdf";
       

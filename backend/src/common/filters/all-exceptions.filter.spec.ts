@@ -51,6 +51,23 @@ describe('AllExceptionsFilter', () => {
     );
   });
 
+  it('xử lý MulterError LIMIT_FILE_SIZE thành 400 FILE_TOO_LARGE', () => {
+    const { host, res } = mockHost();
+    const multerError = Object.assign(new Error('File too large'), {
+      name: 'MulterError',
+      code: 'LIMIT_FILE_SIZE',
+    });
+    filter.catch(multerError, host);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        statusCode: 400,
+        code: 'FILE_TOO_LARGE',
+        message: 'Kích thước tệp vượt quá giới hạn cho phép',
+      }),
+    );
+  });
+
   it('không lộ chi tiết lỗi không xác định', () => {
     const { host, res } = mockHost();
     jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);

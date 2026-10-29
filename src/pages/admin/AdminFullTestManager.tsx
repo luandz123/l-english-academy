@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { uploadMedia as uploadMediaToStorage } from "@/lib/api/media";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -411,11 +412,11 @@ const AdminFullTestManager = () => {
               if (!res.ok) return url;
               const blob = await res.blob();
               const ext = url.split(".").pop()?.split("?")[0] || (type === "audio" ? "mp3" : "jpg");
-              const path = `full_test_media/${testId}/part_${type}_${index}_${Date.now()}.${ext}`;
-              const { error: uploadErr } = await supabase.storage.from("materials").upload(path, blob);
-              if (uploadErr) throw uploadErr;
-              const { data: urlData } = supabase.storage.from("materials").getPublicUrl(path);
-              const publicUrl = urlData.publicUrl;
+              const { publicUrl } = await uploadMediaToStorage(
+                blob,
+                "full_test_media",
+                `${testId}/part_${type}_${index}_${Date.now()}.${ext}`,
+              );
               mediaCache[url] = publicUrl;
               return publicUrl;
             } catch (e) {
@@ -592,11 +593,11 @@ const AdminFullTestManager = () => {
             if (!res.ok) return url;
             const blob = await res.blob();
             const ext = url.split(".").pop()?.split("?")[0] || (type === "audio" ? "mp3" : "jpg");
-            const path = `full_test_media/${selectedTestForImport.id}/part_${type}_${index}_${Date.now()}.${ext}`;
-            const { error: uploadErr } = await supabase.storage.from("materials").upload(path, blob);
-            if (uploadErr) throw uploadErr;
-            const { data: urlData } = supabase.storage.from("materials").getPublicUrl(path);
-            const publicUrl = urlData.publicUrl;
+            const { publicUrl } = await uploadMediaToStorage(
+              blob,
+              "full_test_media",
+              `${selectedTestForImport.id}/part_${type}_${index}_${Date.now()}.${ext}`,
+            );
             mediaCache[url] = publicUrl;
             return publicUrl;
           } catch (e) {

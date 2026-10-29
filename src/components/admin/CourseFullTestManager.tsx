@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { uploadMedia } from "@/lib/api/media";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -106,20 +107,9 @@ export const CourseFullTestManager = ({ courseId, courseTitle }: CourseFullTestM
 
     try {
       setIsAudioUploading(true);
-      const sanitizedName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, "");
-      const path = `fulltests/audio/${Date.now()}_${sanitizedName}`;
+      const { publicUrl } = await uploadMedia(file, "fulltests/audio");
 
-      const { error: uploadErr } = await supabase.storage
-        .from("materials")
-        .upload(path, file);
-
-      if (uploadErr) throw uploadErr;
-
-      const { data: urlData } = supabase.storage
-        .from("materials")
-        .getPublicUrl(path);
-
-      setAudioUrl(urlData.publicUrl);
+      setAudioUrl(publicUrl);
       toast({
         title: "Tải file nghe thành công",
         description: "Đã tạo link âm thanh lưu trữ trên hệ thống.",

@@ -27,6 +27,7 @@ const DEFAULT_CODES: Record<number, string> = {
   403: 'FORBIDDEN',
   404: 'NOT_FOUND',
   409: 'CONFLICT',
+  413: 'FILE_TOO_LARGE',
   422: 'UNPROCESSABLE_ENTITY',
   429: 'TOO_MANY_REQUESTS',
 };
@@ -72,6 +73,36 @@ export class AllExceptionsFilter implements ExceptionFilter {
         }
       }
       return { statusCode, code, message, details, path, timestamp };
+    }
+
+    if (
+      exception &&
+      typeof exception === 'object' &&
+      'code' in exception &&
+      (exception as Record<string, unknown>).code === 'LIMIT_FILE_SIZE'
+    ) {
+      return {
+        statusCode: HttpStatus.BAD_REQUEST,
+        code: 'FILE_TOO_LARGE',
+        message: 'Kích thước tệp vượt quá giới hạn cho phép',
+        path,
+        timestamp,
+      };
+    }
+
+    if (
+      exception &&
+      typeof exception === 'object' &&
+      'name' in exception &&
+      (exception as Record<string, unknown>).name === 'MulterError'
+    ) {
+      return {
+        statusCode: HttpStatus.BAD_REQUEST,
+        code: 'BAD_REQUEST',
+        message: (exception as Error).message || 'Lỗi tải lên tệp',
+        path,
+        timestamp,
+      };
     }
 
     return {

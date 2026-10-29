@@ -52,6 +52,11 @@ export const envSchema = z
     SEPAY_WEBHOOK_API_KEY: z.string().min(16).optional(),
     // Chỉ bật ở staging/dev: cho phép nút "giả lập thanh toán" hoàn tất đơn của chính mình.
     PAYMENT_SIMULATION_ENABLED: booleanString.default('false'),
+
+    // --- Media / Storage (DECISIONS #27, T-026) ---
+    STORAGE_PROVIDER: z.enum(['supabase', 'memory']).default('supabase'),
+    SUPABASE_URL: z.string().url().optional(),
+    SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
   })
   .refine(
     (env) =>
@@ -59,6 +64,17 @@ export const envSchema = z
     {
       message: 'Production cần FRONTEND_URL dạng https:// (cookie Secure)',
       path: ['FRONTEND_URL'],
+    },
+  )
+  .refine(
+    (env) =>
+      env.STORAGE_PROVIDER !== 'supabase' ||
+      env.NODE_ENV !== 'production' ||
+      Boolean(env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY),
+    {
+      message:
+        'Production dùng STORAGE_PROVIDER=supabase cần SUPABASE_URL và SUPABASE_SERVICE_ROLE_KEY',
+      path: ['SUPABASE_SERVICE_ROLE_KEY'],
     },
   )
   .refine(

@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Upload } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { uploadMedia } from "@/lib/api/media";
 import { useToast } from "@/hooks/use-toast";
 import {
   Select,
@@ -55,28 +56,23 @@ const createMediaImporter = (quizId: number, courseId: number) => {
       const fileName =
         externalUrl.split("/").pop()?.split("?")[0] || `${type}_${Date.now()}`;
       const sanitizedName = fileName.replace(/[^a-zA-Z0-9.\-_]/g, "");
-      const storagePath = `quiz_media/${Date.now()}_${filePrefix ? filePrefix + "_" : ""}${sanitizedName}`;
-
-      const { error: uploadErr } = await supabase.storage
-        .from("materials")
-        .upload(storagePath, blob);
-      if (uploadErr) throw uploadErr;
-
-      const { data: urlData } = supabase.storage
-        .from("materials")
-        .getPublicUrl(storagePath);
+      const { publicUrl } = await uploadMedia(
+        blob,
+        "quiz_media",
+        `${Date.now()}_${filePrefix ? filePrefix + "_" : ""}${sanitizedName}`,
+      );
 
       await supabase.from("materials").insert({
         title: title || sanitizedName,
-        file_url: urlData.publicUrl,
+        file_url: publicUrl,
         file_type: type,
         folder_path: folderPath || (type === "audio" ? "/Quiz Audios" : "/Quiz Images"),
         quiz_id: quizId,
         course_id: courseId,
       });
 
-      cache.set(externalUrl, urlData.publicUrl);
-      return urlData.publicUrl;
+      cache.set(externalUrl, publicUrl);
+      return publicUrl;
     } catch (err) {
       console.error(`Auto import ${type} failed:`, err);
       cache.set(externalUrl, externalUrl); // cache the original to avoid retry

@@ -4,6 +4,7 @@ import { useGamification } from "@/hooks/useGamification";
 import { supabase } from "@/integrations/supabase/client";
 import { listMyQuizResults } from "@/lib/api/assessment";
 import { authClient, updateMyProfile } from "@/lib/api/auth";
+import { uploadAvatar } from "@/lib/api/media";
 import { listMyFullTestResults } from "@/lib/api/fullTest";
 import { listMyProgressRows } from "@/lib/api/learning";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -553,20 +554,14 @@ const Profile = () => {
     const fileName = `${user?.id || "user"}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
     const filePath = `profiles/${folder}/${fileName}`;
 
-    // 1. Thử tải lên Supabase storage
+    // 1. Thử tải lên API backend
     try {
-      const { error: uploadError } = await supabase.storage
-        .from("materials")
-        .upload(filePath, file, { upsert: true, contentType: file.type });
-
-      if (!uploadError) {
-        const { data } = supabase.storage.from("materials").getPublicUrl(filePath);
-        if (data?.publicUrl) {
-          return data.publicUrl;
-        }
+      const { publicUrl } = await uploadAvatar(file, folder);
+      if (publicUrl) {
+        return publicUrl;
       }
     } catch (err) {
-      console.warn("Storage upload error, fallback to data url:", err);
+      console.warn("Media avatar upload error, fallback to data url:", err);
     }
 
     // 2. Fallback Base64 Data URL (luôn thành công 100% trên mọi máy tính)

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { uploadMedia } from "@/lib/api/media";
 import {
   createAdminFullTestQuestion,
   deleteAdminFullTestQuestion,
@@ -182,21 +183,10 @@ const AdminFullTestQuestions = () => {
 
     try {
       setIsUploadingMedia(true);
-      const sanitizedName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, "");
       const folder = type === "audio" ? "fulltests/audio" : "fulltests/images";
-      const path = `${folder}/${Date.now()}_${sanitizedName}`;
+      const { publicUrl } = await uploadMedia(file, folder);
 
-      const { error: uploadErr } = await supabase.storage
-        .from("materials")
-        .upload(path, file);
-
-      if (uploadErr) throw uploadErr;
-
-      const { data: urlData } = supabase.storage
-        .from("materials")
-        .getPublicUrl(path);
-
-      onSuccess(urlData.publicUrl);
+      onSuccess(publicUrl);
       toast({
         title: "Tải file lên thành công",
         description: `Đã lưu file ${file.name} vào hệ thống.`,
