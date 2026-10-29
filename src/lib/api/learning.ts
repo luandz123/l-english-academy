@@ -51,6 +51,13 @@ export interface AdminEnrollmentListRow extends AdminEnrollmentRow {
   } | null;
 }
 
+export interface CourseEnrollmentRow extends EnrollmentRow {
+  profiles: {
+    user_id: string;
+    full_name: string | null;
+  } | null;
+}
+
 export interface MaterialRow {
   id: number;
   lesson_id: number | null;
@@ -257,6 +264,17 @@ export async function listAllEnrollments(): Promise<{
 }> {
   return toResult(
     apiClient.get<AdminEnrollmentListRow[]>('learning/admin/enrollments'),
+  );
+}
+
+export async function listCourseEnrollments(courseId: number): Promise<{
+  data: CourseEnrollmentRow[] | null;
+  error: ApiError | null;
+}> {
+  return toResult(
+    apiClient.get<CourseEnrollmentRow[]>(
+      `learning/admin/courses/${courseId}/enrollments`,
+    ),
   );
 }
 

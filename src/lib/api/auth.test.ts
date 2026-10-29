@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { __resetAuthForTests, authClient, getMyAdminRole, getMyProfile } from "./auth";
+import { __resetAuthForTests, authClient, getMyAdminRole, getMyProfile, getStudentProfile } from "./auth";
 import { apiClient } from "./client";
 
 const user = {
@@ -162,5 +162,60 @@ describe("authClient", () => {
       "GET /api/v1/auth/me/roles": () => ({ status: 200, body: { roles: ["student", "admin"] } }),
     });
     expect(await getMyAdminRole()).toEqual({ data: { role: "admin" }, error: null });
+  });
+
+  it("getStudentProfile: gọi GET /api/v1/auth/admin/users/:userId/profile, bóc .profile", async () => {
+    const profileData = {
+      id: "prof-1",
+      user_id: "user-1",
+      full_name: "Nguyen Van A",
+      avatar_url: null,
+      email: "a@x.com",
+      is_pro: true,
+      pro_plan: "pro",
+      pro_activated_at: null,
+      created_at: null,
+      updated_at: null,
+    };
+    const calls = mockServer({
+      "POST /api/v1/auth/refresh": () => ({ status: 200, body: { user, session: session("t1") } }),
+      "GET /api/v1/auth/admin/users/user-1/profile": () => ({
+        status: 200,
+        body: { profile: profileData },
+      }),
+    });
+
+    const { data, error } = await getStudentProfile("user-1");
+    expect(error).toBeNull();
+    expect(data).toEqual(profileData);
+    expect(calls.some((c) => c.url.endsWith("/auth/admin/users/user-1/profile"))).toBe(true);
+  });
+
+  it("getStudentProfile: server trả { profile: null } → data null, error null", async () => {
+    mockServer({
+      "POST /api/v1/auth/refresh": () => ({ status: 200, body: { user, session: session("t1") } }),
+      "GET /api/v1/auth/admin/users/user-2/profile": () => ({
+        status: 200,
+        body: { profile: null },
+      }),
+    });
+
+    const { data, error } = await getStudentProfile("user-2");
+    expect(error).toBeNull();
+    expect(data).toBeNull();
+  });
+
+  it("getStudentProfile: lỗi 500 → data null, error ApiError, không ném ngoại lệ", async () => {
+    mockServer({
+      "POST /api/v1/auth/refresh": () => ({ status: 200, body: { user, session: session("t1") } }),
+      "GET /api/v1/auth/admin/users/user-3/profile": () => ({
+        status: 500,
+        body: { code: "INTERNAL_ERROR", message: "Server error" },
+      }),
+    });
+
+    const { data, error } = await getStudentProfile("user-3");
+    expect(data).toBeNull();
+    expect(error).not.toBeNull();
   });
 });

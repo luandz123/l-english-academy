@@ -466,6 +466,74 @@ describe('Auth (e2e)', () => {
       .expect(403);
   });
 
+  it('GET /auth/admin/users/:userId/profile trả profile của học viên (401 không token, 403 học viên, 200 admin, { profile: null } khi chưa có)', async () => {
+    await registerAndVerify('admin@x.com');
+    const admin = await prisma.user.findUniqueOrThrow({
+      where: { email: 'admin@x.com' },
+    });
+    await prisma.userRole.create({ data: { userId: admin.id, role: 'admin' } });
+
+    await registerAndVerify('student@x.com');
+    const student = await prisma.user.findUniqueOrThrow({
+      where: { email: 'student@x.com' },
+    });
+
+    const adminToken = (await login('admin@x.com')).token;
+    const studentToken = (await login('student@x.com')).token;
+
+    // 1. Không token -> 401
+    await http()
+      .get(`/api/v1/auth/admin/users/${student.id}/profile`)
+      .expect(401);
+
+    // 2. Học viên -> 403
+    await http()
+      .get(`/api/v1/auth/admin/users/${student.id}/profile`)
+      .set('Authorization', `Bearer ${studentToken}`)
+      .expect(403);
+
+    // 3. UserId không hợp lệ (không phải UUID) -> 400
+    await http()
+      .get('/api/v1/auth/admin/users/not-a-uuid/profile')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(400);
+
+    // 4. Admin gọi user chưa có profile -> 200 { profile: null }
+    await prisma.profile.deleteMany({
+      where: { userId: student.id },
+    });
+
+    const emptyRes = await http()
+      .get(`/api/v1/auth/admin/users/${student.id}/profile`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200);
+    expect(emptyRes.body).toEqual({ profile: null });
+
+    // 5. Tạo profile cho student -> Admin gọi trả đúng profile
+    const createdProfile = await prisma.profile.create({
+      data: {
+        userId: student.id,
+        fullName: 'Nguyễn Văn Test',
+        email: 'student@x.com',
+        isPro: false,
+      },
+    });
+
+    const successRes = await http()
+      .get(`/api/v1/auth/admin/users/${student.id}/profile`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200);
+    expect(successRes.body).toMatchObject({
+      profile: {
+        id: createdProfile.id,
+        user_id: student.id,
+        full_name: 'Nguyễn Văn Test',
+        email: 'student@x.com',
+        is_pro: false,
+      },
+    });
+  });
+
   // --- Hồ sơ & vai trò của chính mình ---
 
   it('GET /auth/me/roles trả vai trò của chính mình (policy "Users can view own roles")', async () => {

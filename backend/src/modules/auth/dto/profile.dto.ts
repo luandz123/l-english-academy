@@ -39,3 +39,8 @@ export class RolesDto {
   @ApiProperty({ enum: ['admin', 'student'], isArray: true })
   roles!: ('admin' | 'student')[];
 }
+
+export class AdminUserProfileResponseDto {
+  @ApiPropertyOptional({ type: ProfileDto, nullable: true })
+  profile!: ProfileDto | null;
+}

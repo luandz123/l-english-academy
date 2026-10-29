@@ -333,6 +333,20 @@ export async function updateMyProfile(patch: {
   }
 }
 
+/** Admin lấy hồ sơ học viên theo user_id (ADM-003) — trả về { profile } bóc ra profile. */
+export async function getStudentProfile(
+  userId: string,
+): Promise<{ data: ProfileRow | null; error: ApiError | null }> {
+  try {
+    const res = await apiClient.get<{ profile: ProfileRow | null }>(
+      `auth/admin/users/${userId}/profile`,
+    );
+    return { data: res.profile ?? null, error: null };
+  } catch (err) {
+    return { data: null, error: toError(err) };
+  }
+}
+
 /** Chỉ dùng trong test: đưa module về trạng thái ban đầu. */
 export function __resetAuthForTests(): void {
   setSession(null);

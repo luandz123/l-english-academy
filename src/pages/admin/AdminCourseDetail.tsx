@@ -15,6 +15,8 @@ import {
   listAdminCategories,
   updateCourse,
 } from "@/lib/api/catalog";
+import { listCourseFullTests } from "@/lib/api/fullTest";
+import { listCourseEnrollments } from "@/lib/api/learning";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -50,12 +52,9 @@ const AdminCourseDetail = () => {
   const { data: fullTests = [] } = useQuery({
     queryKey: ["admin-course-fulltests", id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("full_tests")
-        .select("id, title")
-        .eq("course_id", id);
+      const { data, error } = await listCourseFullTests(id);
       if (error) throw error;
-      return data || [];
+      return (data ?? []).map((t) => ({ id: t.id, title: t.title }));
     },
   });
 
@@ -173,24 +172,8 @@ const AdminCourseDetail = () => {
   const { data: enrolledStudents = [] } = useQuery({
     queryKey: ["admin-course-enrollments", id],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("enrollments")
-        .select("*")
-        .eq("course_id", id)
-        .order("enrolled_at", { ascending: false });
-        
-      if (!data || data.length === 0) return [];
-      
-      const userIds = [...new Set(data.map(d => d.user_id))];
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("user_id, full_name")
-        .in("user_id", userIds);
-
-      return data.map(d => ({
-        ...d,
-        profiles: profiles?.find(p => p.user_id === d.user_id) || null
-      }));
+      const { data } = await listCourseEnrollments(id);
+      return data ?? [];
     },
   });
 
