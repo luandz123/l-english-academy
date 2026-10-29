@@ -38,3 +38,4 @@ Ký hiệu: ⏳ chờ · 🔨 đang làm · 🔍 chờ review · 🔁 TRẢ LẠ
 | T-027 | [thư viện tài liệu](T-027-materials.md) | `task/T-027-materials` | T-026 | ✅ merged |
 | T-028 | [import Full Test + khóa JSON](T-028-bulk-import.md) | `task/T-028-bulk-import` | T-026 | ✅ merged |
 | T-033 | [dọn lẻ](BRIEFS.md) | `task/T-033-leftovers` | T-026 | ⏳ chờ |
+| T-034 | [dọn nốt ngoài T-033](BRIEFS.md) | `task/T-034-final-leftovers` | T-033 | ⏳ chờ |
