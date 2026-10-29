@@ -197,9 +197,14 @@ git log --oneline -3 && git diff --stat refactor/nestjs-backend
   - `b72a89d docs(tasks): spec T-026 media upload`
   - `358721a feat(media): backend upload endpoints and frontend adapter (T-026)`
   - `3fe41d3 fix(media): preserve error handling toasts in admin components`
+  - `fdafc66 docs(media): update verification results for T-026`
+  - `de90507 fix(media): multer file size limits and avatar MIME/ext security validation (T-026 review)`
+  - `a541b10 style(media): format trailing newlines`
 - File đã sửa:
   - `backend/.env.example`
   - `backend/src/app.module.ts`
+  - `backend/src/common/filters/all-exceptions.filter.spec.ts`
+  - `backend/src/common/filters/all-exceptions.filter.ts`
   - `backend/src/config/env.schema.spec.ts`
   - `backend/src/config/env.schema.ts`
   - `backend/src/modules/media/dto/index.ts`
@@ -245,67 +250,67 @@ $ npm --prefix backend test
 > backend@0.0.1 test
 > node --experimental-vm-modules node_modules/jest/bin/jest.js
 
-PASS src/common/filters/all-exceptions.filter.spec.ts
 PASS src/modules/catalog/catalog.mapper.spec.ts
-PASS src/modules/auth/guards/optional-jwt-auth.guard.spec.ts
+PASS src/common/filters/all-exceptions.filter.spec.ts
 PASS src/modules/auth/guards/jwt-auth.guard.spec.ts
-PASS src/modules/catalog/catalog-admin.service.spec.ts
-PASS src/mail/gmail-api.transport.spec.ts
-PASS src/modules/learning/learning-quiz-access.spec.ts
-PASS src/modules/learning/learning.mapper.spec.ts
-PASS src/modules/assessment/assessment-admin.service.spec.ts
-PASS src/modules/payments/payment-rules.spec.ts
-PASS src/modules/assessment/assessment.service.spec.ts
+PASS src/modules/auth/guards/optional-jwt-auth.guard.spec.ts
 PASS src/modules/assessment/vocab.service.spec.ts
+PASS src/modules/catalog/catalog-admin.service.spec.ts
 PASS src/modules/admin/admin.service.spec.ts
-PASS src/common/transforms/to-optional-boolean.spec.ts
-PASS src/config/env.schema.spec.ts
-PASS src/modules/auth/auth.mapper.spec.ts
-PASS src/modules/assessment/toeic-scoring.spec.ts
+PASS src/modules/learning/learning.mapper.spec.ts
+PASS src/modules/assessment/assessment-admin.service.spec.ts (6.011 s)
+PASS src/mail/gmail-api.transport.spec.ts
 PASS src/modules/learning/lesson-access.spec.ts
-PASS src/modules/payments/payments.service.spec.ts
+PASS src/config/env.schema.spec.ts
+PASS src/modules/payments/payment-rules.spec.ts
+PASS src/modules/assessment/toeic-scoring.spec.ts
+PASS src/modules/payments/payments.service.spec.ts (6.998 s)
+PASS src/modules/learning/learning-quiz-access.spec.ts (7.08 s)
 PASS src/modules/assessment/quiz-grading.spec.ts
-PASS src/modules/catalog/catalog.service.spec.ts
-PASS src/modules/learning/learning-admin.service.spec.ts
-PASS src/modules/learning/learning.service.spec.ts
-PASS src/modules/media/media.service.spec.ts
+PASS src/common/transforms/to-optional-boolean.spec.ts
+PASS src/modules/auth/auth.mapper.spec.ts
+PASS src/modules/assessment/assessment.service.spec.ts (7.773 s)
+PASS src/modules/catalog/catalog.service.spec.ts (8.384 s)
+PASS src/modules/learning/learning-admin.service.spec.ts (8.741 s)
+PASS src/modules/learning/learning.service.spec.ts (8.743 s)
+PASS src/modules/media/media.service.spec.ts (8.693 s)
 
 Test Suites: 24 passed, 24 total
-Tests:       296 passed, 296 total
+Tests:       299 passed, 299 total
 Snapshots:   0 total
-Time:        4.06 s
+Time:        10.669 s
 Ran all test suites.
 
 $ npm --prefix backend run test:e2e
 > backend@0.0.1 test:e2e
 > node --experimental-vm-modules node_modules/jest/bin/jest.js --config ./test/jest-e2e.json --runInBand
 
-PASS test/auth.e2e-spec.ts (6.225 s)
-PASS test/learning-admin.e2e-spec.ts
-PASS test/assessment-admin.e2e-spec.ts
-PASS test/assessment-full-test.e2e-spec.ts
-PASS test/assessment-quiz.e2e-spec.ts
-PASS test/admin-stats.e2e-spec.ts
-PASS test/assessment-admin-fulltest.e2e-spec.ts
-PASS test/catalog-admin.e2e-spec.ts
-PASS test/learning-user-data.e2e-spec.ts
-PASS test/assessment-vocab.e2e-spec.ts
-PASS test/learning-access.e2e-spec.ts
+PASS test/auth.e2e-spec.ts (36.687 s)
+PASS test/media.e2e-spec.ts (7.476 s)
+PASS test/learning-admin.e2e-spec.ts (8.788 s)
+PASS test/assessment-admin.e2e-spec.ts (7.825 s)
 PASS test/assessment-full-test-lists.e2e-spec.ts
-PASS test/payments.e2e-spec.ts
-PASS test/platform-settings.e2e-spec.ts
-PASS test/catalog-admin-courses.e2e-spec.ts
+PASS test/assessment-quiz.e2e-spec.ts (8.288 s)
+PASS test/payments.e2e-spec.ts (7.022 s)
+PASS test/admin-stats.e2e-spec.ts (5.798 s)
+PASS test/assessment-admin-fulltest.e2e-spec.ts (5.317 s)
+PASS test/assessment-full-test.e2e-spec.ts (5.575 s)
+PASS test/assessment-vocab.e2e-spec.ts
+PASS test/catalog-admin.e2e-spec.ts
+PASS test/health.e2e-spec.ts
+PASS test/learning-access.e2e-spec.ts (5.364 s)
+PASS test/learning-user-data.e2e-spec.ts
+PASS test/assessment-results.e2e-spec.ts
 PASS test/admin-notes.e2e-spec.ts
-PASS test/media.e2e-spec.ts
+PASS test/catalog-admin-courses.e2e-spec.ts (5.054 s)
+PASS test/platform-settings.e2e-spec.ts
 PASS test/payments-admin.e2e-spec.ts
 PASS test/catalog.e2e-spec.ts
-PASS test/assessment-results.e2e-spec.ts
-PASS test/health.e2e-spec.ts
 
 Test Suites: 21 passed, 21 total
-Tests:       337 passed, 337 total
+Tests:       340 passed, 340 total
 Snapshots:   0 total
-Time:        32.186 s, estimated 34 s
+Time:        145.88 s
 Ran all test suites.
 
 $ npm --prefix backend run build
@@ -318,8 +323,8 @@ $ npm test
 
  Test Files  14 passed (14)
       Tests  191 passed (191)
-   Start at  11:50:23
-   Duration  7.00s (transform 1.31s, setup 5.12s, collect 5.08s, tests 919ms, environment 48.44s, prepare 4.00s)
+   Start at  12:17:30
+   Duration  54.81s (transform 14.42s, setup 105.76s, collect 36.49s, tests 3.00s, environment 470.27s, prepare 5.97s)
 
 $ npm run build
 > vite_react_shadcn_ts@0.0.0 build
@@ -330,7 +335,7 @@ transforming...
 ✓ 2739 modules transformed.
 rendering chunks...
 computing gzip size...
-✓ built in 10.46s
+✓ built in 1m 12s
 
 $ node scripts/check-ui-diff.mjs refactor/nestjs-backend
 check-ui-diff: OK — không có thay đổi giao diện trong src/**/*.tsx (so với refactor/nestjs-backend).
@@ -338,33 +343,37 @@ check-ui-diff: OK — không có thay đổi giao diện trong src/**/*.tsx (so 
 $ git grep -n "supabase.storage" src/
 (0 matches - exit code 1)
 
-$ git log --oneline -3 && git diff --stat refactor/nestjs-backend
-3fe41d3 fix(media): preserve error handling toasts in admin components
-358721a feat(media): backend upload endpoints and frontend adapter (T-026)
-b72a89d docs(tasks): spec T-026 media upload
+$ git log --oneline -5 && git diff --stat refactor/nestjs-backend
+a541b10 style(media): format trailing newlines
+de90507 fix(media): multer file size limits and avatar MIME/ext security validation (T-026 review)
+795e2a4 Merge remote-tracking branch 'origin/refactor/nestjs-backend' into task/T-026-media-upload
+df25b46 docs: return T-026 for upload size limit and svg avatar
+fdafc66 docs(media): update verification results for T-026
  backend/.env.example                               |   7 +
  backend/src/app.module.ts                          |   2 +
- backend/src/config/env.schema.spec.ts              |  14 ++
- backend/src/config/env.schema.ts                   |  16 ++
- backend/src/modules/media/dto/index.ts             |   3 +
- .../src/modules/media/dto/media-response.dto.ts    |  16 ++
- backend/src/modules/media/dto/upload-media.dto.ts  |  46 +++++
- backend/src/modules/media/media.controller.ts      | 129 ++++++++++++
- backend/src/modules/media/media.module.ts          |  42 ++++
- backend/src/modules/media/media.service.spec.ts    | 165 ++++++++++++++++
- backend/src/modules/media/media.service.ts         | 142 ++++++++++++++
- .../media/storage/in-memory-storage.service.ts     |  53 +++++
- .../src/modules/media/storage/storage.interface.ts |  20 ++
- .../media/storage/supabase-storage.service.ts      |  53 +++++
- backend/test/media.e2e-spec.ts                     | 216 +++++++++++++++++++++
- docs/tasks/T-026-media-upload.md                   | 209 ++++++++++++++++++++
+ .../common/filters/all-exceptions.filter.spec.ts   |  17 +
+ .../src/common/filters/all-exceptions.filter.ts    |  31 ++
+ backend/src/config/env.schema.spec.ts              |  14 +
+ backend/src/config/env.schema.ts                   |  16 +
+ backend/src/modules/media/dto/index.ts             |   2 +
+ .../src/modules/media/dto/media-response.dto.ts    |  16 +
+ backend/src/modules/media/dto/upload-media.dto.ts  |  46 +++
+ backend/src/modules/media/media.controller.ts      | 144 ++++++++
+ backend/src/modules/media/media.module.ts          |  42 +++
+ backend/src/modules/media/media.service.spec.ts    | 189 ++++++++++
+ backend/src/modules/media/media.service.ts         | 154 ++++++++
+ .../media/storage/in-memory-storage.service.ts     |  53 +++
+ .../src/modules/media/storage/storage.interface.ts |  19 +
+ .../media/storage/supabase-storage.service.ts      |  52 +++
+ backend/test/media.e2e-spec.ts                     | 247 +++++++++++++
+ docs/tasks/T-026-media-upload.md                   | 388 +++++++++++++++++++++
  render.yaml                                        |   5 +
  src/components/admin/CourseFullTestManager.tsx     |  16 +-
- src/components/admin/ImportDialog.tsx              |  22 +--
+ src/components/admin/ImportDialog.tsx              |  22 +-
  src/components/admin/LessonManager.tsx             |   8 +-
- src/components/admin/QuizManager.tsx               |  33 ++--
- src/lib/api/media.test.ts                          | 103 ++++++++++
- src/lib/api/media.ts                               |  82 ++++++++
+ src/components/admin/QuizManager.tsx               |  33 +-
+ src/lib/api/media.test.ts                          | 103 ++++++
+ src/lib/api/media.ts                               |  82 +++++
  src/pages/Profile.tsx                              |  17 +-
  src/pages/admin/AdminCourseDetail.tsx              |  11 +-
  src/pages/admin/AdminCourseJsonImport.tsx          |  16 +-
@@ -373,7 +382,7 @@ b72a89d docs(tasks): spec T-026 media upload
  src/pages/admin/AdminFullTestQuestions.tsx         |  16 +-
  src/pages/admin/AdminGamesConfig.tsx               |   7 +-
  src/pages/admin/AdminMaterials.tsx                 |   9 +-
- 31 files changed, 1392 insertions(+), 118 deletions(-)
+ 33 files changed, 1695 insertions(+), 118 deletions(-)
 ```
 - Chỗ chưa chắc: Không có
 
