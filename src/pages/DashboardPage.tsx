@@ -976,7 +976,8 @@ export const DashboardPage: React.FC = () => {
                       <div className="flex items-center gap-3 min-w-0">
                         {/* Checkbox with tactile juice feedback */}
                         <div
-                          className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 ${isDone
+                          className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 ${
+                            isDone
                               ? "bg-emerald-500/20 border border-emerald-500/50 text-emerald-400 scale-105"
                               : "bg-slate-800/80 border border-slate-700 text-slate-500"
                           }`}
@@ -1048,7 +1049,8 @@ export const DashboardPage: React.FC = () => {
                   return (
                     <div
                       key={d.label}
-                      className={`min-h-[68px] py-3 px-1 rounded-2xl flex flex-col items-center justify-between transition-all ${d.done
+                      className={`min-h-[68px] py-3 px-1 rounded-2xl flex flex-col items-center justify-between transition-all ${
+                        d.done
                           ? "bg-gradient-to-b from-amber-500/25 to-orange-500/20 border border-amber-500/40 text-amber-300 font-bold"
                           : isTodayUnfinished
                           ? "border-2 border-dashed border-orange-500/90 bg-orange-500/15 text-orange-300 animate-pulse font-extrabold"
