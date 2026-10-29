@@ -3,13 +3,13 @@
 - **Trạng thái**: Đã chấp thuận (Accepted)
 - **Ngày**: 2026-10-24
 - **Người quyết định**: Kỹ sư trưởng (Lead Engineer) & Đội ngũ Phát triển L-English
-- **Tài liệu tham chiếu**: [CURRENT_STATE.md](file:///c:/Users/lenovo/l-english-academy/docs/CURRENT_STATE.md), [HLD.md](file:///c:/Users/lenovo/l-english-academy/docs/HLD.md), [AGENTS.md](file:///c:/Users/lenovo/l-english-academy/AGENTS.md)
+- **Tài liệu tham chiếu**: [CURRENT_STATE.md](../CURRENT_STATE.md), [HLD.md](../HLD.md), [AGENTS.md](../../AGENTS.md)
 
 ---
 
 ## 1. Bối Cảnh (Context)
 
-Hệ thống L-English Academy ban đầu được xây dựng dựa trên kiến trúc Backend-as-a-Service (BaaS) với React (Vite) ở Frontend và Supabase SDK gọi trực tiếp CSDL. Mặc dù mô hình này cho phép tạo nhanh MVP, quá trình vận hành đã bộc lộ những lỗ hổng bảo mật và nợ kỹ thuật nghiêm trọng (chi tiết tại mục 5.3 và 10 của [CURRENT_STATE.md](file:///c:/Users/lenovo/l-english-academy/docs/CURRENT_STATE.md)):
+Hệ thống L-English Academy ban đầu được xây dựng dựa trên kiến trúc Backend-as-a-Service (BaaS) với React (Vite) ở Frontend và Supabase SDK gọi trực tiếp CSDL. Mặc dù mô hình này cho phép tạo nhanh MVP, quá trình vận hành đã bộc lộ những lỗ hổng bảo mật và nợ kỹ thuật nghiêm trọng (chi tiết tại mục 5.3 và 10 của [CURRENT_STATE.md](../CURRENT_STATE.md)):
 
 1. **Lộ đáp án trắc nghiệm**: Bảng `answers` có RLS `SELECT USING (true)` chứa cả cột `is_correct: true/false`. Học viên mở DevTools là thấy toàn bộ đáp án của bài thi.
 2. **Client tự chấm điểm**: Frontend tự so sánh ID đáp án, tự tính điểm và gửi `score: 10/10` trực tiếp vào bảng điểm CSDL `user_quiz_results` và `user_full_test_results`.
@@ -50,7 +50,7 @@ Chúng tôi quyết định tái cấu trúc toàn bộ hệ thống sang kiến
 4. **Sẵn sàng mở rộng (Extensible)**: Các module được phân tách ranh giới rõ ràng, khi bất kỳ module nào (như `Games` hay `Assessment`) có lượng tải đột biến trong tương lai, module đó có thể dễ dàng tách ra thành một Microservice độc lập mà không cần viết lại nghiệp vụ.
 
 ### Tiêu cực & Đánh đổi (Negative / Trade-offs):
-1. **Rủi ro Coupling (Ràng buộc mã nguồn)**: Nếu các lập trình viên thiếu kỷ luật, các module có thể vô tình phụ thuộc chéo hoặc gọi vòng tròn (Circular Dependency). Cần duy trì các quy tắc trong [AGENTS.md](file:///c:/Users/lenovo/l-english-academy/AGENTS.md) và linter nghiêm ngặt.
+1. **Rủi ro Coupling (Ràng buộc mã nguồn)**: Nếu các lập trình viên thiếu kỷ luật, các module có thể vô tình phụ thuộc chéo hoặc gọi vòng tròn (Circular Dependency). Cần duy trì các quy tắc trong [AGENTS.md](../../AGENTS.md) và linter nghiêm ngặt.
 2. **Tác động lỗi diện rộng**: Một lỗi unhandled exception nghiêm trọng ở một module có thể làm khởi động lại toàn bộ tiến trình. Giải pháp: Áp dụng Global Exception Filter chặt chẽ và giám sát tiến trình bằng PM2 / Docker healthcheck.
 
 ---
