@@ -9,6 +9,7 @@ import { CatalogService } from '../catalog/catalog.service';
 import {
   AdminEnrollmentDto,
   AdminEnrollmentListDto,
+  CourseEnrollmentDto,
   CreateAdminEnrollmentDto,
   LessonDto,
   PatchLessonDto,
@@ -239,6 +240,11 @@ export class LearningAdminService {
   async getAllEnrollments(): Promise<AdminEnrollmentListDto[]> {
     const rows = await this.repo.findAllEnrollments();
     return rows.map((r) => this.mapper.toAdminEnrollmentListDto(r));
+  }
+
+  async getCourseEnrollments(courseId: number): Promise<CourseEnrollmentDto[]> {
+    const rows = await this.repo.findEnrollmentsByCourseId(courseId);
+    return rows.map((r) => this.mapper.toCourseEnrollmentDto(r));
   }
 
   async getUserEnrollments(userId: string): Promise<AdminEnrollmentDto[]> {

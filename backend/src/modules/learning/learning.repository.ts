@@ -42,6 +42,12 @@ export type EnrollmentWithCourseAndProfile = Enrollment & {
   };
 };
 
+export type EnrollmentWithProfile = Enrollment & {
+  user: {
+    profile: Pick<Profile, 'userId' | 'fullName'> | null;
+  };
+};
+
 @Injectable()
 export class LearningRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -401,6 +407,30 @@ export class LearningRepository {
             profile: {
               select: {
                 id: true,
+                userId: true,
+                fullName: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: [
+        { enrolledAt: { sort: 'desc', nulls: 'last' } },
+        { id: 'desc' },
+      ],
+    });
+  }
+
+  findEnrollmentsByCourseId(
+    courseId: number,
+  ): Promise<EnrollmentWithProfile[]> {
+    return this.prisma.enrollment.findMany({
+      where: { courseId },
+      include: {
+        user: {
+          select: {
+            profile: {
+              select: {
                 userId: true,
                 fullName: true,
               },

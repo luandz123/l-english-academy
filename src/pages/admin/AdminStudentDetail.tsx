@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
 import { useState } from "react";
@@ -16,6 +15,8 @@ import { Unlock, ShieldAlert, Trash2, Edit, Plus, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getFriendlyErrorMessage } from "@/lib/errorHandler";
+import { getStudentProfile } from "@/lib/api/auth";
+import { listAdminCourses } from "@/lib/api/catalog";
 import { listUserQuizResults } from "@/lib/api/assessment";
 import { listStudentNotes, addStudentNote } from "@/lib/api/admin";
 import {
@@ -48,7 +49,7 @@ const AdminStudentDetail = () => {
   const { data: profile, isLoading } = useQuery({
     queryKey: ["admin-student-profile", userId],
     queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("*").eq("user_id", userId!).maybeSingle();
+      const { data } = await getStudentProfile(userId!);
       return data;
     },
     enabled: !!userId,
@@ -84,8 +85,10 @@ const AdminStudentDetail = () => {
   const { data: allCourses = [] } = useQuery({
     queryKey: ["admin-all-courses"],
     queryFn: async () => {
-      const { data } = await supabase.from("courses").select("id, title").order("title");
-      return data ?? [];
+      const { data } = await listAdminCourses();
+      return (data ?? [])
+        .map((c) => ({ id: c.id, title: c.title }))
+        .sort((a, b) => a.title.localeCompare(b.title, "vi"));
     },
   });
 

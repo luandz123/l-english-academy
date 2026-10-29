@@ -32,6 +32,7 @@ import { Roles, RolesGuard } from '../auth/guards/roles.guard';
 import {
   AdminEnrollmentDto,
   AdminEnrollmentListDto,
+  CourseEnrollmentDto,
   CreateAdminEnrollmentDto,
   LessonDto,
   PatchLessonDto,
@@ -190,6 +191,19 @@ export class LearningAdminController {
   @ApiForbiddenResponse({ description: 'Không có quyền admin' })
   getAllEnrollments(): Promise<AdminEnrollmentListDto[]> {
     return this.learningAdminService.getAllEnrollments();
+  }
+
+  @Get('courses/:courseId/enrollments')
+  @ApiOperation({
+    summary: 'Admin lấy danh sách ghi danh theo khóa học (ADM-009)',
+  })
+  @ApiOkResponse({ type: [CourseEnrollmentDto] })
+  @ApiUnauthorizedResponse({ description: 'Chưa đăng nhập' })
+  @ApiForbiddenResponse({ description: 'Không có quyền admin' })
+  getCourseEnrollments(
+    @Param('courseId', ParseIntPipe) courseId: number,
+  ): Promise<CourseEnrollmentDto[]> {
+    return this.learningAdminService.getCourseEnrollments(courseId);
   }
 
   @Get('users/:userId/enrollments')

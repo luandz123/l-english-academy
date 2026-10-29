@@ -28,6 +28,22 @@ export class AdminEnrollmentListDto extends AdminEnrollmentDto {
   profiles!: AdminEnrollmentProfileDto | null;
 }
 
+export class CourseEnrollmentProfileDto {
+  @ApiProperty({
+    format: 'uuid',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  user_id!: string;
+
+  @ApiProperty({ example: 'Nguyen Van A', nullable: true })
+  full_name!: string | null;
+}
+
+export class CourseEnrollmentDto extends EnrollmentDto {
+  @ApiProperty({ type: CourseEnrollmentProfileDto, nullable: true })
+  profiles!: CourseEnrollmentProfileDto | null;
+}
+
 export class CreateAdminEnrollmentDto {
   @ApiProperty({ example: 1 })
   @IsInt()

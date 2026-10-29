@@ -203,6 +203,11 @@ export class AuthService {
     return toProfileDto(profile);
   }
 
+  async getStudentProfile(userId: string): Promise<ProfileDto | null> {
+    const profile = await this.repo.findProfileByUserId(userId);
+    return profile ? toProfileDto(profile) : null;
+  }
+
   /** Chỉ tên + ảnh đại diện; is_pro/pro_plan chỉ đổi qua luồng thanh toán (OPEN_QUESTIONS #10). */
   async updateMyProfile(
     userId: string,

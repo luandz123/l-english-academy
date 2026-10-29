@@ -78,6 +78,7 @@ describe('LearningAdminService', () => {
       deletePractice: jest.fn(),
       findEnrollmentsByUser: jest.fn(),
       findAllEnrollments: jest.fn(),
+      findEnrollmentsByCourseId: jest.fn(),
       createEnrollment: jest.fn(),
       deleteEnrollment: jest.fn(),
     };
@@ -649,6 +650,57 @@ describe('LearningAdminService', () => {
       });
       expect(res[1].courses).toBeNull();
       expect(res[1].profiles).toBeNull();
+    });
+
+    it('getCourseEnrollments: trả danh sách ghi danh của khóa học kèm profiles', async () => {
+      repo.findEnrollmentsByCourseId.mockResolvedValue([
+        {
+          id: 10,
+          userId: mockUserId,
+          courseId: 5,
+          enrolledAt: new Date('2026-01-01T00:00:00.000Z'),
+          expiresAt: null,
+          user: {
+            profile: {
+              userId: mockUserId,
+              fullName: 'Nguyen Van A',
+            },
+          },
+        },
+        {
+          id: 11,
+          userId: 'user-2',
+          courseId: 5,
+          enrolledAt: null,
+          expiresAt: null,
+          user: {
+            profile: null,
+          },
+        },
+      ]);
+
+      const res = await service.getCourseEnrollments(5);
+      expect(repo.findEnrollmentsByCourseId).toHaveBeenCalledWith(5);
+      expect(res).toHaveLength(2);
+      expect(res[0]).toEqual({
+        id: 10,
+        user_id: mockUserId,
+        course_id: 5,
+        enrolled_at: '2026-01-01T00:00:00.000Z',
+        expires_at: null,
+        profiles: {
+          user_id: mockUserId,
+          full_name: 'Nguyen Van A',
+        },
+      });
+      expect(res[1]).toEqual({
+        id: 11,
+        user_id: 'user-2',
+        course_id: 5,
+        enrolled_at: null,
+        expires_at: null,
+        profiles: null,
+      });
     });
 
     it('createUserEnrollment: ném 404 COURSE_NOT_FOUND khi khóa học không tồn tại', async () => {

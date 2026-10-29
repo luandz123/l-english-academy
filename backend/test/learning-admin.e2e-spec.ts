@@ -9,6 +9,7 @@ import { TokenService } from '../src/modules/auth/token.service';
 import type {
   AdminEnrollmentDto,
   AdminEnrollmentListDto,
+  CourseEnrollmentDto,
   CurriculumModuleDto,
   LessonDto,
   PracticeDto,
@@ -52,7 +53,12 @@ describe('LearningModule — Admin quản lý bài học, luyện tập, ghi dan
   const http = () => request(app.getHttpServer());
   const bearer = (t: string) => ({ Authorization: `Bearer ${t}` });
 
-  const SEEDED_COURSE_TITLES = ['Khóa học TOEIC Admin Test', 'Khóa học RBAC'];
+  const SEEDED_COURSE_TITLES = [
+    'Khóa học TOEIC Admin Test',
+    'Khóa học RBAC',
+    'Khóa học khác không lẫn',
+    'Khóa học trống',
+  ];
 
   async function cleanup(): Promise<void> {
     const seededCourses = await prisma.course.findMany({
@@ -241,7 +247,7 @@ describe('LearningModule — Admin quản lý bài học, luyện tập, ghi dan
     await app?.close();
   });
 
-  describe('Phân quyền 11 route admin (không token 401, học viên 403, admin 2xx)', () => {
+  describe('Phân quyền các route admin (không token 401, học viên 403, admin 2xx)', () => {
     const rbacRoutes: RbacRouteCase[] = [
       {
         name: 'POST /modules/:moduleId/lessons',
@@ -321,6 +327,13 @@ describe('LearningModule — Admin quản lý bài học, luyện tập, ghi dan
         name: 'GET /learning/admin/enrollments',
         method: 'get',
         path: () => '/api/v1/learning/admin/enrollments',
+        expectedAdminStatus: 200,
+      },
+      {
+        name: 'GET /courses/:courseId/enrollments',
+        method: 'get',
+        path: () =>
+          `/api/v1/learning/admin/courses/${rbacCourseId}/enrollments`,
         expectedAdminStatus: 200,
       },
       {
@@ -1029,6 +1042,87 @@ describe('LearningModule — Admin quản lý bài học, luyện tập, ghi dan
       const noProfile = list.find((e) => e.id === nullEnrolled.id);
       expect(noProfile).toBeDefined();
       expect(noProfile?.profiles).toBeNull();
+    });
+
+    it('GET /courses/:courseId/enrollments trả danh sách học viên ghi danh khóa học sắp xếp enrolled_at desc nulls last, id desc kèm profiles.full_name, khóa khác không lẫn, khóa không có trả []', async () => {
+      // Đảm bảo studentId (có profile "Học viên Test") được ghi danh vào courseId với enrolledAt xác định
+      await prisma.enrollment.upsert({
+        where: { userId_courseId: { userId: studentId, courseId } },
+        update: { enrolledAt: new Date('2026-05-01T00:00:00.000Z') },
+        create: {
+          userId: studentId,
+          courseId,
+          enrolledAt: new Date('2026-05-01T00:00:00.000Z'),
+        },
+      });
+
+      // Tạo một khóa học khác và ghi danh một học viên để kiểm tra không bị lẫn
+      const otherCourse = await prisma.course.create({
+        data: {
+          title: 'Khóa học khác không lẫn',
+          price: 100_000,
+          courseType: 'video_quiz',
+        },
+      });
+      await prisma.enrollment.create({
+        data: {
+          userId: studentId,
+          courseId: otherCourse.id,
+          enrolledAt: new Date(),
+        },
+      });
+
+      const res = await http()
+        .get(`/api/v1/learning/admin/courses/${courseId}/enrollments`)
+        .set(bearer(adminToken))
+        .expect(200);
+
+      const enrollments = res.body as CourseEnrollmentDto[];
+      expect(Array.isArray(enrollments)).toBe(true);
+      // Đảm bảo chỉ gồm courseId, không có otherCourse.id
+      expect(enrollments.every((e) => e.course_id === courseId)).toBe(true);
+      expect(enrollments.some((e) => e.course_id === otherCourse.id)).toBe(
+        false,
+      );
+
+      // Sắp xếp: enrolled_at desc nulls last
+      const nullIdx = enrollments.findIndex((e) => e.enrolled_at === null);
+      const nonNullIdx = enrollments.findLastIndex(
+        (e) => e.enrolled_at !== null,
+      );
+      if (nullIdx !== -1 && nonNullIdx !== -1) {
+        expect(nullIdx).toBeGreaterThan(nonNullIdx);
+      }
+
+      // Có profile: studentId có full_name 'Học viên Test'
+      const withProf = enrollments.find((e) => e.user_id === studentId);
+      expect(withProf).toBeDefined();
+      expect(withProf?.profiles).toEqual({
+        user_id: studentId,
+        full_name: 'Học viên Test',
+      });
+
+      // Khóa học không có ai ghi danh → trả []
+      const emptyCourse = await prisma.course.create({
+        data: {
+          title: 'Khóa học trống',
+          price: 0,
+          courseType: 'video_quiz',
+        },
+      });
+      const emptyRes = await http()
+        .get(`/api/v1/learning/admin/courses/${emptyCourse.id}/enrollments`)
+        .set(bearer(adminToken))
+        .expect(200);
+      expect(emptyRes.body).toEqual([]);
+
+      // Dọn dẹp courses phụ tạo trong test này
+      await prisma.enrollment.deleteMany({
+        where: { courseId: { in: [otherCourse.id, emptyCourse.id] } },
+      });
+      await prisma.course.deleteMany({
+        where: { id: { in: [otherCourse.id, emptyCourse.id] } },
+      });
     });
   });
 });

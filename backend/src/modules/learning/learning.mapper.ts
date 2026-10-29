@@ -10,6 +10,7 @@ import type {
 import {
   AdminEnrollmentDto,
   AdminEnrollmentListDto,
+  CourseEnrollmentDto,
   CurriculumModuleDto,
   EnrollmentDto,
   FavoriteDto,
@@ -22,6 +23,7 @@ import {
 import type {
   EnrollmentWithCourseAndProfile,
   EnrollmentWithCourseTitle,
+  EnrollmentWithProfile,
   LessonPracticeWithQuiz,
   ModuleWithLessons,
 } from './learning.repository';
@@ -161,6 +163,20 @@ export class LearningMapper {
       profiles: enrollment.user?.profile
         ? {
             id: enrollment.user.profile.id,
+            user_id: enrollment.user.profile.userId,
+            full_name: enrollment.user.profile.fullName,
+          }
+        : null,
+    };
+  }
+
+  toCourseEnrollmentDto(
+    enrollment: EnrollmentWithProfile,
+  ): CourseEnrollmentDto {
+    return {
+      ...this.toEnrollmentDto(enrollment),
+      profiles: enrollment.user?.profile
+        ? {
             user_id: enrollment.user.profile.userId,
             full_name: enrollment.user.profile.fullName,
           }
