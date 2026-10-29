@@ -45,7 +45,7 @@ export class AssessmentAdminService {
     private readonly repo: AssessmentAdminRepository,
     private readonly mapper: AssessmentMapper,
     private readonly vocabMapper: VocabMapper,
-  ) { }
+  ) {}
 
   async listQuizQuestions(quizId: number): Promise<ReviewQuestionDto[]> {
     const quiz = await this.repo.findQuizById(quizId);
@@ -1060,11 +1060,11 @@ export class AssessmentAdminService {
 
           const rawAnswers = (item.answers || item.options || []) as (
             | {
-              answer_text?: string;
-              text?: string;
-              is_correct?: boolean;
-              explanation?: string | null;
-            }
+                answer_text?: string;
+                text?: string;
+                is_correct?: boolean;
+                explanation?: string | null;
+              }
             | string
           )[];
 
