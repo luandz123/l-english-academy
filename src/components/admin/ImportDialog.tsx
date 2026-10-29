@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Upload } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { uploadMedia } from "@/lib/api/media";
+import { createAdminMaterial, uploadMedia } from "@/lib/api/media";
 import { useToast } from "@/hooks/use-toast";
 import {
   Select,
@@ -62,7 +62,7 @@ const createMediaImporter = (quizId: number, courseId: number) => {
         `${Date.now()}_${filePrefix ? filePrefix + "_" : ""}${sanitizedName}`,
       );
 
-      await supabase.from("materials").insert({
+      await createAdminMaterial({
         title: title || sanitizedName,
         file_url: publicUrl,
         file_type: type,

@@ -1,6 +1,15 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { apiClient, ApiError } from "./client";
-import { uploadAvatar, uploadMedia, uploadMediaSafe } from "./media";
+import {
+  createAdminMaterial,
+  deleteAdminMaterial,
+  deleteAdminMaterialFolder,
+  listAdminMaterials,
+  renameAdminMaterialFolder,
+  uploadAvatar,
+  uploadMedia,
+  uploadMediaSafe,
+} from "./media";
 
 describe("src/lib/api/media", () => {
   afterEach(() => {
@@ -97,6 +106,68 @@ describe("src/lib/api/media", () => {
       expect(data).toBeNull();
       expect(error).toBeInstanceOf(ApiError);
       expect((error as ApiError).code).toBe("FILE_TOO_LARGE");
+    });
+  });
+
+  describe("materials admin api", () => {
+    it("listAdminMaterials gọi đúng endpoint", async () => {
+      const getSpy = vi.spyOn(apiClient, "get").mockResolvedValueOnce([]);
+
+      const { data, error } = await listAdminMaterials({ course_id: 10 });
+
+      expect(error).toBeNull();
+      expect(data).toEqual([]);
+      expect(getSpy).toHaveBeenCalledWith("admin/materials", {
+        query: { course_id: 10, folder_path: undefined },
+      });
+    });
+
+    it("createAdminMaterial gọi đúng endpoint và trả về kết quả", async () => {
+      const payload = {
+        title: "Test Mat",
+        file_url: "https://test.com/a.pdf",
+      };
+      const created = { id: 1, ...payload };
+      vi.spyOn(apiClient, "post").mockResolvedValueOnce(created);
+
+      const { data, error } = await createAdminMaterial(payload);
+
+      expect(error).toBeNull();
+      expect(data).toEqual(created);
+    });
+
+    it("deleteAdminMaterial gọi đúng endpoint delete", async () => {
+      const delSpy = vi.spyOn(apiClient, "delete").mockResolvedValueOnce(undefined);
+
+      const { error } = await deleteAdminMaterial(5);
+
+      expect(error).toBeNull();
+      expect(delSpy).toHaveBeenCalledWith("admin/materials/5");
+    });
+
+    it("renameAdminMaterialFolder gọi đúng endpoint rename-folder", async () => {
+      const postSpy = vi.spyOn(apiClient, "post").mockResolvedValueOnce({ count: 2 });
+
+      const { data, error } = await renameAdminMaterialFolder("/old", "/new");
+
+      expect(error).toBeNull();
+      expect(data?.count).toBe(2);
+      expect(postSpy).toHaveBeenCalledWith("admin/materials/rename-folder", {
+        old_path: "/old",
+        new_path: "/new",
+      });
+    });
+
+    it("deleteAdminMaterialFolder gọi đúng endpoint delete-folder", async () => {
+      const postSpy = vi.spyOn(apiClient, "post").mockResolvedValueOnce({ count: 3 });
+
+      const { data, error } = await deleteAdminMaterialFolder("/folder");
+
+      expect(error).toBeNull();
+      expect(data?.count).toBe(3);
+      expect(postSpy).toHaveBeenCalledWith("admin/materials/delete-folder", {
+        folder_path: "/folder",
+      });
     });
   });
 });
