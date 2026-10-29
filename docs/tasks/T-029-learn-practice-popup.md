@@ -216,3 +216,11 @@ Không có.
 - Kết quả:
 - Lý do:
 
+
+---
+
+## Review (Claude, 2026-10-29) — ✅ PASS, merged
+
+- Practice phải thuộc bài (400), quyền theo `canStudyLesson` dùng chung `lessonAccessContext` (admin, bài/chương free, ghi danh còn hạn), 403 trước khi đọc câu hỏi. e2e đủ khách / học viên khác / hết hạn / enrolled / admin / bài free / 404.
+- Thay đổi hành vi có chủ đích (#22f): code cũ đọc `questions + answers` không kiểm quyền; giờ người không có quyền nhận 403 → `data` null → popup rỗng như khi lỗi cũ.
+- Kiểm tra sau gộp: backend unit 325/325, e2e 361/361, build OK; frontend 202/202, eslint adapter sạch, tsc (adapter + LearnPage) rỗng, `check-ui-diff` OK, `LearnPage.tsx` không còn `supabase`.
