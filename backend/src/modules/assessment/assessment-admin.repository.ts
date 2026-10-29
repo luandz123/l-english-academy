@@ -715,17 +715,12 @@ export class AssessmentAdminRepository {
         courseId: data.courseId,
         description: data.description ?? null,
         audioUrl: data.audioUrl ?? null,
-        category: data.category ?? '2026',
-        displayOrder: data.displayOrder ?? 1,
-        releaseDate: data.releaseDate ?? null,
-        totalQuestions: data.totalQuestions ?? 200,
+        // undefined → mặc định DB (category 'general', display_order 0, total_questions 200)
+        category: data.category,
+        displayOrder: data.displayOrder,
+        releaseDate: data.releaseDate,
+        totalQuestions: data.totalQuestions,
       },
-    });
-  }
-
-  countFullTestsByCourse(courseId: number): Promise<number> {
-    return this.prisma.fullTest.count({
-      where: { courseId },
     });
   }
 

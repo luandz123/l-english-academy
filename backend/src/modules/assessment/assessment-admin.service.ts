@@ -547,8 +547,10 @@ export class AssessmentAdminService {
   async createFullTest(
     dto: CreateFullTestDto,
   ): Promise<AdminFullTestDetailDto> {
-    const title = dto.title.trim();
-    if (!title) {
+    // Lưu đúng giá trị client gửi (CourseFullTestManager tự trim, AdminFullTestManager thì không);
+    // trường không gửi → mặc định của DB, như insert cũ.
+    const title = dto.title;
+    if (!title.trim()) {
       throw new BadRequestException({
         code: 'VALIDATION_FAILED',
         message: 'Tên đề thi không được để trống',
@@ -556,21 +558,23 @@ export class AssessmentAdminService {
     }
 
     return this.repo.inTransaction(async (tx) => {
-      let displayOrder = dto.display_order;
-      if (displayOrder === undefined || displayOrder === null) {
-        const count = await tx.countFullTestsByCourse(dto.course_id);
-        displayOrder = count + 1;
-      }
-
       const newTest = await tx.createFullTest({
         title,
         courseId: dto.course_id,
-        description: dto.description?.trim() || null,
-        audioUrl: dto.audio_url?.trim() || null,
-        category: dto.category?.trim() || '2026',
-        displayOrder,
-        releaseDate: dto.release_date ? new Date(dto.release_date) : null,
-        totalQuestions: dto.total_questions ?? 200,
+        description: dto.description ?? null,
+        audioUrl: dto.audio_url ?? null,
+        ...(dto.category != null ? { category: dto.category } : {}),
+        ...(dto.display_order !== undefined && dto.display_order !== null
+          ? { displayOrder: dto.display_order }
+          : {}),
+        ...(dto.release_date !== undefined
+          ? {
+              releaseDate: dto.release_date ? new Date(dto.release_date) : null,
+            }
+          : {}),
+        ...(dto.total_questions !== undefined && dto.total_questions !== null
+          ? { totalQuestions: dto.total_questions }
+          : {}),
       });
 
       // Tự động tạo 7 quiz và 7 sections cho 7 Parts của TOEIC
@@ -604,11 +608,17 @@ export class AssessmentAdminService {
       });
     }
     const updated = await this.repo.updateFullTest(testId, {
-      title: dto.title.trim(),
-      description: dto.description?.trim() ?? null,
-      audioUrl: dto.audio_url?.trim() ?? null,
-      category: dto.category ?? '2026',
-      releaseDate: dto.release_date ? new Date(dto.release_date) : null,
+      // Chỉ cập nhật trường client gửi: AdminFullTestManager cũ chỉ gửi title/description/audio_url/course_id,
+      // ghi đè category/release_date sẽ làm mất dữ liệu.
+      title: dto.title,
+      ...(dto.description !== undefined
+        ? { description: dto.description }
+        : {}),
+      ...(dto.audio_url !== undefined ? { audioUrl: dto.audio_url } : {}),
+      ...(dto.category != null ? { category: dto.category } : {}),
+      ...(dto.release_date !== undefined
+        ? { releaseDate: dto.release_date ? new Date(dto.release_date) : null }
+        : {}),
       ...(dto.course_id ? { course: { connect: { id: dto.course_id } } } : {}),
       ...(dto.display_order !== undefined && dto.display_order !== null
         ? { displayOrder: dto.display_order }

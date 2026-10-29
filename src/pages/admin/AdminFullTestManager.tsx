@@ -725,8 +725,8 @@ const AdminFullTestManager = () => {
                     }}
                     disabled={!!importFile}
                     rows={6}
-                    placeholder={selectedTestForImport
-                      ? '{"title": "ETS 2026 Test 1", "questions": [...]}'
+                    placeholder={selectedTestForImport 
+                      ? '{"title": "ETS 2026 Test 1", "questions": [...]}' 
                       : '{"course_title": "Bộ đề thi thử 2026", "exams": [{"exam_title": "Đề số 01", "questions": [...]}, ...]}'
                     }
                     className="font-mono text-xs bg-muted/30 border border-border/70 rounded-xl"

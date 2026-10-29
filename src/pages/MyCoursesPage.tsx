@@ -120,7 +120,7 @@ export const MyCoursesPage: React.FC = () => {
       // All lessons in this course
       const modules = courseModules.filter((m: any) => Number(m.course_id) === cId);
       const allLessons = modules.flatMap((m: any) => m.lessons || []);
-
+      
       // Known exact lesson counts as reliable fallbacks
       const fallbackCount = cId === 1 ? 156 : cId === 3 ? 43 : 40;
       const totalLessons = allLessons.length > 0 ? allLessons.length : fallbackCount;
@@ -128,8 +128,8 @@ export const MyCoursesPage: React.FC = () => {
       // Completed lessons count
       const completedCount = allLessons.length > 0
         ? allLessons.filter((l: any) =>
-          userLessonProgress.some((p: any) => p.lesson_id === l.id && p.is_completed)
-        ).length
+            userLessonProgress.some((p: any) => p.lesson_id === l.id && p.is_completed)
+          ).length
         : userLessonProgress.filter((p: any) => p.is_completed).length;
 
       const progressPct = Math.min(100, Math.round((completedCount / totalLessons) * 100));
@@ -313,12 +313,12 @@ export const MyCoursesPage: React.FC = () => {
                   className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${isActive
                       ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/20"
                       : "bg-[#030712]/80 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-800"
-                    }`}
+                  }`}
                 >
                   <span>{tab.label}</span>
                   <span
                     className={`text-[10px] px-1.5 py-0.2 rounded-full ${isActive ? "bg-white/20 text-white font-extrabold" : "bg-slate-800 text-slate-500"
-                      }`}
+                    }`}
                   >
                     {tab.count}
                   </span>
@@ -558,9 +558,9 @@ export const MyCoursesPage: React.FC = () => {
                         className={`absolute top-3 right-3 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-black/85 backdrop-blur-md flex items-center gap-1 shadow-md z-10 border ${c.status === "completed"
                             ? "border-emerald-500/50 text-emerald-300"
                             : c.status === "in_progress"
-                              ? "border-blue-500/50 text-blue-300"
-                              : "border-slate-700 text-slate-300"
-                          }`}
+                            ? "border-blue-500/50 text-blue-300"
+                            : "border-slate-700 text-slate-300"
+                        }`}
                       >
                         {c.status === "completed" ? (
                           <>
@@ -619,7 +619,7 @@ export const MyCoursesPage: React.FC = () => {
                             className={`h-full rounded-full transition-all duration-700 ${c.status === "completed"
                                 ? "bg-gradient-to-r from-emerald-500 to-teal-400"
                                 : "bg-gradient-to-r from-cyan-400 to-blue-500 shadow-sm"
-                              }`}
+                            }`}
                             style={{ width: `${c.progressPct}%` }}
                           />
                         </div>

@@ -233,7 +233,7 @@ export const DashboardPage: React.FC = () => {
           }
         }
       }
-    } catch { }
+    } catch {}
     return null;
   }, [user?.id]);
 
@@ -360,7 +360,7 @@ export const DashboardPage: React.FC = () => {
       const hasLesson = lessonProgress.some((p: any) => (p.completed_at || p.created_at)?.startsWith(dateStr));
       const daysFromToday = currentDayOfWeek - index;
       const streakCovered = !isFuture && streak > 0 && daysFromToday > 0 && daysFromToday < streak;
-
+      
       // For today: done if user actually completed study/practice today
       const isDone = !isFuture && (totalDaySecs > 0 || hasLesson || streakCovered);
 
@@ -788,7 +788,7 @@ export const DashboardPage: React.FC = () => {
             {/* ================= 3. LỘ TRÌNH KHÓA HỌC ĐANG HỌC (SECONDARY ACTION CARD) ================= */}
             <div className="p-5 sm:p-6 rounded-2xl bg-[#070e1c]/90 backdrop-blur-xl border border-cyan-500/20 hover:border-cyan-500/40 shadow-[0_4px_25px_rgba(0,0,0,0.5),0_0_20px_rgba(6,182,212,0.04)] space-y-4 relative overflow-hidden group transition-all">
               <div className="absolute inset-x-6 -top-px h-px bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent" />
-
+              
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
                   <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
@@ -846,7 +846,7 @@ export const DashboardPage: React.FC = () => {
             {/* ================= 4. BIỂU ĐỒ THỜI GIAN HỌC TUẦN QUA ================= */}
             <div className="p-6 sm:p-7 rounded-3xl bg-[#070e1c]/90 backdrop-blur-xl border border-cyan-500/25 shadow-[0_4px_25px_rgba(0,0,0,0.5),0_0_20px_rgba(6,182,212,0.04)] space-y-4 relative overflow-hidden group">
               <div className="absolute inset-x-8 -top-px h-px bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent" />
-
+              
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
                   <h4 className="font-extrabold text-sm sm:text-base uppercase tracking-wider text-white flex items-center gap-2">
@@ -932,7 +932,7 @@ export const DashboardPage: React.FC = () => {
             {/* ================= 5. NHIỆM VỤ HÔM NAY (DAILY QUESTS VỚI KỸ THUẬT JUICE) ================= */}
             <div className="p-6 sm:p-7 rounded-3xl bg-[#070e1c]/90 backdrop-blur-xl border border-cyan-500/25 shadow-[0_4px_25px_rgba(0,0,0,0.5),0_0_20px_rgba(6,182,212,0.04)] space-y-4 relative overflow-hidden group">
               <div className="absolute inset-x-8 -top-px h-px bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent" />
-
+              
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
                   <div className="w-2.5 h-6 rounded-full bg-cyan-400" />
@@ -979,7 +979,7 @@ export const DashboardPage: React.FC = () => {
                           className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 ${isDone
                               ? "bg-emerald-500/20 border border-emerald-500/50 text-emerald-400 scale-105"
                               : "bg-slate-800/80 border border-slate-700 text-slate-500"
-                            }`}
+                          }`}
                         >
                           {isDone ? (
                             <Check className="w-4 h-4 stroke-[3]" />
@@ -1032,7 +1032,7 @@ export const DashboardPage: React.FC = () => {
             {/* ================= 6. LỊCH CHẤM CÔNG TUẦN (WEEKLY STREAK & LOSS AVERSION) ================= */}
             <div className="p-6 sm:p-7 rounded-3xl bg-[#070e1c]/90 backdrop-blur-xl border border-cyan-500/25 shadow-[0_4px_25px_rgba(0,0,0,0.5),0_0_20px_rgba(6,182,212,0.04)] space-y-4 relative overflow-hidden group">
               <div className="absolute inset-x-8 -top-px h-px bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent" />
-
+              
               <div className="flex items-center justify-between">
                 <h4 className="font-extrabold text-sm sm:text-base uppercase tracking-wide text-white flex items-center gap-2">
                   <Flame className="w-5 h-5 text-orange-400 fill-current animate-pulse" />
@@ -1051,9 +1051,9 @@ export const DashboardPage: React.FC = () => {
                       className={`min-h-[68px] py-3 px-1 rounded-2xl flex flex-col items-center justify-between transition-all ${d.done
                           ? "bg-gradient-to-b from-amber-500/25 to-orange-500/20 border border-amber-500/40 text-amber-300 font-bold"
                           : isTodayUnfinished
-                            ? "border-2 border-dashed border-orange-500/90 bg-orange-500/15 text-orange-300 animate-pulse font-extrabold"
-                            : "bg-[#030712]/80 border border-slate-800 text-slate-500"
-                        }`}
+                          ? "border-2 border-dashed border-orange-500/90 bg-orange-500/15 text-orange-300 animate-pulse font-extrabold"
+                          : "bg-[#030712]/80 border border-slate-800 text-slate-500"
+                      }`}
                     >
                       <span className="text-xs uppercase font-bold">{d.label}</span>
                       <div className="my-0.5">
@@ -1145,7 +1145,7 @@ export const DashboardPage: React.FC = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
             {/* Card 1: Nghe Chép Chính Tả */}
-            <div
+            <div 
               onClick={() => navigate('/listening')}
               className="p-6 rounded-3xl bg-[#070e1c]/90 hover:bg-[#09152e] border border-cyan-500/20 hover:border-cyan-400/50 transition-all duration-300 shadow-xl cursor-pointer group flex flex-col justify-between space-y-4 relative overflow-hidden"
             >
@@ -1174,7 +1174,7 @@ export const DashboardPage: React.FC = () => {
             </div>
 
             {/* Card 2: Coach Luyện Nghe Part 2 */}
-            <div
+            <div 
               onClick={() => navigate('/part2-coach')}
               className="p-6 rounded-3xl bg-[#070e1c]/90 hover:bg-[#09152e] border border-amber-500/20 hover:border-amber-400/50 transition-all duration-300 shadow-xl cursor-pointer group flex flex-col justify-between space-y-4 relative overflow-hidden"
             >
@@ -1203,7 +1203,7 @@ export const DashboardPage: React.FC = () => {
             </div>
 
             {/* Card 3: Đấu Trường Game Từ Vựng */}
-            <div
+            <div 
               onClick={() => navigate('/games')}
               className="p-6 rounded-3xl bg-[#070e1c]/90 hover:bg-[#09152e] border border-fuchsia-500/20 hover:border-fuchsia-400/50 transition-all duration-300 shadow-xl cursor-pointer group flex flex-col justify-between space-y-4 relative overflow-hidden"
             >
@@ -1232,7 +1232,7 @@ export const DashboardPage: React.FC = () => {
             </div>
 
             {/* Card 4: Kho Đề Thi Full Test ETS */}
-            <div
+            <div 
               onClick={() => navigate('/fulltests')}
               className="p-6 rounded-3xl bg-[#070e1c]/90 hover:bg-[#09152e] border border-emerald-500/20 hover:border-emerald-400/50 transition-all duration-300 shadow-xl cursor-pointer group flex flex-col justify-between space-y-4 relative overflow-hidden"
             >
@@ -1265,7 +1265,7 @@ export const DashboardPage: React.FC = () => {
         {/* ================= 9. BỘ ĐỀ THI THỬ ETS TIÊU BIỂU DÀNH CHO BẠN ================= */}
         <div className="p-6 sm:p-8 rounded-3xl bg-[#070e1c]/90 backdrop-blur-xl border border-cyan-500/25 shadow-2xl space-y-6 relative overflow-hidden">
           <div className="absolute inset-x-8 -top-px h-px bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent" />
-
+          
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-bold uppercase tracking-wider mb-1.5">
