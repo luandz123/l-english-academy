@@ -9,6 +9,7 @@ import {
   getCurriculum,
   getMyCoursesModules,
   getMyEnrollment,
+  getMyEnrollments,
   listLessonMaterials,
   listLessonPractices,
   listPracticeQuestions,
@@ -147,6 +148,30 @@ describe("learning adapter", () => {
       expect(data).toBeNull();
       expect(error).toBeInstanceOf(ApiError);
       expect(error?.status).toBe(500);
+    });
+  });
+
+  describe("getMyEnrollments", () => {
+    it("gọi GET /learning/my-enrollments và trả danh sách ghi danh", async () => {
+      const enrollments = [
+        {
+          id: 1,
+          user_id: "u-1",
+          course_id: 10,
+          enrolled_at: "2026-01-01T00:00:00.000Z",
+          expires_at: null,
+          courses: { id: 10, title: "Khóa TOEIC" },
+        },
+      ];
+      const fetchMock = mockFetch(200, enrollments);
+
+      const { data, error } = await getMyEnrollments();
+
+      expect(error).toBeNull();
+      expect(data).toEqual(enrollments);
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("/api/v1/learning/my-enrollments");
+      expect(init?.method).toBe("GET");
     });
   });
 

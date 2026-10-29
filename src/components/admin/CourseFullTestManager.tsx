@@ -1,8 +1,13 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { deleteAdminFullTest, importAdminFullTestQuestions } from "@/lib/api/assessment";
+import {
+  createAdminFullTest,
+  deleteAdminFullTest,
+  importAdminFullTestQuestions,
+  listAdminFullTests,
+  updateAdminFullTest,
+} from "@/lib/api/assessment";
 import { uploadMedia } from "@/lib/api/media";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -14,17 +19,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { 
-  Plus, 
-  Trash2, 
-  Edit3, 
-  UploadCloud, 
-  FileText, 
-  Volume2, 
-  Eye, 
-  HelpCircle, 
-  CheckCircle2, 
-  AlertCircle, 
+import {
+  Plus,
+  Trash2,
+  Edit3,
+  UploadCloud,
+  FileText,
+  Volume2,
+  Eye,
+  HelpCircle,
+  CheckCircle2,
+  AlertCircle,
   ExternalLink,
   Calendar,
   Layers,
@@ -79,23 +84,7 @@ export const CourseFullTestManager = ({ courseId, courseTitle }: CourseFullTestM
   const { data: fullTests = [], isLoading } = useQuery({
     queryKey: ["admin-course-fulltests", courseId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("full_tests")
-        .select(`
-          *,
-          full_test_sections (
-            id,
-            part_number,
-            quiz_id,
-            quizzes (
-              total_questions
-            )
-          )
-        `)
-        .eq("course_id", courseId)
-        .order("display_order", { ascending: true })
-        .order("created_at", { ascending: false });
-
+      const { data, error } = await listAdminFullTests({ courseId });
       if (error) throw error;
       return data || [];
     },
@@ -133,51 +122,18 @@ export const CourseFullTestManager = ({ courseId, courseTitle }: CourseFullTestM
         throw new Error("Vui lòng nhập tên đề thi.");
       }
 
-      // 1. Insert full_test
-      const { data: newTest, error: createError } = await supabase
-        .from("full_tests")
-        .insert({
-          title: title.trim(),
-          description: description.trim() || null,
-          audio_url: audioUrl.trim() || null,
-          category: category || "2026",
-          course_id: courseId,
-          display_order: Number(displayOrder) || (fullTests.length + 1),
-          release_date: releaseDate ? new Date(releaseDate).toISOString() : null,
-          total_questions: 200,
-        })
-        .select("id")
-        .single();
+      const { error } = await createAdminFullTest({
+        title: title.trim(),
+        description: description.trim() || null,
+        audio_url: audioUrl.trim() || null,
+        category: category || "2026",
+        course_id: courseId,
+        display_order: Number(displayOrder) || (fullTests.length + 1),
+        release_date: releaseDate ? new Date(releaseDate).toISOString() : null,
+        total_questions: 200,
+      });
 
-      if (createError) throw createError;
-
-      // 2. Auto create 7 TOEIC section quizzes
-      const sectionsToInsert = [];
-      for (let part = 1; part <= 7; part++) {
-        const { data: newQuiz, error: quizError } = await supabase
-          .from("quizzes")
-          .insert({
-            title: `Part ${part} - ${title.trim()}`,
-            total_questions: 0,
-            display_order: part,
-          })
-          .select("id")
-          .single();
-
-        if (quizError) throw quizError;
-
-        sectionsToInsert.push({
-          test_id: newTest.id,
-          part_number: part,
-          quiz_id: newQuiz.id,
-        });
-      }
-
-      const { error: sectionError } = await supabase
-        .from("full_test_sections")
-        .insert(sectionsToInsert);
-
-      if (sectionError) throw sectionError;
+      if (error) throw error;
     },
     onSuccess: () => {
       toast({
@@ -205,17 +161,14 @@ export const CourseFullTestManager = ({ courseId, courseTitle }: CourseFullTestM
         throw new Error("Vui lòng nhập tên đề thi.");
       }
 
-      const { error } = await supabase
-        .from("full_tests")
-        .update({
-          title: title.trim(),
-          description: description.trim() || null,
-          audio_url: audioUrl.trim() || null,
-          category: category || "2026",
-          display_order: Number(displayOrder) || 1,
-          release_date: releaseDate ? new Date(releaseDate).toISOString() : null,
-        })
-        .eq("id", selectedTest.id);
+      const { error } = await updateAdminFullTest(selectedTest.id, {
+        title: title.trim(),
+        description: description.trim() || null,
+        audio_url: audioUrl.trim() || null,
+        category: category || "2026",
+        display_order: Number(displayOrder) || 1,
+        release_date: releaseDate ? new Date(releaseDate).toISOString() : null,
+      });
 
       if (error) throw error;
     },
@@ -403,8 +356,8 @@ export const CourseFullTestManager = ({ courseId, courseTitle }: CourseFullTestM
             );
 
             return (
-              <Card 
-                key={test.id} 
+              <Card
+                key={test.id}
                 className="overflow-hidden border border-border/70 hover:border-primary/50 transition-all duration-200 hover:shadow-soft-md bg-card rounded-2xl flex flex-col justify-between"
               >
                 <div>
@@ -467,10 +420,10 @@ export const CourseFullTestManager = ({ courseId, courseTitle }: CourseFullTestM
                     </Button>
 
                     {/* Import JSON */}
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      onClick={() => openImportModal(test)} 
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => openImportModal(test)}
                       className="text-xs h-8 border-border/80 hover:bg-muted font-semibold rounded-xl active:scale-95 duration-120"
                       title="Nhập câu hỏi từ file JSON"
                     >
@@ -478,10 +431,10 @@ export const CourseFullTestManager = ({ courseId, courseTitle }: CourseFullTestM
                     </Button>
 
                     {/* Preview Student Test */}
-                    <Button 
-                      size="sm" 
-                      variant="ghost" 
-                      asChild 
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      asChild
                       className="text-xs h-8 text-muted-foreground hover:text-foreground font-semibold rounded-xl active:scale-95 duration-120"
                     >
                       <Link to={`/courses/${courseId}/fulltest/${test.id}`} target="_blank">
@@ -491,18 +444,18 @@ export const CourseFullTestManager = ({ courseId, courseTitle }: CourseFullTestM
                   </div>
 
                   <div className="flex items-center gap-1">
-                    <Button 
-                      size="icon" 
-                      variant="ghost" 
+                    <Button
+                      size="icon"
+                      variant="ghost"
                       onClick={() => openEditModal(test)}
                       className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-xl active:scale-95 duration-120"
                       title="Sửa thông tin đề thi"
                     >
                       <Edit3 className="w-3.5 h-3.5" />
                     </Button>
-                    <Button 
-                      size="icon" 
-                      variant="ghost" 
+                    <Button
+                      size="icon"
+                      variant="ghost"
                       onClick={() => {
                         if (confirm(`Bạn có chắc chắn muốn xóa đề thi "${test.title}"? Thao tác này sẽ xóa toàn bộ câu hỏi và kết quả thi liên quan.`)) {
                           deleteMutation.mutate(test.id);
@@ -643,8 +596,8 @@ export const CourseFullTestManager = ({ courseId, courseTitle }: CourseFullTestM
           </div>
 
           <DialogFooter className="gap-2 sm:gap-0 pt-2 border-t border-border/60">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="rounded-xl font-semibold active:scale-95 duration-120"
               onClick={() => {
                 setIsCreateOpen(false);

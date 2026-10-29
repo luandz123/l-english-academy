@@ -3,6 +3,7 @@ import {
   appendAdminFullTestQuestions,
   bulkDeleteAdminFullTests,
   bulkDeleteAdminVocabWords,
+  createAdminFullTest,
   createAdminFullTestQuestion,
   createAdminLessonVocabQuiz,
   createAdminVocabWordsBatch,
@@ -36,6 +37,7 @@ import {
   getStudyTimeLeaderboard,
   importAdminFullTestQuestions,
   importAdminQuizQuestions,
+  listAdminFullTests,
   listAdminQuizQuestions,
   listMyQuizResults,
   listQuizQuestions,
@@ -46,6 +48,7 @@ import {
   patchQuiz,
   reorderQuizQuestions,
   resetDictation,
+  searchAdminVocabWords,
   setQuizQuestionImages,
   submitQuiz,
   syncDictationSession,
@@ -757,6 +760,39 @@ describe("assessment adapter", () => {
         const [url, init] = fetchMock.mock.calls[0];
         expect(url).toBe("/api/v1/assessment/admin/quizzes/42/import-questions");
         expect(init?.method).toBe("POST");
+      });
+
+      it("listAdminFullTests gọi GET /api/v1/assessment/admin/full-tests", async () => {
+        const fetchMock = mockFetch(200, [{ id: 1, title: "Test 1" }]);
+        const { data, error } = await listAdminFullTests({ courseId: 10 });
+        expect(error).toBeNull();
+        expect(data).toEqual([{ id: 1, title: "Test 1" }]);
+        const [url, init] = fetchMock.mock.calls[0];
+        expect(url).toBe("/api/v1/assessment/admin/full-tests?courseId=10");
+        expect(init?.method).toBe("GET");
+      });
+
+      it("createAdminFullTest gọi POST /api/v1/assessment/admin/full-tests", async () => {
+        const fetchMock = mockFetch(201, { id: 10, title: "New Test" });
+        const { data, error } = await createAdminFullTest({
+          title: "New Test",
+          course_id: 5,
+        });
+        expect(error).toBeNull();
+        expect(data).toEqual({ id: 10, title: "New Test" });
+        const [url, init] = fetchMock.mock.calls[0];
+        expect(url).toBe("/api/v1/assessment/admin/full-tests");
+        expect(init?.method).toBe("POST");
+      });
+
+      it("searchAdminVocabWords gọi GET /api/v1/assessment/admin/vocab/search", async () => {
+        const fetchMock = mockFetch(200, [{ id: 1, word: "test" }]);
+        const { data, error } = await searchAdminVocabWords("test");
+        expect(error).toBeNull();
+        expect(data).toEqual([{ id: 1, word: "test" }]);
+        const [url, init] = fetchMock.mock.calls[0];
+        expect(url).toBe("/api/v1/assessment/admin/vocab/search?q=test");
+        expect(init?.method).toBe("GET");
       });
     });
   });

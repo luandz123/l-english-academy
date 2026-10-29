@@ -702,13 +702,73 @@ export class AssessmentAdminRepository {
   createFullTest(data: {
     title: string;
     courseId: number;
+    description?: string | null;
     audioUrl?: string | null;
+    category?: string;
+    displayOrder?: number;
+    releaseDate?: Date | null;
+    totalQuestions?: number;
   }): Promise<FullTest> {
     return this.prisma.fullTest.create({
       data: {
         title: data.title,
         courseId: data.courseId,
+        description: data.description ?? null,
         audioUrl: data.audioUrl ?? null,
+        category: data.category ?? '2026',
+        displayOrder: data.displayOrder ?? 1,
+        releaseDate: data.releaseDate ?? null,
+        totalQuestions: data.totalQuestions ?? 200,
+      },
+    });
+  }
+
+  countFullTestsByCourse(courseId: number): Promise<number> {
+    return this.prisma.fullTest.count({
+      where: { courseId },
+    });
+  }
+
+  findAdminFullTests(courseId?: number) {
+    return this.prisma.fullTest.findMany({
+      where: courseId ? { courseId } : undefined,
+      include: {
+        course: {
+          select: { title: true },
+        },
+        fullTestSections: {
+          include: {
+            quiz: {
+              select: { totalQuestions: true },
+            },
+          },
+          orderBy: { partNumber: 'asc' },
+        },
+      },
+      orderBy: courseId
+        ? [{ displayOrder: 'asc' }, { createdAt: 'desc' }]
+        : [{ createdAt: 'desc' }],
+    });
+  }
+
+  searchVocabQuestions(query?: string) {
+    return this.prisma.vocabQuestion.findMany({
+      where: query?.trim()
+        ? {
+            word: {
+              contains: query.trim(),
+              mode: 'insensitive',
+            },
+          }
+        : undefined,
+      orderBy: { id: 'desc' },
+      take: 60,
+      select: {
+        id: true,
+        word: true,
+        phonetic: true,
+        definitionVi: true,
+        exampleSentence: true,
       },
     });
   }

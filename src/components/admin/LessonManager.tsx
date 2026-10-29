@@ -7,7 +7,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Edit, Trash2, Video, FileQuestion, BookOpen, ChevronDown, ChevronRight, GripVertical, FileText, Upload, Volume2, Eye, EyeOff, Unlock, Lock } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { uploadMediaSafe } from "@/lib/api/media";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -109,9 +108,9 @@ const SortableLessonItem = ({
         <span className="text-xs text-muted-foreground">
           {l.lesson_type === "video" && l.pdf_url ? "📄 PDF" : lessonTypeLabels[l.lesson_type] || "Video"}
         </span>
-        <Button 
-          size="icon" 
-          variant="ghost" 
+        <Button
+          size="icon"
+          variant="ghost"
           className={`h-7 w-7 ${l.is_free ? 'text-emerald-600' : 'text-muted-foreground'}`}
           onClick={(e) => {
             e.stopPropagation();
@@ -129,9 +128,9 @@ const SortableLessonItem = ({
         >
           {l.is_free ? <Unlock className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
         </Button>
-        <Button 
-          size="icon" 
-          variant="ghost" 
+        <Button
+          size="icon"
+          variant="ghost"
           className={`h-7 w-7 ${l.is_published === false ? 'text-muted-foreground' : 'text-primary'}`}
           onClick={(e) => {
             e.stopPropagation();
@@ -182,7 +181,7 @@ const SortableLessonItem = ({
               <CreateQuizForLesson lessonId={l.id} moduleId={l.module_id} courseId={courseId} quizzesCount={0} lessonTitle={l.title} />
             </div>
           )}
-          
+
           <AdminLessonVocab lessonId={l.id} lessonTitle={l.title} />
         </div>
       )}
@@ -457,9 +456,9 @@ const LessonManager = ({ moduleId, courseId, lessons, quizzes }: LessonManagerPr
                   <Input value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} placeholder="https://www.youtube.com/embed/... hoặc https://.../video.mp4" />
                   <p className="text-xs text-muted-foreground">Có thể để trống nếu chỉ muốn tải PDF.</p>
                 </div>
-                
+
                 <div className="h-px bg-border my-2" />
-                
+
                 <div className="space-y-2">
                   <Label className="flex items-center gap-2"><FileText className="w-4 h-4 text-amber-600" /> File PDF đính kèm</Label>
                   {pdfUrl && (
@@ -494,11 +493,11 @@ const LessonManager = ({ moduleId, courseId, lessons, quizzes }: LessonManagerPr
             <div className="space-y-2">
               <Label>Thời lượng</Label>
               <div className="flex gap-2">
-                <Input 
-                  type="number" 
-                  className="flex-1" 
-                  value={durationVal === 0 ? "" : durationVal} 
-                  onChange={(e) => setDurationVal(e.target.value === "" ? "" : Number(e.target.value))} 
+                <Input
+                  type="number"
+                  className="flex-1"
+                  value={durationVal === 0 ? "" : durationVal}
+                  onChange={(e) => setDurationVal(e.target.value === "" ? "" : Number(e.target.value))}
                 />
                 <Select value={durationUnit} onValueChange={setDurationUnit}>
                   <SelectTrigger className="w-[120px]"><SelectValue /></SelectTrigger>
@@ -530,20 +529,20 @@ const LessonManager = ({ moduleId, courseId, lessons, quizzes }: LessonManagerPr
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Số câu hỏi</Label>
-                <Input 
-                  type="number" 
-                  value={quizTotalQ === 0 ? "" : quizTotalQ} 
-                  onChange={(e) => setQuizTotalQ(e.target.value === "" ? "" : Number(e.target.value))} 
+                <Input
+                  type="number"
+                  value={quizTotalQ === 0 ? "" : quizTotalQ}
+                  onChange={(e) => setQuizTotalQ(e.target.value === "" ? "" : Number(e.target.value))}
                 />
               </div>
               <div className="space-y-2">
                 <Label>Giới hạn TG (0=không)</Label>
                 <div className="flex gap-2">
-                  <Input 
-                    type="number" 
-                    className="flex-1" 
-                    value={quizTimeLimitVal === 0 ? "" : quizTimeLimitVal} 
-                    onChange={(e) => setQuizTimeLimitVal(e.target.value === "" ? "" : Number(e.target.value))} 
+                  <Input
+                    type="number"
+                    className="flex-1"
+                    value={quizTimeLimitVal === 0 ? "" : quizTimeLimitVal}
+                    onChange={(e) => setQuizTimeLimitVal(e.target.value === "" ? "" : Number(e.target.value))}
                   />
                   <Select value={quizTimeLimitUnit} onValueChange={setQuizTimeLimitUnit}>
                     <SelectTrigger className="w-[100px]"><SelectValue /></SelectTrigger>

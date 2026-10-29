@@ -1,20 +1,20 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import AdminLayout from '@/components/AdminLayout';
-import { 
-  Gamepad2, 
-  Plus, 
-  Search, 
-  Edit3, 
-  Trash2, 
-  Copy, 
-  RotateCcw, 
-  Save, 
-  Upload, 
-  Download, 
-  Volume2, 
-  BookOpen, 
-  Sparkles, 
-  CheckCircle2, 
+import {
+  Gamepad2,
+  Plus,
+  Search,
+  Edit3,
+  Trash2,
+  Copy,
+  RotateCcw,
+  Save,
+  Upload,
+  Download,
+  Volume2,
+  BookOpen,
+  Sparkles,
+  CheckCircle2,
   AlertCircle,
   FileText,
   Database,
@@ -28,15 +28,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogDescription, 
-  DialogFooter 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter
 } from '@/components/ui/dialog';
-import { 
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -47,13 +47,13 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { searchAdminVocabWords } from '@/lib/api/assessment';
 import { VocabTopic, VocabWord } from '@/components/game/WordShooter/types';
-import { 
-  getVocabPacks, 
-  saveVocabPacks, 
-  resetVocabPacksToDefault, 
-  parseBulkWordsText 
+import {
+  getVocabPacks,
+  saveVocabPacks,
+  resetVocabPacksToDefault,
+  parseBulkWordsText
 } from '@/services/vocabPacksService';
 import { TOEIC_600_MASTER_PACK, TOEIC_THEMATIC_PACKS, TOEIC_600_ALL_WORDS } from '@/data/toeic600Data';
 import { cn } from '@/lib/utils';
@@ -146,7 +146,7 @@ export default function AdminVocabPacks() {
   const filteredPacks = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
     if (!q) return packs;
-    return packs.filter((p) => 
+    return packs.filter((p) =>
       p.name.toLowerCase().includes(q) ||
       p.description.toLowerCase().includes(q) ||
       p.words.some((w) => w.word.toLowerCase().includes(q) || w.definition_vi.toLowerCase().includes(q))
@@ -158,7 +158,7 @@ export default function AdminVocabPacks() {
     if (!activePack) return [];
     const q = wordSearchQuery.toLowerCase().trim();
     if (!q) return activePack.words;
-    return activePack.words.filter((w) => 
+    return activePack.words.filter((w) =>
       w.word.toLowerCase().includes(q) ||
       w.definition_vi.toLowerCase().includes(q) ||
       (w.phonetic && w.phonetic.toLowerCase().includes(q))
@@ -387,11 +387,11 @@ export default function AdminVocabPacks() {
             words: p.words.map((w) =>
               w.id === editingWord.id
                 ? {
-                    ...w,
-                    word: wordText.trim().toLowerCase(),
-                    phonetic: cleanPhonetic || null,
-                    definition_vi: wordDefinition.trim(),
-                  }
+                  ...w,
+                  word: wordText.trim().toLowerCase(),
+                  phonetic: cleanPhonetic || null,
+                  definition_vi: wordDefinition.trim(),
+                }
                 : w
             ),
           };
@@ -545,18 +545,7 @@ export default function AdminVocabPacks() {
   const fetchDbWords = async () => {
     setIsLoadingDb(true);
     try {
-      let query = supabase
-        .from('vocab_questions')
-        .select('id, word, phonetic, definition_vi, example_sentence')
-        .not('word', 'is', null)
-        .order('id', { ascending: false })
-        .limit(60);
-
-      if (dbSearch.trim()) {
-        query = query.ilike('word', `%${dbSearch.trim()}%`);
-      }
-
-      const { data, error } = await query;
+      const { data, error } = await searchAdminVocabWords(dbSearch);
       if (!error && data) {
         setDbWords(data);
       }
@@ -826,8 +815,8 @@ export default function AdminVocabPacks() {
                       onClick={() => setActivePackId(pack.id)}
                       className={cn(
                         "flex-1 font-extrabold text-xs h-9",
-                        isSelected 
-                          ? "bg-[var(--duo-blue)] text-white hover:bg-[var(--duo-blue)]/90" 
+                        isSelected
+                          ? "bg-[var(--duo-blue)] text-white hover:bg-[var(--duo-blue)]/90"
                           : "bg-muted hover:bg-slate-200 dark:hover:bg-slate-800 text-foreground"
                       )}
                     >
@@ -1290,7 +1279,7 @@ export default function AdminVocabPacks() {
                           <input
                             type="checkbox"
                             checked={isSelected}
-                            onChange={() => {}}
+                            onChange={() => { }}
                             className="rounded border-border text-primary focus:ring-primary"
                           />
                           <div>

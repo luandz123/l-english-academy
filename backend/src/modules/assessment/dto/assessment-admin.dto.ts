@@ -132,8 +132,8 @@ export class SaveModuleQuizDto {
 }
 
 export class AdminFullTestCourseDto {
-  @ApiProperty({ example: 1 })
-  id!: number;
+  @ApiPropertyOptional({ example: 1 })
+  id?: number;
 
   @ApiProperty({ example: 'Khóa TOEIC' })
   title!: string;
@@ -169,6 +169,136 @@ export class UpdateFullTestDto {
   @IsOptional()
   @IsString()
   release_date?: string | null;
+
+  @ApiPropertyOptional({ example: 1, nullable: true })
+  @IsOptional()
+  @IsInt()
+  course_id?: number | null;
+
+  @ApiPropertyOptional({ example: 1, nullable: true })
+  @IsOptional()
+  @IsInt()
+  display_order?: number | null;
+
+  @ApiPropertyOptional({ example: 200, nullable: true })
+  @IsOptional()
+  @IsInt()
+  total_questions?: number | null;
+}
+
+export class CreateFullTestDto {
+  @ApiProperty({ example: 'TOEIC Practice Test 1' })
+  @IsString()
+  @IsNotEmpty()
+  title!: string;
+
+  @ApiProperty({ example: 1 })
+  @IsInt()
+  course_id!: number;
+
+  @ApiPropertyOptional({ example: 'Mô tả đề thi', nullable: true })
+  @IsOptional()
+  @IsString()
+  description?: string | null;
+
+  @ApiPropertyOptional({ example: 'https://...', nullable: true })
+  @IsOptional()
+  @IsString()
+  audio_url?: string | null;
+
+  @ApiPropertyOptional({ example: '2026', default: '2026' })
+  @IsOptional()
+  @IsString()
+  category?: string;
+
+  @ApiPropertyOptional({ example: 1 })
+  @IsOptional()
+  @IsInt()
+  display_order?: number;
+
+  @ApiPropertyOptional({ example: '2026-03-29T00:00:00.000Z', nullable: true })
+  @IsOptional()
+  @IsString()
+  release_date?: string | null;
+
+  @ApiPropertyOptional({ example: 200, default: 200 })
+  @IsOptional()
+  @IsInt()
+  total_questions?: number;
+}
+
+export class AdminFullTestSectionQuizDto {
+  @ApiProperty({ example: 30 })
+  total_questions!: number;
+}
+
+export class AdminFullTestSectionDto {
+  @ApiProperty({ example: 1 })
+  id!: number;
+
+  @ApiProperty({ example: 1 })
+  part_number!: number;
+
+  @ApiProperty({ example: 10 })
+  quiz_id!: number;
+
+  @ApiPropertyOptional({ type: AdminFullTestSectionQuizDto, nullable: true })
+  quizzes!: AdminFullTestSectionQuizDto | null;
+}
+
+export class AdminFullTestListItemDto {
+  @ApiProperty({ example: 1 })
+  id!: number;
+
+  @ApiProperty({ example: 'TOEIC Practice Test 1' })
+  title!: string;
+
+  @ApiPropertyOptional({ example: 'Mô tả đề thi', nullable: true })
+  description!: string | null;
+
+  @ApiPropertyOptional({ example: 1, nullable: true })
+  course_id!: number | null;
+
+  @ApiProperty({ example: '2026' })
+  category!: string;
+
+  @ApiProperty({ example: 1 })
+  display_order!: number;
+
+  @ApiPropertyOptional({ example: 200, nullable: true })
+  total_questions!: number | null;
+
+  @ApiPropertyOptional({ example: '2026-03-29T00:00:00.000Z', nullable: true })
+  release_date!: string | null;
+
+  @ApiPropertyOptional({ example: 'https://...', nullable: true })
+  audio_url!: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  created_at!: string | null;
+
+  @ApiPropertyOptional({ type: AdminFullTestCourseDto, nullable: true })
+  courses!: AdminFullTestCourseDto | null;
+
+  @ApiProperty({ type: [AdminFullTestSectionDto] })
+  full_test_sections!: AdminFullTestSectionDto[];
+}
+
+export class AdminSearchVocabWordDto {
+  @ApiProperty({ example: 1 })
+  id!: number;
+
+  @ApiProperty({ example: 'abandon' })
+  word!: string;
+
+  @ApiPropertyOptional({ example: '/əˈbændən/', nullable: true })
+  phonetic!: string | null;
+
+  @ApiPropertyOptional({ example: 'từ bỏ', nullable: true })
+  definition_vi!: string | null;
+
+  @ApiPropertyOptional({ example: 'He abandoned his car.', nullable: true })
+  example_sentence!: string | null;
 }
 
 export class SaveFullTestAnswerItemDto {

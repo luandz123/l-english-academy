@@ -39,6 +39,10 @@ export type EnrollmentWithCourseTitle = Enrollment & {
   course: Pick<Course, 'title'> | null;
 };
 
+export type EnrollmentWithFullCourse = Enrollment & {
+  course: Course | null;
+};
+
 export type EnrollmentWithCourseAndProfile = Enrollment & {
   course: Pick<Course, 'title'> | null;
   user: {
@@ -392,6 +396,23 @@ export class LearningRepository {
   async deletePractice(id: number): Promise<void> {
     await this.prisma.lessonPractice.deleteMany({
       where: { id },
+    });
+  }
+
+  /**
+   * Lấy danh sách ghi danh của chính user kèm toàn bộ thông tin khóa học (T-035).
+   * Thay `MyCoursesPage.tsx:48` và `DashboardPage.tsx:114`.
+   */
+  findMyEnrollments(userId: string): Promise<EnrollmentWithFullCourse[]> {
+    return this.prisma.enrollment.findMany({
+      where: { userId },
+      include: {
+        course: true,
+      },
+      orderBy: [
+        { enrolledAt: { sort: 'desc', nulls: 'last' } },
+        { id: 'desc' },
+      ],
     });
   }
 

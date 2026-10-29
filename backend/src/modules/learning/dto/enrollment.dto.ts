@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { CourseDto } from '../../catalog/dto';
 
 /** Một dòng `enrollments` (shape `select *` của Supabase). */
 export class EnrollmentDto {
@@ -16,6 +17,11 @@ export class EnrollmentDto {
 
   @ApiProperty({ nullable: true, type: String, format: 'date-time' })
   expires_at!: string | null;
+}
+
+export class MyEnrollmentDto extends EnrollmentDto {
+  @ApiProperty({ type: CourseDto, nullable: true })
+  courses!: CourseDto | null;
 }
 
 /** Bọc trong object vì Nest trả body rỗng khi handler trả `null`. */

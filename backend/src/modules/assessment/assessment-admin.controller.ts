@@ -32,10 +32,13 @@ import { Roles, RolesGuard } from '../auth/guards/roles.guard';
 import { AssessmentAdminService } from './assessment-admin.service';
 import {
   AdminFullTestDetailDto,
+  AdminFullTestListItemDto,
+  AdminSearchVocabWordDto,
   AppendFullTestQuestionsDto,
   BulkDeleteFullTestsDto,
   BulkDeleteQuestionsDto,
   BulkDeleteVocabWordsDto,
+  CreateFullTestDto,
   CreateFullTestQuestionDto,
   CreateLessonVocabQuizDto,
   CreateVocabWordsBatchDto,
@@ -353,6 +356,36 @@ export class AssessmentAdminController {
     return this.assessmentAdminService.updateQuestionGroup(testId, dto);
   }
 
+  @Get('full-tests')
+  @ApiOperation({
+    summary:
+      'Admin xem danh sách đề thi Full Test (kèm thống kê câu hỏi các part)',
+  })
+  @ApiOkResponse({ type: [AdminFullTestListItemDto] })
+  @ApiUnauthorizedResponse({ description: 'Chưa đăng nhập' })
+  @ApiForbiddenResponse({ description: 'Không có quyền admin' })
+  listFullTests(
+    @Query('courseId') courseId?: string,
+  ): Promise<AdminFullTestListItemDto[]> {
+    const cId = courseId ? Number(courseId) : undefined;
+    return this.assessmentAdminService.listAdminFullTests(cId);
+  }
+
+  @Post('full-tests')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: 'Admin tạo mới đề thi Full Test và tự động tạo 7 Part TOEIC',
+  })
+  @ApiCreatedResponse({ type: AdminFullTestDetailDto })
+  @ApiBadRequestResponse({ description: 'VALIDATION_FAILED' })
+  @ApiUnauthorizedResponse({ description: 'Chưa đăng nhập' })
+  @ApiForbiddenResponse({ description: 'Không có quyền admin' })
+  createFullTest(
+    @Body() dto: CreateFullTestDto,
+  ): Promise<AdminFullTestDetailDto> {
+    return this.assessmentAdminService.createFullTest(dto);
+  }
+
   @Get('full-tests/:testId')
   @ApiOperation({
     summary: 'Lấy chi tiết đề thi Full Test cho admin',
@@ -504,6 +537,17 @@ export class AssessmentAdminController {
   @ApiOperation({ summary: 'Admin xóa nhiều từ vựng' })
   bulkDeleteVocabWords(@Body() dto: BulkDeleteVocabWordsDto) {
     return this.assessmentAdminService.bulkDeleteVocabWords(dto);
+  }
+
+  @Get('vocab/search')
+  @ApiOperation({
+    summary: 'Admin tìm kiếm từ vựng từ ngân hàng hệ thống (tối đa 60 từ)',
+  })
+  @ApiOkResponse({ type: [AdminSearchVocabWordDto] })
+  @ApiUnauthorizedResponse({ description: 'Chưa đăng nhập' })
+  @ApiForbiddenResponse({ description: 'Không có quyền admin' })
+  searchVocab(@Query('q') query?: string): Promise<AdminSearchVocabWordDto[]> {
+    return this.assessmentAdminService.searchVocabWords(query);
   }
 
   @Get('vocab/lessons')

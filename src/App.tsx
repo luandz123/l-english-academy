@@ -3,8 +3,8 @@ import { lazyWithRetry } from "@/lib/lazyWithRetry";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate, useSearchParams, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { getCourse } from "@/lib/api/catalog";
+import { getFullTest } from "@/lib/api/fullTest";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/useAuth";
@@ -21,10 +21,10 @@ const CoursesRedirect = () => {
     filter === "fulltest"
       ? "#section-fulltest"
       : filter === "listening"
-      ? "#section-listening"
-      : filter === "video_quiz" || filter === "video"
-      ? "#section-video"
-      : "";
+        ? "#section-listening"
+        : filter === "video_quiz" || filter === "video"
+          ? "#section-video"
+          : "";
   return <Navigate to={`/${hash}`} replace />;
 };
 
@@ -60,11 +60,7 @@ const FullTestDirectRedirect = () => {
   const { data: test, isLoading } = useQuery({
     queryKey: ["fulltest-direct-redirect", tId],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("full_tests")
-        .select("course_id")
-        .eq("id", tId)
-        .maybeSingle();
+      const { data } = await getFullTest(tId);
       return data;
     },
     enabled: !isNaN(tId) && tId > 0,
@@ -192,74 +188,74 @@ const App = () => {
             <ErrorBoundary>
               <Suspense fallback={<PageLoader />}>
                 <Routes>
-                {/* Public */}
-                <Route path="/" element={<Index />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
-                <Route path="/forgot-password" element={<ForgotPassword />} />
-                <Route path="/reset-password" element={<ResetPassword />} />
-                <Route path="/auth/callback" element={<AuthCallback />} />
+                  {/* Public */}
+                  <Route path="/" element={<Index />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/register" element={<Register />} />
+                  <Route path="/forgot-password" element={<ForgotPassword />} />
+                  <Route path="/reset-password" element={<ResetPassword />} />
+                  <Route path="/auth/callback" element={<AuthCallback />} />
 
-                {/* Student (protected) */}
-                <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
-                <Route path="/courses" element={<CoursesRedirect />} />
-                <Route path="/courses/:courseId" element={<CourseDetailRedirect />} />
-                <Route path="/courses/:courseId/learn" element={<ProtectedRoute><LearnPage /></ProtectedRoute>} />
-                <Route path="/courses/:courseId/quiz/:quizId" element={<ProtectedRoute><QuizPage /></ProtectedRoute>} />
-                <Route path="/courses/:courseId/quiz/:quizId/result" element={<ProtectedRoute><QuizResult /></ProtectedRoute>} />
-                <Route path="/courses/:courseId/quiz" element={<CourseDetailRedirect />} />
-                <Route path="/courses/:courseId/vocab" element={<ProtectedRoute><VocabPage /></ProtectedRoute>} />
-                <Route path="/courses/:courseId/vocab-lesson/:lessonId" element={<ProtectedRoute><VocabLessonPage /></ProtectedRoute>} />
-                <Route path="/courses/:courseId/dictation/:quizId" element={<ProtectedRoute><DictationPage /></ProtectedRoute>} />
-                <Route path="/courses/:courseId/part2-coach/:clusterId" element={<Navigate to="/part2-coach" replace />} />
-                <Route path="/courses/:courseId/part2-coach" element={<Navigate to="/part2-coach" replace />} />
-                <Route path="/part2-coach" element={<ProtectedRoute><Part2CoachPage /></ProtectedRoute>} />
-                <Route path="/part2-coach/:clusterId" element={<ProtectedRoute><Part2CoachPage /></ProtectedRoute>} />
-                <Route path="/courses/:courseId/fulltest" element={<ProtectedRoute><FullTestList /></ProtectedRoute>} />
-                <Route path="/courses/:courseId/fulltest/:testId" element={<ProtectedRoute><FullTestExam /></ProtectedRoute>} />
-                <Route path="/courses/:courseId/fulltest/:testId/result" element={<ProtectedRoute><FullTestResult /></ProtectedRoute>} />
-                <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-                <Route path="/fulltests" element={<ProtectedRoute><FullTestsPage /></ProtectedRoute>} />
-                <Route path="/fulltests/:testId" element={<ProtectedRoute><FullTestDirectRedirect /></ProtectedRoute>} />
-                <Route path="/listening" element={<ProtectedRoute><ListeningPage /></ProtectedRoute>} />
-                <Route path="/library" element={<ProtectedRoute><LibraryPage /></ProtectedRoute>} />
-                <Route path="/my-courses" element={<ProtectedRoute><MyCoursesPage /></ProtectedRoute>} />
-                <Route path="/games" element={<GamesHub />} />
-                <Route path="/games/word-shooter" element={<WordShooterGame />} />
-                <Route path="/games/word-defense" element={<WordDefenseGame />} />
-                <Route path="/word-defense" element={<Navigate to="/games/word-defense" replace />} />
-                <Route path="/game" element={<Navigate to="/games" replace />} />
-                <Route path="/speaking" element={<ProtectedRoute><SpeakingRoomsPage /></ProtectedRoute>} />
-                <Route path="/speaking-rooms" element={<Navigate to="/speaking" replace />} />
+                  {/* Student (protected) */}
+                  <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+                  <Route path="/courses" element={<CoursesRedirect />} />
+                  <Route path="/courses/:courseId" element={<CourseDetailRedirect />} />
+                  <Route path="/courses/:courseId/learn" element={<ProtectedRoute><LearnPage /></ProtectedRoute>} />
+                  <Route path="/courses/:courseId/quiz/:quizId" element={<ProtectedRoute><QuizPage /></ProtectedRoute>} />
+                  <Route path="/courses/:courseId/quiz/:quizId/result" element={<ProtectedRoute><QuizResult /></ProtectedRoute>} />
+                  <Route path="/courses/:courseId/quiz" element={<CourseDetailRedirect />} />
+                  <Route path="/courses/:courseId/vocab" element={<ProtectedRoute><VocabPage /></ProtectedRoute>} />
+                  <Route path="/courses/:courseId/vocab-lesson/:lessonId" element={<ProtectedRoute><VocabLessonPage /></ProtectedRoute>} />
+                  <Route path="/courses/:courseId/dictation/:quizId" element={<ProtectedRoute><DictationPage /></ProtectedRoute>} />
+                  <Route path="/courses/:courseId/part2-coach/:clusterId" element={<Navigate to="/part2-coach" replace />} />
+                  <Route path="/courses/:courseId/part2-coach" element={<Navigate to="/part2-coach" replace />} />
+                  <Route path="/part2-coach" element={<ProtectedRoute><Part2CoachPage /></ProtectedRoute>} />
+                  <Route path="/part2-coach/:clusterId" element={<ProtectedRoute><Part2CoachPage /></ProtectedRoute>} />
+                  <Route path="/courses/:courseId/fulltest" element={<ProtectedRoute><FullTestList /></ProtectedRoute>} />
+                  <Route path="/courses/:courseId/fulltest/:testId" element={<ProtectedRoute><FullTestExam /></ProtectedRoute>} />
+                  <Route path="/courses/:courseId/fulltest/:testId/result" element={<ProtectedRoute><FullTestResult /></ProtectedRoute>} />
+                  <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                  <Route path="/fulltests" element={<ProtectedRoute><FullTestsPage /></ProtectedRoute>} />
+                  <Route path="/fulltests/:testId" element={<ProtectedRoute><FullTestDirectRedirect /></ProtectedRoute>} />
+                  <Route path="/listening" element={<ProtectedRoute><ListeningPage /></ProtectedRoute>} />
+                  <Route path="/library" element={<ProtectedRoute><LibraryPage /></ProtectedRoute>} />
+                  <Route path="/my-courses" element={<ProtectedRoute><MyCoursesPage /></ProtectedRoute>} />
+                  <Route path="/games" element={<GamesHub />} />
+                  <Route path="/games/word-shooter" element={<WordShooterGame />} />
+                  <Route path="/games/word-defense" element={<WordDefenseGame />} />
+                  <Route path="/word-defense" element={<Navigate to="/games/word-defense" replace />} />
+                  <Route path="/game" element={<Navigate to="/games" replace />} />
+                  <Route path="/speaking" element={<ProtectedRoute><SpeakingRoomsPage /></ProtectedRoute>} />
+                  <Route path="/speaking-rooms" element={<Navigate to="/speaking" replace />} />
 
-                {/* Admin (role-protected) */}
-                <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
-                <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
-                <Route path="/admin/games" element={<AdminRoute><AdminGamesConfig /></AdminRoute>} />
-                <Route path="/admin/vocab-packs" element={<AdminRoute><AdminVocabPacks /></AdminRoute>} />
-                <Route path="/admin/categories" element={<AdminRoute><AdminCategories /></AdminRoute>} />
-                <Route path="/admin/courses" element={<AdminRoute><AdminCourses /></AdminRoute>} />
-                <Route path="/admin/courses/new" element={<AdminRoute><AdminCourseNew /></AdminRoute>} />
-                <Route path="/admin/courses/:courseId" element={<AdminRoute><AdminCourseDetail /></AdminRoute>} />
-                <Route path="/admin/fulltests" element={<AdminRoute><AdminFullTestManager /></AdminRoute>} />
-                <Route path="/admin/fulltests/:testId/questions" element={<AdminRoute><AdminFullTestQuestions /></AdminRoute>} />
-                <Route path="/admin/import-json" element={<AdminRoute><AdminCourseJsonImport /></AdminRoute>} />
-                <Route path="/admin/students" element={<AdminRoute><AdminStudents /></AdminRoute>} />
-                <Route path="/admin/students/:userId" element={<AdminRoute><AdminStudentDetail /></AdminRoute>} />
-                <Route path="/admin/enrollments" element={<AdminRoute><AdminEnrollments /></AdminRoute>} />
-                <Route path="/admin/materials" element={<AdminRoute><AdminMaterials /></AdminRoute>} />
-                <Route path="/admin/reports" element={<AdminRoute><AdminReports /></AdminRoute>} />
-                <Route path="/admin/backup" element={<AdminRoute><AdminBackup /></AdminRoute>} />
-                <Route path="/admin/settings" element={<AdminRoute><AdminSettings /></AdminRoute>} />
+                  {/* Admin (role-protected) */}
+                  <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+                  <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+                  <Route path="/admin/games" element={<AdminRoute><AdminGamesConfig /></AdminRoute>} />
+                  <Route path="/admin/vocab-packs" element={<AdminRoute><AdminVocabPacks /></AdminRoute>} />
+                  <Route path="/admin/categories" element={<AdminRoute><AdminCategories /></AdminRoute>} />
+                  <Route path="/admin/courses" element={<AdminRoute><AdminCourses /></AdminRoute>} />
+                  <Route path="/admin/courses/new" element={<AdminRoute><AdminCourseNew /></AdminRoute>} />
+                  <Route path="/admin/courses/:courseId" element={<AdminRoute><AdminCourseDetail /></AdminRoute>} />
+                  <Route path="/admin/fulltests" element={<AdminRoute><AdminFullTestManager /></AdminRoute>} />
+                  <Route path="/admin/fulltests/:testId/questions" element={<AdminRoute><AdminFullTestQuestions /></AdminRoute>} />
+                  <Route path="/admin/import-json" element={<AdminRoute><AdminCourseJsonImport /></AdminRoute>} />
+                  <Route path="/admin/students" element={<AdminRoute><AdminStudents /></AdminRoute>} />
+                  <Route path="/admin/students/:userId" element={<AdminRoute><AdminStudentDetail /></AdminRoute>} />
+                  <Route path="/admin/enrollments" element={<AdminRoute><AdminEnrollments /></AdminRoute>} />
+                  <Route path="/admin/materials" element={<AdminRoute><AdminMaterials /></AdminRoute>} />
+                  <Route path="/admin/reports" element={<AdminRoute><AdminReports /></AdminRoute>} />
+                  <Route path="/admin/backup" element={<AdminRoute><AdminBackup /></AdminRoute>} />
+                  <Route path="/admin/settings" element={<AdminRoute><AdminSettings /></AdminRoute>} />
 
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Suspense>
-          </ErrorBoundary>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
+            </ErrorBoundary>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
   );
 };
 

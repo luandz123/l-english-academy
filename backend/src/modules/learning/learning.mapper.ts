@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import type {
+  Course,
   Enrollment,
   Lesson,
   Material,
@@ -7,6 +8,7 @@ import type {
   UserLessonProgress,
   UserNote,
 } from '../../generated/prisma/client';
+import { CourseDto } from '../catalog/dto';
 import {
   AdminEnrollmentDto,
   AdminEnrollmentListDto,
@@ -17,6 +19,7 @@ import {
   LessonDto,
   LessonProgressDto,
   MaterialDto,
+  MyEnrollmentDto,
   NoteDto,
   PracticeDto,
   PracticeQuestionDto,
@@ -24,6 +27,7 @@ import {
 import type {
   EnrollmentWithCourseAndProfile,
   EnrollmentWithCourseTitle,
+  EnrollmentWithFullCourse,
   EnrollmentWithProfile,
   LessonPracticeWithQuiz,
   ModuleWithLessons,
@@ -94,6 +98,41 @@ export class LearningMapper {
         ? enrollment.expiresAt.toISOString()
         : null,
     };
+  }
+
+  toCourseDto(course: Course): CourseDto {
+    return {
+      id: course.id,
+      title: course.title,
+      subtitle: course.subtitle ?? null,
+      description: course.description ?? null,
+      course_type: course.courseType,
+      category_id:
+        course.categoryId !== null && course.categoryId !== undefined
+          ? Number(course.categoryId)
+          : null,
+      price: course.price ?? null,
+      duration_months: course.durationMonths ?? null,
+      thumbnail_url: course.thumbnailUrl ?? null,
+      instructor: course.instructor ?? null,
+      is_active: course.isActive ?? null,
+      is_free: course.isFree ?? null,
+      display_order: course.displayOrder ?? null,
+      created_at: course.createdAt ? course.createdAt.toISOString() : null,
+    };
+  }
+
+  toMyEnrollmentDto(enrollment: EnrollmentWithFullCourse): MyEnrollmentDto {
+    return {
+      ...this.toEnrollmentDto(enrollment),
+      courses: enrollment.course ? this.toCourseDto(enrollment.course) : null,
+    };
+  }
+
+  toMyEnrollmentDtoList(
+    enrollments: EnrollmentWithFullCourse[],
+  ): MyEnrollmentDto[] {
+    return enrollments.map((e) => this.toMyEnrollmentDto(e));
   }
 
   toLessonProgressDto(progress: UserLessonProgress): LessonProgressDto {

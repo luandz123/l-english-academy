@@ -8,6 +8,7 @@ import type {
 } from '../../generated/prisma/client';
 import {
   AdminFullTestDetailDto,
+  AdminFullTestListItemDto,
   FullTestQuestionDto,
   QuestionDto,
   QuizDto,
@@ -152,6 +153,56 @@ export class AssessmentMapper {
       total_attempts: t.totalAttempts,
       courses: t.course ? { id: t.course.id, title: t.course.title } : null,
     };
+  }
+
+  toAdminFullTestListItemDto(
+    t: FullTest & {
+      course: { title: string } | null;
+      fullTestSections: Array<{
+        id: number;
+        partNumber: number;
+        quizId: number | null;
+        quiz: { totalQuestions: number | null } | null;
+      }>;
+    },
+  ): AdminFullTestListItemDto {
+    return {
+      id: t.id,
+      course_id: t.courseId,
+      category: t.category,
+      title: t.title,
+      total_questions: t.totalQuestions,
+      release_date: t.releaseDate ? t.releaseDate.toISOString() : null,
+      display_order: t.displayOrder,
+      created_at: t.createdAt ? t.createdAt.toISOString() : null,
+      audio_url: t.audioUrl,
+      description: t.description,
+      courses: t.course ? { title: t.course.title } : null,
+      full_test_sections: t.fullTestSections.map((s) => ({
+        id: s.id,
+        part_number: s.partNumber,
+        quiz_id: s.quizId ?? 0,
+        quizzes: s.quiz
+          ? { total_questions: s.quiz.totalQuestions ?? 0 }
+          : null,
+      })),
+    };
+  }
+
+  toAdminFullTestListItemDtoList(
+    tests: Array<
+      FullTest & {
+        course: { title: string } | null;
+        fullTestSections: Array<{
+          id: number;
+          partNumber: number;
+          quizId: number | null;
+          quiz: { totalQuestions: number | null } | null;
+        }>;
+      }
+    >,
+  ): AdminFullTestListItemDto[] {
+    return tests.map((t) => this.toAdminFullTestListItemDto(t));
   }
 
   toFullTestQuestionDto(

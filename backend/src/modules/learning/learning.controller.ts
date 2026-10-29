@@ -36,6 +36,7 @@ import {
   FavoriteDto,
   LessonProgressDto,
   MaterialDto,
+  MyEnrollmentDto,
   NoteDto,
   PracticeDto,
   PracticeQuestionDto,
@@ -72,6 +73,20 @@ export class LearningController {
     @CurrentUser() user: AuthenticatedUser | undefined,
   ): Promise<CurriculumModuleDto[]> {
     return this.learning.getCurriculum(courseId, user);
+  }
+
+  @Get('my-enrollments')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary:
+      'Danh sách ghi danh kèm thông tin khóa học của chính người dùng (T-035)',
+  })
+  @ApiOkResponse({ type: [MyEnrollmentDto] })
+  @ApiUnauthorizedResponse({ description: 'Chưa đăng nhập' })
+  getMyEnrollments(
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<MyEnrollmentDto[]> {
+    return this.learning.getMyEnrollments(user.id);
   }
 
   @Get('courses/:courseId/enrollment')

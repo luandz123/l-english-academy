@@ -14,6 +14,7 @@ import {
   FavoriteDto,
   LessonProgressDto,
   MaterialDto,
+  MyEnrollmentDto,
   NoteDto,
   PracticeDto,
   PracticeQuestionDto,
@@ -65,6 +66,15 @@ export class LearningService {
         ),
       ),
     );
+  }
+
+  /**
+   * Thay `MyCoursesPage.tsx:48` và `DashboardPage.tsx:114`.
+   * Lấy danh sách ghi danh của chính user kèm thông tin khóa học (RLS "Users view own enrollments").
+   */
+  async getMyEnrollments(userId: string): Promise<MyEnrollmentDto[]> {
+    const enrollments = await this.repo.findMyEnrollments(userId);
+    return this.mapper.toMyEnrollmentDtoList(enrollments);
   }
 
   /**

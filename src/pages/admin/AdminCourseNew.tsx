@@ -9,7 +9,6 @@ import { useNavigate, Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { uploadMedia } from "@/lib/api/media";
 import { createCourse, listAdminCategories } from "@/lib/api/catalog";
 import { Upload, Plus, Layers, ArrowLeft } from "lucide-react";

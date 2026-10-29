@@ -2,13 +2,16 @@ import AdminLayout from "@/components/AdminLayout";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import {
   appendAdminFullTestQuestions,
   bulkDeleteAdminFullTests,
+  createAdminFullTest,
   deleteAdminFullTest,
+  listAdminFullTests,
   packageImportAdminFullTests,
+  updateAdminFullTest,
 } from "@/lib/api/assessment";
+import { listAdminCourses } from "@/lib/api/catalog";
 import { uploadMedia as uploadMediaToStorage } from "@/lib/api/media";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -47,21 +50,7 @@ const AdminFullTestManager = () => {
   const { data: fullTests = [], isLoading: loadingTests } = useQuery({
     queryKey: ["admin-fulltests"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("full_tests")
-        .select(`
-          *,
-          courses (title),
-          full_test_sections (
-            id,
-            part_number,
-            quiz_id,
-            quizzes (
-              total_questions
-            )
-          )
-        `)
-        .order("created_at", { ascending: false });
+      const { data, error } = await listAdminFullTests();
       if (error) throw error;
       return data || [];
     },
@@ -71,9 +60,7 @@ const AdminFullTestManager = () => {
   const { data: courses = [] } = useQuery({
     queryKey: ["admin-fulltest-courses"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("courses")
-        .select("id, title, course_type");
+      const { data, error } = await listAdminCourses();
       if (error) throw error;
       return data || [];
     },
@@ -95,49 +82,12 @@ const AdminFullTestManager = () => {
 
       if (editingTest) {
         // Update
-        const { error } = await supabase
-          .from("full_tests")
-          .update(payload)
-          .eq("id", editingTest.id);
+        const { error } = await updateAdminFullTest(editingTest.id, payload);
         if (error) throw error;
       } else {
         // Create
-        const { data: newTest, error: createError } = await supabase
-          .from("full_tests")
-          .insert(payload)
-          .select("id")
-          .single();
-
-        if (createError) throw createError;
-
-        // Auto create 7 sections for 7 Parts of TOEIC
-        const sectionsToInsert = [];
-        for (let part = 1; part <= 7; part++) {
-          // Create quiz for this part
-          const { data: newQuiz, error: quizError } = await supabase
-            .from("quizzes")
-            .insert({
-              title: `Part ${part} - ${title}`,
-              total_questions: 0,
-              display_order: part,
-            })
-            .select("id")
-            .single();
-
-          if (quizError) throw quizError;
-
-          sectionsToInsert.push({
-            test_id: newTest.id,
-            part_number: part,
-            quiz_id: newQuiz.id,
-          });
-        }
-
-        const { error: sectionError } = await supabase
-          .from("full_test_sections")
-          .insert(sectionsToInsert);
-
-        if (sectionError) throw sectionError;
+        const { error } = await createAdminFullTest(payload);
+        if (error) throw error;
       }
     },
     onSuccess: () => {
@@ -775,8 +725,8 @@ const AdminFullTestManager = () => {
                     }}
                     disabled={!!importFile}
                     rows={6}
-                    placeholder={selectedTestForImport 
-                      ? '{"title": "ETS 2026 Test 1", "questions": [...]}' 
+                    placeholder={selectedTestForImport
+                      ? '{"title": "ETS 2026 Test 1", "questions": [...]}'
                       : '{"course_title": "Bộ đề thi thử 2026", "exams": [{"exam_title": "Đề số 01", "questions": [...]}, ...]}'
                     }
                     className="font-mono text-xs bg-muted/30 border border-border/70 rounded-xl"

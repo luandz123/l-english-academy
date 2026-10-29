@@ -369,6 +369,48 @@ export interface UpdateFullTestPayload {
   audio_url?: string | null;
   category?: string | null;
   release_date?: string | null;
+  course_id?: number | null;
+  display_order?: number | null;
+  total_questions?: number | null;
+}
+
+export interface CreateFullTestPayload {
+  title: string;
+  course_id: number;
+  description?: string | null;
+  audio_url?: string | null;
+  category?: string;
+  display_order?: number;
+  release_date?: string | null;
+  total_questions?: number;
+}
+
+export interface AdminFullTestListItemRow {
+  id: number;
+  title: string;
+  description: string | null;
+  course_id: number | null;
+  category: string;
+  display_order: number;
+  total_questions: number | null;
+  release_date: string | null;
+  audio_url: string | null;
+  created_at: string | null;
+  courses: { id?: number; title: string } | null;
+  full_test_sections: Array<{
+    id: number;
+    part_number: number;
+    quiz_id: number;
+    quizzes: { total_questions: number } | null;
+  }>;
+}
+
+export interface AdminSearchVocabWordRow {
+  id: number;
+  word: string;
+  phonetic: string | null;
+  definition_vi: string | null;
+  example_sentence: string | null;
 }
 
 export interface SaveFullTestAnswerPayload {
@@ -962,6 +1004,35 @@ export async function importAdminQuizQuestions(
       `assessment/admin/quizzes/${quizId}/import-questions`,
       input,
     ),
+  );
+}
+
+/** Admin xem danh sách đề thi Full Test (T-035). */
+export async function listAdminFullTests(params?: {
+  courseId?: number;
+}): Promise<{ data: AdminFullTestListItemRow[] | null; error: ApiError | null }> {
+  const query = params?.courseId ? `?courseId=${params.courseId}` : '';
+  return toResult(
+    apiClient.get<AdminFullTestListItemRow[]>(`assessment/admin/full-tests${query}`),
+  );
+}
+
+/** Admin tạo mới đề thi Full Test kèm 7 sections (T-035). */
+export async function createAdminFullTest(
+  body: CreateFullTestPayload,
+): Promise<{ data: AdminFullTestDetailRow | null; error: ApiError | null }> {
+  return toResult(
+    apiClient.post<AdminFullTestDetailRow>('assessment/admin/full-tests', body),
+  );
+}
+
+/** Admin tìm kiếm từ vựng từ ngân hàng hệ thống (T-035). */
+export async function searchAdminVocabWords(
+  query?: string,
+): Promise<{ data: AdminSearchVocabWordRow[] | null; error: ApiError | null }> {
+  const q = query ? `?q=${encodeURIComponent(query)}` : '';
+  return toResult(
+    apiClient.get<AdminSearchVocabWordRow[]>(`assessment/admin/vocab/search${q}`),
   );
 }
 

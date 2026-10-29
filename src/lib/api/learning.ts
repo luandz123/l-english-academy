@@ -3,6 +3,7 @@
  * Trả về đúng shape { data, error } để component không phải đổi.
  */
 import { apiClient, toResult, ApiError } from "./client";
+import type { CourseRow } from "./catalog";
 
 export interface LessonRow {
   id: number;
@@ -37,6 +38,10 @@ export interface EnrollmentRow {
   course_id: number;
   enrolled_at: string | null;
   expires_at: string | null;
+}
+
+export interface MyEnrollmentRow extends EnrollmentRow {
+  courses: CourseRow | null;
 }
 
 export interface AdminEnrollmentRow extends EnrollmentRow {
@@ -454,4 +459,12 @@ export async function getMyCoursesModules(): Promise<{
   error: ApiError | null;
 }> {
   return toResult(apiClient.get<unknown[]>('learning/my-courses/modules'));
+}
+
+/** Lấy danh sách ghi danh của chính user kèm thông tin khóa học (T-035). */
+export async function getMyEnrollments(): Promise<{
+  data: MyEnrollmentRow[] | null;
+  error: ApiError | null;
+}> {
+  return toResult(apiClient.get<MyEnrollmentRow[]>('learning/my-enrollments'));
 }

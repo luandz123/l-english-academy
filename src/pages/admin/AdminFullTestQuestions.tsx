@@ -2,7 +2,6 @@ import AdminLayout from "@/components/AdminLayout";
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { uploadMedia } from "@/lib/api/media";
 import {
   createAdminFullTestQuestion,
@@ -36,19 +35,19 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { 
-  Loader2, 
-  Search, 
-  ArrowLeft, 
-  Edit, 
-  Trash2, 
-  Plus, 
-  Volume2, 
-  Image as ImageIcon, 
-  FileText, 
-  CheckCircle2, 
-  AlertTriangle, 
-  Eye, 
+import {
+  Loader2,
+  Search,
+  ArrowLeft,
+  Edit,
+  Trash2,
+  Plus,
+  Volume2,
+  Image as ImageIcon,
+  FileText,
+  CheckCircle2,
+  AlertTriangle,
+  Eye,
   HelpCircle,
   Copy,
   Upload,
@@ -433,7 +432,7 @@ const AdminFullTestQuestions = () => {
     const correctCount = q.answers.filter((a) => a.is_correct).length;
     if (correctCount === 0) issues.push("Thiếu đáp án đúng");
     if (correctCount > 1 && q.part_number !== 1) issues.push("Nhiều hơn 1 đáp án đúng");
-    
+
     const hasExplanation = q.answers.some((a) => a.is_correct && a.explanation && a.explanation.trim());
     if (!hasExplanation && [3, 4, 5, 6, 7].includes(q.part_number)) {
       issues.push("Thiếu giải thích");
@@ -727,8 +726,8 @@ const AdminFullTestQuestions = () => {
                     const isGroup = questions.length > 1;
 
                     return (
-                      <Card 
-                        key={key} 
+                      <Card
+                        key={key}
                         className={cn(
                           "overflow-hidden border shadow-sm transition-all duration-200 hover:shadow-md bg-card/70 backdrop-blur-sm rounded-2xl",
                           isGroup ? "border-primary/30 ring-1 ring-primary/10" : "border-border/70"
@@ -758,10 +757,10 @@ const AdminFullTestQuestions = () => {
 
                               {firstQ.image_url && (
                                 <div className="mt-1">
-                                  <img 
-                                    src={firstQ.image_url} 
-                                    alt="Group visual context" 
-                                    className="max-h-48 rounded-lg border border-border/80 object-cover" 
+                                  <img
+                                    src={firstQ.image_url}
+                                    alt="Group visual context"
+                                    className="max-h-48 rounded-lg border border-border/80 object-cover"
                                   />
                                 </div>
                               )}
@@ -803,9 +802,9 @@ const AdminFullTestQuestions = () => {
                                         </Badge>
                                       )}
                                       {issues.map((issue) => (
-                                        <Badge 
-                                          key={issue} 
-                                          variant="destructive" 
+                                        <Badge
+                                          key={issue}
+                                          variant="destructive"
                                           className="text-xs py-0.5 px-2 font-semibold bg-rose-500/10 text-rose-600 border border-rose-500/20 hover:bg-rose-500/20"
                                         >
                                           {issue}
@@ -839,36 +838,36 @@ const AdminFullTestQuestions = () => {
                                       <Copy className="h-3.5 w-3.5" />
                                     </Button>
 
-                                     <AlertDialog>
-                                       <AlertDialogTrigger asChild>
-                                         <Button
-                                           size="icon"
-                                           variant="ghost"
-                                           disabled={deleteQuestionMutation.isPending}
-                                           className="h-8 w-8 text-destructive hover:bg-destructive/10 cursor-pointer"
-                                           title="Xóa câu hỏi này"
-                                         >
-                                           <Trash2 className="h-3.5 w-3.5" />
-                                         </Button>
-                                       </AlertDialogTrigger>
-                                       <AlertDialogContent className="rounded-2xl border-2 border-border">
-                                         <AlertDialogHeader>
-                                           <AlertDialogTitle>Xác nhận xóa Câu {q.display_order}?</AlertDialogTitle>
-                                           <AlertDialogDescription>
-                                             Bạn có chắc chắn muốn xóa câu hỏi này? Toàn bộ đáp án đi kèm sẽ bị xóa và không thể khôi phục.
-                                           </AlertDialogDescription>
-                                         </AlertDialogHeader>
-                                         <AlertDialogFooter>
-                                           <AlertDialogCancel>Hủy</AlertDialogCancel>
-                                           <AlertDialogAction
-                                             onClick={() => deleteQuestionMutation.mutate(q.id)}
-                                             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                           >
-                                             Xóa câu hỏi
-                                           </AlertDialogAction>
-                                         </AlertDialogFooter>
-                                       </AlertDialogContent>
-                                     </AlertDialog>
+                                    <AlertDialog>
+                                      <AlertDialogTrigger asChild>
+                                        <Button
+                                          size="icon"
+                                          variant="ghost"
+                                          disabled={deleteQuestionMutation.isPending}
+                                          className="h-8 w-8 text-destructive hover:bg-destructive/10 cursor-pointer"
+                                          title="Xóa câu hỏi này"
+                                        >
+                                          <Trash2 className="h-3.5 w-3.5" />
+                                        </Button>
+                                      </AlertDialogTrigger>
+                                      <AlertDialogContent className="rounded-2xl border-2 border-border">
+                                        <AlertDialogHeader>
+                                          <AlertDialogTitle>Xác nhận xóa Câu {q.display_order}?</AlertDialogTitle>
+                                          <AlertDialogDescription>
+                                            Bạn có chắc chắn muốn xóa câu hỏi này? Toàn bộ đáp án đi kèm sẽ bị xóa và không thể khôi phục.
+                                          </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                          <AlertDialogCancel>Hủy</AlertDialogCancel>
+                                          <AlertDialogAction
+                                            onClick={() => deleteQuestionMutation.mutate(q.id)}
+                                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                          >
+                                            Xóa câu hỏi
+                                          </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                      </AlertDialogContent>
+                                    </AlertDialog>
                                   </div>
                                 </div>
 
@@ -885,7 +884,7 @@ const AdminFullTestQuestions = () => {
                                       <img src={q.image_url} alt="Question context" className="max-h-44 rounded-lg border object-cover" />
                                     )}
                                     {q.passage_text && (
-                                      <div 
+                                      <div
                                         className="text-xs text-foreground/80 bg-background/80 p-2.5 rounded-lg border max-h-24 overflow-y-auto leading-relaxed"
                                         dangerouslySetInnerHTML={{ __html: q.passage_text }}
                                       />
@@ -1074,8 +1073,8 @@ const AdminFullTestQuestions = () => {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold">Chọn Phần thi (Part)</Label>
-                <Select 
-                  value={addPart.toString()} 
+                <Select
+                  value={addPart.toString()}
                   onValueChange={(v) => {
                     const p = Number(v);
                     setAddPart(p);

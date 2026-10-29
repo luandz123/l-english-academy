@@ -9,10 +9,13 @@ import { VocabMapper } from './vocab.mapper';
 import { AssessmentAdminRepository } from './assessment-admin.repository';
 import {
   AdminFullTestDetailDto,
+  AdminFullTestListItemDto,
+  AdminSearchVocabWordDto,
   AppendFullTestQuestionsDto,
   BulkDeleteFullTestsDto,
   BulkDeleteQuestionsDto,
   BulkDeleteVocabWordsDto,
+  CreateFullTestDto,
   CreateFullTestQuestionDto,
   CreateLessonVocabQuizDto,
   CreateVocabWordsBatchDto,
@@ -42,7 +45,7 @@ export class AssessmentAdminService {
     private readonly repo: AssessmentAdminRepository,
     private readonly mapper: AssessmentMapper,
     private readonly vocabMapper: VocabMapper,
-  ) {}
+  ) { }
 
   async listQuizQuestions(quizId: number): Promise<ReviewQuestionDto[]> {
     const quiz = await this.repo.findQuizById(quizId);
@@ -534,6 +537,61 @@ export class AssessmentAdminService {
     );
   }
 
+  async listAdminFullTests(
+    courseId?: number,
+  ): Promise<AdminFullTestListItemDto[]> {
+    const tests = await this.repo.findAdminFullTests(courseId);
+    return this.mapper.toAdminFullTestListItemDtoList(tests);
+  }
+
+  async createFullTest(
+    dto: CreateFullTestDto,
+  ): Promise<AdminFullTestDetailDto> {
+    const title = dto.title.trim();
+    if (!title) {
+      throw new BadRequestException({
+        code: 'VALIDATION_FAILED',
+        message: 'Tên đề thi không được để trống',
+      });
+    }
+
+    return this.repo.inTransaction(async (tx) => {
+      let displayOrder = dto.display_order;
+      if (displayOrder === undefined || displayOrder === null) {
+        const count = await tx.countFullTestsByCourse(dto.course_id);
+        displayOrder = count + 1;
+      }
+
+      const newTest = await tx.createFullTest({
+        title,
+        courseId: dto.course_id,
+        description: dto.description?.trim() || null,
+        audioUrl: dto.audio_url?.trim() || null,
+        category: dto.category?.trim() || '2026',
+        displayOrder,
+        releaseDate: dto.release_date ? new Date(dto.release_date) : null,
+        totalQuestions: dto.total_questions ?? 200,
+      });
+
+      // Tự động tạo 7 quiz và 7 sections cho 7 Parts của TOEIC
+      for (let part = 1; part <= 7; part++) {
+        const newQuiz = await tx.createQuizRaw({
+          title: `Part ${part} - ${title}`,
+          totalQuestions: 0,
+          displayOrder: part,
+        });
+
+        await tx.createFullTestSection({
+          testId: newTest.id,
+          partNumber: part,
+          quizId: newQuiz.id,
+        });
+      }
+
+      return this.mapper.toAdminFullTestDetailDto(newTest);
+    });
+  }
+
   async updateFullTest(
     testId: number,
     dto: UpdateFullTestDto,
@@ -546,13 +604,31 @@ export class AssessmentAdminService {
       });
     }
     const updated = await this.repo.updateFullTest(testId, {
-      title: dto.title,
-      description: dto.description ?? null,
-      audioUrl: dto.audio_url ?? null,
+      title: dto.title.trim(),
+      description: dto.description?.trim() ?? null,
+      audioUrl: dto.audio_url?.trim() ?? null,
       category: dto.category ?? '2026',
       releaseDate: dto.release_date ? new Date(dto.release_date) : null,
+      ...(dto.course_id ? { course: { connect: { id: dto.course_id } } } : {}),
+      ...(dto.display_order !== undefined && dto.display_order !== null
+        ? { displayOrder: dto.display_order }
+        : {}),
+      ...(dto.total_questions !== undefined && dto.total_questions !== null
+        ? { totalQuestions: dto.total_questions }
+        : {}),
     });
     return this.mapper.toAdminFullTestDetailDto(updated);
+  }
+
+  async searchVocabWords(query?: string): Promise<AdminSearchVocabWordDto[]> {
+    const words = await this.repo.searchVocabQuestions(query);
+    return words.map((w) => ({
+      id: w.id,
+      word: w.word,
+      phonetic: w.phonetic ?? null,
+      definition_vi: w.definitionVi ?? null,
+      example_sentence: w.exampleSentence ?? null,
+    }));
   }
 
   async createFullTestQuestion(
@@ -984,11 +1060,11 @@ export class AssessmentAdminService {
 
           const rawAnswers = (item.answers || item.options || []) as (
             | {
-                answer_text?: string;
-                text?: string;
-                is_correct?: boolean;
-                explanation?: string | null;
-              }
+              answer_text?: string;
+              text?: string;
+              is_correct?: boolean;
+              explanation?: string | null;
+            }
             | string
           )[];
 
