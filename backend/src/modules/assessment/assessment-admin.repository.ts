@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import type {
   Answer,
+  Course,
+  FullTest,
+  FullTestSection,
   Lesson,
   Module,
   Prisma,
@@ -226,5 +229,202 @@ export class AssessmentAdminRepository {
       where: { id: lessonId },
       data: { quizId },
     });
+  }
+
+  findFullTestById(id: number): Promise<FullTest | null> {
+    return this.prisma.fullTest.findUnique({
+      where: { id },
+    });
+  }
+
+  findFullTestWithCourse(
+    id: number,
+  ): Promise<
+    (FullTest & { course: Pick<Course, 'id' | 'title'> | null }) | null
+  > {
+    return this.prisma.fullTest.findUnique({
+      where: { id },
+      include: {
+        course: {
+          select: { id: true, title: true },
+        },
+      },
+    });
+  }
+
+  updateFullTest(
+    id: number,
+    data: Prisma.FullTestUpdateInput,
+  ): Promise<FullTest & { course: Pick<Course, 'id' | 'title'> | null }> {
+    return this.prisma.fullTest.update({
+      where: { id },
+      data,
+      include: {
+        course: {
+          select: { id: true, title: true },
+        },
+      },
+    });
+  }
+
+  findSectionByTestAndPart(
+    testId: number,
+    partNumber: number,
+  ): Promise<FullTestSection | null> {
+    return this.prisma.fullTestSection.findFirst({
+      where: { testId, partNumber },
+    });
+  }
+
+  createSection(
+    data: Prisma.FullTestSectionUncheckedCreateInput,
+  ): Promise<FullTestSection> {
+    return this.prisma.fullTestSection.create({ data });
+  }
+
+  async countQuestionsInTest(testId: number): Promise<number> {
+    const sections = await this.prisma.fullTestSection.findMany({
+      where: { testId, quizId: { not: null } },
+      select: { quizId: true },
+    });
+    const quizIds = sections
+      .map((s) => s.quizId)
+      .filter((id): id is number => id !== null);
+    if (quizIds.length === 0) return 0;
+    return this.prisma.question.count({
+      where: { quizId: { in: quizIds } },
+    });
+  }
+
+  updateFullTestTotalQuestions(
+    testId: number,
+    totalQuestions: number,
+  ): Promise<FullTest> {
+    return this.prisma.fullTest.update({
+      where: { id: testId },
+      data: { totalQuestions },
+    });
+  }
+
+  async findTestIdByQuestionId(questionId: number): Promise<number | null> {
+    const question = await this.prisma.question.findUnique({
+      where: { id: questionId },
+      select: { quizId: true },
+    });
+    if (!question || !question.quizId) return null;
+    const section = await this.prisma.fullTestSection.findFirst({
+      where: { quizId: question.quizId },
+      select: { testId: true },
+    });
+    return section?.testId ?? null;
+  }
+
+  findAnswersByQuestionId(questionId: number): Promise<Answer[]> {
+    return this.prisma.answer.findMany({
+      where: { questionId },
+      orderBy: [{ displayOrder: 'asc' }, { id: 'asc' }],
+    });
+  }
+
+  async deleteAnswersByIds(ids: number[]): Promise<number> {
+    const res = await this.prisma.answer.deleteMany({
+      where: { id: { in: ids } },
+    });
+    return res.count;
+  }
+
+  updateAnswer(id: number, data: Prisma.AnswerUpdateInput): Promise<Answer> {
+    return this.prisma.answer.update({
+      where: { id },
+      data,
+    });
+  }
+
+  createAnswer(data: Prisma.AnswerUncheckedCreateInput): Promise<Answer> {
+    return this.prisma.answer.create({ data });
+  }
+
+  async findQuizIdsByTestId(testId: number): Promise<number[]> {
+    const sections = await this.prisma.fullTestSection.findMany({
+      where: { testId, quizId: { not: null } },
+      select: { quizId: true },
+    });
+    return sections
+      .map((s) => s.quizId)
+      .filter((id): id is number => id !== null);
+  }
+
+  findQuestionsByQuizIds(
+    quizIds: number[],
+    questionIds: number[],
+  ): Promise<{ id: number }[]> {
+    return this.prisma.question.findMany({
+      where: {
+        id: { in: questionIds },
+        quizId: { in: quizIds },
+      },
+      select: { id: true },
+    });
+  }
+
+  async updateQuestionsGroup(
+    ids: number[],
+    data: {
+      passageText?: string | null;
+      audioUrl?: string | null;
+      imageUrl?: string | null;
+      groupId?: string | null;
+    },
+  ): Promise<number> {
+    const res = await this.prisma.question.updateMany({
+      where: { id: { in: ids } },
+      data,
+    });
+    return res.count;
+  }
+
+  async findPartNumberByQuizId(quizId: number): Promise<number | null> {
+    const section = await this.prisma.fullTestSection.findFirst({
+      where: { quizId },
+      select: { partNumber: true },
+    });
+    return section?.partNumber ?? null;
+  }
+
+  async findFullTestQuestions(
+    testId: number,
+  ): Promise<{ question: QuestionWithAnswers; partNumber: number }[]> {
+    const sections = await this.prisma.fullTestSection.findMany({
+      where: { testId, quizId: { not: null } },
+      orderBy: [{ id: 'asc' }],
+    });
+    const partByQuiz = new Map<number, number>();
+    for (const s of sections) {
+      if (s.quizId !== null && !partByQuiz.has(s.quizId)) {
+        partByQuiz.set(s.quizId, s.partNumber);
+      }
+    }
+    if (partByQuiz.size === 0) return [];
+
+    const questions = await this.prisma.question.findMany({
+      where: { quizId: { in: [...partByQuiz.keys()] } },
+      include: {
+        answers: {
+          orderBy: [{ displayOrder: 'asc' }, { id: 'asc' }],
+        },
+      },
+    });
+
+    return questions
+      .map((q) => ({
+        question: q,
+        partNumber: partByQuiz.get(q.quizId!) ?? 5,
+      }))
+      .sort(
+        (a, b) =>
+          a.partNumber - b.partNumber ||
+          a.question.displayOrder - b.question.displayOrder ||
+          a.question.id - b.question.id,
+      );
   }
 }

@@ -342,3 +342,167 @@ export async function createLessonQuiz(
     apiClient.post<QuizRow>(`assessment/admin/lessons/${lessonId}/quiz`),
   );
 }
+
+export interface AdminFullTestDetailRow {
+  id: number;
+  course_id: number | null;
+  category: string;
+  title: string;
+  total_questions: number | null;
+  release_date: string | null;
+  display_order: number;
+  created_at: string | null;
+  audio_url: string | null;
+  description: string | null;
+  total_attempts: number | null;
+  courses: {
+    id: number;
+    title: string;
+  } | null;
+}
+
+export interface AdminFullTestQuestionRow extends AdminQuizQuestionRow {
+  part_number: number;
+}
+
+export interface UpdateFullTestPayload {
+  title: string;
+  description?: string | null;
+  audio_url?: string | null;
+  category?: string | null;
+  release_date?: string | null;
+}
+
+export interface SaveFullTestAnswerPayload {
+  id?: number;
+  answer_text: string;
+  is_correct?: boolean;
+  explanation?: string | null;
+}
+
+export interface CreateFullTestQuestionPayload {
+  part_number: number;
+  display_order: number;
+  question_text?: string | null;
+  audio_url?: string | null;
+  image_url?: string | null;
+  passage_text?: string | null;
+  group_id?: string | null;
+  transcript?: string | null;
+  translation?: string | null;
+  answers: SaveFullTestAnswerPayload[];
+}
+
+export interface UpdateFullTestQuestionPayload {
+  display_order: number;
+  question_text?: string | null;
+  audio_url?: string | null;
+  image_url?: string | null;
+  passage_text?: string | null;
+  group_id?: string | null;
+  transcript?: string | null;
+  translation?: string | null;
+  answers: SaveFullTestAnswerPayload[];
+}
+
+export interface UpdateQuestionGroupPayload {
+  question_ids: number[];
+  passage_text?: string | null;
+  audio_url?: string | null;
+  image_url?: string | null;
+  group_id?: string | null;
+}
+
+/** Admin lấy chi tiết đề thi Full Test (T-024). */
+export async function getAdminFullTestDetail(
+  testId: number,
+): Promise<{ data: AdminFullTestDetailRow | null; error: ApiError | null }> {
+  return toResult(
+    apiClient.get<AdminFullTestDetailRow>(`assessment/admin/full-tests/${testId}`),
+  );
+}
+
+/** Admin lấy danh sách câu hỏi đề thi Full Test kèm part_number (T-024). */
+export async function getAdminFullTestQuestions(
+  testId: number,
+): Promise<{ data: AdminFullTestQuestionRow[] | null; error: ApiError | null }> {
+  return toResult(
+    apiClient.get<AdminFullTestQuestionRow[]>(
+      `assessment/admin/full-tests/${testId}/questions`,
+    ),
+  );
+}
+
+/** Admin cập nhật thông tin đề thi Full Test (T-024). */
+export async function updateAdminFullTest(
+  testId: number,
+  body: UpdateFullTestPayload,
+): Promise<{ data: AdminFullTestDetailRow | null; error: ApiError | null }> {
+  return toResult(
+    apiClient.put<AdminFullTestDetailRow>(
+      `assessment/admin/full-tests/${testId}`,
+      body,
+    ),
+  );
+}
+
+/** Admin tạo câu hỏi Full Test (T-024). */
+export async function createAdminFullTestQuestion(
+  testId: number,
+  body: CreateFullTestQuestionPayload,
+): Promise<{ data: AdminFullTestQuestionRow | null; error: ApiError | null }> {
+  return toResult(
+    apiClient.post<AdminFullTestQuestionRow>(
+      `assessment/admin/full-tests/${testId}/questions`,
+      body,
+    ),
+  );
+}
+
+/** Admin cập nhật câu hỏi Full Test và đồng bộ đáp án (T-024). */
+export async function updateAdminFullTestQuestion(
+  id: number,
+  body: UpdateFullTestQuestionPayload,
+): Promise<{ data: AdminFullTestQuestionRow | null; error: ApiError | null }> {
+  return toResult(
+    apiClient.put<AdminFullTestQuestionRow>(
+      `assessment/admin/fulltest-questions/${id}`,
+      body,
+    ),
+  );
+}
+
+/** Admin xóa câu hỏi Full Test (T-024). */
+export async function deleteAdminFullTestQuestion(
+  id: number,
+): Promise<{ error: ApiError | null }> {
+  const res = await toResult(
+    apiClient.delete(`assessment/admin/fulltest-questions/${id}`),
+  );
+  return { error: res.error };
+}
+
+/** Admin nhân bản câu hỏi Full Test (T-024). */
+export async function duplicateAdminFullTestQuestion(
+  id: number,
+): Promise<{ data: AdminFullTestQuestionRow | null; error: ApiError | null }> {
+  return toResult(
+    apiClient.post<AdminFullTestQuestionRow>(
+      `assessment/admin/fulltest-questions/${id}/duplicate`,
+    ),
+  );
+}
+
+/** Admin cập nhật thông tin nhóm cho các câu hỏi Full Test (T-024). */
+export async function updateAdminQuestionGroup(
+  testId: number,
+  body: UpdateQuestionGroupPayload,
+): Promise<{ error: ApiError | null }> {
+  const res = await toResult(
+    apiClient.put(
+      `assessment/admin/full-tests/${testId}/question-group`,
+      body,
+    ),
+  );
+  return { error: res.error };
+}

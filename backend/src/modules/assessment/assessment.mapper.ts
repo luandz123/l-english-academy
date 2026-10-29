@@ -1,10 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import type {
+  Course,
+  FullTest,
   Quiz,
   UserAnswer,
   UserQuizResult,
 } from '../../generated/prisma/client';
 import {
+  AdminFullTestDetailDto,
+  FullTestQuestionDto,
   QuestionDto,
   QuizDto,
   QuizResultDto,
@@ -128,6 +132,35 @@ export class AssessmentMapper {
       question_id: a.questionId,
       selected_answer_id: a.selectedAnswerId,
       is_correct: a.isCorrect,
+    };
+  }
+
+  toAdminFullTestDetailDto(
+    t: FullTest & { course?: Pick<Course, 'id' | 'title'> | null },
+  ): AdminFullTestDetailDto {
+    return {
+      id: t.id,
+      course_id: t.courseId,
+      category: t.category,
+      title: t.title,
+      total_questions: t.totalQuestions,
+      release_date: t.releaseDate ? t.releaseDate.toISOString() : null,
+      display_order: t.displayOrder,
+      created_at: t.createdAt ? t.createdAt.toISOString() : null,
+      audio_url: t.audioUrl,
+      description: t.description,
+      total_attempts: t.totalAttempts,
+      courses: t.course ? { id: t.course.id, title: t.course.title } : null,
+    };
+  }
+
+  toFullTestQuestionDto(
+    q: QuestionWithAnswers,
+    partNumber: number,
+  ): FullTestQuestionDto {
+    return {
+      ...this.toReviewQuestionDto(q),
+      part_number: partNumber,
     };
   }
 }

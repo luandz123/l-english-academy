@@ -7,7 +7,10 @@ import {
 import { AssessmentMapper } from './assessment.mapper';
 import { AssessmentAdminRepository } from './assessment-admin.repository';
 import {
+  AdminFullTestDetailDto,
   BulkDeleteQuestionsDto,
+  CreateFullTestQuestionDto,
+  FullTestQuestionDto,
   PatchQuizDto,
   QuizDto,
   ReorderQuestionsDto,
@@ -15,6 +18,9 @@ import {
   SaveModuleQuizDto,
   SaveQuestionDto,
   SetQuestionImagesDto,
+  UpdateFullTestDto,
+  UpdateFullTestQuestionDto,
+  UpdateQuestionGroupDto,
 } from './dto';
 
 @Injectable()
@@ -359,6 +365,293 @@ export class AssessmentAdminService {
       await tx.updateLessonQuizId(lessonId, quiz.id);
 
       return this.mapper.toQuizDto(quiz);
+    });
+  }
+
+  async getFullTestDetail(testId: number): Promise<AdminFullTestDetailDto> {
+    const test = await this.repo.findFullTestWithCourse(testId);
+    if (!test) {
+      throw new NotFoundException({
+        code: 'FULLTEST_NOT_FOUND',
+        message: `Đề thi #${testId} không tồn tại`,
+      });
+    }
+    return this.mapper.toAdminFullTestDetailDto(test);
+  }
+
+  async getFullTestQuestions(testId: number): Promise<FullTestQuestionDto[]> {
+    const test = await this.repo.findFullTestById(testId);
+    if (!test) {
+      throw new NotFoundException({
+        code: 'FULLTEST_NOT_FOUND',
+        message: `Đề thi #${testId} không tồn tại`,
+      });
+    }
+    const items = await this.repo.findFullTestQuestions(testId);
+    return items.map(({ question, partNumber }) =>
+      this.mapper.toFullTestQuestionDto(question, partNumber),
+    );
+  }
+
+  async updateFullTest(
+    testId: number,
+    dto: UpdateFullTestDto,
+  ): Promise<AdminFullTestDetailDto> {
+    const test = await this.repo.findFullTestById(testId);
+    if (!test) {
+      throw new NotFoundException({
+        code: 'FULLTEST_NOT_FOUND',
+        message: `Đề thi #${testId} không tồn tại`,
+      });
+    }
+    const updated = await this.repo.updateFullTest(testId, {
+      title: dto.title,
+      description: dto.description ?? null,
+      audioUrl: dto.audio_url ?? null,
+      category: dto.category ?? '2026',
+      releaseDate: dto.release_date ? new Date(dto.release_date) : null,
+    });
+    return this.mapper.toAdminFullTestDetailDto(updated);
+  }
+
+  async createFullTestQuestion(
+    testId: number,
+    dto: CreateFullTestQuestionDto,
+  ): Promise<FullTestQuestionDto> {
+    const test = await this.repo.findFullTestById(testId);
+    if (!test) {
+      throw new NotFoundException({
+        code: 'FULLTEST_NOT_FOUND',
+        message: `Đề thi #${testId} không tồn tại`,
+      });
+    }
+
+    return this.repo.inTransaction(async (txRepo) => {
+      const section = await txRepo.findSectionByTestAndPart(
+        testId,
+        dto.part_number,
+      );
+      let targetQuizId = section?.quizId;
+
+      if (!targetQuizId) {
+        const quiz = await txRepo.createQuiz({
+          title: `Part ${dto.part_number} - ${test.title || 'Test'}`,
+          totalQuestions: 0,
+          displayOrder: dto.part_number,
+          moduleId: null,
+        });
+        await txRepo.createSection({
+          testId,
+          partNumber: dto.part_number,
+          quizId: quiz.id,
+        });
+        targetQuizId = quiz.id;
+      }
+
+      const question = await txRepo.createQuestion({
+        quizId: targetQuizId,
+        displayOrder: dto.display_order,
+        questionText: dto.question_text ?? null,
+        audioUrl: dto.audio_url ?? null,
+        imageUrl: dto.image_url ?? null,
+        passageText: dto.passage_text ?? null,
+        groupId: dto.group_id ?? null,
+        transcript: dto.transcript ?? null,
+        translation: dto.translation ?? null,
+        questionType: 'multiple_choice',
+      });
+
+      if (dto.answers && dto.answers.length > 0) {
+        await txRepo.createAnswers(
+          dto.answers.map((ans, idx) => ({
+            questionId: question.id,
+            answerText: ans.answer_text,
+            isCorrect: ans.is_correct ?? false,
+            explanation: ans.explanation ?? null,
+            displayOrder: idx,
+          })),
+        );
+      }
+
+      const totalCount = await txRepo.countQuestionsInTest(testId);
+      await txRepo.updateFullTestTotalQuestions(testId, totalCount);
+
+      const created = await txRepo.findQuestionById(question.id);
+      return this.mapper.toFullTestQuestionDto(created!, dto.part_number);
+    });
+  }
+
+  async updateFullTestQuestion(
+    id: number,
+    dto: UpdateFullTestQuestionDto,
+  ): Promise<FullTestQuestionDto> {
+    const question = await this.repo.findQuestionById(id);
+    if (!question) {
+      throw new NotFoundException({
+        code: 'QUESTION_NOT_FOUND',
+        message: `Câu hỏi #${id} không tồn tại`,
+      });
+    }
+
+    const existingAnswerIds = question.answers.map((a) => a.id);
+    for (const ans of dto.answers) {
+      if (ans.id !== undefined && !existingAnswerIds.includes(ans.id)) {
+        throw new BadRequestException({
+          code: 'ANSWER_NOT_IN_QUESTION',
+          message: `Đáp án #${ans.id} không thuộc câu hỏi #${id}`,
+        });
+      }
+    }
+
+    return this.repo.inTransaction(async (txRepo) => {
+      await txRepo.updateQuestion(id, {
+        displayOrder: dto.display_order,
+        questionText: dto.question_text ?? null,
+        audioUrl: dto.audio_url ?? null,
+        imageUrl: dto.image_url ?? null,
+        passageText: dto.passage_text ?? null,
+        groupId: dto.group_id ?? null,
+        transcript: dto.transcript ?? null,
+        translation: dto.translation ?? null,
+      });
+
+      const currentBodyIds = dto.answers
+        .map((a) => a.id)
+        .filter((aid): aid is number => aid !== undefined);
+      const toDeleteIds = existingAnswerIds.filter(
+        (aid) => !currentBodyIds.includes(aid),
+      );
+      if (toDeleteIds.length > 0) {
+        await txRepo.deleteAnswersByIds(toDeleteIds);
+      }
+
+      for (let idx = 0; idx < dto.answers.length; idx++) {
+        const ans = dto.answers[idx];
+        if (ans.id !== undefined) {
+          await txRepo.updateAnswer(ans.id, {
+            answerText: ans.answer_text,
+            isCorrect: ans.is_correct ?? false,
+            explanation: ans.explanation ?? null,
+            displayOrder: idx,
+          });
+        } else {
+          await txRepo.createAnswer({
+            questionId: id,
+            answerText: ans.answer_text,
+            isCorrect: ans.is_correct ?? false,
+            explanation: ans.explanation ?? null,
+            displayOrder: idx,
+          });
+        }
+      }
+
+      const partNumber =
+        (question.quizId
+          ? await txRepo.findPartNumberByQuizId(question.quizId)
+          : null) ?? 5;
+      const updated = await txRepo.findQuestionById(id);
+      return this.mapper.toFullTestQuestionDto(updated!, partNumber);
+    });
+  }
+
+  async deleteFullTestQuestion(id: number): Promise<void> {
+    const question = await this.repo.findQuestionById(id);
+    if (!question) {
+      return;
+    }
+
+    await this.repo.inTransaction(async (txRepo) => {
+      const testId = await txRepo.findTestIdByQuestionId(id);
+      await txRepo.deleteAnswersByQuestionId(id);
+      await txRepo.deleteQuestion(id);
+
+      if (testId) {
+        const totalCount = await txRepo.countQuestionsInTest(testId);
+        await txRepo.updateFullTestTotalQuestions(testId, totalCount);
+      }
+    });
+  }
+
+  async duplicateFullTestQuestion(id: number): Promise<FullTestQuestionDto> {
+    const q = await this.repo.findQuestionById(id);
+    if (!q) {
+      throw new NotFoundException({
+        code: 'QUESTION_NOT_FOUND',
+        message: `Câu hỏi #${id} không tồn tại`,
+      });
+    }
+
+    return this.repo.inTransaction(async (txRepo) => {
+      const newQ = await txRepo.createQuestion({
+        quizId: q.quizId,
+        displayOrder: q.displayOrder + 1,
+        questionText: `${q.questionText ?? ''} (Bản sao)`,
+        audioUrl: q.audioUrl,
+        imageUrl: q.imageUrl,
+        passageText: q.passageText,
+        groupId: q.groupId,
+        transcript: q.transcript,
+        translation: q.translation,
+        questionType: q.questionType ?? 'multiple_choice',
+      });
+
+      if (q.answers.length > 0) {
+        await txRepo.createAnswers(
+          q.answers.map((a) => ({
+            questionId: newQ.id,
+            answerText: a.answerText ?? '',
+            isCorrect: a.isCorrect ?? false,
+            explanation: a.explanation,
+            displayOrder: a.displayOrder,
+          })),
+        );
+      }
+
+      // Giữ đúng hành vi cũ: KHÔNG đếm lại total_questions
+      const partNumber =
+        (q.quizId ? await txRepo.findPartNumberByQuizId(q.quizId) : null) ?? 5;
+      const duplicated = await txRepo.findQuestionById(newQ.id);
+      return this.mapper.toFullTestQuestionDto(duplicated!, partNumber);
+    });
+  }
+
+  async updateQuestionGroup(
+    testId: number,
+    dto: UpdateQuestionGroupDto,
+  ): Promise<void> {
+    const test = await this.repo.findFullTestById(testId);
+    if (!test) {
+      throw new NotFoundException({
+        code: 'FULLTEST_NOT_FOUND',
+        message: `Đề thi #${testId} không tồn tại`,
+      });
+    }
+
+    const uniqueIds = new Set(dto.question_ids);
+    if (uniqueIds.size !== dto.question_ids.length) {
+      throw new BadRequestException({
+        code: 'QUESTION_IDS_INVALID',
+        message: 'Danh sách ID câu hỏi có phần tử trùng lặp',
+      });
+    }
+
+    const quizIds = await this.repo.findQuizIdsByTestId(testId);
+    const foundQuestions = await this.repo.findQuestionsByQuizIds(
+      quizIds,
+      dto.question_ids,
+    );
+    if (foundQuestions.length !== dto.question_ids.length) {
+      throw new BadRequestException({
+        code: 'QUESTION_IDS_INVALID',
+        message: 'Có câu hỏi không thuộc đề thi này',
+      });
+    }
+
+    await this.repo.updateQuestionsGroup(dto.question_ids, {
+      passageText: dto.passage_text ?? null,
+      audioUrl: dto.audio_url ?? null,
+      imageUrl: dto.image_url ?? null,
+      groupId: dto.group_id ?? null,
     });
   }
 }
