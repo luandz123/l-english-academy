@@ -147,18 +147,18 @@ Tất cả endpoint đặt dưới `/api/v1/assessment/dictation`:
 - **Trả về**: `DictationProgressResponseDto` (`{ "score": 0, "correct_answers": 0, "total_questions": N }`).
 
 ## 5. Tiêu chí nghiệm thu
-- [ ] E2E phân quyền cho mọi route dictation: 401 khi chưa đăng nhập (đối với các route yêu cầu JWT), 403 khi quiz bị khóa (`QUIZ_LOCKED`), 2xx khi hợp lệ
-- [ ] E2E luồng làm bài dictation:
+- [x] E2E phân quyền cho mọi route dictation: 401 khi chưa đăng nhập (đối với các route yêu cầu JWT), 403 khi quiz bị khóa (`QUIZ_LOCKED`), 2xx khi hợp lệ
+- [x] E2E luồng làm bài dictation:
   - Lấy đề dictation trả đủ `transcript`, `dictation_keywords`, `passage_text`, `translation`, `answers` (có `is_correct`)
   - Đánh dấu hoàn thành câu: `user_answers.is_correct = true`, `score` và `correct_answers` tăng tương ứng
   - Hủy đánh dấu câu: `user_answers.is_correct = false`, `score` giảm
   - Đồng bộ danh sách câu khi nộp: toàn bộ câu được đánh dấu và tính điểm chuẩn xác
   - Reset toàn bộ: mọi kết quả và đáp án về 0/false
-- [ ] Unit tests service & adapter test đầy đủ
-- [ ] `grep -n "supabase" src/pages/DictationPage.tsx` **rỗng** (chỉ còn import nếu có hoặc hoàn toàn không còn)
-- [ ] Không đổi bất kỳ thẻ JSX, className, bố cục hay câu chữ giao diện nào; `check-ui-diff` OK
-- [ ] Backend lint, typecheck, unit test, e2e test, build pass 100%
-- [ ] Frontend vitest test, build pass 100%
+- [x] Unit tests service & adapter test đầy đủ
+- [x] `grep -n "supabase" src/pages/DictationPage.tsx` **rỗng** (chỉ còn import nếu có hoặc hoàn toàn không còn)
+- [x] Không đổi bất kỳ thẻ JSX, className, bố cục hay câu chữ giao diện nào; `check-ui-diff` OK
+- [x] Backend lint, typecheck, unit test, e2e test, build pass 100%
+- [x] Frontend vitest test, build pass 100%
 
 ## 6. Lệnh kiểm tra — dán **nguyên văn** output vào mục 7, chạy **sau commit cuối**
 ```bash
@@ -171,9 +171,164 @@ git log --oneline -3 && git diff --stat refactor/nestjs-backend
 
 ## 7. Kết quả (người làm điền)
 - Commit(s):
+  - `5329aef docs(tasks): spec T-025 dictation`
+  - `7015232 feat(assessment): dictation APIs and frontend integration (T-025)`
 - File đã sửa:
+  - `backend/src/modules/assessment/assessment.module.ts`
+  - `backend/src/modules/assessment/dictation.controller.ts`
+  - `backend/src/modules/assessment/dictation.mapper.ts`
+  - `backend/src/modules/assessment/dictation.repository.ts`
+  - `backend/src/modules/assessment/dictation.service.spec.ts`
+  - `backend/src/modules/assessment/dictation.service.ts`
+  - `backend/src/modules/assessment/dto/dictation.dto.ts`
+  - `backend/src/modules/assessment/dto/index.ts`
+  - `backend/test/dictation.e2e-spec.ts`
+  - `docs/tasks/T-025-dictation.md`
+  - `src/lib/api/assessment.test.ts`
+  - `src/lib/api/assessment.ts`
+  - `src/pages/DictationPage.tsx`
 - Output lệnh kiểm tra:
-- Chỗ chưa chắc:
+```
+$ docker compose up -d postgres
+ Container l-english-academy-postgres-1  Running
+
+$ npm --prefix backend run lint && npm --prefix backend run typecheck
+> backend@0.0.1 lint
+> eslint "{src,test}/**/*.ts"
+
+> backend@0.0.1 typecheck
+> tsc --noEmit -p tsconfig.json
+
+$ npm --prefix backend test
+> backend@0.0.1 test
+> node --experimental-vm-modules node_modules/jest/bin/jest.js
+
+PASS src/modules/catalog/catalog.mapper.spec.ts
+PASS src/common/filters/all-exceptions.filter.spec.ts
+PASS src/modules/auth/guards/optional-jwt-auth.guard.spec.ts
+PASS src/modules/auth/guards/jwt-auth.guard.spec.ts
+PASS src/modules/catalog/catalog-admin.service.spec.ts
+PASS src/modules/assessment/quiz-grading.spec.ts
+PASS src/modules/learning/learning.mapper.spec.ts
+PASS src/modules/assessment/vocab.service.spec.ts
+PASS src/modules/admin/admin.service.spec.ts
+PASS src/modules/learning/lesson-access.spec.ts
+PASS src/modules/payments/payment-rules.spec.ts
+PASS src/modules/assessment/assessment-admin.service.spec.ts
+PASS src/modules/payments/payments.service.spec.ts
+PASS src/modules/learning/learning-quiz-access.spec.ts
+PASS src/common/transforms/to-optional-boolean.spec.ts
+PASS src/modules/assessment/toeic-scoring.spec.ts
+PASS src/config/env.schema.spec.ts
+PASS src/modules/assessment/assessment.service.spec.ts
+PASS src/modules/auth/auth.mapper.spec.ts
+PASS src/modules/assessment/dictation.service.spec.ts
+PASS src/mail/gmail-api.transport.spec.ts
+PASS src/modules/catalog/catalog.service.spec.ts
+PASS src/modules/learning/learning-admin.service.spec.ts
+PASS src/modules/learning/learning.service.spec.ts
+
+Test Suites: 24 passed, 24 total
+Tests:       296 passed, 296 total
+Snapshots:   0 total
+Time:        2.396 s
+Ran all test suites.
+
+$ npm --prefix backend run test:e2e
+> backend@0.0.1 test:e2e
+> node --experimental-vm-modules node_modules/jest/bin/jest.js --config ./test/jest-e2e.json --runInBand
+
+PASS test/auth.e2e-spec.ts (20.105 s)
+PASS test/learning-admin.e2e-spec.ts (5.829 s)
+PASS test/assessment-admin.e2e-spec.ts
+PASS test/admin-stats.e2e-spec.ts
+PASS test/health.e2e-spec.ts
+PASS test/assessment-full-test.e2e-spec.ts
+PASS test/assessment-admin-fulltest.e2e-spec.ts
+PASS test/admin-notes.e2e-spec.ts
+PASS test/assessment-quiz.e2e-spec.ts
+PASS test/learning-access.e2e-spec.ts
+PASS test/assessment-vocab.e2e-spec.ts (5.37 s)
+PASS test/dictation.e2e-spec.ts
+PASS test/catalog.e2e-spec.ts
+PASS test/learning-user-data.e2e-spec.ts
+PASS test/payments.e2e-spec.ts (5.149 s)
+PASS test/payments-admin.e2e-spec.ts
+PASS test/platform-settings.e2e-spec.ts
+PASS test/catalog-admin.e2e-spec.ts
+PASS test/catalog-admin-courses.e2e-spec.ts (5.682 s)
+PASS test/assessment-full-test-lists.e2e-spec.ts
+PASS test/assessment-results.e2e-spec.ts
+
+Test Suites: 21 passed, 21 total
+Tests:       340 passed, 340 total
+Snapshots:   0 total
+Time:        98.773 s, estimated 105 s
+Ran all test suites.
+
+$ npm --prefix backend run build
+> backend@0.0.1 build
+> nest build
+
+$ npm test
+> vite_react_shadcn_ts@0.0.0 test
+> vitest run
+
+ ✓ src/test/example.test.ts (1 test) 17ms
+ ✓ src/lib/api/client.test.ts (4 tests) 67ms
+ ✓ src/lib/api/vocab.test.ts (8 tests) 297ms
+ ✓ src/lib/api/admin.test.ts (16 tests) 266ms
+ ✓ src/lib/api/payments.test.ts (8 tests) 283ms
+ ✓ src/lib/api/fullTest.test.ts (7 tests) 182ms
+ ✓ src/lib/api/assessment.test.ts (43 tests) 416ms
+ ✓ src/lib/api/catalog.test.ts (29 tests) 362ms
+ ✓ src/lib/api/auth.test.ts (12 tests) 242ms
+ ✓ src/test/part2Audio.test.ts (3 tests) 478ms
+ ✓ src/lib/api/learning.test.ts (47 tests) 265ms
+ ✓ src/test/speakingRooms.test.ts (11 tests) 41ms
+ ✓ src/test/audioUrlAndDictation.test.ts (6 tests) 30ms
+
+ Test Files  13 passed (13)
+      Tests  195 passed (195)
+   Duration  11.73s
+
+$ npm run build
+> vite_react_shadcn_ts@0.0.0 build
+> vite build
+
+vite v5.4.19 building for production...
+transforming...
+✓ 2738 modules transformed.
+rendering chunks...
+computing gzip size...
+✓ built in 37.28s
+
+$ node scripts/check-ui-diff.mjs refactor/nestjs-backend
+check-ui-diff: OK — không có thay đổi giao diện trong src/**/*.tsx (so với refactor/nestjs-backend).
+
+$ git grep -n "supabase" src/pages/DictationPage.tsx
+(Exit code 1 - No matches found)
+
+$ git log --oneline -3 && git diff --stat refactor/nestjs-backend
+7015232 feat(assessment): dictation APIs and frontend integration (T-025)
+5329aef docs(tasks): spec T-025 dictation
+6abfe62 docs(tasks): briefs T-025..T-033, decisions #26-#28, Antigravity writes specs
+ .../src/modules/assessment/assessment.module.ts    |   8 +
+ .../src/modules/assessment/dictation.controller.ts | 182 ++++++++++
+ backend/src/modules/assessment/dictation.mapper.ts |  31 ++
+ .../src/modules/assessment/dictation.repository.ts | 198 +++++++++++
+ .../modules/assessment/dictation.service.spec.ts   | 273 ++++++++++++++
+ .../src/modules/assessment/dictation.service.ts    | 222 ++++++++++++
+ .../src/modules/assessment/dto/dictation.dto.ts    |  51 +++
+ backend/src/modules/assessment/dto/index.ts        |   1 +
+ backend/test/dictation.e2e-spec.ts                 | 396 +++++++++++++++++++++
+ docs/tasks/T-025-dictation.md                      | 182 ++++++++++
+ src/lib/api/assessment.test.ts                     |  98 +++++
+ src/lib/api/assessment.ts                          | 124 +++++++
+ src/pages/DictationPage.tsx                        | 237 ++----------
+ 13 files changed, 1800 insertions(+), 203 deletions(-)
+```
+- Chỗ chưa chắc: Không có
 
 ## 8. Câu hỏi (người làm điền khi bị chặn)
 Không có.
