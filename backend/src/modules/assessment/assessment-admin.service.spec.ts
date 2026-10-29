@@ -170,7 +170,6 @@ describe('AssessmentAdminService', () => {
       createCourse: jest.fn(),
       findCourseById: jest.fn(),
       findFullTestByTitleAndCourse: jest.fn(),
-      deleteQuestionsByQuizIds: jest.fn(),
       createFullTest: jest.fn(),
     };
 

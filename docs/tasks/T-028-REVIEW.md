@@ -1,4 +1,4 @@
-# Review T-028 (Claude, 2026-10-29) — 🔁 TRẢ LẠI
+# Review T-028 (Claude, 2026-10-29) — ✅ PASS (lần 2)
 
 Review trên `b325571`. Phần tốt: mỗi import một `$transaction`, guard admin cấp class, `ArrayMaxSize`/`MaxLength`, media vẫn upload ở client trước khi gửi JSON, xóa đề + quiz trong transaction. Lỗi chính: **quy tắc ghi dữ liệu ở server không khớp code cũ** (luật 3: không đổi hành vi). Có 3 luồng cũ khác nhau đã bị gộp/sửa quy tắc. Sửa theo đúng code cũ ở `08b21aa` (đọc lại file cũ, đừng suy):
 
@@ -30,3 +30,24 @@ Review trên `b325571`. Phần tốt: mỗi import một `$transaction`, guard a
 - e2e: package import 2 lần cùng `course_title` → **một** khóa, đề bị ghi đè (số câu không nhân đôi). `append-questions` vào đề không section → 400, không ghi gì.
 
 Sau khi sửa: chạy lại toàn bộ lệnh kiểm tra (kể cả `tsc` cho adapter + 3 trang), dán output nguyên văn **sau commit cuối**, push lại `task/T-028-bulk-import`, đổi QUEUE về 🔍.
+
+---
+
+## Lần 2 (trên `09c6c54`) — ✅ PASS, merged
+
+- Đủ 3 mục: package-import tìm khóa theo `title` (dùng lại, tạo với `subtitle`/`price: 0`), tách `import-questions` (quy tắc `CourseFullTestManager`) và `append-questions` (quy tắc `AdminFullTestManager`, 400 khi không có section), course JSON dùng `"multiple_choice"` và `display_order ?? 0`. e2e import 2 lần cùng `course_title` → một khóa, không nhân đôi; rollback giữa chừng không để lại bản ghi.
+- **Claude sửa khi merge:** `assessment-admin.service.spec.ts:173` khai báo trùng `deleteQuestionsByQuizIds` (TS1117, backend typecheck fail).
+- **Ngoại lệ `check-ui-diff` đã duyệt (41 dòng):** chỉ là chuỗi trạng thái tiến độ import (`setImportStatusText`, `log(...)`) ở 3 trang admin. Các bước tạo module/câu/đáp án giờ chạy ở server trong một request nên không thể giữ thông báo cũ của từng bước. Không đổi JSX, `className`, nhãn, toast hay bố cục.
+- `supabase.` còn lại ở 3 file chỉ là kiểm chuỗi URL (`url.includes("supabase.co")`), không gọi client.
+
+Kiểm tra sau gộp (merge/T-028, sau sửa spec):
+```
+LINT_OK / TYPE_OK
+Tests:       346 passed, 346 total
+Tests:       387 passed, 387 total
+BUILD_OK
+Tests  213 passed (213)
+FE_LINT_OK
+tsc: (rỗng — adapter + 3 trang)
+✓ built in 33.10s
+```
