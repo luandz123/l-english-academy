@@ -9,6 +9,7 @@ import {
   deleteModule,
   getAdminCourseModules,
   getCourse,
+  importCourseJson,
   listAdminCategories,
   listAdminCourses,
   listCategories,
@@ -515,6 +516,24 @@ describe("catalog adapter", () => {
       const [url, init] = fetchMock.mock.calls[0];
       expect(url).toBe("/api/v1/catalog/admin/categories/1");
       expect(init?.method).toBe("DELETE");
+    });
+
+    it("importCourseJson gọi POST /catalog/admin/courses/:courseId/import-json", async () => {
+      const payload = {
+        course_title: "Part 1",
+        exams: [{ exam_title: "Test 1", questions: [] }],
+      };
+      const fetchMock = mockFetch(201, {
+        module_id: 10,
+        exams_count: 1,
+        total_questions: 0,
+      });
+      const { data, error } = await importCourseJson(5, payload);
+      expect(error).toBeNull();
+      expect(data?.module_id).toBe(10);
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("/api/v1/catalog/admin/courses/5/import-json");
+      expect(init?.method).toBe("POST");
     });
 
     it("lỗi HTTP trả { data: null, error } và không ném", async () => {

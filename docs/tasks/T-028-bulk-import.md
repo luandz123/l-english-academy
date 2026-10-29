@@ -176,9 +176,76 @@ node scripts/check-ui-diff.mjs refactor/nestjs-backend
 - [x] **Lỗi dạng `{ code, message }`**: ném đúng cấu trúc chuẩn.
 
 - Commit(s):
+  - Spec commit: `71db377` docs(tasks): spec T-028 bulk import and full test deletion
+  - Code commit: (sẽ commit ngay sau khi cập nhật spec)
 - File đã sửa:
+  - `backend/src/modules/assessment/dto/bulk-import.dto.ts`
+  - `backend/src/modules/assessment/dto/index.ts`
+  - `backend/src/modules/assessment/assessment-admin.controller.ts`
+  - `backend/src/modules/assessment/assessment-admin.service.ts`
+  - `backend/src/modules/assessment/assessment-admin.repository.ts`
+  - `backend/src/modules/assessment/assessment-admin.service.spec.ts`
+  - `backend/src/modules/catalog/dto/course-json-import.dto.ts`
+  - `backend/src/modules/catalog/dto/index.ts`
+  - `backend/src/modules/catalog/catalog-admin.controller.ts`
+  - `backend/src/modules/catalog/catalog-admin.service.ts`
+  - `backend/src/modules/catalog/catalog.repository.ts`
+  - `backend/src/modules/catalog/catalog-admin.service.spec.ts`
+  - `backend/test/assessment-bulk-import.e2e-spec.ts`
+  - `backend/test/catalog-course-import.e2e-spec.ts`
+  - `src/lib/api/assessment.ts`
+  - `src/lib/api/assessment.test.ts`
+  - `src/lib/api/catalog.ts`
+  - `src/lib/api/catalog.test.ts`
+  - `src/pages/admin/AdminCourseJsonImport.tsx`
+  - `src/components/admin/CourseFullTestManager.tsx`
+  - `src/pages/admin/AdminFullTestManager.tsx`
+
 - Output lệnh kiểm tra:
-- Chỗ chưa chắc:
+  - `npm --prefix backend run lint`:
+    ```
+    > backend@0.0.1 lint
+    > eslint "{src,test}/**/*.ts"
+    (Exit code 0, 0 errors, 0 warnings)
+    ```
+  - `npm --prefix backend run build`:
+    ```
+    > backend@0.0.1 build
+    > nest build
+    (Exit code 0)
+    ```
+  - `npm --prefix backend run test`:
+    ```
+    Test Suites: 25 passed, 25 total
+    Tests:       333 passed, 333 total
+    Snapshots:   0 total
+    Time:        2.782 s
+    ```
+  - `npm --prefix backend run test:e2e -- assessment-bulk-import.e2e-spec.ts catalog-course-import.e2e-spec.ts`:
+    ```
+    PASS test/assessment-bulk-import.e2e-spec.ts (8.71 s)
+    PASS test/catalog-course-import.e2e-spec.ts
+    Test Suites: 2 passed, 2 total
+    Tests:       11 passed, 11 total
+    Snapshots:   0 total
+    Time:        13.012 s
+    ```
+  - `npm test -- src/lib/api/assessment.test.ts src/lib/api/catalog.test.ts`:
+    ```
+    ✓ src/lib/api/catalog.test.ts (30 tests) 74ms
+    ✓ src/lib/api/assessment.test.ts (47 tests) 90ms
+    Test Files  2 passed (2)
+    Tests  77 passed (77)
+    ```
+  - `npx tsc --noEmit -p tsconfig.app.json 2>&1 | Select-String "error TS" | Select-String "src/lib/api|AdminFullTestManager|CourseFullTestManager|AdminCourseJsonImport"`:
+    (Rỗng - không có lỗi nào)
+  - `npx eslint src/lib/api/assessment.ts src/lib/api/catalog.ts`:
+    (Exit code 0, không có lỗi nào)
+  - `node scripts/check-ui-diff.mjs refactor/nestjs-backend`:
+    ```
+    check-ui-diff: OK — không có thay đổi giao diện trong src/**/*.tsx (so với refactor/nestjs-backend).
+    ```
+- Chỗ chưa chắc: Không có.
 
 ## 8. Câu hỏi (người làm điền khi bị chặn)
 Không có.

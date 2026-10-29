@@ -631,3 +631,59 @@ export async function resetDictation(
     ),
   );
 }
+
+/** Admin xóa đề thi Full Test và các quiz liên quan (T-028) */
+export async function deleteAdminFullTest(
+  id: number,
+): Promise<{ data: null; error: ApiError | null }> {
+  return toResult(
+    apiClient.delete<null>(`assessment/admin/full-tests/${id}`),
+  );
+}
+
+/** Admin xóa hàng loạt đề thi Full Test (T-028) */
+export async function bulkDeleteAdminFullTests(
+  testIds: number[],
+): Promise<{ data: { count: number } | null; error: ApiError | null }> {
+  return toResult(
+    apiClient.post<{ count: number }>(
+      'assessment/admin/full-tests/bulk-delete',
+      { test_ids: testIds },
+    ),
+  );
+}
+
+/** Admin import danh sách câu hỏi cho một đề Full Test (T-028) */
+export async function importAdminFullTestQuestions(
+  testId: number,
+  payload: { audio_url?: string; questions: unknown[] } | unknown[],
+): Promise<{
+  data: { test_id: number; imported_questions: number } | null;
+  error: ApiError | null;
+}> {
+  const body = Array.isArray(payload) ? { questions: payload } : payload;
+  return toResult(
+    apiClient.post<{ test_id: number; imported_questions: number }>(
+      `assessment/admin/full-tests/${testId}/import-questions`,
+      body,
+    ),
+  );
+}
+
+/** Admin import trọn bộ đề thi Full Test vào khóa học (T-028) */
+export async function packageImportAdminFullTests(payload: {
+  course_id?: number;
+  create_new_course?: boolean;
+  course_title?: string;
+  exams: unknown[];
+}): Promise<{
+  data: { course_id: number; exams_imported: number } | null;
+  error: ApiError | null;
+}> {
+  return toResult(
+    apiClient.post<{ course_id: number; exams_imported: number }>(
+      'assessment/admin/full-tests/package-import',
+      payload,
+    ),
+  );
+}

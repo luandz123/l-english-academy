@@ -94,6 +94,14 @@ function setup() {
         Promise.resolve({ ...CATEGORY_ROW, ...data }),
       ),
     deleteCategory: jest.fn().mockResolvedValue(CATEGORY_ROW),
+    createQuizRaw: jest.fn().mockResolvedValue({ id: 101 }),
+    createLessonRaw: jest.fn().mockResolvedValue({ id: 201 }),
+    createQuestionRaw: jest.fn().mockResolvedValue({ id: 301 }),
+    createAnswersRaw: jest.fn().mockResolvedValue({ count: 4 }),
+    updateQuizTotalQuestions: jest.fn().mockResolvedValue(undefined),
+    inTransaction: jest
+      .fn()
+      .mockImplementation((fn: (tx: unknown) => Promise<unknown>) => fn(repo)),
   };
 
   const service = new CatalogAdminService(
@@ -370,6 +378,72 @@ describe('CatalogAdminService', () => {
       const err = await httpError(service.deleteCategory(2));
       expect(err.status).toBe(409);
       expect(err.body.code).toBe('CATEGORY_HAS_COURSES');
+    });
+  });
+
+  describe('importCourseJson', () => {
+    it('ném 404 khi khóa học không tồn tại', async () => {
+      const { service, repo } = setup();
+      repo.findCourseById.mockResolvedValue(null);
+
+      const err = await httpError(
+        service.importCourseJson(999, {
+          course_title: 'Part 5 test',
+          exams: [],
+        }),
+      );
+      expect(err.status).toBe(404);
+      expect(err.body.code).toBe('COURSE_NOT_FOUND');
+    });
+
+    it('tạo module, quiz, lesson, question và answers thành công trong transaction', async () => {
+      const { service, repo } = setup();
+      repo.courseExists.mockResolvedValue(true);
+
+      const res = await service.importCourseJson(1, {
+        course_title: 'Part 5 chuyên sâu',
+        exams: [
+          {
+            exam_title: 'Đề 1',
+            questions: [
+              {
+                part: 5,
+                question_text: 'Choose the best answer',
+                answers: [
+                  { answer_text: 'A', is_correct: true, explanation: 'OK' },
+                  { answer_text: 'B', is_correct: false },
+                ],
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(repo.createModule).toHaveBeenCalledWith({
+        courseId: 1,
+        title: 'Part 5 chuyên sâu',
+        description: null,
+        isFree: false,
+        displayOrder: 0,
+      });
+      expect(repo.createQuizRaw).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Đề 1',
+          totalQuestions: 1,
+        }),
+      );
+      expect(repo.createQuestionRaw).toHaveBeenCalledWith(
+        expect.objectContaining({
+          questionText: 'Choose the best answer',
+          questionType: 'part5',
+        }),
+      );
+      expect(repo.createAnswersRaw).toHaveBeenCalled();
+      expect(res).toEqual({
+        module_id: 10,
+        exams_count: 1,
+        total_questions: 1,
+      });
     });
   });
 });

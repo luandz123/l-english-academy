@@ -157,6 +157,19 @@ describe('AssessmentAdminService', () => {
       updateQuestionsGroup: jest.fn(),
       findPartNumberByQuizId: jest.fn(),
       findFullTestQuestions: jest.fn(),
+      findSectionsByTestId: jest.fn(),
+      findSectionsByTestIds: jest.fn(),
+      deleteFullTest: jest.fn(),
+      deleteFullTests: jest.fn(),
+      deleteQuizzes: jest.fn(),
+      createQuizRaw: jest.fn(),
+      createFullTestSection: jest.fn(),
+      countQuestionsByQuizId: jest.fn(),
+      createCourse: jest.fn(),
+      findCourseById: jest.fn(),
+      findFullTestByTitleAndCourse: jest.fn(),
+      deleteQuestionsByQuizIds: jest.fn(),
+      createFullTest: jest.fn(),
     };
 
     mockRepo.inTransaction!.mockImplementation((fn) =>
@@ -973,6 +986,133 @@ describe('AssessmentAdminService', () => {
         imageUrl: 'img.png',
         groupId: 'group_A',
       });
+    });
+  });
+
+  describe('deleteFullTest', () => {
+    it('ném 404 khi không tìm thấy đề thi', async () => {
+      repo.findFullTestById.mockResolvedValue(null);
+      await expect(service.deleteFullTest(999)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('xóa các quiz liên quan và đề thi thành công', async () => {
+      repo.findFullTestById.mockResolvedValue(makeFullTest({ id: 1 }));
+      repo.findSectionsByTestId.mockResolvedValue([
+        makeSection({ testId: 1, quizId: 10 }),
+        makeSection({ testId: 1, quizId: 11 }),
+      ]);
+
+      await service.deleteFullTest(1);
+
+      expect(repo.deleteFullTest).toHaveBeenCalledWith(1);
+      expect(repo.deleteQuizzes).toHaveBeenCalledWith([10, 11]);
+    });
+  });
+
+  describe('bulkDeleteFullTests', () => {
+    it('xóa danh sách đề thi và các quiz liên quan', async () => {
+      repo.findSectionsByTestIds.mockResolvedValue([
+        makeSection({ testId: 1, quizId: 10 }),
+        makeSection({ testId: 2, quizId: 20 }),
+      ]);
+      repo.deleteFullTests.mockResolvedValue(2);
+
+      const res = await service.bulkDeleteFullTests({ test_ids: [1, 2] });
+
+      expect(repo.deleteFullTests).toHaveBeenCalledWith([1, 2]);
+      expect(repo.deleteQuizzes).toHaveBeenCalledWith([10, 20]);
+      expect(res).toEqual({ count: 2 });
+    });
+  });
+
+  describe('importFullTestQuestions', () => {
+    it('ném 404 khi không tìm thấy đề thi', async () => {
+      repo.findFullTestById.mockResolvedValue(null);
+      await expect(
+        service.importFullTestQuestions(999, { questions: [] }),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('tạo 7 phần quiz nếu chưa có và thêm câu hỏi', async () => {
+      repo.findFullTestById.mockResolvedValue(makeFullTest({ id: 1 }));
+      repo.findSectionsByTestId
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([
+          makeSection({ testId: 1, partNumber: 5, quizId: 50 }),
+        ]);
+      repo.createQuizRaw.mockResolvedValue(makeQuiz({ id: 50 }));
+      repo.createQuestion.mockResolvedValue(makeQuestion({ id: 100 }));
+      repo.countQuestionsByQuizId.mockResolvedValue(1);
+
+      const res = await service.importFullTestQuestions(1, {
+        audio_url: 'https://example.com/audio.mp3',
+        questions: [
+          {
+            part: 5,
+            question_text: 'Question 1',
+            answers: [{ answer_text: 'A', is_correct: true }],
+          },
+        ],
+      });
+
+      expect(repo.updateFullTest).toHaveBeenCalledWith(1, {
+        audioUrl: 'https://example.com/audio.mp3',
+      });
+      expect(repo.createQuizRaw).toHaveBeenCalledTimes(7);
+      expect(repo.createQuestion).toHaveBeenCalled();
+      expect(repo.createAnswers).toHaveBeenCalled();
+      expect(res).toEqual({ test_id: 1, imported_questions: 1 });
+    });
+  });
+
+  describe('packageImportFullTests', () => {
+    it('tạo khóa học mới và import các đề thi', async () => {
+      repo.createCourse.mockResolvedValue({
+        id: 88,
+        title: 'Full Test Package',
+        courseType: 'fulltest',
+        price: 0,
+        durationMonths: 12,
+        createdAt: new Date(),
+        description: null,
+        displayOrder: 0,
+        isActive: true,
+        isFree: false,
+        subtitle: null,
+        thumbnailUrl: null,
+        categoryId: null,
+      });
+      repo.findFullTestByTitleAndCourse.mockResolvedValue(null);
+      repo.createFullTest.mockResolvedValue(makeFullTest({ id: 10 }));
+      repo.createQuizRaw.mockResolvedValue(makeQuiz({ id: 50 }));
+      repo.findSectionsByTestId.mockResolvedValue([
+        makeSection({ testId: 10, partNumber: 5, quizId: 50 }),
+      ]);
+      repo.createQuestion.mockResolvedValue(makeQuestion({ id: 100 }));
+      repo.countQuestionsByQuizId.mockResolvedValue(1);
+
+      const res = await service.packageImportFullTests({
+        create_new_course: true,
+        course_title: 'Full Test Package',
+        exams: [
+          {
+            title: 'Exam 1',
+            questions: [
+              {
+                part: 5,
+                question_text: 'Test Q',
+                answers: [{ answer_text: 'Opt 1', is_correct: true }],
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(repo.createCourse).toHaveBeenCalled();
+      expect(repo.createFullTest).toHaveBeenCalled();
+      expect(res).toEqual({ course_id: 88, exams_imported: 1 });
     });
   });
 });

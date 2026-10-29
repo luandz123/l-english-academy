@@ -337,3 +337,23 @@ export async function deleteCategory(
   return { data: null, error: null };
 }
 
+/** Admin import Module + Quizzes + Lessons + Questions từ JSON vào khóa học (T-028) */
+export async function importCourseJson(
+  courseId: number,
+  payload: {
+    course_title?: string;
+    exams: unknown[];
+  },
+): Promise<{
+  data: { module_id: number; exams_count: number; total_questions: number } | null;
+  error: ApiError | null;
+}> {
+  return toResult(
+    apiClient.post<{
+      module_id: number;
+      exams_count: number;
+      total_questions: number;
+    }>(`catalog/admin/courses/${courseId}/import-json`, payload),
+  );
+}
+

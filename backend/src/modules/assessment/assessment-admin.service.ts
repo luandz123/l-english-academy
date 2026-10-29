@@ -8,9 +8,12 @@ import { AssessmentMapper } from './assessment.mapper';
 import { AssessmentAdminRepository } from './assessment-admin.repository';
 import {
   AdminFullTestDetailDto,
+  BulkDeleteFullTestsDto,
   BulkDeleteQuestionsDto,
   CreateFullTestQuestionDto,
   FullTestQuestionDto,
+  ImportFullTestQuestionsDto,
+  PackageImportFullTestsDto,
   PatchQuizDto,
   QuizDto,
   ReorderQuestionsDto,
@@ -22,6 +25,26 @@ import {
   UpdateFullTestQuestionDto,
   UpdateQuestionGroupDto,
 } from './dto';
+
+function inferToeicPart(displayOrder?: number): number {
+  if (!displayOrder) return 5;
+  if (displayOrder <= 6) return 1;
+  if (displayOrder <= 31) return 2;
+  if (displayOrder <= 70) return 3;
+  if (displayOrder <= 100) return 4;
+  if (displayOrder <= 130) return 5;
+  if (displayOrder <= 146) return 6;
+  return 7;
+}
+
+interface RawImportAnswer {
+  answer_text?: string;
+  text?: string;
+  is_correct?: boolean;
+  correct?: boolean;
+  explanation?: string | null;
+  display_order?: number;
+}
 
 @Injectable()
 export class AssessmentAdminService {
@@ -652,6 +675,304 @@ export class AssessmentAdminService {
       audioUrl: dto.audio_url ?? null,
       imageUrl: dto.image_url ?? null,
       groupId: dto.group_id ?? null,
+    });
+  }
+
+  async deleteFullTest(id: number): Promise<void> {
+    const existing = await this.repo.findFullTestById(id);
+    if (!existing) {
+      throw new NotFoundException({
+        code: 'FULLTEST_NOT_FOUND',
+        message: 'Đề thi không tồn tại',
+      });
+    }
+
+    await this.repo.inTransaction(async (tx) => {
+      const sections = await tx.findSectionsByTestId(id);
+      const quizIds = sections
+        .map((s) => s.quizId)
+        .filter((qid): qid is number => qid !== null);
+
+      await tx.deleteFullTest(id);
+      if (quizIds.length > 0) {
+        await tx.deleteQuizzes(quizIds);
+      }
+    });
+  }
+
+  async bulkDeleteFullTests(
+    dto: BulkDeleteFullTestsDto,
+  ): Promise<{ count: number }> {
+    return this.repo.inTransaction(async (tx) => {
+      const sections = await tx.findSectionsByTestIds(dto.test_ids);
+      const quizIds = sections
+        .map((s) => s.quizId)
+        .filter((qid): qid is number => qid !== null);
+
+      const count = await tx.deleteFullTests(dto.test_ids);
+      if (quizIds.length > 0) {
+        await tx.deleteQuizzes(quizIds);
+      }
+      return { count };
+    });
+  }
+
+  async importFullTestQuestions(
+    testId: number,
+    dto: ImportFullTestQuestionsDto,
+  ): Promise<{ test_id: number; imported_questions: number }> {
+    const test = await this.repo.findFullTestById(testId);
+    if (!test) {
+      throw new NotFoundException({
+        code: 'FULLTEST_NOT_FOUND',
+        message: 'Đề thi không tồn tại',
+      });
+    }
+
+    return this.repo.inTransaction(async (tx) => {
+      if (dto.audio_url) {
+        await tx.updateFullTest(testId, { audioUrl: dto.audio_url });
+      }
+
+      let sections = await tx.findSectionsByTestId(testId);
+
+      const existingParts = new Set(sections.map((s) => s.partNumber));
+      for (let p = 1; p <= 7; p++) {
+        if (!existingParts.has(p)) {
+          const newQuiz = await tx.createQuizRaw({
+            title: `Part ${p} - ${test.title}`,
+            totalQuestions: 0,
+            displayOrder: p,
+          });
+          await tx.createFullTestSection({
+            testId,
+            partNumber: p,
+            quizId: newQuiz.id,
+          });
+        }
+      }
+
+      sections = await tx.findSectionsByTestId(testId);
+
+      const quizByPart = new Map<number, number>();
+      for (const s of sections) {
+        if (s.quizId !== null) {
+          quizByPart.set(s.partNumber, s.quizId);
+        }
+      }
+
+      let totalQuestionsImported = 0;
+
+      for (let i = 0; i < dto.questions.length; i++) {
+        const item = dto.questions[i];
+        const part =
+          item.part_number ?? item.part ?? inferToeicPart(item.display_order);
+
+        const quizId = quizByPart.get(part);
+        if (!quizId) continue;
+
+        let questionText = item.question_text || item.text || '';
+        const passageText = item.passage_text || item.passage;
+        if (passageText) {
+          questionText = `[PASSAGE]${passageText}[ENDPASSAGE]${questionText}`;
+        }
+
+        const displayOrder = item.display_order || totalQuestionsImported + 1;
+
+        const insertedQ = await tx.createQuestion({
+          quizId,
+          questionText,
+          questionType: `part${part}`,
+          displayOrder,
+          audioUrl: item.audio_url || null,
+          imageUrl: item.image_url || null,
+          transcript: item.transcript || null,
+          translation: item.translation || item.translation_text || null,
+          groupId: item.group_id ? String(item.group_id) : null,
+        });
+
+        const rawAnswers = (item.answers || item.options || []) as (
+          RawImportAnswer | string
+        )[];
+        const answersToInsert = rawAnswers.map((ans, aIdx) => {
+          const isStr = typeof ans === 'string';
+          const obj = isStr ? null : ans;
+          return {
+            questionId: insertedQ.id,
+            answerText: isStr ? ans : obj?.answer_text || obj?.text || '',
+            isCorrect: obj
+              ? Boolean(obj.is_correct || obj.correct)
+              : item.correct_answer === aIdx || item.correct === aIdx,
+            explanation: obj
+              ? obj.explanation || item.explanation || null
+              : item.explanation || null,
+            displayOrder:
+              obj?.display_order !== undefined ? obj.display_order : aIdx,
+          };
+        });
+
+        if (answersToInsert.length > 0) {
+          await tx.createAnswers(answersToInsert);
+        }
+
+        totalQuestionsImported++;
+      }
+
+      for (const [, quizId] of quizByPart.entries()) {
+        const count = await tx.countQuestionsByQuizId(quizId);
+        await tx.updateQuizTotalQuestions(quizId, count);
+      }
+
+      await tx.updateFullTestTotalQuestions(testId, totalQuestionsImported);
+
+      return { test_id: testId, imported_questions: totalQuestionsImported };
+    });
+  }
+
+  async packageImportFullTests(
+    dto: PackageImportFullTestsDto,
+  ): Promise<{ course_id: number; exams_imported: number }> {
+    return this.repo.inTransaction(async (tx) => {
+      let targetCourseId: number;
+
+      if (dto.create_new_course || !dto.course_id) {
+        const newCourse = await tx.createCourse({
+          title: dto.course_title || 'Bộ đề Full Test mới',
+          courseType: 'fulltest',
+          isActive: true,
+          instructor: 'Cô Mai Phương',
+          durationMonths: 12,
+        });
+        targetCourseId = newCourse.id;
+      } else {
+        const course = await tx.findCourseById(dto.course_id);
+        if (!course) {
+          throw new NotFoundException({
+            code: 'COURSE_NOT_FOUND',
+            message: 'Khóa học không tồn tại',
+          });
+        }
+        targetCourseId = course.id;
+      }
+
+      for (let exIdx = 0; exIdx < dto.exams.length; exIdx++) {
+        const exam = dto.exams[exIdx];
+        const examTitle =
+          exam.exam_title || exam.title || `Đề thi số ${exIdx + 1}`;
+
+        const existingTest = await tx.findFullTestByTitleAndCourse(
+          examTitle,
+          targetCourseId,
+        );
+        let testId: number;
+
+        if (existingTest) {
+          testId = existingTest.id;
+          const oldSections = await tx.findSectionsByTestId(testId);
+          const quizIds = oldSections
+            .map((s) => s.quizId)
+            .filter((qid): qid is number => qid !== null);
+          if (quizIds.length > 0) {
+            await tx.deleteQuestionsByQuizIds(quizIds);
+          }
+        } else {
+          const newTest = await tx.createFullTest({
+            title: examTitle,
+            courseId: targetCourseId,
+            audioUrl: exam.audio_url || null,
+          });
+          testId = newTest.id;
+
+          for (let part = 1; part <= 7; part++) {
+            const newQuiz = await tx.createQuizRaw({
+              title: `Part ${part} - ${examTitle}`,
+              totalQuestions: 0,
+              displayOrder: part,
+            });
+            await tx.createFullTestSection({
+              testId,
+              partNumber: part,
+              quizId: newQuiz.id,
+            });
+          }
+        }
+
+        if (exam.audio_url) {
+          await tx.updateFullTest(testId, { audioUrl: exam.audio_url });
+        }
+
+        const sections = await tx.findSectionsByTestId(testId);
+        const quizByPart = new Map<number, number>();
+        for (const s of sections) {
+          if (s.quizId !== null) {
+            quizByPart.set(s.partNumber, s.quizId);
+          }
+        }
+
+        const questionsArray = exam.questions || [];
+        let totalQuestionsExam = 0;
+
+        for (let i = 0; i < questionsArray.length; i++) {
+          const q = questionsArray[i];
+          const part = q.part || q.part_number || 5;
+          const quizId = quizByPart.get(part);
+          if (!quizId) continue;
+
+          let questionText = q.question_text || q.text || '';
+          const passageText = q.passage_text || q.passage;
+          if (passageText) {
+            questionText = `[PASSAGE]${passageText}[ENDPASSAGE]${questionText}`;
+          }
+
+          const displayOrder = q.display_order || i + 1;
+
+          const insertedQ = await tx.createQuestion({
+            quizId,
+            questionText,
+            questionType: `part${part}`,
+            displayOrder,
+            translation: q.translation || q.translation_text || null,
+            audioUrl: q.audio_url || null,
+            imageUrl: q.image_url || null,
+            groupId: q.group_id ? String(q.group_id) : null,
+            transcript: q.transcript || null,
+          });
+
+          const answers = (q.answers || q.options || []) as (
+            RawImportAnswer | string
+          )[];
+          const answersToInsert = answers.map((ans, aIdx) => {
+            const isStr = typeof ans === 'string';
+            const obj = isStr ? null : ans;
+            return {
+              questionId: insertedQ.id,
+              answerText: isStr ? ans : obj?.answer_text || obj?.text || '',
+              isCorrect: obj
+                ? Boolean(obj.is_correct || obj.correct)
+                : q.correct_answer === aIdx || q.correct === aIdx,
+              explanation: obj
+                ? obj.explanation || q.explanation || null
+                : q.explanation || null,
+              displayOrder:
+                obj?.display_order !== undefined ? obj.display_order : aIdx,
+            };
+          });
+
+          if (answersToInsert.length > 0) {
+            await tx.createAnswers(answersToInsert);
+          }
+          totalQuestionsExam++;
+        }
+
+        for (const [, quizId] of quizByPart.entries()) {
+          const count = await tx.countQuestionsByQuizId(quizId);
+          await tx.updateQuizTotalQuestions(quizId, count);
+        }
+
+        await tx.updateFullTestTotalQuestions(testId, totalQuestionsExam);
+      }
+
+      return { course_id: targetCourseId, exams_imported: dto.exams.length };
     });
   }
 }

@@ -1,9 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  bulkDeleteAdminFullTests,
   createAdminFullTestQuestion,
   createLessonQuiz,
   createModuleQuiz,
   createQuizQuestion,
+  deleteAdminFullTest,
   deleteAdminFullTestQuestion,
   deleteModuleQuiz,
   deleteQuizQuestion,
@@ -20,12 +22,14 @@ import {
   getQuiz,
   getQuizResult,
   getQuizReview,
+  importAdminFullTestQuestions,
   listAdminQuizQuestions,
   listMyQuizResults,
   listQuizQuestions,
   listResultAnswers,
   listUserQuizResults,
   markDictationQuestionDone,
+  packageImportAdminFullTests,
   patchQuiz,
   reorderQuizQuestions,
   resetDictation,
@@ -464,6 +468,49 @@ describe("assessment adapter", () => {
         expect(data?.score).toBe(0);
         const [url, init] = fetchMock.mock.calls[0];
         expect(url).toBe("/api/v1/assessment/dictation/quizzes/1/reset");
+        expect(init?.method).toBe("POST");
+      });
+
+      it("deleteAdminFullTest gọi DELETE /api/v1/assessment/admin/full-tests/:id", async () => {
+        const fetchMock = mockFetch(204);
+        const { error } = await deleteAdminFullTest(10);
+        expect(error).toBeNull();
+        const [url, init] = fetchMock.mock.calls[0];
+        expect(url).toBe("/api/v1/assessment/admin/full-tests/10");
+        expect(init?.method).toBe("DELETE");
+      });
+
+      it("bulkDeleteAdminFullTests gọi POST /api/v1/assessment/admin/full-tests/bulk-delete", async () => {
+        const fetchMock = mockFetch(200, { count: 3 });
+        const { data, error } = await bulkDeleteAdminFullTests([1, 2, 3]);
+        expect(error).toBeNull();
+        expect(data?.count).toBe(3);
+        const [url, init] = fetchMock.mock.calls[0];
+        expect(url).toBe("/api/v1/assessment/admin/full-tests/bulk-delete");
+        expect(init?.method).toBe("POST");
+        expect(JSON.parse(init?.body as string)).toEqual({ test_ids: [1, 2, 3] });
+      });
+
+      it("importAdminFullTestQuestions gọi POST /api/v1/assessment/admin/full-tests/:testId/import-questions", async () => {
+        const fetchMock = mockFetch(201, { test_id: 10, imported_questions: 5 });
+        const { data, error } = await importAdminFullTestQuestions(10, [{ question_text: "Q1" }]);
+        expect(error).toBeNull();
+        expect(data?.imported_questions).toBe(5);
+        const [url, init] = fetchMock.mock.calls[0];
+        expect(url).toBe("/api/v1/assessment/admin/full-tests/10/import-questions");
+        expect(init?.method).toBe("POST");
+      });
+
+      it("packageImportAdminFullTests gọi POST /api/v1/assessment/admin/full-tests/package-import", async () => {
+        const fetchMock = mockFetch(201, { course_id: 5, exams_imported: 2 });
+        const { data, error } = await packageImportAdminFullTests({
+          course_id: 5,
+          exams: [{ exam_title: "Exam 1", questions: [] }],
+        });
+        expect(error).toBeNull();
+        expect(data?.exams_imported).toBe(2);
+        const [url, init] = fetchMock.mock.calls[0];
+        expect(url).toBe("/api/v1/assessment/admin/full-tests/package-import");
         expect(init?.method).toBe("POST");
       });
     });

@@ -5,6 +5,7 @@ import type {
   CourseCategory,
   Lesson,
   Module,
+  Question,
   Quiz,
 } from '../../generated/prisma/client';
 import { Prisma } from '../../generated/prisma/client';
@@ -26,6 +27,12 @@ export interface CourseFilter {
 @Injectable()
 export class CatalogRepository {
   constructor(private readonly prisma: PrismaService) {}
+
+  inTransaction<T>(fn: (txRepo: CatalogRepository) => Promise<T>): Promise<T> {
+    return this.prisma.$transaction(async (tx) =>
+      fn(new CatalogRepository(tx as unknown as PrismaService)),
+    );
+  }
 
   async findCategories(filter: CategoryFilter): Promise<CourseCategory[]> {
     return this.prisma.courseCategory.findMany({
@@ -232,6 +239,70 @@ export class CatalogRepository {
   async deleteCategory(id: number | bigint): Promise<CourseCategory> {
     return this.prisma.courseCategory.delete({
       where: { id: BigInt(id) },
+    });
+  }
+
+  async createQuizRaw(data: {
+    moduleId: number;
+    title: string;
+    totalQuestions: number;
+    displayOrder: number;
+    audioUrl?: string | null;
+  }): Promise<Quiz> {
+    return this.prisma.quiz.create({
+      data: {
+        moduleId: data.moduleId,
+        title: data.title,
+        totalQuestions: data.totalQuestions,
+        displayOrder: data.displayOrder,
+        audioUrl: data.audioUrl ?? null,
+      },
+    });
+  }
+
+  async createLessonRaw(data: {
+    moduleId: number;
+    title: string;
+    lessonType: string;
+    quizId: number;
+    displayOrder: number;
+  }): Promise<Lesson> {
+    return this.prisma.lesson.create({
+      data: {
+        moduleId: data.moduleId,
+        title: data.title,
+        lessonType: data.lessonType,
+        quizId: data.quizId,
+        displayOrder: data.displayOrder,
+      },
+    });
+  }
+
+  async createQuestionRaw(
+    data: Prisma.QuestionUncheckedCreateInput,
+  ): Promise<Question> {
+    return this.prisma.question.create({
+      data,
+    });
+  }
+
+  async createAnswersRaw(
+    data: Prisma.AnswerCreateManyInput[],
+  ): Promise<number> {
+    if (data.length === 0) return 0;
+    const res = await this.prisma.answer.createMany({
+      data,
+    });
+    return res.count;
+  }
+
+  async updateQuizTotalQuestions(
+    quizId: number,
+    totalQuestions: number,
+  ): Promise<Quiz> {
+    return this.prisma.quiz.update({
+      where: { id: quizId },
+      data: { totalQuestions },
     });
   }
 }

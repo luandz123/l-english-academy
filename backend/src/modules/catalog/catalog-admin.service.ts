@@ -11,6 +11,7 @@ import {
   AdminModuleDto,
   CourseCategoryDto,
   CourseDto,
+  CourseJsonImportDto,
   ModuleDto,
   PatchCourseDto,
   PatchModuleDto,
@@ -353,6 +354,120 @@ export class CatalogAdminService {
     return new NotFoundException({
       code: 'MODULE_NOT_FOUND',
       message: 'Chương học không tồn tại',
+    });
+  }
+
+  async importCourseJson(
+    courseId: number,
+    dto: CourseJsonImportDto,
+  ): Promise<{
+    module_id: number;
+    exams_count: number;
+    total_questions: number;
+  }> {
+    const course = await this.repo.findCourseById(courseId);
+    if (!course) {
+      throw this.courseNotFound();
+    }
+
+    const partTypeMap: Record<number, string> = {
+      1: 'part1',
+      2: 'part2',
+      3: 'part3',
+      4: 'part4',
+      5: 'part5',
+      6: 'part6',
+      7: 'part7',
+    };
+
+    return this.repo.inTransaction(async (tx) => {
+      const partTitle = dto.course_title || 'Part mới';
+      const nextOrder = await tx.nextModuleDisplayOrder(courseId);
+
+      const mod = await tx.createModule({
+        courseId,
+        title: partTitle,
+        description: null,
+        isFree: false,
+        displayOrder: nextOrder,
+      });
+
+      let totalQuestions = 0;
+
+      for (let ei = 0; ei < dto.exams.length; ei++) {
+        const exam = dto.exams[ei];
+        const examTitle = exam.exam_title || `Đề ${ei + 1}`;
+        const questions = exam.questions || [];
+
+        if (questions.length === 0) continue;
+
+        const examAudioUrl =
+          exam.audio_url ||
+          questions.find((q) => q.audio_url)?.audio_url ||
+          null;
+
+        const quiz = await tx.createQuizRaw({
+          moduleId: mod.id,
+          title: examTitle,
+          totalQuestions: questions.length,
+          displayOrder: ei,
+          audioUrl: examAudioUrl,
+        });
+
+        await tx.createLessonRaw({
+          moduleId: mod.id,
+          title: examTitle,
+          lessonType: 'exam',
+          quizId: quiz.id,
+          displayOrder: ei,
+        });
+
+        for (let qi = 0; qi < questions.length; qi++) {
+          const q = questions[qi];
+          const part = q.part ?? 5;
+          const qType = partTypeMap[part] ?? 'part' + part;
+
+          let questionText = q.question_text || '';
+          if (q.passage_text && (part === 6 || part === 7)) {
+            questionText = `[PASSAGE]${q.passage_text}[ENDPASSAGE]${questionText}`;
+          }
+
+          const insertedQ = await tx.createQuestionRaw({
+            quizId: quiz.id,
+            questionText,
+            questionType: qType,
+            displayOrder: qi,
+            translation: q.translation ?? null,
+            audioUrl: q.audio_url ?? null,
+            imageUrl: q.image_url ?? null,
+            transcript: q.transcript ?? null,
+            groupId: q.group_id ? String(q.group_id) : null,
+          });
+
+          const answers = q.answers || [];
+          if (answers.length > 0) {
+            await tx.createAnswersRaw(
+              answers.map((a, aIdx) => ({
+                questionId: insertedQ.id,
+                answerText: a.answer_text || '',
+                isCorrect: !!a.is_correct,
+                explanation: a.explanation ?? null,
+                displayOrder:
+                  a.display_order !== undefined ? a.display_order : aIdx,
+              })),
+            );
+          }
+          totalQuestions++;
+        }
+
+        await tx.updateQuizTotalQuestions(quiz.id, questions.length);
+      }
+
+      return {
+        module_id: mod.id,
+        exams_count: dto.exams.length,
+        total_questions: totalQuestions,
+      };
     });
   }
 }

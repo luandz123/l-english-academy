@@ -5,3 +5,4 @@ export * from './full-test.dto';
 export * from './vocab.dto';
 export * from './assessment-admin.dto';
 export * from './dictation.dto';
+export * from './bulk-import.dto';
