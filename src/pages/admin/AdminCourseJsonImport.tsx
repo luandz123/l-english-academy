@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { uploadMedia } from "@/lib/api/media";
+import { uploadMedia as uploadMediaFile } from "@/lib/api/media";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, CheckCircle, Loader2 } from "lucide-react";
 
@@ -86,7 +86,7 @@ const AdminCourseJsonImport = () => {
       const rawName =
         externalUrl.split("/").pop()?.split("?")[0] || `${type}_${Date.now()}`;
       const sanitized = rawName.replace(/[^a-zA-Z0-9.\-_]/g, "");
-      const { publicUrl } = await uploadMedia(
+      const { publicUrl } = await uploadMediaFile(
         blob,
         "quiz_media",
         `${Date.now()}_${prefix}_${sanitized}`,
