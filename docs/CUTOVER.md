@@ -81,6 +81,19 @@ Kiểm tra: `verify-content` khớp số dòng + md5 cả 15 bảng. Lệch → 
 | 5 | Thanh toán: tạo đơn → chuyển khoản → webhook → Pro | trạng thái đổi trong ≤ 6 giây (polling 3s) |
 | 6 | Admin: sửa khóa/bài/câu hỏi, upload ảnh/audio, import JSON | file mở được qua `public_url`, import lỗi không để bản ghi dở |
 
+### Kết quả smoke test — khách (Claude, 2026-10-29, staging `462c097`)
+| Kiểm tra | Kết quả |
+|---|---|
+| `GET /catalog/courses` | 200 |
+| Route cần đăng nhập (`results/me`, `payments/orders`, `quizzes/:id/submit`, `media/upload`) | 401 |
+| Route admin (`admin/settings`, `catalog/admin/courses`) không token | 401 |
+| Webhook SePay không API key | 401 |
+| `quizzes/:id/questions` (10 id): khóa → 403, mở → 200, **không có `is_correct`** | đạt |
+| Full Test khóa trả phí (113, 114) → 403 `FULLTEST_LOCKED`; khóa free (83) → 200 | đạt |
+| Full Test id không tồn tại → 200 `[]` | giống code cũ (Supabase trả mảng rỗng) |
+
+Còn lại: luồng 1, 2, 4, 5, 6 cần đăng nhập — chạy sau khi T-033, T-034 merge.
+
 ## 6. Rollback (mục tiêu < 15 phút)
 1. Vercel → Deployments → bản production cuối trước cutover → **Promote to Production** (hoặc `git revert` merge commit trên `main`). Bản đó dùng Supabase trực tiếp, không cần backend.
 2. SePay → URL webhook về `https://<domain production>/api/payment-webhook` (Vercel function cũ, dùng Supabase).
