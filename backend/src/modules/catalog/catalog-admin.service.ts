@@ -424,11 +424,13 @@ export class CatalogAdminService {
 
         for (let qi = 0; qi < questions.length; qi++) {
           const q = questions[qi];
-          const part = q.part ?? 5;
-          const qType = partTypeMap[part] ?? 'part' + part;
+          const qType =
+            q.part !== undefined && partTypeMap[q.part]
+              ? partTypeMap[q.part]
+              : 'multiple_choice';
 
           let questionText = q.question_text || '';
-          if (q.passage_text && (part === 6 || part === 7)) {
+          if (q.passage_text && (q.part === 6 || q.part === 7)) {
             questionText = `[PASSAGE]${q.passage_text}[ENDPASSAGE]${questionText}`;
           }
 
@@ -447,13 +449,12 @@ export class CatalogAdminService {
           const answers = q.answers || [];
           if (answers.length > 0) {
             await tx.createAnswersRaw(
-              answers.map((a, aIdx) => ({
+              answers.map((a) => ({
                 questionId: insertedQ.id,
-                answerText: a.answer_text || '',
-                isCorrect: !!a.is_correct,
+                answerText: a.answer_text ?? '',
+                isCorrect: a.is_correct ?? false,
                 explanation: a.explanation ?? null,
-                displayOrder:
-                  a.display_order !== undefined ? a.display_order : aIdx,
+                displayOrder: a.display_order ?? 0,
               })),
             );
           }

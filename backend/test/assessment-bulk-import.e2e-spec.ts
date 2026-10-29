@@ -152,6 +152,18 @@ describe('AssessmentBulkImport (e2e)', () => {
         .expect(403);
     });
 
+    it('POST /api/v1/assessment/admin/full-tests/:testId/append-questions -> 401 & 403', async () => {
+      await http()
+        .post(`/api/v1/assessment/admin/full-tests/${testId}/append-questions`)
+        .send({ questions: [] })
+        .expect(401);
+      await http()
+        .post(`/api/v1/assessment/admin/full-tests/${testId}/append-questions`)
+        .set(bearer(studentToken))
+        .send({ questions: [] })
+        .expect(403);
+    });
+
     it('POST /api/v1/assessment/admin/full-tests/package-import -> 401 & 403', async () => {
       await http()
         .post('/api/v1/assessment/admin/full-tests/package-import')
@@ -171,7 +183,6 @@ describe('AssessmentBulkImport (e2e)', () => {
         .post(`/api/v1/assessment/admin/full-tests/${testId}/import-questions`)
         .set(bearer(adminToken))
         .send({
-          audio_url: 'https://example.com/audio.mp3',
           questions: [
             {
               part: 5,
@@ -207,7 +218,6 @@ describe('AssessmentBulkImport (e2e)', () => {
         where: { id: testId },
       });
       expect(updatedTest?.totalQuestions).toBe(2);
-      expect(updatedTest?.audioUrl).toBe('https://example.com/audio.mp3');
 
       const sections = await prisma.fullTestSection.findMany({
         where: { testId },
@@ -215,24 +225,61 @@ describe('AssessmentBulkImport (e2e)', () => {
       expect(sections.length).toBe(7);
     });
 
-    it('package-import: creates new course, exams, quizzes, questions', async () => {
+    it('append-questions: appends questions to existing sections and updates audio_url', async () => {
       const res = await http()
+        .post(`/api/v1/assessment/admin/full-tests/${testId}/append-questions`)
+        .set(bearer(adminToken))
+        .send({
+          audio_url: 'https://example.com/audio_append.mp3',
+          questions: [
+            {
+              part: 5,
+              question_text: `${PREFIX} Q3 Appended`,
+              answers: [
+                {
+                  answer_text: 'Choice C',
+                  is_correct: true,
+                  explanation: 'Appended OK',
+                },
+              ],
+            },
+          ],
+        })
+        .expect(201);
+
+      expect(res.body).toEqual({
+        test_id: testId,
+        imported_questions: 1,
+      });
+
+      const updatedTest = await prisma.fullTest.findUnique({
+        where: { id: testId },
+      });
+      expect(updatedTest?.audioUrl).toBe(
+        'https://example.com/audio_append.mp3',
+      );
+    });
+
+    it('package-import 2 lần cùng course_title: dùng lại một khóa, đề thi bị ghi đè không bị nhân đôi số câu', async () => {
+      const courseTitle = `${PREFIX} Unique Package Course Overwrite`;
+      const examTitle = `${PREFIX} Exam Overwrite 1`;
+
+      // Lần 1: Import lần đầu
+      const res1 = await http()
         .post('/api/v1/assessment/admin/full-tests/package-import')
         .set(bearer(adminToken))
         .send({
-          create_new_course: true,
-          course_title: `${PREFIX} Package Course 1`,
+          course_title: courseTitle,
           exams: [
             {
-              exam_title: `${PREFIX} Exam 1`,
-              audio_url: 'https://example.com/pkg_audio.mp3',
+              exam_title: examTitle,
               questions: [
                 {
                   part: 5,
-                  question_text: `${PREFIX} Pkg Q1`,
+                  question_text: `${PREFIX} Initial Q1`,
                   answers: [
-                    { answer_text: 'A', is_correct: true },
-                    { answer_text: 'B', is_correct: false },
+                    { answer_text: 'Choice A', is_correct: true },
+                    { answer_text: 'Choice B', is_correct: false },
                   ],
                 },
               ],
@@ -241,14 +288,98 @@ describe('AssessmentBulkImport (e2e)', () => {
         })
         .expect(201);
 
-      const body = res.body as { exams_imported: number; course_id: number };
-      expect(body.exams_imported).toBe(1);
-      const createdCourseId = body.course_id;
+      const courseId1 = (res1.body as { course_id: number }).course_id;
 
-      const createdTest = await prisma.fullTest.findFirst({
-        where: { courseId: createdCourseId, title: `${PREFIX} Exam 1` },
+      // Lần 2: Import lại với cùng course_title và cùng exam_title nhưng câu hỏi khác
+      const res2 = await http()
+        .post('/api/v1/assessment/admin/full-tests/package-import')
+        .set(bearer(adminToken))
+        .send({
+          course_title: courseTitle,
+          exams: [
+            {
+              exam_title: examTitle,
+              questions: [
+                {
+                  part: 5,
+                  question_text: `${PREFIX} Overwritten Q2`,
+                  answers: [{ answer_text: 'Choice X', is_correct: true }],
+                },
+              ],
+            },
+          ],
+        })
+        .expect(201);
+
+      const courseId2 = (res2.body as { course_id: number }).course_id;
+
+      // Khẳng định chỉ 1 khóa học được dùng
+      expect(courseId2).toBe(courseId1);
+
+      const totalCourses = await prisma.course.count({
+        where: { title: courseTitle },
       });
-      expect(createdTest).toBeDefined();
+      expect(totalCourses).toBe(1);
+
+      const exams = await prisma.fullTest.findMany({
+        where: { courseId: courseId1, title: examTitle },
+      });
+      expect(exams.length).toBe(1);
+
+      // Đề thi bị ghi đè: số câu không nhân đôi, câu cũ bị xóa và thay bằng câu mới
+      const examTest = exams[0];
+      const sections = await prisma.fullTestSection.findMany({
+        where: { testId: examTest.id, partNumber: 5 },
+      });
+      expect(sections.length).toBe(1);
+      const quizId = sections[0].quizId!;
+
+      const questions = await prisma.question.findMany({
+        where: { quizId },
+      });
+      expect(questions.length).toBe(1);
+      expect(questions[0].questionText).toBe(`${PREFIX} Overwritten Q2`);
+    });
+
+    it('append-questions vào đề không có section: trả về 400 FULLTEST_SECTIONS_NOT_FOUND và không ghi gì vào DB', async () => {
+      // Tạo đề rỗng không có section
+      const emptyTest = await prisma.fullTest.create({
+        data: {
+          title: `${PREFIX} Empty Sections Test`,
+          courseId,
+          category: '2026',
+          totalQuestions: 0,
+        },
+      });
+
+      const beforeQCount = await prisma.question.count({
+        where: { questionText: { contains: PREFIX } },
+      });
+
+      const res = await http()
+        .post(
+          `/api/v1/assessment/admin/full-tests/${emptyTest.id}/append-questions`,
+        )
+        .set(bearer(adminToken))
+        .send({
+          questions: [
+            {
+              part: 5,
+              question_text: `${PREFIX} Should not be saved`,
+              answers: [{ answer_text: 'A', is_correct: true }],
+            },
+          ],
+        })
+        .expect(400);
+
+      expect((res.body as { code: string }).code).toBe(
+        'FULLTEST_SECTIONS_NOT_FOUND',
+      );
+
+      const afterQCount = await prisma.question.count({
+        where: { questionText: { contains: PREFIX } },
+      });
+      expect(afterQCount).toBe(beforeQCount);
     });
 
     it('Rollback proof: fails halfway in import-questions, leaving NO dangling records', async () => {

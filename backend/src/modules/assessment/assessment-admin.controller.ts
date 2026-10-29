@@ -31,6 +31,7 @@ import { Roles, RolesGuard } from '../auth/guards/roles.guard';
 import { AssessmentAdminService } from './assessment-admin.service';
 import {
   AdminFullTestDetailDto,
+  AppendFullTestQuestionsDto,
   BulkDeleteFullTestsDto,
   BulkDeleteQuestionsDto,
   CreateFullTestQuestionDto,
@@ -462,6 +463,35 @@ export class AssessmentAdminController {
     @Body() dto: ImportFullTestQuestionsDto,
   ): Promise<{ test_id: number; imported_questions: number }> {
     return this.assessmentAdminService.importFullTestQuestions(testId, dto);
+  }
+
+  @Post('full-tests/:testId/append-questions')
+  @ApiOperation({
+    summary: 'Admin import câu hỏi vào đề thi đã chọn từ JSON',
+  })
+  @ApiCreatedResponse({
+    schema: {
+      type: 'object',
+      properties: {
+        test_id: { type: 'number' },
+        imported_questions: { type: 'number' },
+      },
+    },
+  })
+  @ApiNotFoundResponse({
+    description: 'Đề thi không tồn tại (FULLTEST_NOT_FOUND)',
+  })
+  @ApiBadRequestResponse({
+    description:
+      'Không tìm thấy section nào của đề thi (FULLTEST_SECTIONS_NOT_FOUND)',
+  })
+  @ApiUnauthorizedResponse({ description: 'Chưa đăng nhập' })
+  @ApiForbiddenResponse({ description: 'Không có quyền admin' })
+  async appendFullTestQuestions(
+    @Param('testId', ParseIntPipe) testId: number,
+    @Body() dto: AppendFullTestQuestionsDto,
+  ): Promise<{ test_id: number; imported_questions: number }> {
+    return this.assessmentAdminService.appendFullTestQuestions(testId, dto);
   }
 
   @Post('full-tests/package-import')

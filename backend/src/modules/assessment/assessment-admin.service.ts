@@ -8,6 +8,7 @@ import { AssessmentMapper } from './assessment.mapper';
 import { AssessmentAdminRepository } from './assessment-admin.repository';
 import {
   AdminFullTestDetailDto,
+  AppendFullTestQuestionsDto,
   BulkDeleteFullTestsDto,
   BulkDeleteQuestionsDto,
   CreateFullTestQuestionDto,
@@ -25,26 +26,6 @@ import {
   UpdateFullTestQuestionDto,
   UpdateQuestionGroupDto,
 } from './dto';
-
-function inferToeicPart(displayOrder?: number): number {
-  if (!displayOrder) return 5;
-  if (displayOrder <= 6) return 1;
-  if (displayOrder <= 31) return 2;
-  if (displayOrder <= 70) return 3;
-  if (displayOrder <= 100) return 4;
-  if (displayOrder <= 130) return 5;
-  if (displayOrder <= 146) return 6;
-  return 7;
-}
-
-interface RawImportAnswer {
-  answer_text?: string;
-  text?: string;
-  is_correct?: boolean;
-  correct?: boolean;
-  explanation?: string | null;
-  display_order?: number;
-}
 
 @Injectable()
 export class AssessmentAdminService {
@@ -730,15 +711,11 @@ export class AssessmentAdminService {
     }
 
     return this.repo.inTransaction(async (tx) => {
-      if (dto.audio_url) {
-        await tx.updateFullTest(testId, { audioUrl: dto.audio_url });
-      }
-
       let sections = await tx.findSectionsByTestId(testId);
 
-      const existingParts = new Set(sections.map((s) => s.partNumber));
-      for (let p = 1; p <= 7; p++) {
-        if (!existingParts.has(p)) {
+      // Only create 7 sections when test has NO sections at all
+      if (!sections || sections.length === 0) {
+        for (let p = 1; p <= 7; p++) {
           const newQuiz = await tx.createQuizRaw({
             title: `Part ${p} - ${test.title}`,
             totalQuestions: 0,
@@ -750,9 +727,124 @@ export class AssessmentAdminService {
             quizId: newQuiz.id,
           });
         }
+        sections = await tx.findSectionsByTestId(testId);
       }
 
-      sections = await tx.findSectionsByTestId(testId);
+      let totalQuestionsImported = 0;
+
+      for (let part = 1; part <= 7; part++) {
+        const partSection = sections.find((s) => s.partNumber === part);
+        if (!partSection || !partSection.quizId) continue;
+
+        const partQuestions = dto.questions.filter((q) => {
+          const qPart =
+            q.part_number ??
+            q.part ??
+            (q.display_order
+              ? q.display_order <= 6
+                ? 1
+                : q.display_order <= 31
+                  ? 2
+                  : q.display_order <= 70
+                    ? 3
+                    : q.display_order <= 100
+                      ? 4
+                      : q.display_order <= 130
+                        ? 5
+                        : q.display_order <= 146
+                          ? 6
+                          : 7
+              : 5);
+          return qPart === part;
+        });
+
+        if (partQuestions.length === 0) continue;
+
+        for (const item of partQuestions) {
+          const displayOrder = item.display_order || totalQuestionsImported + 1;
+
+          const insertedQ = await tx.createQuestion({
+            quizId: partSection.quizId,
+            questionText: item.question_text || item.text || '',
+            displayOrder,
+            passageText: item.passage_text || item.passage || null,
+            translation: item.translation || null,
+            audioUrl: item.audio_url || null,
+            imageUrl: item.image_url || null,
+            transcript: item.transcript || null,
+            groupId: item.group_id ? String(item.group_id) : null,
+          });
+
+          const rawAnswers = (item.answers || item.options || []) as (
+            | {
+                answer_text?: string;
+                text?: string;
+                is_correct?: boolean;
+                explanation?: string | null;
+              }
+            | string
+          )[];
+
+          const answersToInsert = rawAnswers.map((ans, aIdx) => {
+            const isStr = typeof ans === 'string';
+            const obj = isStr ? null : ans;
+            return {
+              questionId: insertedQ.id,
+              answerText: isStr ? ans : obj?.answer_text || obj?.text || '',
+              isCorrect: isStr
+                ? item.correct_answer === aIdx || item.correct === aIdx
+                : Boolean(obj?.is_correct),
+              explanation: isStr
+                ? item.explanation || null
+                : obj?.explanation || item.explanation || null,
+              displayOrder: aIdx,
+            };
+          });
+
+          if (answersToInsert.length > 0) {
+            await tx.createAnswers(answersToInsert);
+          }
+
+          totalQuestionsImported++;
+        }
+
+        await tx.updateQuizTotalQuestions(
+          partSection.quizId,
+          partQuestions.length,
+        );
+      }
+
+      await tx.updateFullTestTotalQuestions(testId, totalQuestionsImported);
+
+      return { test_id: testId, imported_questions: totalQuestionsImported };
+    });
+  }
+
+  async appendFullTestQuestions(
+    testId: number,
+    dto: AppendFullTestQuestionsDto,
+  ): Promise<{ test_id: number; imported_questions: number }> {
+    const test = await this.repo.findFullTestById(testId);
+    if (!test) {
+      throw new NotFoundException({
+        code: 'FULLTEST_NOT_FOUND',
+        message: 'Đề thi không tồn tại',
+      });
+    }
+
+    return this.repo.inTransaction(async (tx) => {
+      const sections = await tx.findSectionsByTestId(testId);
+      if (!sections || sections.length === 0) {
+        throw new BadRequestException({
+          code: 'FULLTEST_SECTIONS_NOT_FOUND',
+          message:
+            'Không thể tìm thấy các Sections của đề thi này. Hãy thử tạo lại đề.',
+        });
+      }
+
+      if (dto.audio_url) {
+        await tx.updateFullTest(testId, { audioUrl: dto.audio_url });
+      }
 
       const quizByPart = new Map<number, number>();
       for (const s of sections) {
@@ -764,52 +856,40 @@ export class AssessmentAdminService {
       let totalQuestionsImported = 0;
 
       for (let i = 0; i < dto.questions.length; i++) {
-        const item = dto.questions[i];
-        const part =
-          item.part_number ?? item.part ?? inferToeicPart(item.display_order);
-
+        const q = dto.questions[i];
+        const part = q.part || q.part_number || 5;
         const quizId = quizByPart.get(part);
         if (!quizId) continue;
 
-        let questionText = item.question_text || item.text || '';
-        const passageText = item.passage_text || item.passage;
-        if (passageText) {
-          questionText = `[PASSAGE]${passageText}[ENDPASSAGE]${questionText}`;
+        let questionText = q.question_text || '';
+        if (q.passage_text) {
+          questionText = `[PASSAGE]${q.passage_text}[ENDPASSAGE]${questionText}`;
         }
 
-        const displayOrder = item.display_order || totalQuestionsImported + 1;
+        const currentStep = i + 1;
+        const displayOrder = q.display_order || currentStep;
 
         const insertedQ = await tx.createQuestion({
           quizId,
           questionText,
           questionType: `part${part}`,
           displayOrder,
-          audioUrl: item.audio_url || null,
-          imageUrl: item.image_url || null,
-          transcript: item.transcript || null,
-          translation: item.translation || item.translation_text || null,
-          groupId: item.group_id ? String(item.group_id) : null,
+          translation: q.translation || q.translation_text || null,
+          audioUrl: q.audio_url || null,
+          imageUrl: q.image_url || null,
+          groupId: q.group_id ? String(q.group_id) : null,
+          transcript: q.transcript || null,
         });
 
-        const rawAnswers = (item.answers || item.options || []) as (
-          RawImportAnswer | string
-        )[];
-        const answersToInsert = rawAnswers.map((ans, aIdx) => {
-          const isStr = typeof ans === 'string';
-          const obj = isStr ? null : ans;
-          return {
-            questionId: insertedQ.id,
-            answerText: isStr ? ans : obj?.answer_text || obj?.text || '',
-            isCorrect: obj
-              ? Boolean(obj.is_correct || obj.correct)
-              : item.correct_answer === aIdx || item.correct === aIdx,
-            explanation: obj
-              ? obj.explanation || item.explanation || null
-              : item.explanation || null,
-            displayOrder:
-              obj?.display_order !== undefined ? obj.display_order : aIdx,
-          };
-        });
+        const answers = q.answers || q.options || [];
+        const answersToInsert = answers.map((ans, aIdx) => ({
+          questionId: insertedQ.id,
+          answerText: ans.answer_text || ans.text || '',
+          isCorrect: Boolean(ans.is_correct || ans.correct),
+          explanation: ans.explanation || null,
+          displayOrder:
+            ans.display_order !== undefined ? ans.display_order : aIdx,
+        }));
 
         if (answersToInsert.length > 0) {
           await tx.createAnswers(answersToInsert);
@@ -823,8 +903,6 @@ export class AssessmentAdminService {
         await tx.updateQuizTotalQuestions(quizId, count);
       }
 
-      await tx.updateFullTestTotalQuestions(testId, totalQuestionsImported);
-
       return { test_id: testId, imported_questions: totalQuestionsImported };
     });
   }
@@ -833,26 +911,22 @@ export class AssessmentAdminService {
     dto: PackageImportFullTestsDto,
   ): Promise<{ course_id: number; exams_imported: number }> {
     return this.repo.inTransaction(async (tx) => {
+      const existingCourse = await tx.findCourseByTitle(dto.course_title);
       let targetCourseId: number;
 
-      if (dto.create_new_course || !dto.course_id) {
+      if (existingCourse) {
+        targetCourseId = existingCourse.id;
+      } else {
         const newCourse = await tx.createCourse({
-          title: dto.course_title || 'Bộ đề Full Test mới',
+          title: dto.course_title,
+          subtitle: 'Bộ đề thi thử TOEIC sát đề thi thật 2026',
           courseType: 'fulltest',
           isActive: true,
-          instructor: 'Cô Mai Phương',
+          price: 0,
           durationMonths: 12,
+          instructor: 'Cô Mai Phương',
         });
         targetCourseId = newCourse.id;
-      } else {
-        const course = await tx.findCourseById(dto.course_id);
-        if (!course) {
-          throw new NotFoundException({
-            code: 'COURSE_NOT_FOUND',
-            message: 'Khóa học không tồn tại',
-          });
-        }
-        targetCourseId = course.id;
       }
 
       for (let exIdx = 0; exIdx < dto.exams.length; exIdx++) {
@@ -910,7 +984,6 @@ export class AssessmentAdminService {
         }
 
         const questionsArray = exam.questions || [];
-        let totalQuestionsExam = 0;
 
         for (let i = 0; i < questionsArray.length; i++) {
           const q = questionsArray[i];
@@ -918,13 +991,13 @@ export class AssessmentAdminService {
           const quizId = quizByPart.get(part);
           if (!quizId) continue;
 
-          let questionText = q.question_text || q.text || '';
-          const passageText = q.passage_text || q.passage;
-          if (passageText) {
-            questionText = `[PASSAGE]${passageText}[ENDPASSAGE]${questionText}`;
+          let questionText = q.question_text || '';
+          if (q.passage_text) {
+            questionText = `[PASSAGE]${q.passage_text}[ENDPASSAGE]${questionText}`;
           }
 
-          const displayOrder = q.display_order || i + 1;
+          const currentStep = i + 1;
+          const displayOrder = q.display_order || currentStep;
 
           const insertedQ = await tx.createQuestion({
             quizId,
@@ -938,38 +1011,25 @@ export class AssessmentAdminService {
             transcript: q.transcript || null,
           });
 
-          const answers = (q.answers || q.options || []) as (
-            RawImportAnswer | string
-          )[];
-          const answersToInsert = answers.map((ans, aIdx) => {
-            const isStr = typeof ans === 'string';
-            const obj = isStr ? null : ans;
-            return {
-              questionId: insertedQ.id,
-              answerText: isStr ? ans : obj?.answer_text || obj?.text || '',
-              isCorrect: obj
-                ? Boolean(obj.is_correct || obj.correct)
-                : q.correct_answer === aIdx || q.correct === aIdx,
-              explanation: obj
-                ? obj.explanation || q.explanation || null
-                : q.explanation || null,
-              displayOrder:
-                obj?.display_order !== undefined ? obj.display_order : aIdx,
-            };
-          });
+          const answers = q.answers || q.options || [];
+          const answersToInsert = answers.map((ans, aIdx) => ({
+            questionId: insertedQ.id,
+            answerText: ans.answer_text || ans.text || '',
+            isCorrect: Boolean(ans.is_correct || ans.correct),
+            explanation: ans.explanation || null,
+            displayOrder:
+              ans.display_order !== undefined ? ans.display_order : aIdx,
+          }));
 
           if (answersToInsert.length > 0) {
             await tx.createAnswers(answersToInsert);
           }
-          totalQuestionsExam++;
         }
 
         for (const [, quizId] of quizByPart.entries()) {
           const count = await tx.countQuestionsByQuizId(quizId);
           await tx.updateQuizTotalQuestions(quizId, count);
         }
-
-        await tx.updateFullTestTotalQuestions(testId, totalQuestionsExam);
       }
 
       return { course_id: targetCourseId, exams_imported: dto.exams.length };

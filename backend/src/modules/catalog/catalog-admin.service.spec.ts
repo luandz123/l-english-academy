@@ -396,7 +396,7 @@ describe('CatalogAdminService', () => {
       expect(err.body.code).toBe('COURSE_NOT_FOUND');
     });
 
-    it('tạo module, quiz, lesson, question và answers thành công trong transaction', async () => {
+    it('tạo module, quiz, lesson, question và answers thành công trong transaction với đúng quy tắc mapping cũ', async () => {
       const { service, repo } = setup();
       repo.courseExists.mockResolvedValue(true);
 
@@ -407,12 +407,22 @@ describe('CatalogAdminService', () => {
             exam_title: 'Đề 1',
             questions: [
               {
-                part: 5,
+                part: 6,
                 question_text: 'Choose the best answer',
+                passage_text: 'Passage body',
                 answers: [
-                  { answer_text: 'A', is_correct: true, explanation: 'OK' },
+                  {
+                    answer_text: 'A',
+                    is_correct: true,
+                    explanation: 'OK',
+                    display_order: 2,
+                  },
                   { answer_text: 'B', is_correct: false },
                 ],
+              },
+              {
+                question_text: 'Question without part',
+                answers: [{ answer_text: 'X' }],
               },
             ],
           },
@@ -429,20 +439,56 @@ describe('CatalogAdminService', () => {
       expect(repo.createQuizRaw).toHaveBeenCalledWith(
         expect.objectContaining({
           title: 'Đề 1',
-          totalQuestions: 1,
+          totalQuestions: 2,
         }),
       );
+      // First question (part 6): embedded passage, part6 question_type
       expect(repo.createQuestionRaw).toHaveBeenCalledWith(
         expect.objectContaining({
-          questionText: 'Choose the best answer',
-          questionType: 'part5',
+          questionText:
+            '[PASSAGE]Passage body[ENDPASSAGE]Choose the best answer',
+          questionType: 'part6',
+          displayOrder: 0,
         }),
       );
-      expect(repo.createAnswersRaw).toHaveBeenCalled();
+      // Second question (no part): multiple_choice fallback
+      expect(repo.createQuestionRaw).toHaveBeenCalledWith(
+        expect.objectContaining({
+          questionText: 'Question without part',
+          questionType: 'multiple_choice',
+          displayOrder: 1,
+        }),
+      );
+      // Answers: display_order 2 (explicit) and 0 (default fallback)
+      expect(repo.createAnswersRaw).toHaveBeenCalledWith([
+        {
+          questionId: 301,
+          answerText: 'A',
+          isCorrect: true,
+          explanation: 'OK',
+          displayOrder: 2,
+        },
+        {
+          questionId: 301,
+          answerText: 'B',
+          isCorrect: false,
+          explanation: null,
+          displayOrder: 0,
+        },
+      ]);
+      expect(repo.createAnswersRaw).toHaveBeenCalledWith([
+        {
+          questionId: 301,
+          answerText: 'X',
+          isCorrect: false,
+          explanation: null,
+          displayOrder: 0,
+        },
+      ]);
       expect(res).toEqual({
         module_id: 10,
         exams_count: 1,
-        total_questions: 1,
+        total_questions: 2,
       });
     });
   });

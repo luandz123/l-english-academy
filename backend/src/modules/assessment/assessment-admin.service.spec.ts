@@ -162,6 +162,8 @@ describe('AssessmentAdminService', () => {
       deleteFullTest: jest.fn(),
       deleteFullTests: jest.fn(),
       deleteQuizzes: jest.fn(),
+      deleteQuestionsByQuizIds: jest.fn(),
+      findCourseByTitle: jest.fn(),
       createQuizRaw: jest.fn(),
       createFullTestSection: jest.fn(),
       countQuestionsByQuizId: jest.fn(),
@@ -1027,7 +1029,7 @@ describe('AssessmentAdminService', () => {
     });
   });
 
-  describe('importFullTestQuestions', () => {
+  describe('importFullTestQuestions (CourseFullTestManager flow)', () => {
     it('ném 404 khi không tìm thấy đề thi', async () => {
       repo.findFullTestById.mockResolvedValue(null);
       await expect(
@@ -1035,43 +1037,217 @@ describe('AssessmentAdminService', () => {
       ).rejects.toThrow(NotFoundException);
     });
 
-    it('tạo 7 phần quiz nếu chưa có và thêm câu hỏi', async () => {
-      repo.findFullTestById.mockResolvedValue(makeFullTest({ id: 1 }));
+    it('tạo 7 section khi đề chưa có section nào, ghi đúng passage_text riêng, không gán question_type, cập nhật quizzes bằng số câu trong JSON và full_tests bằng tổng câu import', async () => {
+      repo.findFullTestById.mockResolvedValue(
+        makeFullTest({ id: 1, title: 'Đề ETS 01' }),
+      );
       repo.findSectionsByTestId
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce([
+          makeSection({ testId: 1, partNumber: 1, quizId: 10 }),
+          makeSection({ testId: 1, partNumber: 2, quizId: 20 }),
+          makeSection({ testId: 1, partNumber: 3, quizId: 30 }),
+          makeSection({ testId: 1, partNumber: 4, quizId: 40 }),
           makeSection({ testId: 1, partNumber: 5, quizId: 50 }),
+          makeSection({ testId: 1, partNumber: 6, quizId: 60 }),
+          makeSection({ testId: 1, partNumber: 7, quizId: 70 }),
         ]);
-      repo.createQuizRaw.mockResolvedValue(makeQuiz({ id: 50 }));
+      repo.createQuizRaw.mockResolvedValue(makeQuiz({ id: 10 }));
       repo.createQuestion.mockResolvedValue(makeQuestion({ id: 100 }));
-      repo.countQuestionsByQuizId.mockResolvedValue(1);
+
+      const legacyJsonSample = [
+        // Câu 1: suy part 1 theo display_order (<= 6), đáp án chuỗi
+        {
+          display_order: 1,
+          text: 'Look at the picture',
+          passage: 'Passage for photo',
+          answers: ['Choice A', 'Choice B'],
+          correct_answer: 0,
+          explanation: 'Pic explanation',
+          group_id: 123,
+          translation: 'Nhìn bức tranh',
+        },
+        // Câu 2: part 5 tường minh, đáp án object, passage_text riêng
+        {
+          part: 5,
+          question_text: 'Choose word',
+          passage_text: 'Text snippet',
+          answers: [
+            { text: 'word1', is_correct: true, explanation: 'Ans expl' },
+            { answer_text: 'word2', is_correct: false },
+          ],
+        },
+      ];
 
       const res = await service.importFullTestQuestions(1, {
-        audio_url: 'https://example.com/audio.mp3',
+        questions: legacyJsonSample,
+      });
+
+      // Tạo đủ 7 section
+      expect(repo.createQuizRaw).toHaveBeenCalledTimes(7);
+
+      // Câu 1: question_text lấy từ text, passage_text lưu cột riêng KHÔNG prefix, question_type undefined
+      expect(repo.createQuestion).toHaveBeenCalledWith({
+        quizId: 10,
+        questionText: 'Look at the picture',
+        displayOrder: 1,
+        passageText: 'Passage for photo',
+        translation: 'Nhìn bức tranh',
+        audioUrl: null,
+        imageUrl: null,
+        transcript: null,
+        groupId: '123',
+      });
+      // Đáp án câu 1 (dạng chuỗi): correct_answer -> is_correct, item.explanation
+      expect(repo.createAnswers).toHaveBeenCalledWith([
+        {
+          questionId: 100,
+          answerText: 'Choice A',
+          isCorrect: true,
+          explanation: 'Pic explanation',
+          displayOrder: 0,
+        },
+        {
+          questionId: 100,
+          answerText: 'Choice B',
+          isCorrect: false,
+          explanation: 'Pic explanation',
+          displayOrder: 1,
+        },
+      ]);
+
+      // Câu 2: part 5 -> quizId 50
+      expect(repo.createQuestion).toHaveBeenCalledWith({
+        quizId: 50,
+        questionText: 'Choose word',
+        displayOrder: 2,
+        passageText: 'Text snippet',
+        translation: null,
+        audioUrl: null,
+        imageUrl: null,
+        transcript: null,
+        groupId: null,
+      });
+      // Đáp án câu 2 (dạng object): is_correct = !!is_correct, ans.explanation
+      expect(repo.createAnswers).toHaveBeenCalledWith([
+        {
+          questionId: 100,
+          answerText: 'word1',
+          isCorrect: true,
+          explanation: 'Ans expl',
+          displayOrder: 0,
+        },
+        {
+          questionId: 100,
+          answerText: 'word2',
+          isCorrect: false,
+          explanation: null,
+          displayOrder: 1,
+        },
+      ]);
+
+      // quizzes.total_questions = partQuestions.length (1 cho part 1, 1 cho part 5)
+      expect(repo.updateQuizTotalQuestions).toHaveBeenCalledWith(10, 1);
+      expect(repo.updateQuizTotalQuestions).toHaveBeenCalledWith(50, 1);
+
+      // full_tests.total_questions = tổng câu đã import (2)
+      expect(repo.updateFullTestTotalQuestions).toHaveBeenCalledWith(1, 2);
+
+      expect(res).toEqual({ test_id: 1, imported_questions: 2 });
+    });
+  });
+
+  describe('appendFullTestQuestions (AdminFullTestManager single-exam flow)', () => {
+    it('ném 400 FULLTEST_SECTIONS_NOT_FOUND khi đề thi chưa có section', async () => {
+      repo.findFullTestById.mockResolvedValue(makeFullTest({ id: 1 }));
+      repo.findSectionsByTestId.mockResolvedValue([]);
+
+      await expect(
+        service.appendFullTestQuestions(1, {
+          questions: [{ question_text: 'Q' }],
+        }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('prefix [PASSAGE]...[ENDPASSAGE], question_type part{n}, không cập nhật full_tests.total_questions', async () => {
+      repo.findFullTestById.mockResolvedValue(makeFullTest({ id: 1 }));
+      repo.findSectionsByTestId.mockResolvedValue([
+        makeSection({ testId: 1, partNumber: 7, quizId: 70 }),
+      ]);
+      repo.createQuestion.mockResolvedValue(makeQuestion({ id: 200 }));
+      repo.countQuestionsByQuizId.mockResolvedValue(5);
+
+      const res = await service.appendFullTestQuestions(1, {
+        audio_url: 'https://cdn.example.com/audio_test.mp3',
         questions: [
           {
-            part: 5,
-            question_text: 'Question 1',
-            answers: [{ answer_text: 'A', is_correct: true }],
+            part: 7,
+            question_text: 'What is mentioned in the memo?',
+            passage_text: 'Memo to staff regarding holiday schedule.',
+            translation_text: 'Bản ghi nhớ...',
+            display_order: 155,
+            answers: [
+              { text: 'Office closed', correct: true, explanation: 'Line 2' },
+              { answer_text: 'Office open', is_correct: false },
+            ],
           },
         ],
       });
 
+      // Cập nhật audio_url đề thi nếu có
       expect(repo.updateFullTest).toHaveBeenCalledWith(1, {
-        audioUrl: 'https://example.com/audio.mp3',
+        audioUrl: 'https://cdn.example.com/audio_test.mp3',
       });
-      expect(repo.createQuizRaw).toHaveBeenCalledTimes(7);
-      expect(repo.createQuestion).toHaveBeenCalled();
-      expect(repo.createAnswers).toHaveBeenCalled();
+
+      // Câu hỏi: prefix [PASSAGE]...[ENDPASSAGE], question_type = part7
+      expect(repo.createQuestion).toHaveBeenCalledWith({
+        quizId: 70,
+        questionText:
+          '[PASSAGE]Memo to staff regarding holiday schedule.[ENDPASSAGE]What is mentioned in the memo?',
+        questionType: 'part7',
+        displayOrder: 155,
+        translation: 'Bản ghi nhớ...',
+        audioUrl: null,
+        imageUrl: null,
+        groupId: null,
+        transcript: null,
+      });
+
+      // Đáp án dạng object: answer_text || text, correct || is_correct, ans.explanation
+      expect(repo.createAnswers).toHaveBeenCalledWith([
+        {
+          questionId: 200,
+          answerText: 'Office closed',
+          isCorrect: true,
+          explanation: 'Line 2',
+          displayOrder: 0,
+        },
+        {
+          questionId: 200,
+          answerText: 'Office open',
+          isCorrect: false,
+          explanation: null,
+          displayOrder: 1,
+        },
+      ]);
+
+      // quizzes.total_questions cập nhật bằng count trong DB
+      expect(repo.updateQuizTotalQuestions).toHaveBeenCalledWith(70, 5);
+
+      // KHÔNG gọi updateFullTestTotalQuestions
+      expect(repo.updateFullTestTotalQuestions).not.toHaveBeenCalled();
+
       expect(res).toEqual({ test_id: 1, imported_questions: 1 });
     });
   });
 
-  describe('packageImportFullTests', () => {
-    it('tạo khóa học mới và import các đề thi', async () => {
-      repo.createCourse.mockResolvedValue({
-        id: 88,
-        title: 'Full Test Package',
+  describe('packageImportFullTests (AdminFullTestManager package flow)', () => {
+    it('tìm khóa học theo course_title, nếu có thì dùng lại, ghi đè đề thi và câu hỏi cũ', async () => {
+      // Course đã tồn tại
+      repo.findCourseByTitle.mockResolvedValue({
+        id: 99,
+        title: 'Bộ Đề TOEIC Sát Đề Thi Thật 2026',
+        subtitle: 'Bộ đề thi thử TOEIC sát đề thi thật 2026',
         courseType: 'fulltest',
         price: 0,
         durationMonths: 12,
@@ -1080,39 +1256,111 @@ describe('AssessmentAdminService', () => {
         displayOrder: 0,
         isActive: true,
         isFree: false,
-        subtitle: null,
         thumbnailUrl: null,
         categoryId: null,
+        instructor: 'Cô Mai Phương',
       });
-      repo.findFullTestByTitleAndCourse.mockResolvedValue(null);
-      repo.createFullTest.mockResolvedValue(makeFullTest({ id: 10 }));
-      repo.createQuizRaw.mockResolvedValue(makeQuiz({ id: 50 }));
+
+      // Đề thi 1 đã tồn tại -> dọn dẹp câu hỏi cũ
+      repo.findFullTestByTitleAndCourse.mockResolvedValue(
+        makeFullTest({ id: 501, title: 'Đề ETS 2026 Test 1', courseId: 99 }),
+      );
       repo.findSectionsByTestId.mockResolvedValue([
-        makeSection({ testId: 10, partNumber: 5, quizId: 50 }),
+        makeSection({ testId: 501, partNumber: 5, quizId: 550 }),
       ]);
-      repo.createQuestion.mockResolvedValue(makeQuestion({ id: 100 }));
+      repo.createQuestion.mockResolvedValue(makeQuestion({ id: 300 }));
       repo.countQuestionsByQuizId.mockResolvedValue(1);
 
       const res = await service.packageImportFullTests({
-        create_new_course: true,
-        course_title: 'Full Test Package',
+        course_title: 'Bộ Đề TOEIC Sát Đề Thi Thật 2026',
         exams: [
           {
-            title: 'Exam 1',
+            exam_title: 'Đề ETS 2026 Test 1',
             questions: [
               {
-                part: 5,
-                question_text: 'Test Q',
-                answers: [{ answer_text: 'Opt 1', is_correct: true }],
+                part_number: 5,
+                question_text: 'Question text here',
+                answers: [
+                  {
+                    answer_text: 'Ans 1',
+                    is_correct: true,
+                    explanation: 'Expl',
+                  },
+                ],
               },
             ],
           },
         ],
       });
 
-      expect(repo.createCourse).toHaveBeenCalled();
-      expect(repo.createFullTest).toHaveBeenCalled();
-      expect(res).toEqual({ course_id: 88, exams_imported: 1 });
+      // Dùng lại courseId 99, KHÔNG tạo course mới
+      expect(repo.findCourseByTitle).toHaveBeenCalledWith(
+        'Bộ Đề TOEIC Sát Đề Thi Thật 2026',
+      );
+      expect(repo.createCourse).not.toHaveBeenCalled();
+
+      // Đã dọn dẹp câu hỏi cũ của quiz 550
+      expect(repo.deleteQuestionsByQuizIds).toHaveBeenCalledWith([550]);
+
+      // Không gọi updateFullTestTotalQuestions
+      expect(repo.updateFullTestTotalQuestions).not.toHaveBeenCalled();
+
+      expect(res).toEqual({ course_id: 99, exams_imported: 1 });
+    });
+
+    it('tạo khóa học mới với đúng default cũ nếu chưa tồn tại', async () => {
+      repo.findCourseByTitle.mockResolvedValue(null);
+      repo.createCourse.mockResolvedValue({
+        id: 101,
+        title: 'Bộ đề mới',
+        subtitle: 'Bộ đề thi thử TOEIC sát đề thi thật 2026',
+        courseType: 'fulltest',
+        price: 0,
+        durationMonths: 12,
+        createdAt: new Date(),
+        description: null,
+        displayOrder: 0,
+        isActive: true,
+        isFree: false,
+        thumbnailUrl: null,
+        categoryId: null,
+        instructor: 'Cô Mai Phương',
+      });
+      repo.findFullTestByTitleAndCourse.mockResolvedValue(null);
+      repo.createFullTest.mockResolvedValue(makeFullTest({ id: 77 }));
+      repo.createQuizRaw.mockResolvedValue(makeQuiz({ id: 88 }));
+      repo.findSectionsByTestId.mockResolvedValue([
+        makeSection({ testId: 77, partNumber: 5, quizId: 88 }),
+      ]);
+      repo.createQuestion.mockResolvedValue(makeQuestion({ id: 400 }));
+      repo.countQuestionsByQuizId.mockResolvedValue(1);
+
+      const res = await service.packageImportFullTests({
+        course_title: 'Bộ đề mới',
+        exams: [
+          {
+            title: 'Đề mới',
+            questions: [
+              {
+                part: 5,
+                question_text: 'Q',
+                answers: [{ answer_text: 'A', is_correct: true }],
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(repo.createCourse).toHaveBeenCalledWith({
+        title: 'Bộ đề mới',
+        subtitle: 'Bộ đề thi thử TOEIC sát đề thi thật 2026',
+        courseType: 'fulltest',
+        isActive: true,
+        price: 0,
+        durationMonths: 12,
+        instructor: 'Cô Mai Phương',
+      });
+      expect(res).toEqual({ course_id: 101, exams_imported: 1 });
     });
   });
 });

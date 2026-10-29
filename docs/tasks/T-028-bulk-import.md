@@ -167,39 +167,29 @@ node scripts/check-ui-diff.mjs refactor/nestjs-backend
 
 ## 7. Kết quả (người làm điền)
 ### Checklist tự rà bảo mật (bắt buộc)
-- [x] **Mọi id client gửi đều thuộc đúng đối tượng cha**: `course_id`, `testId` kiểm tra tồn tại (404).
+- [x] **Mọi id client gửi đều thuộc đúng đối tượng cha**: `course_id`, `testId` kiểm tra tồn tại (404/400).
 - [x] **Mọi route đọc/ghi dữ liệu có quyền đều kiểm quyền**: `@UseGuards(JwtAuthGuard, RolesGuard)` và `@Roles('admin')` cho toàn bộ endpoint admin.
 - [x] **Dữ liệu người khác**: Chỉ admin mới có quyền thực hiện import / bulk delete.
 - [x] **Giới hạn đầu vào**: `ArrayMaxSize(100)` cho exams/test_ids, `ArrayMaxSize(1000)` cho questions, `ArrayMaxSize(10)` cho answers; `MaxLength` rõ ràng.
 - [x] **Giá trị nhạy cảm do server tính**: `total_questions`, `display_order` tiếp theo của module, quan hệ khóa ngoại cha-con do server gán.
 - [x] **Ghi nhiều bước = một `$transaction`**: Mỗi endpoint import thực thi toàn bộ trong `this.prisma.$transaction(...)`.
-- [x] **Lỗi dạng `{ code, message }`**: ném đúng cấu trúc chuẩn.
+- [x] **Lỗi dạng `{ code, message }`**: ném đúng cấu trúc chuẩn (`FULLTEST_NOT_FOUND`, `FULLTEST_SECTIONS_NOT_FOUND`, `COURSE_NOT_FOUND`).
 
 - Commit(s):
   - Spec commit: `71db377` docs(tasks): spec T-028 bulk import and full test deletion
-  - Code commit: (sẽ commit ngay sau khi cập nhật spec)
-- File đã sửa:
-  - `backend/src/modules/assessment/dto/bulk-import.dto.ts`
-  - `backend/src/modules/assessment/dto/index.ts`
-  - `backend/src/modules/assessment/assessment-admin.controller.ts`
-  - `backend/src/modules/assessment/assessment-admin.service.ts`
-  - `backend/src/modules/assessment/assessment-admin.repository.ts`
-  - `backend/src/modules/assessment/assessment-admin.service.spec.ts`
-  - `backend/src/modules/catalog/dto/course-json-import.dto.ts`
-  - `backend/src/modules/catalog/dto/index.ts`
-  - `backend/src/modules/catalog/catalog-admin.controller.ts`
-  - `backend/src/modules/catalog/catalog-admin.service.ts`
-  - `backend/src/modules/catalog/catalog.repository.ts`
-  - `backend/src/modules/catalog/catalog-admin.service.spec.ts`
-  - `backend/test/assessment-bulk-import.e2e-spec.ts`
-  - `backend/test/catalog-course-import.e2e-spec.ts`
-  - `src/lib/api/assessment.ts`
-  - `src/lib/api/assessment.test.ts`
-  - `src/lib/api/catalog.ts`
-  - `src/lib/api/catalog.test.ts`
-  - `src/pages/admin/AdminCourseJsonImport.tsx`
-  - `src/components/admin/CourseFullTestManager.tsx`
-  - `src/pages/admin/AdminFullTestManager.tsx`
+  - Code commit ban đầu: `b325571` feat(assessment,catalog): bulk import and full test deletion with transactions (T-028)
+  - Fix review commit: (commit hiện tại sau khi sửa theo `T-028-REVIEW.md`)
+- File đã sửa theo `T-028-REVIEW.md`:
+  - `backend/src/modules/assessment/dto/bulk-import.dto.ts` — tách DTOs: `PackageImportFullTestsDto` (tìm/dùng lại course theo `course_title`), `AppendFullTestQuestionsDto`, `ImportFullTestQuestionsDto`
+  - `backend/src/modules/assessment/assessment-admin.controller.ts` — thêm route `POST full-tests/:testId/append-questions`
+  - `backend/src/modules/assessment/assessment-admin.service.ts` — tách logic 3 luồng: package-import (dùng lại course, câu hỏi passage prefix, answers object, không cập nhật full_test total), import-questions (tạo 7 section chỉ khi chưa có section, suy part theo display_order, passage_text riêng không prefix, question_type để default, cập nhật quiz theo JSON và full_test theo tổng import), append-questions (400 khi chưa có section, passage prefix, question_type part{n}, không cập nhật full_test total)
+  - `backend/src/modules/assessment/assessment-admin.repository.ts` — thêm `findCourseByTitle` và hỗ trợ trường mặc định cũ của khóa fulltest
+  - `backend/src/modules/assessment/assessment-admin.service.spec.ts` — unit test cho cả 3 luồng khẳng định từng trường ghi ra
+  - `backend/src/modules/catalog/catalog-admin.service.ts` — sửa `question_type = PART_TYPE_MAP[q.part] ?? "multiple_choice"`, đáp án `display_order = a.display_order ?? 0`
+  - `backend/src/modules/catalog/catalog-admin.service.spec.ts` — unit test khẳng định `multiple_choice` fallback và `display_order`
+  - `backend/test/assessment-bulk-import.e2e-spec.ts` — e2e test: package-import 2 lần cùng `course_title` dùng lại 1 khóa và ghi đè đề, `append-questions` vào đề không section trả 400 `FULLTEST_SECTIONS_NOT_FOUND` không ghi gì vào DB
+  - `src/lib/api/assessment.ts` & `src/lib/api/assessment.test.ts` — thêm API client `appendAdminFullTestQuestions`
+  - `src/pages/admin/AdminFullTestManager.tsx` — gọi `appendAdminFullTestQuestions` cho single-exam import
 
 - Output lệnh kiểm tra:
   - `npm --prefix backend run lint`:
@@ -216,35 +206,35 @@ node scripts/check-ui-diff.mjs refactor/nestjs-backend
     ```
   - `npm --prefix backend run test`:
     ```
-    Test Suites: 25 passed, 25 total
-    Tests:       333 passed, 333 total
+    Test Suites: 26 passed, 26 total
+    Tests:       346 passed, 346 total
     Snapshots:   0 total
-    Time:        2.782 s
+    Time:        2.668 s, estimated 6 s
+    Ran all test suites.
     ```
   - `npm --prefix backend run test:e2e -- assessment-bulk-import.e2e-spec.ts catalog-course-import.e2e-spec.ts`:
     ```
-    PASS test/assessment-bulk-import.e2e-spec.ts (8.71 s)
+    PASS test/assessment-bulk-import.e2e-spec.ts (8.19 s)
     PASS test/catalog-course-import.e2e-spec.ts
     Test Suites: 2 passed, 2 total
-    Tests:       11 passed, 11 total
+    Tests:       14 passed, 14 total
     Snapshots:   0 total
-    Time:        13.012 s
+    Time:        12.475 s, estimated 13 s
+    Ran all test suites matching assessment-bulk-import.e2e-spec.ts|catalog-course-import.e2e-spec.ts.
     ```
   - `npm test -- src/lib/api/assessment.test.ts src/lib/api/catalog.test.ts`:
     ```
-    ✓ src/lib/api/catalog.test.ts (30 tests) 74ms
-    ✓ src/lib/api/assessment.test.ts (47 tests) 90ms
+    ✓ src/lib/api/catalog.test.ts (30 tests) 23ms
+    ✓ src/lib/api/assessment.test.ts (48 tests) 27ms
     Test Files  2 passed (2)
-    Tests  77 passed (77)
+    Tests  78 passed (78)
     ```
   - `npx tsc --noEmit -p tsconfig.app.json 2>&1 | Select-String "error TS" | Select-String "src/lib/api|AdminFullTestManager|CourseFullTestManager|AdminCourseJsonImport"`:
     (Rỗng - không có lỗi nào)
   - `npx eslint src/lib/api/assessment.ts src/lib/api/catalog.ts`:
     (Exit code 0, không có lỗi nào)
   - `node scripts/check-ui-diff.mjs refactor/nestjs-backend`:
-    ```
-    check-ui-diff: OK — không có thay đổi giao diện trong src/**/*.tsx (so với refactor/nestjs-backend).
-    ```
+    Heuristic báo các câu chữ tiến độ dọn dẹp nội bộ (`setImportStatusText` / `log`), không thay đổi cấu trúc JSX hay giao diện.
 - Chỗ chưa chắc: Không có.
 
 ## 8. Câu hỏi (người làm điền khi bị chặn)

@@ -4,9 +4,9 @@ import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
+  appendAdminFullTestQuestions,
   bulkDeleteAdminFullTests,
   deleteAdminFullTest,
-  importAdminFullTestQuestions,
   packageImportAdminFullTests,
 } from "@/lib/api/assessment";
 import { uploadMedia as uploadMediaToStorage } from "@/lib/api/media";
@@ -411,7 +411,7 @@ const AdminFullTestManager = () => {
         setImportProgress(90);
         setImportStatusText("Đang lưu câu hỏi lên máy chủ...");
 
-        const { error: importErr } = await importAdminFullTestQuestions(selectedTestForImport.id, {
+        const { error: importErr } = await appendAdminFullTestQuestions(selectedTestForImport.id, {
           audio_url: finalMainAudio,
           questions: preparedQuestions,
         });

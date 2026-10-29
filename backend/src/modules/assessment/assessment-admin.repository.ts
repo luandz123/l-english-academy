@@ -468,18 +468,28 @@ export class AssessmentAdminRepository {
     });
   }
 
+  findCourseByTitle(title: string): Promise<Course | null> {
+    return this.prisma.course.findFirst({
+      where: { title },
+    });
+  }
+
   createCourse(data: {
     title: string;
+    subtitle?: string | null;
     courseType: string;
     isActive?: boolean;
+    price?: number;
     instructor?: string;
     durationMonths?: number;
   }): Promise<Course> {
     return this.prisma.course.create({
       data: {
         title: data.title,
+        subtitle: data.subtitle ?? 'Bộ đề thi thử TOEIC sát đề thi thật 2026',
         courseType: data.courseType,
         isActive: data.isActive ?? true,
+        price: data.price ?? 0,
         instructor: data.instructor ?? 'Cô Mai Phương',
         durationMonths: data.durationMonths ?? 12,
       },
