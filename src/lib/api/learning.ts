@@ -450,8 +450,8 @@ export async function deletePractice(
 
 /** Lấy danh sách modules của các khóa học đã ghi danh (T-033 / #12). */
 export async function getMyCoursesModules(): Promise<{
-  data: any[] | null;
+  data: unknown[] | null;
   error: ApiError | null;
 }> {
-  return toResult(apiClient.get<any[]>('learning/my-courses/modules'));
+  return toResult(apiClient.get<unknown[]>('learning/my-courses/modules'));
 }

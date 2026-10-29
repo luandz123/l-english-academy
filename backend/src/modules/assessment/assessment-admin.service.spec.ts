@@ -12,6 +12,7 @@ import type {
   Quiz,
 } from '../../generated/prisma/client';
 import { AssessmentMapper } from './assessment.mapper';
+import { VocabMapper } from './vocab.mapper';
 import {
   AssessmentAdminRepository,
   type QuestionWithAnswers,
@@ -179,7 +180,7 @@ describe('AssessmentAdminService', () => {
 
     repo = mockRepo as unknown as jest.Mocked<AssessmentAdminRepository>;
     mapper = new AssessmentMapper();
-    service = new AssessmentAdminService(repo, mapper);
+    service = new AssessmentAdminService(repo, mapper, new VocabMapper());
   });
 
   describe('listQuizQuestions', () => {
