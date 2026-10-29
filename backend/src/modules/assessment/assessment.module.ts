@@ -8,6 +8,10 @@ import { AssessmentController } from './assessment.controller';
 import { AssessmentMapper } from './assessment.mapper';
 import { AssessmentRepository } from './assessment.repository';
 import { AssessmentService } from './assessment.service';
+import { DictationController } from './dictation.controller';
+import { DictationMapper } from './dictation.mapper';
+import { DictationRepository } from './dictation.repository';
+import { DictationService } from './dictation.service';
 import { FullTestController } from './full-test.controller';
 import { FullTestMapper } from './full-test.mapper';
 import { FullTestRepository } from './full-test.repository';
@@ -24,6 +28,7 @@ import { VocabService } from './vocab.service';
     AssessmentAdminController,
     FullTestController,
     VocabController,
+    DictationController,
   ],
   providers: [
     AssessmentService,
@@ -37,6 +42,9 @@ import { VocabService } from './vocab.service';
     VocabService,
     VocabRepository,
     VocabMapper,
+    DictationService,
+    DictationRepository,
+    DictationMapper,
   ],
 })
 export class AssessmentModule {}

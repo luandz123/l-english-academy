@@ -506,3 +506,127 @@ export async function updateAdminQuestionGroup(
   );
   return { error: res.error };
 }
+
+
+export interface DictationDetailResponse {
+  quiz: QuizRow;
+  questions: ReviewQuestionRow[];
+}
+
+export interface DictationUserAnswerRow {
+  id: number;
+  question_id: number;
+  is_correct: boolean | null;
+  result_id: number;
+}
+
+export interface DictationProgressResponse {
+  score: number;
+  correct_answers: number;
+  total_questions: number;
+}
+
+export interface DictationLessonResponse {
+  id: number;
+}
+
+/** Lấy thông tin quiz và danh sách câu hỏi nghe chép chính tả (T-025). */
+export async function getDictationQuiz(
+  quizId: number,
+): Promise<{ data: DictationDetailResponse | null; error: ApiError | null }> {
+  return toResult(
+    apiClient.get<DictationDetailResponse>(
+      `assessment/dictation/quizzes/${quizId}`,
+    ),
+  );
+}
+
+/** Lấy bài học liên kết với quiz nghe chép chính tả (T-025). */
+export async function getDictationLesson(
+  quizId: number,
+): Promise<{ data: DictationLessonResponse | null; error: ApiError | null }> {
+  return toResult(
+    apiClient.get<DictationLessonResponse | null>(
+      `assessment/dictation/quizzes/${quizId}/lesson`,
+    ),
+  );
+}
+
+/** Lấy từ vựng gắn với câu hỏi trong quiz nghe chép chính tả (T-025). */
+export async function getDictationVocab(
+  quizId: number,
+): Promise<{ data: any[] | null; error: ApiError | null }> {
+  return toResult(
+    apiClient.get<any[]>(`assessment/dictation/quizzes/${quizId}/vocab`),
+  );
+}
+
+/** Lấy hoặc tạo kết quả user_quiz_results mới nhất cho dictation (T-025). */
+export async function getOrCreateDictationResult(
+  quizId: number,
+): Promise<{ data: QuizResultRow | null; error: ApiError | null }> {
+  return toResult(
+    apiClient.get<QuizResultRow>(
+      `assessment/dictation/quizzes/${quizId}/result`,
+    ),
+  );
+}
+
+/** Lấy danh sách câu đã hoàn thành của user cho quiz này (T-025). */
+export async function getDictationAnswers(
+  quizId: number,
+): Promise<{ data: DictationUserAnswerRow[] | null; error: ApiError | null }> {
+  return toResult(
+    apiClient.get<DictationUserAnswerRow[]>(
+      `assessment/dictation/quizzes/${quizId}/answers`,
+    ),
+  );
+}
+
+/** Đánh dấu hoàn thành một câu hỏi nghe chép chính tả (T-025). */
+export async function markDictationQuestionDone(
+  quizId: number,
+  questionId: number,
+): Promise<{ data: DictationProgressResponse | null; error: ApiError | null }> {
+  return toResult(
+    apiClient.put<DictationProgressResponse>(
+      `assessment/dictation/quizzes/${quizId}/questions/${questionId}/done`,
+    ),
+  );
+}
+
+/** Hủy đánh dấu hoàn thành một câu hỏi nghe chép chính tả (T-025). */
+export async function unmarkDictationQuestionDone(
+  quizId: number,
+  questionId: number,
+): Promise<{ data: DictationProgressResponse | null; error: ApiError | null }> {
+  return toResult(
+    apiClient.delete<DictationProgressResponse>(
+      `assessment/dictation/quizzes/${quizId}/questions/${questionId}/done`,
+    ),
+  );
+}
+
+/** Đồng bộ danh sách câu hỏi đã hoàn thành trong session khi nộp bài (T-025). */
+export async function syncDictationSession(
+  quizId: number,
+  questionIds: number[],
+): Promise<{ data: DictationProgressResponse | null; error: ApiError | null }> {
+  return toResult(
+    apiClient.post<DictationProgressResponse>(
+      `assessment/dictation/quizzes/${quizId}/sync`,
+      { question_ids: questionIds },
+    ),
+  );
+}
+
+/** Reset toàn bộ tiến trình nghe chép chính tả của quiz này (T-025). */
+export async function resetDictation(
+  quizId: number,
+): Promise<{ data: DictationProgressResponse | null; error: ApiError | null }> {
+  return toResult(
+    apiClient.post<DictationProgressResponse>(
+      `assessment/dictation/quizzes/${quizId}/reset`,
+    ),
+  );
+}
