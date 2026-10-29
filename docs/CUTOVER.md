@@ -102,7 +102,13 @@ Kiểm tra: `verify-content` khớp số dòng + md5 cả 15 bảng. Lệch → 
 | 6. Admin (đọc): dashboard, khóa học, học viên, tài liệu, đơn/ghi danh, cài đặt, sao lưu | 200 |
 | 6. `/admin/fulltests` | **còn gọi Supabase** → T-035 |
 
-Còn lại: luồng 1 (đăng ký + email), 5 (thanh toán), 6 (upload, import) — sau T-035.
+| 6. `/admin/fulltests` sau T-035 (staging `4f65fbf`) | đã chuyển API |
+| 5. Thanh toán giả lập: `POST /payments/orders` 201 (mã `LEA86524`, QR SePay) → polling 3s → `simulate` 200 → đơn hoàn tất, hiện "Chào mừng VIP PRO" | đạt |
+
+Còn lại (chủ dự án tự làm, cần chọn file / nhận email):
+- [ ] Luồng 1: đăng ký tài khoản mới bằng email thật → nhận thư xác nhận (Gmail API) → đăng nhập.
+- [ ] Luồng 6: `/admin/materials` upload 1 ảnh nhỏ → mở được qua `public_url`; `/admin/import-json` import 1 file JSON nhỏ.
+- [ ] (Tùy chọn) Luồng 5 thật: chuyển khoản 2.000đ vào đơn trên staging để thử webhook SePay — chỉ khi webhook SePay đang trỏ staging.
 
 ## 6. Rollback (mục tiêu < 15 phút)
 1. Vercel → Deployments → bản production cuối trước cutover → **Promote to Production** (hoặc `git revert` merge commit trên `main`). Bản đó dùng Supabase trực tiếp, không cần backend.
