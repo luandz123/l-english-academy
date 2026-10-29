@@ -11,7 +11,12 @@ import {
   duplicateAdminFullTestQuestion,
   getAdminFullTestDetail,
   getAdminFullTestQuestions,
+  getDictationAnswers,
+  getDictationLesson,
+  getDictationQuiz,
+  getDictationVocab,
   getLatestQuizResult,
+  getOrCreateDictationResult,
   getQuiz,
   getQuizResult,
   getQuizReview,
@@ -20,10 +25,14 @@ import {
   listQuizQuestions,
   listResultAnswers,
   listUserQuizResults,
+  markDictationQuestionDone,
   patchQuiz,
   reorderQuizQuestions,
+  resetDictation,
   setQuizQuestionImages,
   submitQuiz,
+  syncDictationSession,
+  unmarkDictationQuestionDone,
   updateAdminFullTest,
   updateAdminFullTestQuestion,
   updateAdminQuestionGroup,
@@ -368,6 +377,95 @@ describe("assessment adapter", () => {
       expect(res.data).toBeNull();
       expect(res.error).toBeInstanceOf(ApiError);
       expect(res.error?.status).toBe(500);
+    });
+
+    describe("dictation APIs (T-025)", () => {
+      it("getDictationQuiz gọi GET /api/v1/assessment/dictation/quizzes/:quizId", async () => {
+        const payload = { quiz: { id: 1 }, questions: [] };
+        const fetchMock = mockFetch(200, payload);
+        const { data, error } = await getDictationQuiz(1);
+        expect(error).toBeNull();
+        expect(data).toEqual(payload);
+        const [url] = fetchMock.mock.calls[0];
+        expect(url).toBe("/api/v1/assessment/dictation/quizzes/1");
+      });
+
+      it("getDictationLesson gọi GET /api/v1/assessment/dictation/quizzes/:quizId/lesson", async () => {
+        const fetchMock = mockFetch(200, { id: 42 });
+        const { data, error } = await getDictationLesson(1);
+        expect(error).toBeNull();
+        expect(data).toEqual({ id: 42 });
+        const [url] = fetchMock.mock.calls[0];
+        expect(url).toBe("/api/v1/assessment/dictation/quizzes/1/lesson");
+      });
+
+      it("getDictationVocab gọi GET /api/v1/assessment/dictation/quizzes/:quizId/vocab", async () => {
+        const fetchMock = mockFetch(200, [{ word: "hello" }]);
+        const { data, error } = await getDictationVocab(1);
+        expect(error).toBeNull();
+        expect(data).toHaveLength(1);
+        const [url] = fetchMock.mock.calls[0];
+        expect(url).toBe("/api/v1/assessment/dictation/quizzes/1/vocab");
+      });
+
+      it("getOrCreateDictationResult gọi GET /api/v1/assessment/dictation/quizzes/:quizId/result", async () => {
+        const fetchMock = mockFetch(200, { id: 10, score: 0 });
+        const { data, error } = await getOrCreateDictationResult(1);
+        expect(error).toBeNull();
+        expect(data?.score).toBe(0);
+        const [url] = fetchMock.mock.calls[0];
+        expect(url).toBe("/api/v1/assessment/dictation/quizzes/1/result");
+      });
+
+      it("getDictationAnswers gọi GET /api/v1/assessment/dictation/quizzes/:quizId/answers", async () => {
+        const fetchMock = mockFetch(200, [{ id: 1, question_id: 101, is_correct: true }]);
+        const { data, error } = await getDictationAnswers(1);
+        expect(error).toBeNull();
+        expect(data).toHaveLength(1);
+        const [url] = fetchMock.mock.calls[0];
+        expect(url).toBe("/api/v1/assessment/dictation/quizzes/1/answers");
+      });
+
+      it("markDictationQuestionDone gọi PUT /api/v1/assessment/dictation/quizzes/:quizId/questions/:questionId/done", async () => {
+        const fetchMock = mockFetch(200, { score: 1, correct_answers: 1, total_questions: 2 });
+        const { data, error } = await markDictationQuestionDone(1, 101);
+        expect(error).toBeNull();
+        expect(data?.score).toBe(1);
+        const [url, init] = fetchMock.mock.calls[0];
+        expect(url).toBe("/api/v1/assessment/dictation/quizzes/1/questions/101/done");
+        expect(init?.method).toBe("PUT");
+      });
+
+      it("unmarkDictationQuestionDone gọi DELETE /api/v1/assessment/dictation/quizzes/:quizId/questions/:questionId/done", async () => {
+        const fetchMock = mockFetch(200, { score: 0, correct_answers: 0, total_questions: 2 });
+        const { data, error } = await unmarkDictationQuestionDone(1, 101);
+        expect(error).toBeNull();
+        expect(data?.score).toBe(0);
+        const [url, init] = fetchMock.mock.calls[0];
+        expect(url).toBe("/api/v1/assessment/dictation/quizzes/1/questions/101/done");
+        expect(init?.method).toBe("DELETE");
+      });
+
+      it("syncDictationSession gọi POST /api/v1/assessment/dictation/quizzes/:quizId/sync", async () => {
+        const fetchMock = mockFetch(200, { score: 2, correct_answers: 2, total_questions: 2 });
+        const { data, error } = await syncDictationSession(1, [101, 102]);
+        expect(error).toBeNull();
+        expect(data?.score).toBe(2);
+        const [url, init] = fetchMock.mock.calls[0];
+        expect(url).toBe("/api/v1/assessment/dictation/quizzes/1/sync");
+        expect(init?.method).toBe("POST");
+        expect(JSON.parse(init?.body as string)).toEqual({ question_ids: [101, 102] });
+      });
+
+      it("resetDictation gọi POST /api/v1/assessment/dictation/quizzes/:quizId/reset", async () => {
+        const fetchMock = mockFetch(200, { score: 0, correct_answers: 0, total_questions: 2 });
+        const { data, error } = await resetDictation(1);
+        expect(error).toBeNull();
+        expect(data?.score).toBe(0);
+        const [url, init] = fetchMock.mock.calls[0];
+        expect(url).toBe("/api/v1/assessment/dictation/quizzes/1/reset");
+        expect(init?.method).toBe("POST");
+      });
     });
   });
 });

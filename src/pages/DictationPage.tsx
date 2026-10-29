@@ -1,7 +1,17 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useParams, useNavigate, Link, useLocation } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  getDictationAnswers,
+  getDictationLesson,
+  getDictationQuiz,
+  getDictationVocab,
+  getOrCreateDictationResult,
+  markDictationQuestionDone,
+  resetDictation,
+  syncDictationSession,
+  unmarkDictationQuestionDone,
+} from "@/lib/api/assessment";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useGamification } from "@/hooks/useGamification";
@@ -894,32 +904,9 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
   const { data: quizData, isLoading: quizLoading } = useQuery({
     queryKey: ["dictation-quiz", quizId],
     queryFn: async () => {
-      const { data: quiz, error: qErr } = await supabase
-        .from("quizzes")
-        .select("*")
-        .eq("id", Number(quizId))
-        .single();
-      if (qErr) throw qErr;
-
-      const { data: questions, error: questErr } = await supabase
-        .from("questions")
-        .select(`
-          id,
-          question_text,
-          audio_url,
-          translation,
-          explanation,
-          dictation_keywords,
-          display_order,
-          passage_text,
-          transcript,
-          image_url,
-          answers(id, answer_text, is_correct, display_order)
-        `)
-        .eq("quiz_id", Number(quizId))
-        .order("display_order", { ascending: true });
-
-      if (questErr) throw questErr;
+      const { data, error } = await getDictationQuiz(Number(quizId));
+      if (error || !data) throw error;
+      const { quiz, questions } = data;
 
       const quizAudio = formatAudioUrl(quiz?.audio_url);
       const sortedQuestions = (questions || []).map((q: any) => {
@@ -939,11 +926,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
   const { data: lessonData } = useQuery({
     queryKey: ["dictation-lesson-id", quizId],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("lessons")
-        .select("id")
-        .eq("quiz_id", Number(quizId))
-        .maybeSingle();
+      const { data } = await getDictationLesson(Number(quizId));
       return data;
     },
     enabled: !!quizId
@@ -956,13 +939,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
     queryKey: ["dictation-vocab", quizId],
     queryFn: async () => {
       if (!quizData?.questions || quizData.questions.length === 0) return [];
-      const questionIds = quizData.questions.map((q: any) => q?.id).filter(Boolean);
-      
-      const { data, error } = await supabase
-        .from("vocab_questions")
-        .select("*")
-        .in("question_id", questionIds);
-        
+      const { data, error } = await getDictationVocab(Number(quizId));
       if (error) {
         console.warn("Could not fetch question vocab:", error);
         return [];
@@ -977,32 +954,9 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
     queryKey: ["dictation-result", quizId, user?.id],
     queryFn: async () => {
       if (!user) return null;
-      const { data: existing, error: findErr } = await supabase
-        .from("user_quiz_results")
-        .select("*")
-        .eq("quiz_id", Number(quizId))
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (findErr) throw findErr;
-      if (existing) return existing;
-
-      const { data: created, error: createErr } = await supabase
-        .from("user_quiz_results")
-        .insert({
-          quiz_id: Number(quizId),
-          user_id: user.id,
-          score: 0,
-          total_questions: quizData?.questions.length || 0,
-          correct_answers: 0
-        })
-        .select()
-        .single();
-
-      if (createErr) throw createErr;
-      return created;
+      const { data, error } = await getOrCreateDictationResult(Number(quizId));
+      if (error || !data) throw error;
+      return data;
     },
     enabled: !!user && !!quizData
   });
@@ -1014,24 +968,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
     queryKey: ["dictation-answers", quizId, user?.id],
     queryFn: async () => {
       if (!user || !quizId) return [];
-      
-      const { data: results } = await supabase
-        .from("user_quiz_results")
-        .select("id")
-        .eq("quiz_id", Number(quizId))
-        .eq("user_id", user.id);
-
-      const resultIds = results ? results.map((r: any) => r.id) : [];
-      if (targetResultId && !resultIds.includes(targetResultId)) {
-        resultIds.push(targetResultId);
-      }
-      if (resultIds.length === 0) return [];
-
-      const { data, error } = await supabase
-        .from("user_answers")
-        .select("id, question_id, is_correct, result_id")
-        .in("result_id", resultIds)
-        .eq("is_correct", true);
+      const { data, error } = await getDictationAnswers(Number(quizId));
       if (error) throw error;
       return data || [];
     },
@@ -1141,67 +1078,10 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
     mutationFn: async (question_id: number) => {
       if (!user || !quizId) return;
 
-      // Ensure we have a valid result_id even if targetResultId hasn't resolved in React state yet
-      let activeResultId = targetResultId;
-      if (!activeResultId) {
-        const { data: existing } = await supabase
-          .from("user_quiz_results")
-          .select("id")
-          .eq("quiz_id", Number(quizId))
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        if (existing) {
-          activeResultId = existing.id;
-        } else {
-          const { data: created } = await supabase
-            .from("user_quiz_results")
-            .insert({
-              quiz_id: Number(quizId),
-              user_id: user.id,
-              score: 0,
-              total_questions: questions.length || 0,
-              correct_answers: 0
-            })
-            .select("id")
-            .single();
-          activeResultId = created?.id;
-        }
+      const { error } = await markDictationQuestionDone(Number(quizId), question_id);
+      if (error) {
+        console.warn("Error persisting answer:", error);
       }
-
-      if (!activeResultId) return;
-
-      const { data: existingAnswer } = await supabase
-        .from("user_answers")
-        .select("id")
-        .eq("result_id", activeResultId)
-        .eq("question_id", question_id)
-        .maybeSingle();
-
-      if (existingAnswer) {
-        await supabase
-          .from("user_answers")
-          .update({ is_correct: true })
-          .eq("id", existingAnswer.id);
-      } else {
-        await supabase.from("user_answers").insert({
-          result_id: activeResultId,
-          question_id,
-          is_correct: true
-        });
-      }
-
-      const allDoneCount = questions.filter(q => sessionDone.has(q.id) || q.id === question_id).length;
-      await supabase
-        .from("user_quiz_results")
-        .update({
-          correct_answers: allDoneCount,
-          score: allDoneCount,
-          total_questions: questions.length
-        })
-        .eq("id", activeResultId);
     },
     onError: (err, question_id, context: any) => {
       console.warn("Error persisting answer:", err);
@@ -1232,21 +1112,8 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
     },
     mutationFn: async (question_id: number) => {
       if (!user || !quizId) return;
-
-      const { data: results } = await supabase
-        .from("user_quiz_results")
-        .select("id")
-        .eq("quiz_id", Number(quizId))
-        .eq("user_id", user.id);
-
-      const resultIds = results ? results.map((r: any) => r.id) : [];
-      if (resultIds.length > 0) {
-        await supabase
-          .from("user_answers")
-          .update({ is_correct: false })
-          .in("result_id", resultIds)
-          .eq("question_id", question_id);
-      }
+      const { error } = await unmarkDictationQuestionDone(Number(quizId), question_id);
+      if (error) throw error;
     },
     onError: (err, question_id, context: any) => {
       toast({ title: "Lỗi làm lại", description: err.message, variant: "destructive" });
@@ -1266,24 +1133,8 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
   const resetAllMutation = useMutation({
     mutationFn: async () => {
       if (!user || !quizId) return;
-      const { data: results } = await supabase
-        .from("user_quiz_results")
-        .select("id")
-        .eq("quiz_id", Number(quizId))
-        .eq("user_id", user.id);
-
-      const resultIds = results ? results.map((r: any) => r.id) : [];
-      if (resultIds.length > 0) {
-        await supabase
-          .from("user_answers")
-          .update({ is_correct: false })
-          .in("result_id", resultIds);
-
-        await supabase
-          .from("user_quiz_results")
-          .update({ correct_answers: 0, score: 0 })
-          .in("id", resultIds);
-      }
+      const { error } = await resetDictation(Number(quizId));
+      if (error) throw error;
     },
     onSuccess: () => {
       if (user?.id && quizId) {
@@ -1588,35 +1439,15 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
     // Sync all completed & auto-completed questions to user_answers in DB
     if (targetResultId && questions.length > 0) {
       try {
-        const doneQuestions = activeQuestionIndices
+        const doneQuestionIds = activeQuestionIndices
           .map(idx => questions[idx])
-          .filter(q => q && isQuestionDone(q.id));
+          .filter(q => q && isQuestionDone(q.id))
+          .map(q => q.id);
 
-        for (const q of doneQuestions) {
-          const { data: existingAnswer } = await supabase
-            .from("user_answers")
-            .select("id")
-            .eq("result_id", targetResultId)
-            .eq("question_id", q.id)
-            .maybeSingle();
-
-          if (existingAnswer) {
-            await supabase.from("user_answers").update({ is_correct: true }).eq("id", existingAnswer.id);
-          } else {
-            await supabase.from("user_answers").insert({
-              result_id: targetResultId,
-              question_id: q.id,
-              is_correct: true
-            });
-          }
+        if (doneQuestionIds.length > 0) {
+          const { error } = await syncDictationSession(Number(quizId), doneQuestionIds);
+          if (error) console.warn("Could not sync all answers to DB:", error);
         }
-
-        const totalDone = questions.filter(q => isQuestionDone(q.id)).length;
-        await supabase.from("user_quiz_results").update({
-          correct_answers: totalDone,
-          score: totalDone,
-          total_questions: questions.length
-        }).eq("id", targetResultId);
 
         queryClient.invalidateQueries({ queryKey: ["dictation-answers", targetResultId] });
         queryClient.invalidateQueries({ queryKey: ["quiz-results"] });
