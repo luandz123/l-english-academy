@@ -17,4 +17,3 @@ export interface StorageService {
   upload(options: StorageUploadOptions): Promise<StorageUploadResult>;
   getPublicUrl(bucket: string, path: string): string;
 }
-
