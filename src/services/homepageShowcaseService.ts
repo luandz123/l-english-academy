@@ -49,7 +49,53 @@ export interface EtsCommitment {
   desc: string;
 }
 
+/** Một nền của banner trang chủ. `night_sky` là nền động dựng sẵn bằng code (không cần URL). */
+export interface HeroBackground {
+  id: string;
+  type: "night_sky" | "image" | "video";
+  /** Ảnh (jpg/png/webp/GIF động) hoặc video (mp4/webm) */
+  url?: string;
+  label?: string;
+  /** Độ tối phủ lên nền để chữ dễ đọc, 0–80 (%) */
+  dim: number;
+  enabled: boolean;
+}
+
+export interface HeroBannerConfig {
+  /** Số giây giữa hai lần chuyển nền (khi có từ 2 nền bật) */
+  interval_seconds: number;
+  backgrounds: HeroBackground[];
+}
+
+export const DEFAULT_HERO_BANNER: HeroBannerConfig = {
+  interval_seconds: 8,
+  backgrounds: [{ id: "night-sky", type: "night_sky", label: "Bầu trời đêm (sao băng)", dim: 0, enabled: true }],
+};
+
+/** Làm sạch cấu hình banner do admin lưu: bỏ mục lỗi, giới hạn số, luôn còn ít nhất một nền. */
+export function normalizeHeroBanner(raw: unknown): HeroBannerConfig {
+  const r = (raw && typeof raw === "object" ? raw : {}) as Partial<HeroBannerConfig>;
+  const interval = Number(r.interval_seconds);
+  const backgrounds = (Array.isArray(r.backgrounds) ? r.backgrounds : [])
+    .filter(
+      (b): b is HeroBackground =>
+        !!b &&
+        typeof b.id === "string" &&
+        (b.type === "night_sky" || ((b.type === "image" || b.type === "video") && typeof b.url === "string" && b.url.trim() !== "")),
+    )
+    .map((b) => ({
+      ...b,
+      dim: Math.min(80, Math.max(0, Number.isFinite(Number(b.dim)) ? Number(b.dim) : 35)),
+      enabled: b.enabled !== false,
+    }));
+  return {
+    interval_seconds: Number.isFinite(interval) ? Math.min(60, Math.max(3, Math.round(interval))) : DEFAULT_HERO_BANNER.interval_seconds,
+    backgrounds: backgrounds.length > 0 ? backgrounds : DEFAULT_HERO_BANNER.backgrounds,
+  };
+}
+
 export interface HomepageShowcaseConfig {
+  hero_banner: HeroBannerConfig;
   section_toggles: {
     show_categories: boolean;
     show_part2_banner: boolean;
@@ -94,6 +140,7 @@ export interface HomepageShowcaseConfig {
 export const SHOWCASE_CONFIG_STORAGE_KEY = "l_english_homepage_showcase_config";
 
 export const DEFAULT_HOMEPAGE_CONFIG: HomepageShowcaseConfig = {
+  hero_banner: DEFAULT_HERO_BANNER,
   section_toggles: {
     show_categories: true,
     show_part2_banner: true,
@@ -363,6 +410,7 @@ export async function getHomepageShowcaseConfig(): Promise<HomepageShowcaseConfi
     if (!error && data?.value) {
       const parsed = JSON.parse(data.value);
       const merged: HomepageShowcaseConfig = {
+        hero_banner: normalizeHeroBanner(parsed.hero_banner),
         section_toggles: { ...DEFAULT_HOMEPAGE_CONFIG.section_toggles, ...(parsed.section_toggles || {}) },
         contact_info: { ...DEFAULT_HOMEPAGE_CONFIG.contact_info, ...(parsed.contact_info || {}) },
         part2_banner: { ...DEFAULT_HOMEPAGE_CONFIG.part2_banner, ...(parsed.part2_banner || {}) },
@@ -402,6 +450,7 @@ export async function getHomepageShowcaseConfig(): Promise<HomepageShowcaseConfi
     if (cached) {
       const parsed = JSON.parse(cached);
       return {
+        hero_banner: normalizeHeroBanner(parsed.hero_banner),
         section_toggles: { ...DEFAULT_HOMEPAGE_CONFIG.section_toggles, ...(parsed.section_toggles || {}) },
         contact_info: { ...DEFAULT_HOMEPAGE_CONFIG.contact_info, ...(parsed.contact_info || {}) },
         part2_banner: { ...DEFAULT_HOMEPAGE_CONFIG.part2_banner, ...(parsed.part2_banner || {}) },

@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { listAdminSettings, saveSetting, getAdminUsers } from "@/lib/api/admin";
 import { pingSepayWebhook } from "@/lib/api/payments";
+import HeroBannerManager from "@/components/admin/HeroBannerManager";
 import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -593,6 +594,23 @@ const AdminSettings = () => {
 
           {/* TAB 1: KỆ TRANG CHỦ & CÁC MỤC TRƯNG BÀY (DYNAMIC) */}
           <TabsContent value="showcase" className="mt-4 space-y-6">
+            {/* KHỐI 0: NỀN BANNER ĐẦU TRANG (TỰ CHUYỂN) */}
+            <div className="bg-card rounded-2xl border border-border/70 p-6 shadow-soft-sm space-y-4">
+              <div className="flex items-center justify-between gap-3 pb-2 border-b border-border/60">
+                <div className="flex items-center gap-2.5">
+                  <Sparkles className="w-5 h-5 text-primary" />
+                  <h3 className="text-base font-black text-foreground">Nền Banner Đầu Trang Chủ</h3>
+                </div>
+                <Button size="sm" onClick={() => saveShowcaseMutation.mutate()} disabled={saveShowcaseMutation.isPending} className="gap-1.5">
+                  <Save className="w-4 h-4" /> Lưu
+                </Button>
+              </div>
+              <HeroBannerManager
+                value={showcaseConfig.hero_banner}
+                onChange={(hero_banner) => setShowcaseConfig({ ...showcaseConfig, hero_banner })}
+              />
+            </div>
+
             {/* KHỐI 1: BẬT / TẮT CÁC SECTION TRÊN TRANG CHỦ */}
             <div className="bg-card rounded-2xl border border-border/70 p-6 shadow-soft-sm space-y-4">
               <div className="flex items-center gap-2.5 pb-2 border-b border-border/60">

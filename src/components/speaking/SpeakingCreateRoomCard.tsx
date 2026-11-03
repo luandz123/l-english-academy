@@ -42,6 +42,7 @@ export const SpeakingCreateRoomCard: React.FC<SpeakingCreateRoomCardProps> = ({
   const [visibility, setVisibility] = useState<RoomVisibility>("public");
   const [passcode, setPasscode] = useState<string>(() => generateRandomRoomPasscode(6));
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [nameError, setNameError] = useState(false);
   const [copiedPasscode, setCopiedPasscode] = useState(false);
 
   const regeneratePasscode = () => {
@@ -73,11 +74,9 @@ export const SpeakingCreateRoomCard: React.FC<SpeakingCreateRoomCardProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
-      toast({
-        title: "Thiếu tên phòng",
-        description: "Vui lòng nhập tên cho phòng luyện nói của bạn.",
-        variant: "destructive",
-      });
+      // Báo ngay dưới ô tên phòng thay vì khóa nút (nút bị khóa trông như hỏng)
+      setNameError(true);
+      document.getElementById("room-name")?.focus();
       return;
     }
 
@@ -147,11 +146,23 @@ export const SpeakingCreateRoomCard: React.FC<SpeakingCreateRoomCardProps> = ({
             id="room-name"
             placeholder="Ví dụ: Daily English & Coffee Talk..."
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => {
+              setName(e.target.value);
+              if (e.target.value.trim()) setNameError(false);
+            }}
             maxLength={60}
-            required
-            className="h-10 text-sm rounded-xl focus-visible:ring-emerald-500"
+            aria-invalid={nameError}
+            aria-describedby={nameError ? "room-name-error" : undefined}
+            className={cn(
+              "h-10 text-sm rounded-xl focus-visible:ring-emerald-500",
+              nameError && "border-rose-500 focus-visible:ring-rose-500"
+            )}
           />
+          {nameError && (
+            <p id="room-name-error" className="text-xs font-medium text-rose-400">
+              Nhập tên phòng để bạn học biết chủ đề trò chuyện.
+            </p>
+          )}
         </div>
 
         {/* Trình độ & Sĩ số */}
@@ -321,8 +332,8 @@ export const SpeakingCreateRoomCard: React.FC<SpeakingCreateRoomCardProps> = ({
 
         <Button
           type="submit"
-          disabled={isSubmitting || !name.trim()}
-          className="w-full h-11 bg-slate-900 hover:bg-slate-800 dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white rounded-xl font-semibold text-sm gap-2"
+          disabled={isSubmitting}
+          className="w-full h-11 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-semibold text-sm gap-2 shadow-[0_0_18px_rgba(16,185,129,0.35)]"
         >
           {isSubmitting ? (
             <>
