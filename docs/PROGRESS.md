@@ -26,6 +26,7 @@
 | **9** | **Module 9: Speaking** | - Tạo & quản lý phòng đàm thoại (`speaking_rooms`)<br/>- Cấp JWT token kết nối LiveKit SFU Server<br/>- WebSocket trạng thái phòng & thành viên<br/>- Lưu lịch sử phiên luyện nói (`speaking_sessions`) | ⏸️ **Hoãn sau cắt cầu** (#11: production chưa có bảng phòng nói; T-030) | - | - | Bỏ hoàn toàn WebRTC mesh P2P cũ. |
 | **10** | **Module 10: Games Hub** | - WebSocket Gateway cho Word Shooter PvP / Solo<br/>- Tính điểm, trừ sao, thăng hạng server-side<br/>- Leaderboard xếp hạng game thời gian thực | ⏸️ **Giữ Supabase Broadcast** cho PvP (#28, T-030); rank/XP giữ client (#24); từ vựng lobby ở T-033 | - | - | Hoàn tất module realtime cuối cùng. |
 | **11** | **Cắt Cầu & Dọn Dẹp (Final Cutover)** | - Gỡ bỏ hoàn toàn `@supabase/supabase-js`<br/>- Xóa thư mục `supabase/` và `api/`<br/>- Kiểm thử E2E Playwright toàn bộ ứng dụng<br/>- Merge vào `main` | 🟢 **HOÀN THÀNH** | `main` (PR #2) | 2026-10-29 | Cutover theo `docs/CUTOVER.md`: copy 15 bảng nội dung khớp md5, smoke test 6 luồng, thanh toán thật qua webhook. Giữ `@supabase/supabase-js` cho Storage/Realtime/Speaking (#27, #28, #11). |
+| **12** | **Giai đoạn UI/UX — đợt 1** | - Đổi luật `AGENTS.md` sang giai đoạn UI/UX, gỡ job CI `ui-diff`<br/>- Rà soát UX phía học viên ([UX_REVIEW.md](UX_REVIEW.md)): 22 vấn đề, sửa 20<br/>- Lỗi chức năng: YouTube popup theo thời gian phát, PvP (kết thúc trận, rời trận, phòng chờ, 2 lỗi gây crash), EmptyState, Google 503, `.env` rỗng làm sập backend | 🟢 **HOÀN THÀNH** | `claude/serene-mccarthy-kfz19o` | 2026-11-03 | Còn: M6 (nút chính trên Bàn học), toast che nút; Google OAuth cần cấu hình Render; Phòng luyện nói cần module backend (T-031/T-032). |
 
 ---
 
@@ -49,3 +50,5 @@
 | DB Supabase production | 62 MB, 28 bảng, 61 policy, 26 tài khoản, storage 18 MB | Xem DECISIONS O-04/O-05. |
 
 **Sau cutover (2026-10-29):** backend unit 346/346, e2e 447/447 (Testcontainers), frontend 229/229; `check-ui-diff` sạch; production chạy NestJS + Neon.
+
+**Sau UI/UX đợt 1 (2026-11-03):** backend unit 348/348, lint 0, typecheck 0 (e2e không chạy được ở môi trường này: không có Docker cho Testcontainers); frontend test 248/248, lint 724 vấn đề (trước đợt 726), typecheck 18 lỗi có sẵn (15 của `speakingService.ts`; trước đợt 23), build OK.
