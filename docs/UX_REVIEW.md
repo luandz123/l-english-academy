@@ -67,6 +67,7 @@ Cách rà soát: chạy app cục bộ (Postgres + NestJS + Vite) với dữ li�
 | F7 | `FullTestList` dùng `EmptyState` chưa import → khóa đề rỗng làm trang lỗi; `VocabLessonPage` sai prop nên không hiện nút | ✅ |
 | F8 | Đăng nhập Google: server chưa cấu hình trả trang JSON 503 thô | ✅ Frontend kiểm tra trước, báo "Đăng nhập Google đang tạm tắt…". Chủ dự án đã cấu hình `GOOGLE_CLIENT_ID/SECRET` trên Render, **đăng nhập Google chạy trên production** (2026-11-03) |
 | F9 | Backend sập khi khởi động nếu `.env` có biến để trống (`GOOGLE_CLIENT_ID=`, `SEPAY_WEBHOOK_API_KEY=`…) | ✅ Biến rỗng coi như chưa đặt và bị xóa khỏi `process.env` (vì `ConfigService.get` đọc `process.env` trước) — `backend/src/config/env.schema.ts` + test |
+| F10 | Vercel function thanh toán cũ (`api/payment-webhook.ts`, `check-payment.ts`, `simulate-payment.ts`) vẫn được deploy, dùng Supabase và anon key viết cứng; trang admin hiển thị URL webhook cũ | ✅ Xóa (chủ dự án yêu cầu); trang cài đặt hiển thị và kiểm tra webhook mới `/api/v1/payments/webhooks/sepay` (OPEN_QUESTIONS #30) |
 
 ### Bật đăng nhập Google (việc của chủ dự án, không sửa bằng code)
 1. Google Cloud Console → project L-English → **APIs & Services → Credentials → Create credentials → OAuth client ID** → loại *Web application*.

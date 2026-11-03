@@ -4,6 +4,7 @@ import {
   createPaymentOrder,
   getPaymentOrder,
   listAdminPaymentOrders,
+  pingSepayWebhook,
   simulatePayment,
   watchPaymentOrder,
 } from "./payments";
@@ -176,5 +177,17 @@ describe("payments adapter", () => {
       expect(error?.status).toBe(404);
       expect(error?.code).toBe("ORDER_NOT_FOUND");
     });
+  });
+
+  it("pingSepayWebhook: 401 WEBHOOK_UNAUTHORIZED = đang hoạt động; nhận request không key = cảnh báo", async () => {
+    const fetchMock = mockFetch(
+      [401, { statusCode: 401, code: "WEBHOOK_UNAUTHORIZED", message: "Unauthorized webhook request" }],
+      [200, { success: false, message: "x" }],
+    );
+    expect((await pingSepayWebhook()).online).toBe(true);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe("/api/v1/payments/webhooks/sepay");
+    expect((init?.headers as Record<string, string>)?.Authorization).toBeUndefined();
+    expect((await pingSepayWebhook()).online).toBe(false);
   });
 });
