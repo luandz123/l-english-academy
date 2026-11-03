@@ -13,6 +13,8 @@ Cách rà soát: chạy app cục bộ (Postgres + NestJS + Vite) với dữ li�
 | D3 | Bỏ "Bài kiểm tra đầu vào 15 phút" trên Bàn học. |
 | D4 | Bỏ danh sách bạn bè giả ở trang Trò chơi. |
 | D5 | Đăng nhập xong vào **Bàn học** (`/dashboard`). |
+| D6 | (2026-11-03) **Bỏ gói nâng cấp PRO/VIP**, chuyển thanh toán sang **mua từng khóa học**. |
+| D7 | (2026-11-03) Làm luôn **Phòng luyện nói** (module backend T-031 + frontend T-032). |
 
 ## Trạng thái từng mục
 
@@ -63,8 +65,8 @@ Cách rà soát: chạy app cục bộ (Postgres + NestJS + Vite) với dữ li�
 | F5 | PvP xếp hạng: ghép được đối thủ gọi `gameSound.playLevelUpSound()` không tồn tại → kẹt ở "đã tìm thấy" | ✅ Dùng `playReadySound()`. `WordShooterLobby.tsx` |
 | F6 | PvP phòng chờ: khách gửi "đã vào" 1 lần, không biết chủ phòng có nhận; sai mã phòng thì chờ mãi; tên hai bên luôn là "Người chơi 2"/"Chủ phòng" | ✅ Gửi lại mỗi 3 giây tới khi chủ phòng xác nhận, hiện "Đang kết nối…", báo sau ~15 giây nếu chưa thấy phòng; gửi tên thật |
 | F7 | `FullTestList` dùng `EmptyState` chưa import → khóa đề rỗng làm trang lỗi; `VocabLessonPage` sai prop nên không hiện nút | ✅ |
-| F8 | Đăng nhập Google: server chưa cấu hình trả trang JSON 503 thô | ✅ Frontend kiểm tra trước, báo "Đăng nhập Google đang tạm tắt…". **Bật thật cần cấu hình** (xem dưới) |
-| F9 | Backend sập khi khởi động nếu `.env` có biến để trống (`GOOGLE_CLIENT_ID=`, `SEPAY_WEBHOOK_API_KEY=`…) | ✅ Biến rỗng coi như chưa đặt (`backend/src/config/env.schema.ts` + test) |
+| F8 | Đăng nhập Google: server chưa cấu hình trả trang JSON 503 thô | ✅ Frontend kiểm tra trước, báo "Đăng nhập Google đang tạm tắt…". Chủ dự án đã cấu hình `GOOGLE_CLIENT_ID/SECRET` trên Render, **đăng nhập Google chạy trên production** (2026-11-03) |
+| F9 | Backend sập khi khởi động nếu `.env` có biến để trống (`GOOGLE_CLIENT_ID=`, `SEPAY_WEBHOOK_API_KEY=`…) | ✅ Biến rỗng coi như chưa đặt và bị xóa khỏi `process.env` (vì `ConfigService.get` đọc `process.env` trước) — `backend/src/config/env.schema.ts` + test |
 
 ### Bật đăng nhập Google (việc của chủ dự án, không sửa bằng code)
 1. Google Cloud Console → project L-English → **APIs & Services → Credentials → Create credentials → OAuth client ID** → loại *Web application*.
@@ -72,5 +74,15 @@ Cách rà soát: chạy app cục bộ (Postgres + NestJS + Vite) với dữ li�
 3. OAuth consent screen: chuyển **In production** (chế độ Testing chỉ cho email trong danh sách test).
 4. Render → service `lenglish-api` → Environment: thêm `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` → Save (Render tự deploy lại).
 
-### Phòng luyện nói (chưa chạy được trên production)
-`/speaking` gọi bảng và RPC Supabase (`speaking_rooms`, `join_speaking_room`…) chưa từng tồn tại trên production (OPEN_QUESTIONS #11), và các RPC này dựa vào Supabase Auth mà học viên không còn đăng nhập từ khi chuyển sang NestJS. Muốn chạy cần làm module backend Speaking (kế hoạch T-031/T-032 trong `docs/tasks/T-030-realtime-survey.md`) và cấu hình LiveKit. Chưa làm trong đợt này.
+## Mua từng khóa học thay gói PRO (D6)
+
+- Backend `POST /api/v1/payments/orders` nhận `{ course_id }`: giá lấy từ `courses.price` ở server; khóa miễn phí → 400 `COURSE_NOT_FOR_SALE`; đã sở hữu → 409 `ALREADY_ENROLLED`; khóa ẩn/không có → 404; dùng lại đơn pending cùng khóa trong 30 phút. Tiền về đủ → **chỉ ghi danh khóa đó** (không bật PRO).
+- Đơn `vip_combo` cũ còn pending vẫn kích hoạt như trước (PRO + mọi khóa) để không mất tiền ai đã chuyển. Học viên PRO cũ vẫn giữ quyền vì đã được ghi danh mọi khóa.
+- Frontend: `CoursePurchaseModal` (QR SePay, tự theo dõi đơn, "Vào học ngay" khi xong) mở từ màn bài học bị khóa và màn Full Test chưa sở hữu. Bỏ nút/thẻ "Nâng cấp PRO", mục "Nâng cấp VIP trọn đời" ở trang chủ, link VIP ở navbar/footer/thanh dưới điện thoại; chữ trong ảnh banner đổi thành "Xem khóa học & Lộ trình".
+- Cần chủ dự án: đặt **giá cho từng khóa trả phí** ở trang admin (khóa giá 0 và không đánh dấu miễn phí sẽ không mua được). Phần "Gói VIP" trong trang cài đặt admin giờ chỉ còn dùng thông tin tài khoản ngân hàng (tên ngân hàng, số tài khoản, chủ tài khoản, Zalo). Câu hỏi thường gặp (FAQ) do admin nhập có thể còn nhắc tới VIP, cần sửa ở trang cài đặt.
+
+## Phòng luyện nói (D7)
+
+- Backend module `speaking` (migration `20261103000000_speaking_rooms`): danh sách/chi tiết/tạo/vào/rời/đóng phòng, ghép cặp, thống kê thời gian nói, đổi trình độ, cấp token âm thanh. Quyền thay RLS cũ: mã phòng riêng tư chỉ chủ phòng thấy (bản Supabase cũ trả cả mã cho mọi người), chỉ chủ phòng đóng phòng, token chỉ cấp cho thành viên đã vào phòng, vào phòng khóa dòng để không vượt sĩ số.
+- Frontend: `src/lib/api/speaking.ts`; `speakingService.ts` giữ chữ ký hàm cũ nhưng gọi backend; danh sách phòng tự làm mới mỗi 5 giây. Xóa `api/speaking-token.ts`.
+- Âm thanh: có `LIVEKIT_API_KEY/SECRET/URL` trên Render → dùng LiveKit (khuyên dùng, ổn định hơn); không có → WebRTC mesh qua STUN công khai, tín hiệu đi qua Supabase Realtime Broadcast (giữ theo T-030). Mesh có thể không nối được khi cả hai bên ở sau NAT chặt (không có TURN).
