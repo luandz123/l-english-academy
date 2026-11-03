@@ -10,7 +10,9 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import {
+  ApiBadRequestResponse,
   ApiBearerAuth,
+  ApiConflictResponse,
   ApiCreatedResponse,
   ApiForbiddenResponse,
   ApiHeader,
@@ -41,18 +43,22 @@ export class PaymentsController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({
-    summary: 'Tạo (hoặc dùng lại) đơn thanh toán VIP',
+    summary: 'Tạo (hoặc dùng lại) đơn mua một khóa học',
     description:
-      'Dùng lại đơn pending của mình trong 30 phút. Giá do server đọc từ cài đặt; ' +
-      'client không gửi số tiền hay mã đơn.',
+      'Dùng lại đơn pending của mình cho cùng khóa trong 30 phút. Giá do server lấy từ ' +
+      'courses.price; client không gửi số tiền hay mã đơn. Khóa miễn phí → 400 ' +
+      'COURSE_NOT_FOR_SALE; đã sở hữu → 409 ALREADY_ENROLLED; không có/ẩn → 404.',
   })
   @ApiCreatedResponse({ type: PaymentOrderDto })
   @ApiUnauthorizedResponse({ description: 'Chưa đăng nhập' })
+  @ApiBadRequestResponse({ description: 'Khóa miễn phí hoặc thiếu course_id' })
+  @ApiConflictResponse({ description: 'Đã sở hữu khóa học' })
+  @ApiNotFoundResponse({ description: 'Không có khóa học' })
   createOrder(
     @Body() dto: CreatePaymentOrderDto,
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<PaymentOrderDto> {
-    return this.payments.createOrder(user.id, dto.plan_type);
+    return this.payments.createOrder(user.id, dto.course_id);
   }
 
   @Get('orders/:orderCode')

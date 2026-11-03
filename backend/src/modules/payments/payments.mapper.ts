@@ -14,14 +14,31 @@ export type PaymentOrderWithProfileRow = PaymentOrder & {
   } | null;
 };
 
+/** Khóa học của đơn lưu trong `metadata` ({ course_id, course_title }). */
+export function orderCourse(order: Pick<PaymentOrder, 'metadata'>): {
+  courseId: number | null;
+  courseTitle: string | null;
+} {
+  const meta = (order.metadata ?? {}) as Record<string, unknown>;
+  const id = Number(meta.course_id);
+  return {
+    courseId: Number.isInteger(id) && id > 0 ? id : null,
+    courseTitle:
+      typeof meta.course_title === 'string' ? meta.course_title : null,
+  };
+}
+
 @Injectable()
 export class PaymentsMapper {
   toOrderDto(order: PaymentOrder): PaymentOrderDto {
+    const { courseId, courseTitle } = orderCourse(order);
     return {
       id: order.id,
       order_code: order.orderCode,
       amount: Number(order.amount),
       plan_type: order.planType,
+      course_id: courseId,
+      course_title: courseTitle,
       status: order.status,
       completed: order.status === 'completed',
       paid_at: order.paidAt ? order.paidAt.toISOString() : null,

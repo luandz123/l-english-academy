@@ -13,7 +13,8 @@ import type {
 
 /**
  * Lỗ hổng cũ → kiểm tra mới (OPEN_QUESTIONS #23, SEC-003/004/005, ADD-003):
- * - Client tự gửi `amount` khi tạo đơn → giá do server đọc từ platform_settings.
+ * - Client tự gửi `amount` khi tạo đơn → giá do server lấy từ courses.price (mua từng khóa,
+ *   UX_REVIEW D6; gói VIP bỏ, đơn VIP cũ vẫn hoàn tất được).
  * - RLS `UPDATE USING (true)` / RPC cấp cho anon → chỉ webhook có API key mới hoàn tất đơn.
  * - Chuyển ≥ 5.000đ là đủ → phải chuyển đủ số tiền của đơn (#23a).
  * - Không có mã đơn → tự khớp đơn pending mới nhất → ghi nhật ký, không kích hoạt (#23b).
@@ -38,8 +39,10 @@ describe('PaymentsModule (e2e)', () => {
       key === null ? req : req.set('Authorization', `Apikey ${key}`)
     ).send(body);
   };
-  const createOrder = (token: string, body: object = {}) =>
-    http().post('/api/v1/payments/orders').set(bearer(token)).send(body);
+  const createOrder = (
+    token: string,
+    body: object = { course_id: courseIds[0] },
+  ) => http().post('/api/v1/payments/orders').set(bearer(token)).send(body);
 
   async function cleanup(): Promise<void> {
     await prisma.adminActivityLog.deleteMany({
@@ -88,13 +91,15 @@ describe('PaymentsModule (e2e)', () => {
         value: JSON.stringify({ vip_combo: { price: PRICE } }),
       },
     });
-    for (const [title, isActive] of [
-      ['[e2e-pay] Khóa 1', true],
-      ['[e2e-pay] Khóa 2', true],
-      ['[e2e-pay] Khóa ẩn', false],
+    // [0] khóa trả phí, [1] khóa trả phí khác, [2] khóa ẩn, [3] khóa miễn phí
+    for (const [title, isActive, price, isFree] of [
+      ['[e2e-pay] Khóa 1', true, PRICE, false],
+      ['[e2e-pay] Khóa 2', true, 500_000, false],
+      ['[e2e-pay] Khóa ẩn', false, PRICE, false],
+      ['[e2e-pay] Khóa free', true, 0, true],
     ] as const) {
       const c = await prisma.course.create({
-        data: { title, courseType: 'video_quiz', isActive },
+        data: { title, courseType: 'video_quiz', isActive, price, isFree },
       });
       courseIds.push(c.id);
     }
@@ -117,17 +122,50 @@ describe('PaymentsModule (e2e)', () => {
       await http().post('/api/v1/payments/orders').send({}).expect(401);
     });
 
-    it('giá lấy từ cài đặt server; client gửi amount/order_code → 400', async () => {
+    it('giá lấy từ courses.price; client gửi amount/order_code hoặc thiếu course_id → 400', async () => {
       const res = await createOrder(tokens.a).expect(201);
       const order = res.body as PaymentOrderDto;
       expect(order).toMatchObject({
         amount: PRICE,
         status: 'pending',
         completed: false,
+        plan_type: 'course',
+        course_id: courseIds[0],
+        course_title: '[e2e-pay] Khóa 1',
       });
       expect(order.order_code).toMatch(/^LEA\d{5}$/);
-      await createOrder(tokens.a, { amount: 1000 }).expect(400);
-      await createOrder(tokens.a, { order_code: 'LEA00001' }).expect(400);
+      await createOrder(tokens.a, {
+        course_id: courseIds[0],
+        amount: 1000,
+      }).expect(400);
+      await createOrder(tokens.a, {
+        course_id: courseIds[0],
+        order_code: 'LEA00001',
+      }).expect(400);
+      await createOrder(tokens.a, {}).expect(400);
+      await createOrder(tokens.a, { plan_type: 'vip_combo' }).expect(400);
+    });
+
+    it('khóa miễn phí → 400, khóa ẩn/không có → 404', async () => {
+      const free = await createOrder(tokens.a, {
+        course_id: courseIds[3],
+      }).expect(400);
+      expect((free.body as { code: string }).code).toBe('COURSE_NOT_FOR_SALE');
+      const hidden = await createOrder(tokens.a, {
+        course_id: courseIds[2],
+      }).expect(404);
+      expect((hidden.body as { code: string }).code).toBe('COURSE_NOT_FOUND');
+      await createOrder(tokens.a, { course_id: 999_999 }).expect(404);
+    });
+
+    it('mỗi khóa một đơn riêng, giá theo khóa', async () => {
+      const other = (
+        await createOrder(tokens.a, { course_id: courseIds[1] }).expect(201)
+      ).body as PaymentOrderDto;
+      expect(other).toMatchObject({ amount: 500_000, course_id: courseIds[1] });
+      const first = (await createOrder(tokens.a).expect(201))
+        .body as PaymentOrderDto;
+      expect(first.order_code).not.toBe(other.order_code);
     });
 
     it('gọi lại trong 30 phút → dùng lại đơn pending cũ', async () => {
@@ -230,7 +268,7 @@ describe('PaymentsModule (e2e)', () => {
       );
     });
 
-    it('đủ tiền → đơn completed, bật PRO, ghi danh mọi khóa đang mở; gọi lại không ghi lần 2', async () => {
+    it('đủ tiền → đơn completed, chỉ ghi danh khóa đã mua (không bật PRO); gọi lại không ghi lần 2', async () => {
       const code = (
         (await createOrder(tokens.a).expect(201)).body as PaymentOrderDto
       ).order_code;
@@ -254,14 +292,11 @@ describe('PaymentsModule (e2e)', () => {
       expect(order.status).toBe('completed');
       expect(order.bankTransactionId).toBe('4');
       const profile = await profileOf(users.a);
-      expect(profile.isPro).toBe(true);
-      expect(profile.proPlan).toBe('vip_combo');
+      expect(profile.isPro).toBe(false);
       const enrolled = await prisma.enrollment.findMany({
         where: { userId: users.a },
       });
-      expect(enrolled.map((e) => e.courseId).sort()).toEqual(
-        courseIds.slice(0, 2).sort(),
-      );
+      expect(enrolled.map((e) => e.courseId)).toEqual([courseIds[0]]);
       expect(enrolled.every((e) => e.expiresAt === null)).toBe(true);
 
       const again = await webhook(body).expect(200);
@@ -280,6 +315,40 @@ describe('PaymentsModule (e2e)', () => {
         .set(bearer(tokens.a))
         .expect(200);
       expect((status.body as PaymentOrderDto).completed).toBe(true);
+
+      // Đã sở hữu → không cho tạo đơn mới cho khóa này
+      const owned = await createOrder(tokens.a).expect(409);
+      expect((owned.body as { code: string }).code).toBe('ALREADY_ENROLLED');
+    });
+
+    it('đơn VIP cũ còn pending vẫn kích hoạt như trước (PRO + mọi khóa đang mở)', async () => {
+      const legacy = await prisma.paymentOrder.create({
+        data: {
+          userId: users.b,
+          orderCode: 'LEA99001',
+          amount: PRICE,
+          planType: 'vip_combo',
+          status: 'pending',
+        },
+      });
+      await webhook({
+        transferType: 'in',
+        content: legacy.orderCode,
+        transferAmount: PRICE,
+        id: 5,
+      }).expect(200);
+      expect((await profileOf(users.b)).isPro).toBe(true);
+      const enrolled = await prisma.enrollment.findMany({
+        where: { userId: users.b },
+      });
+      expect(enrolled.map((e) => e.courseId).sort()).toEqual(
+        [courseIds[0], courseIds[1], courseIds[3]].sort(),
+      );
+      await prisma.enrollment.deleteMany({ where: { userId: users.b } });
+      await prisma.profile.update({
+        where: { userId: users.b },
+        data: { isPro: false },
+      });
     });
   });
 
@@ -293,10 +362,12 @@ describe('PaymentsModule (e2e)', () => {
         .post(`/api/v1/payments/orders/${code}/simulate`)
         .set(bearer(tokens.a))
         .expect(404);
-      expect((await profileOf(users.b)).isPro).toBe(false);
+      expect(
+        await prisma.enrollment.count({ where: { userId: users.b } }),
+      ).toBe(0);
     });
 
-    it('chủ đơn giả lập → completed + PRO', async () => {
+    it('chủ đơn giả lập → completed + ghi danh khóa đã mua', async () => {
       const code = (
         (await createOrder(tokens.b).expect(201)).body as PaymentOrderDto
       ).order_code;
@@ -305,7 +376,10 @@ describe('PaymentsModule (e2e)', () => {
         .set(bearer(tokens.b))
         .expect(200);
       expect((res.body as PaymentOrderDto).completed).toBe(true);
-      expect((await profileOf(users.b)).isPro).toBe(true);
+      const enrolled = await prisma.enrollment.findMany({
+        where: { userId: users.b },
+      });
+      expect(enrolled.map((e) => e.courseId)).toEqual([courseIds[0]]);
     });
   });
 });
