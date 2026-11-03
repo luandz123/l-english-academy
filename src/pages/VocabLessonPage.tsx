@@ -238,10 +238,8 @@ export default function VocabLessonPage() {
         <EmptyState
           title="Bài học này chưa có từ vựng"
           description="Nội dung từ vựng cho bài học này đang được biên soạn. Bạn vui lòng quay lại sau nhé!"
-          action={{
-            label: "Quay lại danh sách từ vựng",
-            onClick: () => navigate(`/courses/${courseId}/vocab`),
-          }}
+          actionLabel={"Quay lại danh sách từ vựng"}
+          onAction={() => navigate(`/courses/${courseId}/vocab`)}
         />
       </div>
     </StudentLayout>

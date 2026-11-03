@@ -32,7 +32,6 @@ import {
   ChevronRight,
   Gift,
   Crown,
-  Compass,
   AlertTriangle,
   RotateCcw,
   BarChart3,
@@ -324,6 +323,10 @@ export const DashboardPage: React.FC = () => {
     return Math.max(1, studyTimeLeaderboard.length + 1);
   }, [studyTimeLeaderboard, user, totalStudySeconds]);
 
+  // Chưa có thời gian học nào thì chưa xếp hạng (tránh hiện "#01" cho tài khoản mới)
+  const isRanked = !!user && (totalStudySeconds > 0 || studyTimeLeaderboard.some(([uid]) => uid === user.id));
+  const rankLabel = isRanked ? `#${userRank < 10 ? `0${userRank}` : userRank}` : "Chưa xếp hạng";
+
   // Calendar Days calculation for Weekly Streak (Mon to Sun)
   const now = new Date();
   const currentMonth = now.getMonth() + 1;
@@ -478,7 +481,7 @@ export const DashboardPage: React.FC = () => {
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchTerm.trim()) return;
-    navigate(`/fulltests?search=${encodeURIComponent(searchTerm.trim())}`);
+    navigate(`/library?search=${encodeURIComponent(searchTerm.trim())}`);
   };
 
   return (
@@ -495,7 +498,7 @@ export const DashboardPage: React.FC = () => {
             <div className="space-y-2">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-bold tracking-wide uppercase">
                 <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-                Phòng Điều Khiển Trung Tâm • L-English Cockpit
+                Bàn học của bạn
               </div>
               <h1 className="text-2xl sm:text-3xl lg:text-4xl font-display font-extrabold text-white tracking-tight flex items-center gap-3">
                 <span>Xin chào, {displayName}!</span>
@@ -506,8 +509,14 @@ export const DashboardPage: React.FC = () => {
                 />
               </h1>
               <p className="text-sm sm:text-base text-slate-300 font-medium max-w-2xl leading-relaxed">
-                Chào mừng bạn trở lại bàn học. Hôm nay hãy hoàn thành nhiệm vụ để duy trì chuỗi{" "}
-                <span className="text-amber-400 font-bold">{streak || 1} ngày Streak</span> nhé!
+                {streak > 0 ? (
+                  <>
+                    Chào mừng bạn trở lại bàn học. Hôm nay hãy hoàn thành nhiệm vụ để duy trì chuỗi{" "}
+                    <span className="text-amber-400 font-bold">{streak} ngày học liên tiếp</span> nhé!
+                  </>
+                ) : (
+                  <>Chào mừng bạn đến bàn học. Học một bài hôm nay để bắt đầu chuỗi ngày học liên tiếp nhé!</>
+                )}
               </p>
             </div>
 
@@ -517,7 +526,7 @@ export const DashboardPage: React.FC = () => {
                 <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="Tìm bài học, đề thi ETS..."
+                  placeholder="Tìm khóa học, bộ đề ETS..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full h-11 pl-10 pr-3 rounded-2xl bg-[#030712]/90 border border-slate-700/80 text-xs sm:text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/20 transition-all font-medium"
@@ -551,7 +560,7 @@ export const DashboardPage: React.FC = () => {
             {/* Pill 1: Streak ngọn lửa với subtle pulse */}
             <div className="flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-orange-500/10 border border-orange-500/30 text-orange-400 font-bold text-xs sm:text-sm shrink-0 shadow-sm">
               <Flame className="w-4 h-4 text-orange-400 fill-current animate-pulse" />
-              <span>{streak || 1} ngày streak</span>
+              <span>{streak} ngày liên tiếp</span>
             </div>
 
             {/* Pill 2: XP Tích lũy */}
@@ -579,7 +588,7 @@ export const DashboardPage: React.FC = () => {
               className="flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/30 text-yellow-300 font-bold text-xs sm:text-sm shrink-0 transition-all cursor-pointer shadow-sm group/rank"
             >
               <Trophy className="w-4 h-4 text-yellow-400" />
-              <span>Hạng #{userRank < 10 ? `0${userRank}` : userRank}</span>
+              <span>{isRanked ? `Hạng ${rankLabel}` : rankLabel}</span>
               <ChevronRight className="w-3.5 h-3.5 text-yellow-400/70 group-hover/rank:translate-x-0.5 transition-transform" />
             </button>
 
@@ -606,68 +615,7 @@ export const DashboardPage: React.FC = () => {
                 <Skeleton className="h-4 w-3/4 bg-slate-800/60" />
                 <Skeleton className="h-12 w-full bg-blue-900/40 rounded-xl" />
               </div>
-            ) : isFirstTimeUser ? (
-              /* ================= TRƯỜNG HỢP 1: TÂN HỌC VIÊN (EMPTY STATE / ACTIVATION LAUNCHPAD) ================= */
-              <div className="p-6 sm:p-7 rounded-2xl bg-gradient-to-br from-[#070e1c] via-[#09152e] to-[#041126] border-2 border-cyan-500/40 shadow-[0_12px_40px_rgba(0,0,0,0.6),0_0_30px_rgba(6,182,212,0.15)] relative overflow-hidden group">
-                <div className="absolute inset-x-8 -top-px h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent" />
-                <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/15 rounded-full blur-3xl pointer-events-none group-hover:bg-cyan-500/25 transition-all" />
-
-                <div className="space-y-4 relative z-10">
-                  <div className="flex items-center justify-between gap-3 flex-wrap">
-                    <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 text-xs sm:text-sm font-bold">
-                      <Compass className="w-4 h-4 text-cyan-300 animate-spin" style={{ animationDuration: "12s" }} />
-                      Bệ Phóng Nhập Môn • Activation Launchpad
-                    </span>
-                    <span className="text-xs sm:text-sm text-amber-300 font-extrabold bg-amber-500/15 px-3 py-1 rounded-xl border border-amber-500/40">
-                      ⚡ Miễn phí 100%
-                    </span>
-                  </div>
-
-                  <div>
-                    <h2 className="text-xl sm:text-2xl font-display font-black text-white tracking-tight leading-snug">
-                      Góc học tập của bạn đã sẵn sàng! 🚀
-                    </h2>
-                    <p className="text-sm sm:text-base text-slate-200 leading-relaxed mt-2 font-normal">
-                      Hãy làm bài <strong>Test chẩn đoán trình độ 15 phút</strong> để hệ thống xác định chính xác điểm mạnh/yếu theo từng Part và gợi ý lộ trình TOEIC chuẩn nhất cho bạn.
-                    </p>
-                  </div>
-
-                  {/* 3 Value Pillars */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
-                    <div className="p-3 rounded-xl bg-[#030712]/80 border border-slate-800 text-xs sm:text-sm text-slate-200 font-medium flex items-center gap-2.5">
-                      <Clock className="w-4 h-4 text-cyan-400 shrink-0" />
-                      <span>15 phút tinh gọn</span>
-                    </div>
-                    <div className="p-3 rounded-xl bg-[#030712]/80 border border-slate-800 text-xs sm:text-sm text-slate-200 font-medium flex items-center gap-2.5">
-                      <Target className="w-4 h-4 text-amber-400 shrink-0" />
-                      <span>Đo lường band điểm</span>
-                    </div>
-                    <div className="p-3 rounded-xl bg-[#030712]/80 border border-slate-800 text-xs sm:text-sm text-slate-200 font-medium flex items-center gap-2.5">
-                      <Sparkles className="w-4 h-4 text-emerald-400 shrink-0" />
-                      <span>Lộ trình cá nhân hóa</span>
-                    </div>
-                  </div>
-
-                  {/* PRIMARY HERO CTA BUTTON (#2563EB) */}
-                  <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                    <Link
-                      to={allFullTests[0] ? `/fulltests/${allFullTests[0].id}` : "/fulltests"}
-                      className="flex-1 py-3.5 px-6 rounded-xl bg-[#2563EB] hover:bg-[#1d4ed8] text-white font-extrabold text-sm sm:text-base flex items-center justify-center gap-2 shadow-[0_4px_20px_rgba(37,99,235,0.4)] hover:shadow-[0_6px_25px_rgba(37,99,235,0.6)] active:scale-[0.98] transition-all cursor-pointer text-center"
-                    >
-                      <Play className="w-4 h-4 fill-current" />
-                      <span>Làm Bài Kiểm Tra Đầu Vào (15 Phút)</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </Link>
-                    <Link
-                      to="/fulltests"
-                      className="py-3.5 px-5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-slate-200 text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition-all text-center"
-                    >
-                      <span>Xem kho đề</span>
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            ) : activeDraft ? (
+            ) : isFirstTimeUser ? null /* Bài kiểm tra đầu vào đã bỏ theo quyết định chủ dự án (docs/UX_REVIEW.md C2) */ : activeDraft ? (
               /* ================= TRƯỜNG HỢP 2: CÓ ĐỀ ĐANG LÀM DỞ (HIỆU ỨNG ZEIGARNIK ĐỈNH CAO) ================= */
               <div className="p-6 sm:p-7 rounded-2xl bg-gradient-to-br from-[#070e1c] via-[#09152e] to-[#041126] border-2 border-cyan-500/40 shadow-[0_12px_40px_rgba(0,0,0,0.6),0_0_30px_rgba(6,182,212,0.15)] relative overflow-hidden group">
                 <div className="absolute inset-x-8 -top-px h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent" />
@@ -973,7 +921,7 @@ export const DashboardPage: React.FC = () => {
                       key={quest.id}
                       className="p-4 sm:p-4.5 rounded-2xl bg-[#030712]/90 border border-slate-800/90 hover:border-cyan-500/40 flex items-center justify-between gap-3 text-xs sm:text-sm transition-all group/item"
                     >
-                      <div className="flex items-center gap-3 min-w-0">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
                         {/* Checkbox with tactile juice feedback */}
                         <div
                           className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 ${
@@ -989,14 +937,14 @@ export const DashboardPage: React.FC = () => {
                           )}
                         </div>
 
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="font-bold text-white truncate text-sm sm:text-base">{quest.title}</p>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                            <p className="font-bold text-white leading-snug text-sm sm:text-base">{quest.title}</p>
                             <span className="text-xs sm:text-sm font-black text-amber-400 shrink-0">
                               +{quest.xpReward} XP
                             </span>
                           </div>
-                          <p className="text-xs sm:text-sm text-slate-300 truncate mt-1 font-medium">
+                          <p className="text-xs sm:text-sm text-slate-300 line-clamp-2 mt-1 font-medium">
                             {quest.description}
                           </p>
                         </div>
@@ -1078,15 +1026,23 @@ export const DashboardPage: React.FC = () => {
                 <div className="p-3.5 rounded-xl bg-gradient-to-r from-orange-500/15 via-amber-500/10 to-transparent border border-orange-500/30 text-xs sm:text-sm text-orange-200 flex items-center gap-2.5">
                   <AlertTriangle className="w-4 h-4 text-orange-400 shrink-0 animate-pulse" />
                   <p className="leading-snug">
-                    <strong>Học ngay hôm nay</strong> để không bị gãy chuỗi{" "}
-                    <span className="text-amber-300 font-bold">{streak || 1} ngày Streak</span>!
+                    {streak > 0 ? (
+                      <>
+                        <strong>Học ngay hôm nay</strong> để không bị gãy chuỗi{" "}
+                        <span className="text-amber-300 font-bold">{streak} ngày học liên tiếp</span>!
+                      </>
+                    ) : (
+                      <>
+                        <strong>Học ngay hôm nay</strong> để bắt đầu chuỗi ngày học liên tiếp!
+                      </>
+                    )}
                   </p>
                 </div>
               ) : (
                 <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs sm:text-sm text-emerald-300 flex items-center gap-2.5">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                   <p className="leading-snug">
-                    Tuyệt vời! Bạn đã bảo vệ thành công chuỗi <strong>{streak || 1} ngày Streak</strong> hôm nay.
+                    Tuyệt vời! Bạn đã giữ chuỗi <strong>{Math.max(streak, 1)} ngày học liên tiếp</strong> hôm nay.
                   </p>
                 </div>
               )}
@@ -1106,7 +1062,7 @@ export const DashboardPage: React.FC = () => {
                   <Trophy className="w-4 h-4 text-yellow-400 group-hover:scale-110 transition-transform" />
                 </div>
                 <div className="text-2xl font-black text-white">
-                  #{userRank < 10 ? `0${userRank}` : userRank}
+                  {isRanked ? rankLabel : "—"}
                 </div>
                 <p className="text-xs sm:text-sm text-yellow-300 font-bold">Bấm xem xếp hạng →</p>
               </div>

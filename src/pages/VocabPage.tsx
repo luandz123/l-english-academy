@@ -1,5 +1,5 @@
 import StudentLayout from "@/components/StudentLayout";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -399,8 +399,20 @@ const VocabPage = () => {
             <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-3">
               <Undo2 className="w-6 h-6" />
             </div>
-            <h3 className="text-base font-bold text-foreground mb-1">Chưa chọn chủ đề</h3>
-            <p className="text-xs text-muted-foreground max-w-sm">Chọn một chủ đề từ vựng ở cột bên trái để bắt đầu luyện Flashcard và làm bài tập trắc nghiệm.</p>
+            {categories && categories.length > 0 ? (
+              <>
+                <h3 className="text-base font-bold text-foreground mb-1">Chưa chọn chủ đề</h3>
+                <p className="text-xs text-muted-foreground max-w-sm">Chọn một chủ đề từ vựng trong danh sách để bắt đầu luyện Flashcard và làm bài tập trắc nghiệm.</p>
+              </>
+            ) : (
+              <>
+                <h3 className="text-base font-bold text-foreground mb-1">Khóa này chưa có chủ đề từ vựng</h3>
+                <p className="text-xs text-muted-foreground max-w-sm mb-4">Nội dung đang được cập nhật. Bạn có thể luyện từ vựng qua trò chơi trong lúc chờ.</p>
+                <Link to="/games" className="inline-flex items-center h-10 px-4 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:opacity-90">
+                  Chơi game từ vựng
+                </Link>
+              </>
+            )}
           </div>
         )}
       </div>

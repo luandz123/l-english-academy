@@ -1,3 +1,5 @@
+> **Lưu ý (2026-11-03):** giai đoạn refactor đã xong. Luật hiện hành nằm ở `AGENTS.md` (giai đoạn UI/UX). File này giữ làm lịch sử.
+
 # Bối cảnh
 Refactor L-English từ React + Supabase gọi trực tiếp sang React + NestJS + PostgreSQL (modular monolith). Trước mỗi task đọc: docs/HLD.md, docs/PARITY.md, docs/PROGRESS.md, docs/OPEN_QUESTIONS.md và phần liên quan trong docs/CURRENT_STATE.md.
 Code cũ (src/, supabase/, api/) là nguồn sự thật về hành vi. Không xóa cho tới khi PROGRESS.md ghi đã parity toàn bộ.

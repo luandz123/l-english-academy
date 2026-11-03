@@ -18,6 +18,33 @@ describe('validateEnv', () => {
     });
   });
 
+  it('biến để trống được coi như chưa đặt (không làm sập app)', () => {
+    const env = validateEnv({
+      ...BASE,
+      GOOGLE_CLIENT_ID: '',
+      GOOGLE_CLIENT_SECRET: '',
+      SEPAY_WEBHOOK_API_KEY: '',
+      SUPABASE_URL: '',
+      CORS_ORIGINS: '',
+    });
+    expect(env.GOOGLE_CLIENT_ID).toBeUndefined();
+    expect(env.SEPAY_WEBHOOK_API_KEY).toBeUndefined();
+    expect(env.SUPABASE_URL).toBeUndefined();
+    expect(env.CORS_ORIGINS).toBe('http://localhost:8082');
+  });
+
+  it('xóa biến rỗng khỏi process.env để ConfigService không đọc chuỗi rỗng', () => {
+    process.env.LIVEKIT_URL = '';
+    validateEnv({ ...BASE, LIVEKIT_URL: '' });
+    expect('LIVEKIT_URL' in process.env).toBe(false);
+  });
+
+  it('biến bắt buộc để trống vẫn bị từ chối', () => {
+    expect(() => validateEnv({ ...BASE, DATABASE_URL: '' })).toThrow(
+      /DATABASE_URL/,
+    );
+  });
+
   it('từ chối khởi động khi thiếu DATABASE_URL', () => {
     expect(() => validateEnv({ JWT_ACCESS_SECRET: 'x'.repeat(32) })).toThrow(
       /DATABASE_URL/,

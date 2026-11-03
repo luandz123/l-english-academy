@@ -106,7 +106,7 @@ const ForgotPassword = () => {
         <div className="pt-4 text-center border-t border-slate-800/80 mt-6">
           <p className="text-xs text-slate-400">
             Nhớ mật khẩu rồi?{" "}
-            <Link to="/login" className="text-cyan-400 font-bold hover:text-cyan-300 hover:underline">
+            <Link to="/login" className="text-cyan-400 font-bold hover:text-cyan-300 hover:underline inline-flex items-center min-h-[40px] px-1 -mx-1">
               Đăng nhập ngay
             </Link>
           </p>

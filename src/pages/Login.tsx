@@ -46,11 +46,11 @@ export const Login = () => {
   const getDestination = (targetUrl: string | null, userIsAdmin: boolean) => {
     if (targetUrl) {
       if (targetUrl.startsWith("/admin")) {
-        return userIsAdmin ? targetUrl : "/profile";
+        return userIsAdmin ? targetUrl : "/dashboard";
       }
       return targetUrl;
     }
-    return userIsAdmin ? "/admin/dashboard" : "/profile";
+    return userIsAdmin ? "/admin/dashboard" : "/dashboard";
   };
 
   // Redirect if already logged in
@@ -188,7 +188,7 @@ export const Login = () => {
               </Label>
               <Link
                 to="/forgot-password"
-                className="text-xs text-cyan-400 hover:text-cyan-300 font-medium transition-colors"
+                className="text-xs text-cyan-400 hover:text-cyan-300 font-medium transition-colors inline-flex items-center min-h-[40px] px-1 -mx-1"
               >
                 Quên mật khẩu?
               </Link>
@@ -293,7 +293,7 @@ export const Login = () => {
             Chưa có tài khoản?{" "}
             <Link
               to="/register"
-              className="text-cyan-400 font-bold hover:text-cyan-300 hover:underline"
+              className="text-cyan-400 font-bold hover:text-cyan-300 hover:underline inline-flex items-center min-h-[40px] px-1 -mx-1"
             >
               Đăng ký ngay
             </Link>

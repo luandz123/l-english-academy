@@ -53,6 +53,7 @@ import { gameSound } from './gameSound';
 import { supabase } from '@/integrations/supabase/client';
 import { getVocabPool } from '@/lib/api/vocab';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 
 interface WordShooterLobbyProps {
@@ -71,6 +72,9 @@ const CUSTOM_VOCAB_STORAGE_KEY = 'word_shooter_custom_packs';
 
 export const WordShooterLobby: React.FC<WordShooterLobbyProps> = ({ onStartGame, initialRoomId }) => {
   const { toast } = useToast();
+  const { user, profile } = useAuth();
+  // Tên hiển thị gửi cho đối thủ trong phòng PvP
+  const myPlayerName = profile?.full_name || user?.email?.split('@')[0] || 'Người chơi';
   const [adminPacks, setAdminPacks] = useState<VocabTopic[]>(() => getCachedVocabPacks());
   const [selectedTopicId, setSelectedTopicId] = useState<string>(() => (getCachedVocabPacks()[0]?.id || 'toeic_600_master'));
   const [difficulty, setDifficulty] = useState<GameDifficulty>('medium');
@@ -119,6 +123,10 @@ export const WordShooterLobby: React.FC<WordShooterLobbyProps> = ({ onStartGame,
   const [isGuestWaiting, setIsGuestWaiting] = useState(false);
   const [startCountdown, setStartCountdown] = useState<number | null>(null);
   const pvpLobbyChannelRef = React.useRef<any>(null);
+  // Khách vào phòng: đã nhận xác nhận từ chủ phòng chưa (gửi lại tín hiệu tới khi có)
+  const [isGuestConnected, setIsGuestConnected] = useState(false);
+  const guestRetryRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
+  const isOpponentJoinedRef = React.useRef(false);
   const lobbyBcRef = React.useRef<BroadcastChannel | null>(null);
 
   // Ranked Fair Matchmaking Modal State
@@ -371,7 +379,7 @@ export const WordShooterLobby: React.FC<WordShooterLobbyProps> = ({ onStartGame,
       const opponent = generateFairRankedOpponent(playerRank);
       setMatchedRankOpponent(opponent);
       setMatchState('found');
-      gameSound.playLevelUpSound();
+      gameSound.playReadySound();
 
       let count = 3;
       setMatchCountdown(3);
@@ -423,6 +431,10 @@ export const WordShooterLobby: React.FC<WordShooterLobbyProps> = ({ onStartGame,
   };
 
   const cleanupLobbyChannel = () => {
+    if (guestRetryRef.current) {
+      clearInterval(guestRetryRef.current);
+      guestRetryRef.current = null;
+    }
     if (pvpLobbyChannelRef.current) {
       supabase.removeChannel(pvpLobbyChannelRef.current);
       pvpLobbyChannelRef.current = null;
@@ -442,6 +454,7 @@ export const WordShooterLobby: React.FC<WordShooterLobbyProps> = ({ onStartGame,
     const code = prefix + Math.random().toString(36).substring(2, 7).toUpperCase();
     setRoomCode(code);
     setIsHost(true);
+    isOpponentJoinedRef.current = false;
     setIsOpponentJoined(false);
     setOpponentName('');
     setIsGuestWaiting(false);
@@ -455,21 +468,25 @@ export const WordShooterLobby: React.FC<WordShooterLobbyProps> = ({ onStartGame,
     pvpLobbyChannelRef.current = channel;
 
     const onGuestJoined = (senderName?: string) => {
-      setIsOpponentJoined(true);
-      setOpponentName(senderName || 'Người chơi 2');
-      gameSound.playReadySound();
-      toast({
-        title: 'Đối thủ đã vào phòng! 🎯',
-        description: `${senderName || 'Người chơi 2'} đã kết nối. Bạn có thể bấm bắt đầu trận đấu!`,
-      });
+      // Khách có thể gửi lại tín hiệu nhiều lần: chỉ thông báo lần đầu, lần nào cũng xác nhận lại
+      if (!isOpponentJoinedRef.current) {
+        isOpponentJoinedRef.current = true;
+        setIsOpponentJoined(true);
+        setOpponentName(senderName || 'Người chơi 2');
+        gameSound.playReadySound();
+        toast({
+          title: 'Đối thủ đã vào phòng! 🎯',
+          description: `${senderName || 'Người chơi 2'} đã kết nối. Bạn có thể bấm bắt đầu trận đấu!`,
+        });
+      }
       channel.send({
         type: 'broadcast',
         event: 'player_ready',
-        payload: { senderName: 'Chủ phòng' },
+        payload: { senderName: myPlayerName },
       });
       if (lobbyBcRef.current) {
         try {
-          lobbyBcRef.current.postMessage({ event: 'player_ready', payload: { senderName: 'Chủ phòng' } });
+          lobbyBcRef.current.postMessage({ event: 'player_ready', payload: { senderName: myPlayerName } });
         } catch {}
       }
     };
@@ -479,6 +496,7 @@ export const WordShooterLobby: React.FC<WordShooterLobbyProps> = ({ onStartGame,
         onGuestJoined(payload?.senderName);
       })
       .on('broadcast', { event: 'player_left' }, () => {
+        isOpponentJoinedRef.current = false;
         setIsOpponentJoined(false);
         setOpponentName('');
         toast({ title: 'Đối thủ đã rời phòng' });
@@ -511,6 +529,7 @@ export const WordShooterLobby: React.FC<WordShooterLobbyProps> = ({ onStartGame,
     setRoomCode(code);
     setIsHost(false);
     setIsGuestWaiting(true);
+    setIsGuestConnected(false);
     setStartCountdown(null);
     gameSound.playLaserSound();
 
@@ -546,17 +565,49 @@ export const WordShooterLobby: React.FC<WordShooterLobbyProps> = ({ onStartGame,
     });
     pvpLobbyChannelRef.current = channel;
 
+    let connected = false;
+    const onHostReady = (hostName?: string) => {
+      if (connected) return;
+      connected = true;
+      setIsGuestConnected(true);
+      setOpponentName(hostName || 'Chủ phòng');
+      if (guestRetryRef.current) {
+        clearInterval(guestRetryRef.current);
+        guestRetryRef.current = null;
+      }
+    };
+    const announceJoin = () =>
+      channel.send({
+        type: 'broadcast',
+        event: 'player_joined',
+        payload: { senderName: myPlayerName },
+      });
+
     channel
       .on('broadcast', { event: 'game_start' }, ({ payload }) => {
+        onHostReady();
         startCountdownForGuest(payload);
+      })
+      .on('broadcast', { event: 'player_ready' }, ({ payload }) => {
+        onHostReady(payload?.senderName);
       })
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
-          channel.send({
-            type: 'broadcast',
-            event: 'player_joined',
-            payload: { senderName: 'Người chơi 2' },
-          });
+          announceJoin();
+          // Gửi lại mỗi 3 giây tới khi chủ phòng xác nhận (chủ phòng có thể vừa mở lại trang)
+          let attempts = 0;
+          if (guestRetryRef.current) clearInterval(guestRetryRef.current);
+          guestRetryRef.current = setInterval(() => {
+            if (connected) return;
+            attempts += 1;
+            if (attempts === 5) {
+              toast({
+                title: `Chưa kết nối được phòng ${code}`,
+                description: 'Kiểm tra lại mã phòng hoặc nhờ chủ phòng giữ nguyên cửa sổ phòng chờ. Hệ thống vẫn đang thử lại.',
+              });
+            }
+            announceJoin();
+          }, 3000);
         }
       });
 
@@ -566,14 +617,18 @@ export const WordShooterLobby: React.FC<WordShooterLobbyProps> = ({ onStartGame,
         const bc = new BroadcastChannel(`ws-lobby-${code}`);
         lobbyBcRef.current = bc;
         bc.onmessage = (e) => {
+          if (e.data?.event === 'player_ready') {
+            onHostReady(e.data?.payload?.senderName);
+          }
           if (e.data?.event === 'game_start') {
+            onHostReady();
             startCountdownForGuest(e.data?.payload);
           }
         };
         // Notify host tab immediately
         bc.postMessage({
           event: 'player_joined',
-          payload: { senderName: 'Người chơi 2' },
+          payload: { senderName: myPlayerName },
         });
       } catch {}
     }
@@ -648,6 +703,8 @@ export const WordShooterLobby: React.FC<WordShooterLobbyProps> = ({ onStartGame,
     cleanupLobbyChannel();
     setIsPvPModalOpen(false);
     setIsGuestWaiting(false);
+    setIsGuestConnected(false);
+    isOpponentJoinedRef.current = false;
     setIsOpponentJoined(false);
     setStartCountdown(null);
   };
@@ -1379,18 +1436,29 @@ export const WordShooterLobby: React.FC<WordShooterLobbyProps> = ({ onStartGame,
             /* 3. Guest Waiting for Host to Start */
             <div className="space-y-4 py-4 text-center">
               <div className="p-6 rounded-2xl bg-slate-950 border border-cyan-500/40 space-y-3">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                  ĐÃ VÀO PHÒNG: {roomCode}
-                </div>
+                {isGuestConnected ? (
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                    ĐÃ VÀO PHÒNG: {roomCode}
+                  </div>
+                ) : (
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-bold">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    ĐANG KẾT NỐI PHÒNG: {roomCode}
+                  </div>
+                )}
                 <div className="py-2 flex justify-center">
                   <div className="w-16 h-16 rounded-full bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
                     <Radio className="w-8 h-8 animate-pulse text-cyan-400" />
                   </div>
                 </div>
-                <h4 className="text-base font-black text-white">Đang Chờ Chủ Phòng Khai Hỏa...</h4>
+                <h4 className="text-base font-black text-white">
+                  {isGuestConnected ? `Đang chờ ${opponentName || 'chủ phòng'} bắt đầu...` : 'Đang tìm chủ phòng...'}
+                </h4>
                 <p className="text-xs text-slate-400 max-w-xs mx-auto">
-                  Chủ phòng đang thiết lập trận đấu. Hai bên sẽ tự động xuất kích cùng lúc ngay khi chủ phòng bấm Bắt Đầu!
+                  {isGuestConnected
+                    ? 'Hai bên sẽ tự động xuất kích cùng lúc ngay khi chủ phòng bấm Bắt Đầu!'
+                    : 'Đang gửi tín hiệu tới phòng. Nếu chờ lâu, hãy kiểm tra lại mã phòng với chủ phòng.'}
                 </p>
               </div>
 

@@ -46,17 +46,17 @@ const AuthCallback = () => {
         const getDestination = (targetUrl: string | null, userIsAdmin: boolean) => {
           if (targetUrl) {
             if (targetUrl.startsWith("/admin")) {
-              return userIsAdmin ? targetUrl : "/profile";
+              return userIsAdmin ? targetUrl : "/dashboard";
             }
             return targetUrl;
           }
-          return userIsAdmin ? "/admin/dashboard" : "/profile";
+          return userIsAdmin ? "/admin/dashboard" : "/dashboard";
         };
 
         navigate(getDestination(customRedirect, isAdmin), { replace: true });
       } catch (err) {
         console.error("Error checking role:", err);
-        navigate(customRedirect && !customRedirect.startsWith("/admin") ? customRedirect : "/profile", { replace: true });
+        navigate(customRedirect && !customRedirect.startsWith("/admin") ? customRedirect : "/dashboard", { replace: true });
       }
     };
 

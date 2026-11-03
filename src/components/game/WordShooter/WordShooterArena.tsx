@@ -41,7 +41,7 @@ import {
 import { DIFFICULTY_CONFIG } from './defaultVocabPacks';
 import { gameSound } from './gameSound';
 import { supabase } from '@/integrations/supabase/client';
-import { processRankMatchResult, MatchedRankedOpponent } from '@/services/wordShooterRankService';
+import { processRankMatchResult, getPlayerRank, MatchedRankedOpponent } from '@/services/wordShooterRankService';
 import { cn } from '@/lib/utils';
 
 interface WordShooterArenaProps {
@@ -166,6 +166,8 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
   useEffect(() => { muzzleFlashRef.current = muzzleFlash; }, [muzzleFlash]);
 
   const isGameOverRef = useRef<boolean>(false);
+  // Thời điểm nhận tin cuối từ đối thủ (PvP online) — dùng để phát hiện đối thủ rời trận
+  const lastOpponentMessageAtRef = useRef<number>(Date.now());
   const localBcRef = useRef<BroadcastChannel | null>(null);
   const [screenShake, setScreenShake] = useState<boolean>(false);
   const [waveNotice, setWaveNotice] = useState<string | null>(null);
@@ -649,9 +651,11 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
   }, [isOnlinePvP]);
 
   // Centralized Game Over / Victory Trigger with Liên Quân Rank Star calculation
-  const triggerGameOver = useCallback((isVictory: boolean) => {
+  const triggerGameOver = useCallback((isVictory: boolean, opponentLeft = false) => {
     if (isGameOverRef.current) return;
     isGameOverRef.current = true;
+    // Bị hạ hết mạng ở máy này: luôn báo cho đối thủ, kể cả khi kết quả theo số kill là thắng
+    const eliminatedLocally = !isVictory && !opponentLeft;
 
     const elapsed = (Date.now() - statsRef.current.startTime) / 1000;
     const finalStats: GameStats = {
@@ -672,7 +676,8 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
 
     let pvpResult: any = undefined;
     if (isPvP) {
-      const isWinner = playerKillsRef.current > opponentKillsRef.current || 
+      // Đối thủ rời trận/mất kết nối thì người còn lại thắng
+      const isWinner = opponentLeft || playerKillsRef.current > opponentKillsRef.current || 
         (playerKillsRef.current === opponentKillsRef.current && statsRef.current.hitCount >= statsRef.current.missedCount);
       isVictory = isWinner;
 
@@ -705,19 +710,19 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
       gameSound.playVictorySound();
     } else {
       gameSound.playGameOverSound();
-      // If current player lost in PvP Online, broadcast defeat so opponent WINS!
-      if (isOnlinePvP) {
-        const sendGameOver = () => {
-          sendPvPMessage('game_over', { isEliminated: true, lives: 0 });
-          sendPvPMessage('state_sync', {
-            lives: 0,
-            isEliminated: true,
-            score: scoreRef.current,
-          });
-        };
-        sendGameOver();
-        setTimeout(sendGameOver, 60);
-      }
+    }
+    // Máy này bị hạ trong PvP online: gửi tín hiệu kết thúc để trận bên đối thủ cũng dừng
+    if (isOnlinePvP && eliminatedLocally) {
+      const sendGameOver = () => {
+        sendPvPMessage('game_over', { isEliminated: true, lives: 0 });
+        sendPvPMessage('state_sync', {
+          lives: 0,
+          isEliminated: true,
+          score: scoreRef.current,
+        });
+      };
+      sendGameOver();
+      setTimeout(sendGameOver, 60);
     }
 
     onGameOver(finalStats, isVictory, pvpResult);
@@ -728,7 +733,9 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
 
   // Unified PvP Message Handler (used by both Supabase Realtime & BroadcastChannel)
   const handlePvPEvent = useCallback((event: string, payload: any) => {
-    if (!payload) return;
+    // Mọi tin nhắn từ đối thủ (kể cả heartbeat) đều chứng tỏ đối thủ còn kết nối
+    lastOpponentMessageAtRef.current = Date.now();
+    if (!payload || event === 'heartbeat') return;
 
     if (event === 'state_sync') {
       // If opponent was eliminated or has 0 lives, CURRENT PLAYER WINS!
@@ -789,6 +796,9 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
       })
       .on('broadcast', { event: 'game_over' }, ({ payload }: { payload: PvPBroadcastMessage }) => {
         handlePvPEvent('game_over', payload);
+      })
+      .on('broadcast', { event: 'heartbeat' }, () => {
+        handlePvPEvent('heartbeat', null);
       })
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
@@ -878,6 +888,22 @@ export const WordShooterArena: React.FC<WordShooterArenaProps> = ({
     const syncTimer = setInterval(broadcastMyState, 200);
     return () => clearInterval(syncTimer);
   }, [isOnlinePvP, roomId, isPaused, sendPvPMessage]);
+
+  // PvP online: gửi heartbeat đều (kể cả khi tạm dừng) và kết thúc trận nếu đối thủ im lặng quá lâu
+  useEffect(() => {
+    if (!isOnlinePvP) return;
+    const OPPONENT_TIMEOUT_MS = 15000;
+    lastOpponentMessageAtRef.current = Date.now();
+    const timer = setInterval(() => {
+      if (isGameOverRef.current) return;
+      sendPvPMessage('heartbeat', { at: Date.now() });
+      if (Date.now() - lastOpponentMessageAtRef.current > OPPONENT_TIMEOUT_MS) {
+        setWaveNotice('📡 ĐỐI THỦ ĐÃ RỜI TRẬN HOẶC MẤT KẾT NỐI — BẠN THẮNG!');
+        triggerGameOverRef.current(true, true);
+      }
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [isOnlinePvP, roomId, sendPvPMessage]);
 
   // Shared Battlefield PvP Bot AI — Human-like, fair & fun opponent!
   useEffect(() => {

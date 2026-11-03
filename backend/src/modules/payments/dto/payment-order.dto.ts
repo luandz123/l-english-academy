@@ -1,17 +1,20 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsIn, IsOptional } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsInt, Min } from 'class-validator';
 
-export const PLAN_TYPES = ['vip_combo'] as const;
+/** Loại đơn: mua một khóa học. Đơn `vip_combo` cũ vẫn được hoàn tất nhưng không tạo mới được. */
+export const COURSE_PLAN = 'course';
 
 /**
- * Client chỉ chọn gói; **không** gửi giá hay mã đơn (AGENTS.md luật 5, SEC-004).
- * Hiện chỉ có `vip_combo` như client cũ.
+ * Client chỉ chọn khóa học; **không** gửi giá hay mã đơn (AGENTS.md luật 5, SEC-004).
+ * Giá lấy từ `courses.price` ở server.
  */
 export class CreatePaymentOrderDto {
-  @ApiPropertyOptional({ enum: PLAN_TYPES, default: 'vip_combo' })
-  @IsOptional()
-  @IsIn(PLAN_TYPES)
-  plan_type?: (typeof PLAN_TYPES)[number];
+  @ApiProperty({ example: 12, description: 'Khóa học muốn mua' })
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  course_id!: number;
 }
 
 /** Đơn thanh toán + cờ `completed` như `api/check-payment.ts`. */
@@ -23,13 +26,23 @@ export class PaymentOrderDto {
   order_code!: string;
 
   @ApiProperty({
-    example: 1750000,
-    description: 'Do server tính từ cài đặt giá',
+    example: 1990000,
+    description: 'Do server lấy từ giá khóa học',
   })
   amount!: number;
 
-  @ApiProperty({ nullable: true, type: String, example: 'vip_combo' })
+  @ApiProperty({ nullable: true, type: String, example: 'course' })
   plan_type!: string | null;
+
+  @ApiProperty({
+    nullable: true,
+    type: Number,
+    description: 'Khóa học của đơn (null với đơn VIP cũ)',
+  })
+  course_id!: number | null;
+
+  @ApiProperty({ nullable: true, type: String })
+  course_title!: string | null;
 
   @ApiProperty({ nullable: true, type: String, example: 'pending' })
   status!: string | null;

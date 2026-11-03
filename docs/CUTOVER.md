@@ -137,3 +137,8 @@ Render `lenglish-api` không cần đổi lại để rollback (bản cũ không
 | ~15:36 | Đổi URL webhook SePay → `/api/v1/payments/webhooks/sepay`; giao dịch thật lần 2 (đơn `LEA93720`) | `completed`, Pro, ghi danh 3 khóa, có `admin_activity_log` |
 
 **Bài học:** đổi URL webhook trên SePay **trước** giao dịch thử (#30 — trang `/admin/settings` vẫn hiện URL cũ). Đơn `LEA15941` đã nhận tiền: gửi lại webhook từ log SePay hoặc admin duyệt tay ở `/admin/enrollments`.
+
+
+## Cập nhật 2026-11-03: xóa Vercel function thanh toán cũ
+
+Theo yêu cầu chủ dự án, đã xóa `api/payment-webhook.ts`, `api/check-payment.ts`, `api/simulate-payment.ts` (sớm hơn mốc 30 ngày ở trên). SePay đã trỏ về `POST /api/v1/payments/webhooks/sepay` từ ngày cutover. **Hệ quả:** phương án rollback "đổi URL webhook SePay về `/api/payment-webhook`" không còn dùng được; rollback thanh toán giờ chỉ là redeploy bản backend trước trên Render. `api/tts.ts` vẫn giữ (proxy đọc từ vựng).

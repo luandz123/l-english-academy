@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { listAdminSettings, saveSetting, getAdminUsers } from "@/lib/api/admin";
+import { pingSepayWebhook } from "@/lib/api/payments";
 import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -75,7 +76,11 @@ const AdminSettings = () => {
   const [copiedWebhook, setCopiedWebhook] = useState(false);
   const [testingWebhook, setTestingWebhook] = useState(false);
 
-  const webhookUrl = typeof window !== "undefined" ? `${window.location.origin}/api/payment-webhook` : "/api/payment-webhook";
+  // Webhook SePay của backend NestJS (OPEN_QUESTIONS #30); Vercel function cũ /api/payment-webhook đã xóa
+  const webhookUrl =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/api/v1/payments/webhooks/sepay`
+      : "/api/v1/payments/webhooks/sepay";
 
   const handleCopyWebhook = () => {
     navigator.clipboard.writeText(webhookUrl);
@@ -90,17 +95,17 @@ const AdminSettings = () => {
   const handleTestWebhook = async () => {
     setTestingWebhook(true);
     try {
-      const res = await fetch("/api/payment-webhook");
-      const data = await res.json();
-      if (data.status === "online") {
+      const result = await pingSepayWebhook();
+      if (result.online) {
         toast({
           title: "✅ Webhook đang hoạt động tốt!",
-          description: `Endpoint sẵn sàng kết nối SePay & VietQR Napas 24/7.`,
+          description: result.message,
         });
       } else {
         toast({
-          title: "Phản hồi webhook",
-          description: JSON.stringify(data),
+          title: "Webhook chưa sẵn sàng",
+          description: result.message,
+          variant: "destructive",
         });
       }
     } catch (err: any) {

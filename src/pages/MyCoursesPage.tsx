@@ -121,18 +121,23 @@ export const MyCoursesPage: React.FC = () => {
       const modules = courseModules.filter((m: any) => Number(m.course_id) === cId);
       const allLessons = modules.flatMap((m: any) => m.lessons || []);
       
-      // Known exact lesson counts as reliable fallbacks
-      const fallbackCount = cId === 1 ? 156 : cId === 3 ? 43 : 40;
-      const totalLessons = allLessons.length > 0 ? allLessons.length : fallbackCount;
+      // Chỉ tính tiến độ theo bài giảng có thật; khóa đề thi/flashcard không có bài giảng thì không hiện số bài
+      const hasLessons = allLessons.length > 0;
+      const totalLessons = allLessons.length;
 
-      // Completed lessons count
-      const completedCount = allLessons.length > 0
-        ? allLessons.filter((l: any) =>
-            userLessonProgress.some((p: any) => p.lesson_id === l.id && p.is_completed)
-          ).length
-        : userLessonProgress.filter((p: any) => p.is_completed).length;
+      const completedCount = allLessons.filter((l: any) =>
+        userLessonProgress.some((p: any) => p.lesson_id === l.id && p.is_completed)
+      ).length;
 
-      const progressPct = Math.min(100, Math.round((completedCount / totalLessons) * 100));
+      const progressPct = hasLessons ? Math.min(100, Math.round((completedCount / totalLessons) * 100)) : 0;
+
+      // Trang vào học đúng loại khóa: /courses/:id tự chuyển tới learn / fulltest / vocab
+      const entryPath =
+        course.course_type === "fulltest"
+          ? `/courses/${cId}/fulltest`
+          : course.course_type === "flashcard"
+          ? `/courses/${cId}/vocab`
+          : `/courses/${cId}/learn`;
 
       // Determine next lesson context
       const uncompletedLesson = allLessons.find(
@@ -140,20 +145,11 @@ export const MyCoursesPage: React.FC = () => {
       );
 
       const nextLessonNumber = completedCount + 1;
-      let nextLessonTitle = "Unit 01: Nhập môn & Phương pháp luyện đề";
-      if (uncompletedLesson?.title) {
-        nextLessonTitle = uncompletedLesson.title;
-      } else if (allLessons[completedCount]?.title) {
-        nextLessonTitle = allLessons[completedCount].title;
-      } else if (cId === 1) {
-        nextLessonTitle = "Unit 01: Nhập môn & Kỹ thuật nghe TOEIC Part 1";
-      } else if (cId === 3) {
-        nextLessonTitle = "Unit 01: Kỹ thuật nghe điền từ phản xạ Part 2";
-      }
+      const nextLessonTitle: string | null = uncompletedLesson?.title || allLessons[completedCount]?.title || null;
 
       const nextLessonDuration = uncompletedLesson?.duration_minutes
         ? `${uncompletedLesson.duration_minutes} phút`
-        : "15 phút";
+        : "";
 
       // Status classification
       let status: FilterStatus = "not_started";
@@ -169,7 +165,19 @@ export const MyCoursesPage: React.FC = () => {
       let skillIcon = Sparkles;
       let skillColor = "text-cyan-300 border-cyan-500/40";
 
-      if (titleLower.includes("nghe") || titleLower.includes("listening")) {
+      if (course.course_type === "flashcard") {
+        skillTag = "📚 Từ vựng";
+        skillIcon = BookOpen;
+        skillColor = "text-violet-300 border-violet-400/50";
+      } else if (course.course_type === "fulltest") {
+        skillTag = "📝 ETS Full Test";
+        skillIcon = FileCheck2;
+        skillColor = "text-emerald-300 border-emerald-400/50";
+      } else if (course.course_type === "listening") {
+        skillTag = "🎧 Chép chính tả";
+        skillIcon = Headphones;
+        skillColor = "text-blue-300 border-blue-400/50";
+      } else if (titleLower.includes("nghe") || titleLower.includes("listening")) {
         skillTag = "🎧 Listening Focus";
         skillIcon = Headphones;
         skillColor = "text-blue-300 border-blue-400/50";
@@ -198,6 +206,8 @@ export const MyCoursesPage: React.FC = () => {
 
       return {
         ...course,
+        hasLessons,
+        entryPath,
         totalLessons,
         completedCount,
         progressPct,
@@ -450,7 +460,7 @@ export const MyCoursesPage: React.FC = () => {
                   >
                     {/* Thumbnail vuông 80x80px với viền quang học chống xâm thực */}
                     <Link
-                      to={`/courses/${c.id}/learn`}
+                      to={c.entryPath}
                       className="w-20 h-20 rounded-xl overflow-hidden shrink-0 relative bg-[#030712] after:pointer-events-none after:absolute after:inset-0 after:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.15)] group-hover:scale-105 transition-transform duration-300"
                     >
                       {c.thumbnailUrl ? (
@@ -481,18 +491,21 @@ export const MyCoursesPage: React.FC = () => {
                         )}
                       </div>
 
-                      <Link to={`/courses/${c.id}/learn`}>
+                      <Link to={c.entryPath}>
                         <h4 className="font-bold text-xs text-white line-clamp-2 leading-snug group-hover:text-cyan-300 transition-colors">
                           {c.title}
                         </h4>
                       </Link>
 
                       {/* Zeigarnik next step context */}
-                      <p className="text-[10px] text-slate-400 truncate">
-                        Bài {c.nextLessonNumber}: {c.nextLessonTitle}
-                      </p>
+                      {c.hasLessons && c.nextLessonTitle && c.status !== "completed" && (
+                        <p className="text-[10px] text-slate-400 truncate">
+                          Bài {c.nextLessonNumber}: {c.nextLessonTitle}
+                        </p>
+                      )}
 
                       {/* Thin progress bar 4px */}
+                      {c.hasLessons && (
                       <div className="space-y-1 pt-0.5">
                         <div className="flex items-center justify-between text-[10px]">
                           <span className="text-slate-500">
@@ -507,13 +520,14 @@ export const MyCoursesPage: React.FC = () => {
                           />
                         </div>
                       </div>
+                      )}
                     </div>
 
                     {/* Touch Target Play Button (>= 44x44px iOS HIG compliant) */}
                     <Link
-                      to={`/courses/${c.id}/learn`}
+                      to={c.entryPath}
                       className="w-11 h-11 rounded-full bg-[#2563EB] hover:bg-[#1d4ed8] text-white flex items-center justify-center shrink-0 shadow-md shadow-blue-600/30 active:scale-90 transition-all cursor-pointer"
-                      title={`Học tiếp bài ${c.nextLessonNumber}`}
+                      title={c.hasLessons ? `Học tiếp bài ${c.nextLessonNumber}` : "Vào học"}
                     >
                       <Play className="w-4 h-4 fill-current ml-0.5" />
                     </Link>
@@ -584,7 +598,7 @@ export const MyCoursesPage: React.FC = () => {
                     {/* Body Nội Dung */}
                     <div className="p-5 space-y-4 flex-1 flex flex-col justify-between">
                       <div className="space-y-1.5">
-                        <Link to={`/courses/${c.id}/learn`}>
+                        <Link to={c.entryPath}>
                           <h3 className="font-bold text-base text-white line-clamp-1 group-hover:text-cyan-300 transition-colors">
                             {c.title}
                           </h3>
@@ -594,22 +608,27 @@ export const MyCoursesPage: React.FC = () => {
                         </p>
                       </div>
 
-                      {/* Zeigarnik Context: Dấu mốc bài học tiếp theo */}
+                      {/* Zeigarnik Context: Dấu mốc bài học tiếp theo (chỉ với khóa có bài giảng) */}
+                      {c.hasLessons && (
                       <div className="p-2.5 rounded-xl bg-[#030712]/80 border border-slate-800/80 space-y-1 text-xs">
                         <div className="flex items-center justify-between text-[11px] text-slate-400">
                           <span className="font-semibold text-cyan-300">
                             {c.status === "completed"
                               ? "✓ Đã hoàn tất lộ trình"
-                              : `Bài tiếp theo: Unit ${c.nextLessonNumber}`}
+                              : `Bài tiếp theo: bài ${c.nextLessonNumber}`}
                           </span>
                           <span className="text-slate-500">{c.nextLessonDuration}</span>
                         </div>
-                        <p className="text-white font-medium truncate text-xs">
-                          {c.nextLessonTitle}
-                        </p>
+                        {c.status !== "completed" && c.nextLessonTitle && (
+                          <p className="text-white font-medium truncate text-xs">
+                            {c.nextLessonTitle}
+                          </p>
+                        )}
                       </div>
+                      )}
 
                       {/* Tiến Độ Lượng Hóa Cụ Thể (n/N bài học - % ) */}
+                      {c.hasLessons && (
                       <div className="space-y-1.5 pt-1">
                         <div className="flex items-center justify-between text-xs">
                           <span className="text-slate-400 font-medium">Tiến độ khóa học</span>
@@ -628,6 +647,7 @@ export const MyCoursesPage: React.FC = () => {
                           />
                         </div>
                       </div>
+                      )}
 
                       {/* Actions: Cá nhân hóa nút bấm Primary Blue #2563EB */}
                       <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between gap-3">
@@ -639,7 +659,7 @@ export const MyCoursesPage: React.FC = () => {
                         </Link>
 
                         <Link
-                          to={`/courses/${c.id}/learn`}
+                          to={c.entryPath}
                           className="py-2.5 px-4 rounded-xl bg-[#2563EB] hover:bg-[#1d4ed8] text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-blue-600/30 active:scale-95 transition-all cursor-pointer"
                         >
                           {c.status === "completed" ? (
@@ -655,7 +675,7 @@ export const MyCoursesPage: React.FC = () => {
                           ) : (
                             <>
                               <Play className="w-3.5 h-3.5 fill-current" />
-                              <span>Bắt đầu bài 1</span>
+                              <span>{c.hasLessons ? "Bắt đầu bài 1" : c.course_type === "fulltest" ? "Vào làm đề" : "Bắt đầu học"}</span>
                             </>
                           )}
                         </Link>

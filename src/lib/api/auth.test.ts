@@ -219,3 +219,39 @@ describe("authClient", () => {
     expect(error).not.toBeNull();
   });
 });
+
+describe("authClient.signInWithOAuth", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it("server chưa bật Google (503) → trả lỗi, không chuyển trang", async () => {
+    const assign = vi.fn();
+    vi.stubGlobal("location", { ...window.location, assign });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        new Response(JSON.stringify({ code: "provider_disabled", message: "Unsupported provider: provider is not enabled" }), {
+          status: 503,
+        }),
+      ),
+    );
+    const { error } = await authClient.signInWithOAuth({ provider: "google" });
+    expect(error?.status).toBe(503);
+    expect(error?.code).toBe("provider_disabled");
+    expect(assign).not.toHaveBeenCalled();
+  });
+
+  it("server đã bật Google (302) → chuyển trang sang backend", async () => {
+    const assign = vi.fn();
+    vi.stubGlobal("location", { ...window.location, assign });
+    vi.stubGlobal("fetch", vi.fn(async () => ({ type: "opaqueredirect", ok: false, status: 0 }) as Response));
+    const { error } = await authClient.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: "http://localhost/auth/callback" },
+    });
+    expect(error).toBeNull();
+    expect(assign).toHaveBeenCalledWith(expect.stringContaining("/auth/google?redirect_to="));
+  });
+});

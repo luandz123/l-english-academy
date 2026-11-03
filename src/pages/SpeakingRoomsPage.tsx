@@ -20,7 +20,6 @@ import { SpeakingMatchmaker } from "@/components/speaking/SpeakingMatchmaker";
 import { SpeakingCreateRoomCard } from "@/components/speaking/SpeakingCreateRoomCard";
 import { SpeakingRoomListCard } from "@/components/speaking/SpeakingRoomListCard";
 import { SpeakingActiveRoom } from "@/components/speaking/SpeakingActiveRoom";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 import { 
   Mic2, 
@@ -77,8 +76,8 @@ const SpeakingRoomsPage: React.FC = () => {
   }, [user]);
 
   // Load public rooms
-  const loadRooms = useCallback(async () => {
-    setIsLoadingRooms(true);
+  const loadRooms = useCallback(async (silent = false) => {
+    if (!silent) setIsLoadingRooms(true);
     try {
       const data = await fetchPublicRooms();
       setRooms(data);
@@ -94,30 +93,14 @@ const SpeakingRoomsPage: React.FC = () => {
     loadRooms();
   }, [loadUserStats, loadRooms]);
 
-  // Real-time synchronization for rooms list
+  // Cập nhật danh sách phòng: tải lại ngầm mỗi 5 giây khi đang ở sảnh (thay Supabase postgres_changes)
   useEffect(() => {
-    const channel = supabase
-      .channel("public-speaking-rooms-sync")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "speaking_rooms" },
-        () => {
-          loadRooms();
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "speaking_room_members" },
-        () => {
-          loadRooms();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [loadRooms]);
+    if (activeRoom) return;
+    const timer = setInterval(() => {
+      if (document.visibilityState === "visible") loadRooms(true);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [loadRooms, activeRoom]);
 
   // Handle Level Selection
   const handleLevelSelect = (lvl: EnglishLevel) => {
@@ -284,7 +267,7 @@ const SpeakingRoomsPage: React.FC = () => {
                     <SpeakingRoomListCard
                       rooms={rooms}
                       isLoading={isLoadingRooms}
-                      onRefresh={loadRooms}
+                      onRefresh={() => loadRooms()}
                       onJoinRoom={handleJoinRoom}
                     />
                   </TabsContent>

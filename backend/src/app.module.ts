@@ -11,6 +11,7 @@ import { CatalogModule } from './modules/catalog/catalog.module';
 import { LearningModule } from './modules/learning/learning.module';
 import { AssessmentModule } from './modules/assessment/assessment.module';
 import { PaymentsModule } from './modules/payments/payments.module';
+import { SpeakingModule } from './modules/speaking/speaking.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { MediaModule } from './modules/media/media.module';
 
@@ -54,6 +55,7 @@ import { MediaModule } from './modules/media/media.module';
     LearningModule,
     AssessmentModule,
     PaymentsModule,
+    SpeakingModule,
     AdminModule,
     MediaModule,
   ],

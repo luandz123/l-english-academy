@@ -27,7 +27,8 @@ import { cn } from "@/lib/utils";
 import DictationPage from "./DictationPage";
 import GamificationChips from "@/components/GamificationChips";
 import ErrorState from "@/components/ErrorState";
-import UpgradeProModal from "@/components/UpgradeProModal";
+import CoursePurchaseModal from "@/components/CoursePurchaseModal";
+import { getYouTubeId, listenToYouTube, postYouTubeCommand, readYouTubeCurrentTime, toYouTubeEmbedUrl } from "@/utils/youtube";
 
 const LearnPage = () => {
   const { courseId } = useParams();
@@ -149,6 +150,7 @@ const LearnPage = () => {
   const [practiceSubmitted, setPracticeSubmitted] = useState(false);
   const [triggeredPractices, setTriggeredPractices] = useState<Set<number>>(new Set());
   const videoTimeRef = useRef(0);
+  const videoIframeRef = useRef<HTMLIFrameElement | null>(null);
 
   // B1: Sidebar collapse state (persisted)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
@@ -169,23 +171,6 @@ const LearnPage = () => {
   // A3: Keyboard shortcuts tooltip
   const [showShortcuts, setShowShortcuts] = useState(false);
 
-  // Simulate video time tracking (since YouTube API is complex, use interval)
-  useEffect(() => {
-    if (!currentLessonId || practices.length === 0) return;
-    const interval = setInterval(() => {
-      videoTimeRef.current += 1;
-      // Check if any practice should trigger
-      for (const p of practices) {
-        if (p.trigger_at_seconds > 0 && videoTimeRef.current >= p.trigger_at_seconds && !triggeredPractices.has(p.id)) {
-          setTriggeredPractices(prev => new Set(prev).add(p.id));
-          openPractice(p);
-          break;
-        }
-      }
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [currentLessonId, practices, triggeredPractices]);
-
   // Reset triggers when lesson changes
   useEffect(() => {
     videoTimeRef.current = 0;
@@ -203,6 +188,8 @@ const LearnPage = () => {
     setPracticeCurrentQ(0);
     setPracticeSubmitted(false);
     setActivePractice(practice);
+    // Tạm dừng video để học viên làm bài tập (chỉ với video YouTube)
+    postYouTubeCommand(videoIframeRef.current, "pauseVideo");
   };
 
   const allLessons = useMemo(() => modules.flatMap((m: any) => m.lessons), [modules]);
@@ -226,6 +213,51 @@ const LearnPage = () => {
   const isModuleFree = Boolean(currentModule?.is_free);
   const isLessonFree = Boolean(currentLesson?.is_free);
   const canStudyCurrentLesson = Boolean(effectiveEnrollment || isCourseFree || isModuleFree || isLessonFree);
+
+  // Bài tập bật lên giữa video: tính theo thời gian video ĐANG PHÁT (YouTube gửi currentTime qua postMessage).
+  // Video không phải YouTube không đọc được thời gian, nên giữ cách cũ: đếm giây từ khi mở bài.
+  const currentVideoUrl: string | null = currentLesson?.video_url || null;
+  const isYouTubeVideo = !!getYouTubeId(currentVideoUrl);
+  useEffect(() => {
+    if (!currentLessonId || practices.length === 0) return;
+    const checkTriggers = () => {
+      for (const p of practices) {
+        if (p.trigger_at_seconds > 0 && videoTimeRef.current >= p.trigger_at_seconds && !triggeredPractices.has(p.id)) {
+          setTriggeredPractices(prev => new Set(prev).add(p.id));
+          openPractice(p);
+          break;
+        }
+      }
+    };
+    if (isYouTubeVideo) {
+      const onMessage = (event: MessageEvent) => {
+        const t = readYouTubeCurrentTime(event);
+        if (t === null) return;
+        videoTimeRef.current = t;
+        checkTriggers();
+      };
+      window.addEventListener("message", onMessage);
+      return () => window.removeEventListener("message", onMessage);
+    }
+    const interval = setInterval(() => {
+      videoTimeRef.current += 1;
+      checkTriggers();
+    }, 1000);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentLessonId, practices, triggeredPractices, isYouTubeVideo]);
+
+  // Báo trước bằng biểu tượng khóa nếu bài kế tiếp cần gói PRO
+  const isNextLessonLocked = useMemo(() => {
+    type LessonLite = { id: number; is_free?: boolean | null };
+    type ModuleLite = { is_free?: boolean | null; lessons?: LessonLite[] };
+    const lessons = allLessons as LessonLite[];
+    const idx = lessons.findIndex((l) => l.id === currentLessonId);
+    const next = lessons[idx + 1];
+    if (!next || effectiveEnrollment || isCourseFree) return false;
+    const nextModule = (modules as ModuleLite[]).find((m) => (m.lessons || []).some((l) => l.id === next.id));
+    return !(nextModule?.is_free || next.is_free);
+  }, [allLessons, currentLessonId, effectiveEnrollment, isCourseFree, modules]);
 
   const completedCount = progress.filter((p: any) => p.is_completed).length;
   const totalLessons = allLessons.length;
@@ -363,24 +395,8 @@ const LearnPage = () => {
   const isPracticeLesson = currentLesson.lesson_type === "practice" || currentLesson.lesson_type === "exam";
   const isDictationLesson = currentLesson.lesson_type === "dictation";
 
-  // Convert any YouTube URL format to embeddable URL
-  const getEmbedUrl = (url: string): string => {
-    if (!url) return url;
-    try {
-      // Already an embed URL
-      if (url.includes("youtube.com/embed/")) return url;
-      // youtu.be/VIDEO_ID
-      const shortMatch = url.match(/youtu\.be\/([^?&]+)/);
-      if (shortMatch) return `https://www.youtube.com/embed/${shortMatch[1]}`;
-      // youtube.com/watch?v=VIDEO_ID
-      const watchMatch = url.match(/[?&]v=([^&]+)/);
-      if (watchMatch) return `https://www.youtube.com/embed/${watchMatch[1]}`;
-      // youtube.com/shorts/VIDEO_ID
-      const shortsMatch = url.match(/youtube\.com\/shorts\/([^?&]+)/);
-      if (shortsMatch) return `https://www.youtube.com/embed/${shortsMatch[1]}`;
-    } catch { /* ignore parsing error */ }
-    return url;
-  };
+  // Link nhúng: YouTube có JS API (đọc thời gian phát), link khác giữ nguyên
+  const getEmbedUrl = (url: string): string => toYouTubeEmbedUrl(url, window.location.origin);
 
   return (
     <div className="min-h-screen lg:h-screen lg:overflow-hidden relative bg-[#050914] text-slate-100">
@@ -449,13 +465,14 @@ const LearnPage = () => {
                 <span className="text-xs sm:text-xs font-bold text-slate-400 uppercase tracking-wider truncate">
                   Bài {currentIndex + 1} / {allLessons.length}
                 </span>
-                <h1 className="text-sm sm:text-base font-extrabold text-white truncate max-w-[150px] sm:max-w-[300px] md:max-w-[450px] lg:max-w-[600px]" title={currentLesson.title}>
+                <h1 className="text-sm sm:text-base font-extrabold text-white line-clamp-2 sm:line-clamp-1 leading-snug max-w-[220px] sm:max-w-[300px] md:max-w-[450px] lg:max-w-[600px]" title={currentLesson.title}>
                   {currentLesson.title}
                 </h1>
               </div>
             </div>
             <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-              <GamificationChips />
+              {/* Ẩn chip XP/streak trên điện thoại để tiêu đề bài không bị cắt */}
+              <GamificationChips className="hidden sm:flex" />
               {/* Sidebar toggle button */}
               <Button size="sm" variant="outline" className="btn-3d btn-3d-white flex items-center gap-2 text-xs sm:text-sm font-extrabold h-9 px-3" onClick={toggleSidebar}>
                 {sidebarCollapsed ? <PanelRight className="w-4 h-4" /> : <PanelRightClose className="w-4 h-4" />}
@@ -477,7 +494,7 @@ const LearnPage = () => {
                   <div className="relative z-10 space-y-6">
                     <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/40 text-amber-300 font-extrabold text-xs uppercase tracking-wider">
                       <Crown className="w-4 h-4 text-amber-400" />
-                      Nội Dung Khóa Học Trả Phí • Gói PRO
+                      Nội Dung Khóa Học Trả Phí
                     </div>
 
                     <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-amber-500/25 via-orange-500/15 to-amber-600/25 border-2 border-amber-500/40 flex items-center justify-center mx-auto shadow-lg shadow-amber-500/20">
@@ -491,7 +508,7 @@ const LearnPage = () => {
                       <p className="text-sm sm:text-base font-semibold text-slate-300 leading-relaxed">
                         Bài học <span className="text-amber-300 font-bold">"{currentLesson.title}"</span> nằm trong{" "}
                         <span className="text-white font-bold">{currentModule?.title || "chương trình trả phí"}</span>.
-                        Bạn cần đăng ký khóa học hoặc nâng cấp tài khoản PRO để mở khóa toàn bộ bài học, video và đề thi trực tuyến.
+                        Mua khóa học để mở toàn bộ bài học, video và bài tập của khóa này.
                       </p>
                     </div>
 
@@ -521,7 +538,9 @@ const LearnPage = () => {
                         onClick={() => setShowUpgradeModal(true)}
                       >
                         <Zap className="w-5 h-5 mr-2 text-yellow-200 fill-yellow-200" />
-                        Nâng Cấp Gói PRO Ngay
+                        {Number(course?.price) > 0
+                          ? `Mua khóa học · ${Number(course?.price).toLocaleString("vi-VN")}đ`
+                          : "Mua khóa học"}
                       </Button>
 
                       <Button
@@ -559,6 +578,8 @@ const LearnPage = () => {
                         <TabsContent value="video" className="m-0 border-none outline-none focus-visible:ring-0">
                           <div className="aspect-video bg-black max-h-[70vh]">
                             <iframe
+                              ref={videoIframeRef}
+                              onLoad={(e) => listenToYouTube(e.currentTarget)}
                               src={getEmbedUrl(currentLesson.video_url)}
                               className="w-full h-full"
                               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -580,6 +601,8 @@ const LearnPage = () => {
                     ) : isVideoLesson ? (
                       <div className="aspect-video bg-black max-h-[70vh]">
                         <iframe
+                          ref={videoIframeRef}
+                          onLoad={(e) => listenToYouTube(e.currentTarget)}
                           src={getEmbedUrl(currentLesson.video_url)}
                           className="w-full h-full"
                           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -797,7 +820,7 @@ const LearnPage = () => {
               {!canStudyCurrentLesson ? (
                 <>
                   <Lock className="w-4 h-4 mr-1 sm:mr-2 text-amber-400" />
-                  <span>Mở khóa PRO</span>
+                  <span>Mua khóa học</span>
                 </>
               ) : (
                 <>
@@ -828,6 +851,7 @@ const LearnPage = () => {
                 }
               }}
             >
+              {isNextLessonLocked && <Lock className="w-3.5 h-3.5 mr-1 text-amber-400" aria-label="Bài tiếp theo cần mua khóa học" />}
               <span className="hidden sm:inline">Bài tiếp theo</span>
               <span className="sm:hidden">Tiếp</span>
               <ChevronRight className="w-4 h-4 ml-0.5 sm:mr-1" />
@@ -875,7 +899,7 @@ const LearnPage = () => {
                         </span>
                       ) : (
                         <span className="text-[11px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 flex items-center gap-1">
-                          <Lock className="w-3 h-3 text-amber-400" /> PRO
+                          <Lock className="w-3 h-3 text-amber-400" /> Trả phí
                         </span>
                       )}
                     </span>
@@ -940,7 +964,7 @@ const LearnPage = () => {
 
                             {!canStudy ? (
                               <span className="flex items-center gap-1 text-[11px] font-black px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40 shrink-0">
-                                <Lock className="w-3 h-3 text-amber-400" /> PRO
+                                <Lock className="w-3 h-3 text-amber-400" /> Trả phí
                               </span>
                             ) : (
                               !effectiveEnrollment && <span className="badge-duo text-xs py-0.5 px-1.5 shrink-0" style={{ backgroundColor: 'var(--duo-correct)', color: 'white', borderColor: 'var(--duo-correct-dark)' }}>FREE</span>
@@ -1073,7 +1097,7 @@ const LearnPage = () => {
             <p className="text-sm font-semibold text-muted-foreground">Tiến độ bài học hiện tại của bạn sẽ được lưu giữ tự động.</p>
             <div className="flex gap-3 pt-2">
               <Button className="btn-interactive border border-border/70 bg-card hover:bg-muted text-foreground flex-1 py-3 text-sm font-bold shadow-soft-xs" onClick={() => setShowExitConfirm(false)}>Ở lại học</Button>
-              <Button className="btn-interactive bg-primary text-primary-foreground flex-1 py-3 text-sm font-bold shadow-soft-sm" onClick={() => navigate("/profile")}>Rời đi</Button>
+              <Button className="btn-interactive bg-primary text-primary-foreground flex-1 py-3 text-sm font-bold shadow-soft-sm" onClick={() => navigate("/my-courses")}>Rời đi</Button>
             </div>
           </div>
         </div>
@@ -1118,7 +1142,7 @@ const LearnPage = () => {
                   className="btn-3d btn-3d-primary w-full py-4 text-base font-extrabold"
                   onClick={() => {
                     setModuleCompleteModal(null);
-                    navigate("/#section-video");
+                    navigate("/my-courses");
                   }}
                 >
                   Về danh sách khóa học
@@ -1173,10 +1197,11 @@ const LearnPage = () => {
         )}
       </div>
 
-      {/* PRO Upgrade Modal with VietQR & Hotline */}
-      <UpgradeProModal
+      {/* Mua khóa học (chuyển khoản SePay) */}
+      <CoursePurchaseModal
         open={showUpgradeModal}
         onOpenChange={setShowUpgradeModal}
+        course={course ? { id: Number(course.id), title: course.title, price: course.price, course_type: course.course_type } : null}
       />
     </div>
   );

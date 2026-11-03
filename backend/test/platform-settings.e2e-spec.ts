@@ -224,29 +224,6 @@ describe('PlatformSettings (e2e)', () => {
       });
       expect(count2).toBe(1);
     });
-
-    it('sau PUT homepage_showcase_config giá mới, POST /payments/orders dùng giá đó', async () => {
-      const NEW_PRICE = 899000;
-      await http()
-        .put('/api/v1/admin/settings/homepage_showcase_config')
-        .set(bearer(tokens.admin))
-        .send({
-          value: JSON.stringify({
-            vip_combo: { price: NEW_PRICE },
-          }),
-        })
-        .expect(200);
-
-      // User mới tạo đơn
-      const buyer = await userWithToken(`buyer${EMAIL_SUFFIX}`);
-      const orderRes = await http()
-        .post('/api/v1/payments/orders')
-        .set(bearer(buyer.token))
-        .send({})
-        .expect(201);
-
-      const orderBody = orderRes.body as { amount: number };
-      expect(orderBody.amount).toBe(NEW_PRICE);
-    });
+    // Giá đơn hàng nay lấy từ courses.price (bỏ gói VIP — UX_REVIEW D6), xem payments.e2e-spec.ts.
   });
 });

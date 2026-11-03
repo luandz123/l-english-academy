@@ -1580,7 +1580,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
         <div className="max-w-4xl mx-auto p-5 sm:p-8 lg:p-10 space-y-6 sm:space-y-8 bg-card border border-border/70 rounded-2xl shadow-soft-md">
           <div className="flex items-center gap-4 border-b border-border/60 pb-4 sm:pb-6">
             {!isEmbedded && (
-              <Button variant="ghost" size="icon" className="hover:bg-muted rounded-full" onClick={() => navigate(`/courses/${courseId}/learn`)}>
+              <Button variant="ghost" size="icon" className="hover:bg-muted rounded-full" onClick={() => navigate(`/courses/${courseId}/learn`)} aria-label="Quay lại bài học">
                 <ArrowLeft className="w-6 h-6 text-muted-foreground" />
               </Button>
             )}

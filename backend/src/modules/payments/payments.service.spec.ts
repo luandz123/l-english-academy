@@ -22,6 +22,20 @@ function setup(env: Partial<Record<keyof Env, unknown>>) {
     findOrderByCode: jest.fn().mockResolvedValue(ORDER),
     completeOrder: jest.fn().mockResolvedValue({ completed: true }),
     logActivity: jest.fn().mockResolvedValue(undefined),
+    findCourse: jest.fn().mockResolvedValue({
+      id: 7,
+      title: 'TOEIC 650+',
+      price: 1_990_000,
+      isFree: false,
+      isActive: true,
+    }),
+    hasActiveEnrollment: jest.fn().mockResolvedValue(false),
+    findRecentPendingOrder: jest.fn().mockResolvedValue(null),
+    tryCreateOrder: jest
+      .fn()
+      .mockImplementation((data: { amount: number }) =>
+        Promise.resolve({ ...ORDER, ...data, amount: String(data.amount) }),
+      ),
     findAllOrdersWithProfiles: jest.fn().mockResolvedValue([
       {
         ...ORDER,
@@ -73,6 +87,98 @@ const BODY = {
 };
 
 describe('PaymentsService', () => {
+  describe('createOrder (mua khóa học)', () => {
+    it('giá lấy từ courses.price, lưu khóa học trong metadata', async () => {
+      const { service, repo } = setup({});
+      const order = await service.createOrder('u1', 7);
+      expect(repo.tryCreateOrder).toHaveBeenCalledWith(
+        expect.objectContaining({
+          amount: 1_990_000,
+          planType: 'course',
+          metadata: { course_id: 7, course_title: 'TOEIC 650+' },
+        }),
+      );
+      expect(order).toMatchObject({
+        amount: 1_990_000,
+        course_id: 7,
+        course_title: 'TOEIC 650+',
+      });
+    });
+
+    it('khóa miễn phí hoặc giá 0 → 400 COURSE_NOT_FOR_SALE', async () => {
+      const { service, repo } = setup({});
+      repo.findCourse.mockResolvedValueOnce({
+        id: 7,
+        title: 'x',
+        price: 0,
+        isFree: false,
+        isActive: true,
+      });
+      expect(await status(service.createOrder('u1', 7))).toEqual({
+        status: 400,
+        code: 'COURSE_NOT_FOR_SALE',
+      });
+      repo.findCourse.mockResolvedValueOnce({
+        id: 7,
+        title: 'x',
+        price: 500,
+        isFree: true,
+        isActive: true,
+      });
+      expect(await status(service.createOrder('u1', 7))).toEqual({
+        status: 400,
+        code: 'COURSE_NOT_FOR_SALE',
+      });
+      expect(repo.tryCreateOrder).not.toHaveBeenCalled();
+    });
+
+    it('khóa không tồn tại hoặc đang ẩn → 404', async () => {
+      const { service, repo } = setup({});
+      repo.findCourse.mockResolvedValueOnce(null);
+      expect(await status(service.createOrder('u1', 99))).toEqual({
+        status: 404,
+        code: 'COURSE_NOT_FOUND',
+      });
+      repo.findCourse.mockResolvedValueOnce({
+        id: 7,
+        title: 'x',
+        price: 500,
+        isFree: false,
+        isActive: false,
+      });
+      expect(await status(service.createOrder('u1', 7))).toEqual({
+        status: 404,
+        code: 'COURSE_NOT_FOUND',
+      });
+    });
+
+    it('đã sở hữu khóa → 409 ALREADY_ENROLLED', async () => {
+      const { service, repo } = setup({});
+      repo.hasActiveEnrollment.mockResolvedValueOnce(true);
+      expect(await status(service.createOrder('u1', 7))).toEqual({
+        status: 409,
+        code: 'ALREADY_ENROLLED',
+      });
+    });
+
+    it('dùng lại đơn pending cùng khóa', async () => {
+      const { service, repo } = setup({});
+      repo.findRecentPendingOrder.mockResolvedValueOnce({
+        ...ORDER,
+        planType: 'course',
+        metadata: { course_id: 7 },
+      });
+      const order = await service.createOrder('u1', 7);
+      expect(order.order_code).toBe('LEA12345');
+      expect(repo.findRecentPendingOrder).toHaveBeenCalledWith(
+        'u1',
+        expect.any(Date),
+        7,
+      );
+      expect(repo.tryCreateOrder).not.toHaveBeenCalled();
+    });
+  });
+
   it('server chưa cấu hình SEPAY_WEBHOOK_API_KEY → từ chối mọi webhook (fail closed)', async () => {
     const { service, repo } = setup({});
     expect(await status(service.handleSepayWebhook('Apikey ', BODY))).toEqual({

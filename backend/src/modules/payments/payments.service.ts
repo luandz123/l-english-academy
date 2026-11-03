@@ -1,4 +1,6 @@
 import {
+  BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   Logger,
@@ -14,17 +16,16 @@ import { AuthService } from '../auth/auth.service';
 import type { AuthenticatedUser } from '../auth/guards/jwt-auth.guard';
 import { PaymentOrderDto, WebhookResultDto } from './dto/payment-order.dto';
 import { AdminPaymentOrderDto } from './dto/admin-payment-order.dto';
+import { COURSE_PLAN } from './dto/payment-order.dto';
 import {
   extractOrderCode,
   isPaidInFull,
   newOrderCode,
   REUSE_PENDING_MS,
-  vipPriceFromSetting,
 } from './payment-rules';
 import { PaymentsMapper } from './payments.mapper';
 import { PaymentsRepository } from './payments.repository';
 
-const PRICE_SETTING_KEY = 'homepage_showcase_config';
 const MAX_CODE_ATTEMPTS = 5;
 
 /** Trường dạng chữ/số của payload SePay; kiểu khác → chuỗi rỗng. */
@@ -46,26 +47,49 @@ export class PaymentsService {
   ) {}
 
   /**
-   * Thay `UpgradeProModal.tsx:93-140`. Dùng lại đơn pending của mình trong 30 phút (PAY-003),
-   * nếu không thì tạo đơn mới với giá **server** đọc từ cài đặt (SEC-004).
+   * Mua một khóa học (thay gói VIP — UX_REVIEW D6). Giá **server** lấy từ `courses.price`
+   * (SEC-004). Dùng lại đơn pending của mình cho cùng khóa trong 30 phút (PAY-003).
    */
   async createOrder(
     userId: string,
-    planType: string = 'vip_combo',
+    courseId: number,
   ): Promise<PaymentOrderDto> {
+    const course = await this.repo.findCourse(courseId);
+    if (!course || course.isActive === false) {
+      throw new NotFoundException({
+        code: 'COURSE_NOT_FOUND',
+        message: 'Không tìm thấy khóa học',
+      });
+    }
+    const price = Number(course.price ?? 0);
+    if (course.isFree || !(price > 0)) {
+      throw new BadRequestException({
+        code: 'COURSE_NOT_FOR_SALE',
+        message: 'Khóa học này miễn phí, không cần thanh toán',
+      });
+    }
+    if (await this.repo.hasActiveEnrollment(userId, courseId)) {
+      throw new ConflictException({
+        code: 'ALREADY_ENROLLED',
+        message: 'Bạn đã sở hữu khóa học này',
+      });
+    }
+
     const since = new Date(Date.now() - REUSE_PENDING_MS);
-    const existing = await this.repo.findRecentPendingOrder(userId, since);
+    const existing = await this.repo.findRecentPendingOrder(
+      userId,
+      since,
+      courseId,
+    );
     if (existing) return this.mapper.toOrderDto(existing);
 
-    const amount = vipPriceFromSetting(
-      await this.repo.findSetting(PRICE_SETTING_KEY),
-    );
     for (let i = 0; i < MAX_CODE_ATTEMPTS; i++) {
       const created = await this.repo.tryCreateOrder({
         userId,
         orderCode: newOrderCode(),
-        amount,
-        planType,
+        amount: Math.round(price),
+        planType: COURSE_PLAN,
+        metadata: { course_id: course.id, course_title: course.title },
       });
       if (created) return this.mapper.toOrderDto(created);
     }

@@ -9,6 +9,8 @@ export interface PaymentOrderRow {
   order_code: string;
   amount: number;
   plan_type: string | null;
+  course_id: number | null;
+  course_title: string | null;
   status: string | null;
   completed: boolean;
   paid_at: string | null;
@@ -45,14 +47,15 @@ export interface WebhookResult {
   order_code?: string | null;
 }
 
-/** Tạo đơn VIP (server dùng lại đơn pending của mình trong 30 phút). */
-export async function createPaymentOrder(): Promise<{
+/**
+ * Tạo đơn mua một khóa học (server lấy giá khóa và dùng lại đơn pending cùng khóa trong 30 phút).
+ * Lỗi: 409 ALREADY_ENROLLED (đã sở hữu), 400 COURSE_NOT_FOR_SALE (khóa miễn phí), 404.
+ */
+export async function createPaymentOrder(courseId: number): Promise<{
   data: PaymentOrderRow | null;
   error: ApiError | null;
 }> {
-  return toResult(
-    apiClient.post<PaymentOrderRow>("payments/orders", { plan_type: "vip_combo" }),
-  );
+  return toResult(apiClient.post<PaymentOrderRow>("payments/orders", { course_id: courseId }));
 }
 
 export async function getPaymentOrder(
@@ -140,4 +143,20 @@ export async function approvePaymentOrder(
     };
   }
   return result;
+}
+
+/**
+ * Kiểm tra webhook SePay của backend còn sống: gửi request **không** có API key.
+ * Server trả 401 WEBHOOK_UNAUTHORIZED = endpoint hoạt động và đang bắt buộc API key (đúng).
+ */
+export async function pingSepayWebhook(): Promise<{ online: boolean; message: string }> {
+  try {
+    await apiClient.post("payments/webhooks/sepay", {}, { auth: false });
+    return { online: false, message: "Webhook nhận request không có API key — kiểm tra SEPAY_WEBHOOK_API_KEY trên server" };
+  } catch (err) {
+    if (err instanceof ApiError && err.code === "WEBHOOK_UNAUTHORIZED") {
+      return { online: true, message: "Endpoint hoạt động và đang bắt buộc API key của SePay" };
+    }
+    return { online: false, message: err instanceof Error ? err.message : String(err) };
+  }
 }

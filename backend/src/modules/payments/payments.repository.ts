@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, type PaymentOrder } from '../../generated/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { orderCourse } from './payments.mapper';
 
 @Injectable()
 export class PaymentsRepository {
@@ -13,14 +14,47 @@ export class PaymentsRepository {
     return row?.value ?? null;
   }
 
+  /** Đơn pending gần đây của chính người dùng cho đúng khóa học này. */
   findRecentPendingOrder(
     userId: string,
     since: Date,
+    courseId: number,
   ): Promise<PaymentOrder | null> {
     return this.prisma.paymentOrder.findFirst({
-      where: { userId, status: 'pending', createdAt: { gte: since } },
+      where: {
+        userId,
+        status: 'pending',
+        planType: 'course',
+        createdAt: { gte: since },
+        metadata: { path: ['course_id'], equals: courseId },
+      },
       orderBy: [{ createdAt: 'desc' }],
     });
+  }
+
+  findCourse(courseId: number) {
+    return this.prisma.course.findUnique({
+      where: { id: courseId },
+      select: {
+        id: true,
+        title: true,
+        price: true,
+        isFree: true,
+        isActive: true,
+      },
+    });
+  }
+
+  /** Đã ghi danh và còn hạn (expires_at null hoặc trong tương lai). */
+  async hasActiveEnrollment(
+    userId: string,
+    courseId: number,
+  ): Promise<boolean> {
+    const row = await this.prisma.enrollment.findUnique({
+      where: { userId_courseId: { userId, courseId } },
+      select: { expiresAt: true },
+    });
+    return !!row && (!row.expiresAt || row.expiresAt > new Date());
   }
 
   /** Trả `null` khi trùng `order_code` (P2002) để service sinh mã khác. */
@@ -29,6 +63,7 @@ export class PaymentsRepository {
     orderCode: string;
     amount: number;
     planType: string;
+    metadata?: Prisma.InputJsonValue;
   }): Promise<PaymentOrder | null> {
     try {
       return await this.prisma.paymentOrder.create({
@@ -84,6 +119,35 @@ export class PaymentsRepository {
       });
       if (updated.count === 0) return { completed: false, enrolledCourses: 0 };
 
+      // Đơn mua một khóa học: chỉ ghi danh khóa đó (gia hạn nếu đã có bản ghi hết hạn)
+      const { courseId } = orderCourse(order);
+      if (order.planType === 'course' && courseId) {
+        await tx.enrollment.upsert({
+          where: { userId_courseId: { userId: order.userId, courseId } },
+          create: { userId: order.userId, courseId, enrolledAt: now },
+          update: { expiresAt: null },
+        });
+        await tx.adminActivityLog.create({
+          data: {
+            action: input.action,
+            entityType: 'payment_orders',
+            entityId: order.id,
+            adminId: input.adminId ?? null,
+            details: {
+              order_code: order.orderCode,
+              user_id: order.userId,
+              amount: input.transferAmount,
+              bank_tx_id: input.bankTxId,
+              transaction_content: input.transactionContent,
+              course_id: courseId,
+              enrolled_courses: 1,
+            },
+          },
+        });
+        return { completed: true, enrolledCourses: 1 };
+      }
+
+      // Đơn VIP cũ (tạo trước khi bỏ gói PRO): giữ cách kích hoạt cũ
       await tx.profile.updateMany({
         where: { userId: order.userId },
         data: {
