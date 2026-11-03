@@ -60,11 +60,11 @@ export const MobileStickyCta = () => {
           <ArrowRight className="w-4 h-4 ml-0.5 shrink-0" />
         </a>
 
-        {/* Nút phụ xem VIP gọn gàng */}
+        {/* Nút phụ: xem các khóa học */}
         <a
-          href="#combos"
-          onClick={() => trackEvent("click_mobile_sticky_vip", { target: "combos" })}
-          aria-label="Xem gói nâng cấp VIP"
+          href="#section-video"
+          onClick={() => trackEvent("click_mobile_sticky_courses", { target: "section-video" })}
+          aria-label="Xem các khóa học"
           className="h-12 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/15 text-amber-300 flex items-center justify-center shrink-0 active:scale-[0.97] transition-all"
         >
           <Flame className="w-5 h-5 fill-amber-400/20 text-amber-400" />

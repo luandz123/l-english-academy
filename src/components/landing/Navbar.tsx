@@ -169,14 +169,6 @@ const Navbar = ({ onOpenSidebar }: NavbarProps) => {
             <span>Game Từ Vựng</span>
           </a>
 
-          {/* 5. Nâng Cấp VIP */}
-          <a
-            href="/#combos"
-            onClick={(e) => handleNavClick(e, "combos", "vip_combos", "/#combos")}
-            className="px-4 py-1.5 rounded-xl text-xs xl:text-[13px] font-black text-amber-300 hover:text-amber-100 bg-gradient-to-r from-amber-500/15 via-orange-500/15 to-amber-500/20 hover:from-amber-500/25 hover:via-orange-500/25 hover:to-amber-500/30 border border-amber-400/40 hover:border-amber-300 shadow-[0_0_16px_rgba(245,158,11,0.25)] hover:shadow-[0_0_24px_rgba(245,158,11,0.45)] transition-all duration-200 whitespace-nowrap cursor-pointer select-none active:scale-95"
-          >
-            <span>Nâng Cấp VIP</span>
-          </a>
         </nav>
 
         {/* Right Section: Search & Auth */}
@@ -374,17 +366,6 @@ const Navbar = ({ onOpenSidebar }: NavbarProps) => {
                     <ArrowRight className="w-3.5 h-3.5 text-slate-500" />
                   </a>
 
-                  <a
-                    href="/#combos"
-                    onClick={(e) => {
-                      setMobileMenuOpen(false);
-                      handleNavClick(e, "combos", "vip_combos", "/#combos");
-                    }}
-                    className="flex items-center justify-between px-3.5 py-2.5 rounded-xl font-bold text-xs text-amber-300 bg-amber-500/10 hover:bg-amber-500/15 border border-amber-500/30 transition-all"
-                  >
-                    <span>Nâng Cấp VIP (Tiết Kiệm 50%)</span>
-                    <ArrowRight className="w-3.5 h-3.5 text-amber-400" />
-                  </a>
                 </div>
               </div>
             </div>

@@ -9,6 +9,7 @@ import {
 } from "@/lib/api/fullTest";
 import { getMyEnrollment } from "@/lib/api/learning";
 import { getCourse } from "@/lib/api/catalog";
+import CoursePurchaseModal from "@/components/CoursePurchaseModal";
 import { useAuth } from "@/hooks/useAuth";
 import {
   Loader2,
@@ -298,6 +299,14 @@ const FullTestExam = () => {
       return data ? { enrolled: true } : null;
     },
     enabled: !!user && !!courseId,
+  });
+
+  // Thông tin khóa để mua khi chưa sở hữu (giá thật do server tính khi tạo đơn)
+  const [purchaseOpen, setPurchaseOpen] = useState(false);
+  const { data: courseMeta } = useQuery({
+    queryKey: ["fulltest-course-meta", courseId],
+    queryFn: async () => (await getCourse(Number(courseId))).data,
+    enabled: !!courseId,
   });
 
   // Fetch All Questions of this Full Test
@@ -830,17 +839,30 @@ const FullTestExam = () => {
           <div className="w-16 h-16 rounded-full bg-red-950/40 text-[var(--duo-red)] flex items-center justify-center mx-auto border border-red-500/20">
             <ShieldAlert className="w-8 h-8" />
           </div>
-          <h2 className="text-xl font-black text-foreground">Chưa đăng ký khóa học</h2>
+          <h2 className="text-xl font-black text-foreground">Bạn chưa sở hữu bộ đề này</h2>
           <p className="text-sm text-muted-foreground font-medium">
-            Bạn cần đăng ký khóa học này trước khi có thể làm bài thi Full Test. Vui lòng liên hệ Admin để được hỗ trợ.
+            Mua khóa học để làm toàn bộ đề thi Full Test, xem đáp án và giải thích chi tiết.
           </p>
+          {Number(courseMeta?.price) > 0 && (
+            <button
+              onClick={() => setPurchaseOpen(true)}
+              className="btn-3d w-full py-3 text-sm font-bold bg-gradient-to-r from-amber-500 to-orange-500 text-white"
+            >
+              Mua khóa học · {Number(courseMeta?.price).toLocaleString("vi-VN")}đ
+            </button>
+          )}
           <button
             onClick={() => navigate(`/courses/${courseId}/fulltest`)}
-            className="btn-3d btn-3d-primary w-full py-3 text-sm font-bold"
+            className="btn-3d btn-3d-white w-full py-3 text-sm font-bold"
           >
             ← Quay lại danh sách đề thi
           </button>
         </div>
+        <CoursePurchaseModal
+          open={purchaseOpen}
+          onOpenChange={setPurchaseOpen}
+          course={courseMeta ? { id: Number(courseMeta.id), title: courseMeta.title, price: courseMeta.price, course_type: courseMeta.course_type } : null}
+        />
       </div>
     );
   }

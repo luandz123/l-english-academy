@@ -48,11 +48,11 @@ export const HeroCarousel = () => {
             style={{ left: "5.5%", top: "85.5%", width: "26.5%", height: "9.5%" }}
           />
           <a
-            href="#combos"
-            onClick={(e) => scrollToSection(e, "combos")}
-            aria-label="Xem gói VIP và lộ trình"
+            href="#section-video"
+            onClick={(e) => scrollToSection(e, "section-video")}
+            aria-label="Xem khóa học và lộ trình"
             className={HOTSPOT_CLASS}
-            style={{ left: "33%", top: "86%", width: "17%", height: "8.5%" }}
+            style={{ left: "33%", top: "86%", width: "18.5%", height: "8.5%" }}
           />
           <a
             href="https://zalo.me/0334729066"

@@ -42,14 +42,12 @@ import {
 } from "@/components/ui/dialog";
 
 import { CourseCard, CourseRow } from "@/components/CourseCard";
-import UpgradeProModal from "@/components/UpgradeProModal";
 import { trackEvent } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import {
   getHomepageShowcaseConfig,
   parseCategoryIconAndDesc,
-  calculateSavings,
   DEFAULT_HOMEPAGE_CONFIG,
   HomepageShowcaseConfig,
   resolveGameAvatar,
@@ -149,7 +147,7 @@ const getCategoryTheme = (slug: string, index: number) => {
       iconContainer: "bg-blue-500/15 border-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.2)]",
       actionBtn: "text-blue-400 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 border-blue-500/30",
       actionText: "Xem khóa học",
-      actionLink: "#combos",
+      actionLink: "/library",
     };
   }
 
@@ -162,7 +160,7 @@ const getCategoryTheme = (slug: string, index: number) => {
       iconContainer: "bg-cyan-500/15 border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.2)]",
       actionBtn: "text-cyan-400 hover:text-cyan-300 bg-cyan-500/10 hover:bg-cyan-500/20 border-cyan-500/30",
       actionText: "Xem khóa học",
-      actionLink: "#combos",
+      actionLink: "/library",
     },
     {
       borderClass: "border-amber-500/25",
@@ -172,7 +170,7 @@ const getCategoryTheme = (slug: string, index: number) => {
       iconContainer: "bg-amber-500/15 border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.2)]",
       actionBtn: "text-amber-400 hover:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border-amber-500/30",
       actionText: "Xem khóa học",
-      actionLink: "#combos",
+      actionLink: "/library",
     },
     {
       borderClass: "border-indigo-500/25",
@@ -182,7 +180,7 @@ const getCategoryTheme = (slug: string, index: number) => {
       iconContainer: "bg-indigo-500/15 border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.2)]",
       actionBtn: "text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 hover:bg-indigo-500/20 border-indigo-500/30",
       actionText: "Xem khóa học",
-      actionLink: "#combos",
+      actionLink: "/library",
     },
   ];
   return {
@@ -193,8 +191,6 @@ const getCategoryTheme = (slug: string, index: number) => {
 };
 
 export const CourseShowcase = () => {
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modalStep, setModalStep] = useState<"details" | "checkout">("checkout");
 
   // 1. Lấy toàn bộ Cấu hình Kệ Trang Chủ (Showcase Config) do Admin thiết lập
   const { data: showcaseConfig = DEFAULT_HOMEPAGE_CONFIG } = useQuery<HomepageShowcaseConfig>({
@@ -255,7 +251,7 @@ export const CourseShowcase = () => {
   }, [activeCourses, categories]);
 
   const { toast } = useToast();
-  const { section_toggles, part2_banner, vip_combo, commitments, testimonials, faqs } = showcaseConfig;
+  const { section_toggles, part2_banner, commitments, testimonials, faqs } = showcaseConfig;
   const arcadeSection = showcaseConfig.arcade_section || DEFAULT_ARCADE_SECTION;
 
   const visibleArcadeGames = useMemo(() => {
@@ -677,114 +673,6 @@ export const CourseShowcase = () => {
       )}
 
       {/* ========================================================================= */}
-      {/* SECTION: NÂNG CẤP VIP TRỌN ĐỜI (THIẾT KẾ PRO PLAN CAO CẤP THEO MẪU)       */}
-      {/* ========================================================================= */}
-      {section_toggles.show_vip_combo && (
-        <div
-          id="combos"
-          className="relative overflow-hidden rounded-[32px] sm:rounded-[36px] border border-[#2d2f5e]/90 bg-gradient-to-b from-[#181938] via-[#121327] to-[#0c0d1d] text-white p-6 sm:p-8 md:p-10 shadow-[0_25px_70px_-15px_rgba(0,0,0,0.85),0_0_50px_rgba(84,82,238,0.2)] scroll-mt-24"
-        >
-          {/* Ambient Glow Effects (Tím Indigo Dịu Mắt) */}
-          <div className="absolute -top-28 left-1/4 w-[500px] h-[300px] bg-[#5452ee]/20 rounded-full blur-[120px] pointer-events-none" />
-          <div className="absolute -bottom-28 right-10 w-[450px] h-[260px] bg-purple-600/15 rounded-full blur-[130px] pointer-events-none" />
-
-          <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-            {/* Cột Trái: Quyền Lợi VIP */}
-            <div className="lg:col-span-7 space-y-6">
-              <div className="space-y-3">
-                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#5452ee]/15 text-[#a2a4f6] border border-[#5452ee]/30 text-xs font-bold uppercase tracking-wider backdrop-blur-sm">
-                  <img src={iconVipCrown} alt="" className="w-4 h-4 object-contain inline-block" />
-                  <span>{vip_combo.badge}</span>
-                </div>
-                <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-[42px] font-bold text-white font-serif tracking-tight leading-tight">
-                  {vip_combo.title}
-                </h2>
-                <p className="text-[#9597be] text-sm sm:text-base font-normal leading-relaxed max-w-2xl">
-                  {vip_combo.subtitle}
-                </p>
-              </div>
-
-              {/* 4 Quyền Lợi Cốt Lõi (Dynamic từ Admin) - Dấu Tích Tròn Trắng Theo Mẫu Reference */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                {vip_combo.features.map((feat, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-start gap-3 p-4 rounded-2xl bg-[#1c1d38]/80 hover:bg-[#202142] border border-white/5 hover:border-[#5452ee]/40 transition-all shadow-xs group"
-                  >
-                    <div className="w-5 h-5 rounded-full bg-white text-[#121327] flex items-center justify-center shrink-0 mt-0.5 shadow-sm group-hover:scale-105 transition-transform">
-                      <Check className="w-3.5 h-3.5 stroke-[3] text-[#121327]" />
-                    </div>
-                    <div className="space-y-0.5 min-w-0">
-                      <h4 className="text-xs sm:text-sm font-bold text-white leading-snug">{feat.title}</h4>
-                      {feat.desc && (
-                        <p className="text-xs sm:text-[13px] text-[#9597be] font-normal leading-relaxed">{feat.desc}</p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Cột Phải: Thẻ Vé VIP Ticket Giá Sốc (Thiết kế Good Deal chuẩn mẫu reference) */}
-            <div className="lg:col-span-5">
-              <div className="bg-[#161732]/95 backdrop-blur-md rounded-[28px] border-2 border-[#5452ee] p-6 sm:p-8 flex flex-col items-center text-center space-y-4 shadow-[0_0_35px_rgba(84,82,238,0.25)] relative overflow-hidden">
-                {/* Subtle top glow inside the card */}
-                <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-48 h-24 bg-[#5452ee]/30 rounded-full blur-2xl pointer-events-none" />
-
-                {(() => {
-                  const savingsInfo = calculateSavings(vip_combo.original_price, vip_combo.price);
-                  const badgeText = savingsInfo.badgeText || (vip_combo as any).discount_badge;
-                  if (!badgeText) return null;
-                  return (
-                    <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#5452ee] text-white text-xs font-bold uppercase tracking-wide shadow-[0_0_15px_rgba(84,82,238,0.4)]">
-                      <Zap className="w-3.5 h-3.5 text-white" />
-                      <span>{badgeText}</span>
-                    </div>
-                  );
-                })()}
-
-                <div className="space-y-1">
-                  {vip_combo.original_price > 0 && (
-                    <span className="text-xs sm:text-sm text-[#797b9e] line-through font-medium block">
-                      Giá gốc: {vip_combo.original_price.toLocaleString("vi-VN")} đ
-                    </span>
-                  )}
-                  <div className="text-3xl sm:text-4xl md:text-[40px] font-extrabold text-white tracking-tight font-sans">
-                    {vip_combo.price.toLocaleString("vi-VN")} đ
-                  </div>
-                  {vip_combo.price_note && (
-                    <p className="text-xs sm:text-sm text-[#9597be] font-normal">
-                      {vip_combo.price_note}
-                    </p>
-                  )}
-                </div>
-
-                <button
-                  onClick={() => {
-                    trackEvent("click_combo", { location: "showcase_vip_card" });
-                    setModalStep("checkout");
-                    setModalOpen(true);
-                  }}
-                  className="w-full py-4 rounded-xl text-sm sm:text-base font-bold text-white bg-[#5452ee] hover:bg-[#4745dc] active:scale-[0.98] shadow-[0_4px_25px_rgba(84,82,238,0.45)] flex items-center justify-center gap-2 transition-all hover:scale-[1.01] cursor-pointer"
-                >
-                  <img src={iconVipCrown} alt="" className="w-5 h-5 object-contain inline-block" />
-                  <span>{vip_combo.cta_text || "MUA GÓI VIP TRỌN GÓI"}</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-
-                {vip_combo.security_note && (
-                  <div className="text-xs sm:text-[13px] text-[#9597be] flex items-center justify-center gap-2 font-normal">
-                    <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>{vip_combo.security_note}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
       {/* SECTION: GIẢI ĐÁP CÂU HỎI THƯỜNG GẶP (FAQ)                                */}
       {/* ========================================================================= */}
       {section_toggles.show_faq && faqs && faqs.length > 0 && (
@@ -877,13 +765,6 @@ export const CourseShowcase = () => {
         </div>
       )}
 
-      {/* MODAL NÂNG CẤP PRO PLAN (MATCHING SAMPLE DESIGN 1:1) */}
-      <UpgradeProModal 
-        open={modalOpen} 
-        onOpenChange={setModalOpen} 
-        vipCombo={vip_combo}
-        initialStep={modalStep}
-      />
     </div>
   );
 };

@@ -27,7 +27,7 @@ import { cn } from "@/lib/utils";
 import DictationPage from "./DictationPage";
 import GamificationChips from "@/components/GamificationChips";
 import ErrorState from "@/components/ErrorState";
-import UpgradeProModal from "@/components/UpgradeProModal";
+import CoursePurchaseModal from "@/components/CoursePurchaseModal";
 import { getYouTubeId, listenToYouTube, postYouTubeCommand, readYouTubeCurrentTime, toYouTubeEmbedUrl } from "@/utils/youtube";
 
 const LearnPage = () => {
@@ -494,7 +494,7 @@ const LearnPage = () => {
                   <div className="relative z-10 space-y-6">
                     <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/40 text-amber-300 font-extrabold text-xs uppercase tracking-wider">
                       <Crown className="w-4 h-4 text-amber-400" />
-                      Nội Dung Khóa Học Trả Phí • Gói PRO
+                      Nội Dung Khóa Học Trả Phí
                     </div>
 
                     <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-amber-500/25 via-orange-500/15 to-amber-600/25 border-2 border-amber-500/40 flex items-center justify-center mx-auto shadow-lg shadow-amber-500/20">
@@ -508,7 +508,7 @@ const LearnPage = () => {
                       <p className="text-sm sm:text-base font-semibold text-slate-300 leading-relaxed">
                         Bài học <span className="text-amber-300 font-bold">"{currentLesson.title}"</span> nằm trong{" "}
                         <span className="text-white font-bold">{currentModule?.title || "chương trình trả phí"}</span>.
-                        Bạn cần đăng ký khóa học hoặc nâng cấp tài khoản PRO để mở khóa toàn bộ bài học, video và đề thi trực tuyến.
+                        Mua khóa học để mở toàn bộ bài học, video và bài tập của khóa này.
                       </p>
                     </div>
 
@@ -538,7 +538,9 @@ const LearnPage = () => {
                         onClick={() => setShowUpgradeModal(true)}
                       >
                         <Zap className="w-5 h-5 mr-2 text-yellow-200 fill-yellow-200" />
-                        Nâng Cấp Gói PRO Ngay
+                        {Number(course?.price) > 0
+                          ? `Mua khóa học · ${Number(course?.price).toLocaleString("vi-VN")}đ`
+                          : "Mua khóa học"}
                       </Button>
 
                       <Button
@@ -818,7 +820,7 @@ const LearnPage = () => {
               {!canStudyCurrentLesson ? (
                 <>
                   <Lock className="w-4 h-4 mr-1 sm:mr-2 text-amber-400" />
-                  <span>Mở khóa PRO</span>
+                  <span>Mua khóa học</span>
                 </>
               ) : (
                 <>
@@ -849,7 +851,7 @@ const LearnPage = () => {
                 }
               }}
             >
-              {isNextLessonLocked && <Lock className="w-3.5 h-3.5 mr-1 text-amber-400" aria-label="Bài tiếp theo cần gói PRO" />}
+              {isNextLessonLocked && <Lock className="w-3.5 h-3.5 mr-1 text-amber-400" aria-label="Bài tiếp theo cần mua khóa học" />}
               <span className="hidden sm:inline">Bài tiếp theo</span>
               <span className="sm:hidden">Tiếp</span>
               <ChevronRight className="w-4 h-4 ml-0.5 sm:mr-1" />
@@ -897,7 +899,7 @@ const LearnPage = () => {
                         </span>
                       ) : (
                         <span className="text-[11px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 flex items-center gap-1">
-                          <Lock className="w-3 h-3 text-amber-400" /> PRO
+                          <Lock className="w-3 h-3 text-amber-400" /> Trả phí
                         </span>
                       )}
                     </span>
@@ -962,7 +964,7 @@ const LearnPage = () => {
 
                             {!canStudy ? (
                               <span className="flex items-center gap-1 text-[11px] font-black px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40 shrink-0">
-                                <Lock className="w-3 h-3 text-amber-400" /> PRO
+                                <Lock className="w-3 h-3 text-amber-400" /> Trả phí
                               </span>
                             ) : (
                               !effectiveEnrollment && <span className="badge-duo text-xs py-0.5 px-1.5 shrink-0" style={{ backgroundColor: 'var(--duo-correct)', color: 'white', borderColor: 'var(--duo-correct-dark)' }}>FREE</span>
@@ -1195,10 +1197,11 @@ const LearnPage = () => {
         )}
       </div>
 
-      {/* PRO Upgrade Modal with VietQR & Hotline */}
-      <UpgradeProModal
+      {/* Mua khóa học (chuyển khoản SePay) */}
+      <CoursePurchaseModal
         open={showUpgradeModal}
         onOpenChange={setShowUpgradeModal}
+        course={course ? { id: Number(course.id), title: course.title, price: course.price, course_type: course.course_type } : null}
       />
     </div>
   );

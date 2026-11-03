@@ -9,6 +9,8 @@ export interface PaymentOrderRow {
   order_code: string;
   amount: number;
   plan_type: string | null;
+  course_id: number | null;
+  course_title: string | null;
   status: string | null;
   completed: boolean;
   paid_at: string | null;
@@ -45,14 +47,15 @@ export interface WebhookResult {
   order_code?: string | null;
 }
 
-/** Tạo đơn VIP (server dùng lại đơn pending của mình trong 30 phút). */
-export async function createPaymentOrder(): Promise<{
+/**
+ * Tạo đơn mua một khóa học (server lấy giá khóa và dùng lại đơn pending cùng khóa trong 30 phút).
+ * Lỗi: 409 ALREADY_ENROLLED (đã sở hữu), 400 COURSE_NOT_FOR_SALE (khóa miễn phí), 404.
+ */
+export async function createPaymentOrder(courseId: number): Promise<{
   data: PaymentOrderRow | null;
   error: ApiError | null;
 }> {
-  return toResult(
-    apiClient.post<PaymentOrderRow>("payments/orders", { plan_type: "vip_combo" }),
-  );
+  return toResult(apiClient.post<PaymentOrderRow>("payments/orders", { course_id: courseId }));
 }
 
 export async function getPaymentOrder(

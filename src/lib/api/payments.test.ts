@@ -42,15 +42,15 @@ describe("payments adapter", () => {
     vi.useRealTimers();
   });
 
-  it("createPaymentOrder gửi POST chỉ với plan_type, không gửi số tiền hay mã đơn", async () => {
+  it("createPaymentOrder gửi POST chỉ với course_id, không gửi số tiền hay mã đơn", async () => {
     const fetchMock = mockFetch([201, ORDER]);
-    const { data, error } = await createPaymentOrder();
+    const { data, error } = await createPaymentOrder(7);
     expect(error).toBeNull();
     expect(data).toEqual(ORDER);
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toBe("/api/v1/payments/orders");
     expect(init?.method).toBe("POST");
-    expect(JSON.parse(init?.body as string)).toEqual({ plan_type: "vip_combo" });
+    expect(JSON.parse(init?.body as string)).toEqual({ course_id: 7 });
   });
 
   it("getPaymentOrder / simulatePayment gọi đúng URL; lỗi không ném", async () => {

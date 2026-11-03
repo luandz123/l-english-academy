@@ -133,9 +133,6 @@ const Footer = () => {
               <Link to="/my-courses" className="hover:text-emerald-400 transition-colors">
                 Khóa học của tôi
               </Link>
-              <a href="/#combos" className="hover:text-emerald-400 transition-colors">
-                Bảng giá gói VIP
-              </a>
               <a href={zaloUrl} target="_blank" rel="noopener noreferrer" className="hover:text-emerald-400 transition-colors">
                 Hỏi đáp qua Zalo
               </a>
