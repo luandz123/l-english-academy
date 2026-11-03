@@ -57,6 +57,12 @@ export const envSchema = z
     STORAGE_PROVIDER: z.enum(['supabase', 'memory']).default('supabase'),
     SUPABASE_URL: z.string().url().optional(),
     SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
+
+    // --- Speaking (phòng luyện nói) ---
+    // Đủ cả 3 → cấp token LiveKit; thiếu → trình duyệt nối WebRTC mesh qua STUN công khai
+    LIVEKIT_API_KEY: z.string().optional(),
+    LIVEKIT_API_SECRET: z.string().optional(),
+    LIVEKIT_URL: z.string().url().optional(),
   })
   .refine(
     (env) =>
@@ -110,6 +116,10 @@ export function validateEnv(raw: Record<string, unknown>): Env {
   const cleaned = Object.fromEntries(
     Object.entries(raw).filter(([, value]) => value !== ''),
   );
+  // ConfigService.get đọc process.env trước giá trị đã validate → xóa luôn biến rỗng ở đó
+  for (const [key, value] of Object.entries(raw)) {
+    if (value === '' && process.env[key] === '') delete process.env[key];
+  }
   const result = envSchema.safeParse(cleaned);
   if (!result.success) {
     const issues = result.error.issues

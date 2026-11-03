@@ -15,9 +15,9 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
   constructor(config: ConfigService<Env, true>) {
     super({
       clientID:
-        config.get('GOOGLE_CLIENT_ID', { infer: true }) ?? 'not-configured',
+        config.get('GOOGLE_CLIENT_ID', { infer: true }) || 'not-configured',
       clientSecret:
-        config.get('GOOGLE_CLIENT_SECRET', { infer: true }) ?? 'not-configured',
+        config.get('GOOGLE_CLIENT_SECRET', { infer: true }) || 'not-configured',
       callbackURL: `${config.get('FRONTEND_URL', { infer: true })}/api/v1/auth/google/callback`,
       scope: ['email', 'profile'],
     });

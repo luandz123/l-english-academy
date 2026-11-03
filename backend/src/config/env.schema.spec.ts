@@ -33,6 +33,12 @@ describe('validateEnv', () => {
     expect(env.CORS_ORIGINS).toBe('http://localhost:8082');
   });
 
+  it('xóa biến rỗng khỏi process.env để ConfigService không đọc chuỗi rỗng', () => {
+    process.env.LIVEKIT_URL = '';
+    validateEnv({ ...BASE, LIVEKIT_URL: '' });
+    expect('LIVEKIT_URL' in process.env).toBe(false);
+  });
+
   it('biến bắt buộc để trống vẫn bị từ chối', () => {
     expect(() => validateEnv({ ...BASE, DATABASE_URL: '' })).toThrow(
       /DATABASE_URL/,
