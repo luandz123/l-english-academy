@@ -33,7 +33,7 @@ function setup(env: Partial<Record<keyof Env, unknown>>) {
     findRecentPendingOrder: jest.fn().mockResolvedValue(null),
     tryCreateOrder: jest
       .fn()
-      .mockImplementation((data) =>
+      .mockImplementation((data: { amount: number }) =>
         Promise.resolve({ ...ORDER, ...data, amount: String(data.amount) }),
       ),
     findAllOrdersWithProfiles: jest.fn().mockResolvedValue([
