@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import StudentLayout from '@/components/StudentLayout';
 import { 
   Gamepad2, 
@@ -147,20 +147,12 @@ export default function GamesHub() {
   }, [arcadeSection.games, searchTerm]);
 
   // Display user info
-  const displayName = profile?.full_name || user?.user_metadata?.full_name || 'Học Viên VIP';
+  const displayName = profile?.full_name || user?.user_metadata?.full_name || (user ? 'Học viên' : 'Khách');
   const avatarUrl =
     profile?.avatar_url ||
     user?.user_metadata?.avatar_url ||
     `https://api.dicebear.com/7.x/bottts/svg?seed=${user?.id || 'learner'}`;
 
-  // Fake / simulated social activity feed
-  const recentActivities = [
-    { id: 1, name: 'John Amir', action: 'vừa mua vật phẩm', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=70&auto=format&fit=crop&q=80', online: false },
-    { id: 2, name: 'Jeremy Ward', action: 'vừa thắng đấu hạng +1 ⭐', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=70&auto=format&fit=crop&q=80', online: false },
-    { id: 3, name: 'Francos Br.', action: 'online', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=70&auto=format&fit=crop&q=80', online: true },
-    { id: 4, name: 'Goo Abbas', action: 'vừa nạp 20 từ TOEIC', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=70&auto=format&fit=crop&q=80', online: true },
-    { id: 5, name: 'Martin C', action: 'online', avatar: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=70&auto=format&fit=crop&q=80', online: true },
-  ];
 
   // Quick topics icons
   const TOPIC_ICON_MAP: Record<string, { icon: any; color: string }> = {
@@ -488,7 +480,7 @@ export default function GamesHub() {
                       type="button"
                       onClick={() => setSelectedDifficulty(diff)}
                       className={cn(
-                        "px-2 py-0.5 rounded-lg text-[10px] font-black transition-all cursor-pointer",
+                        "min-w-[40px] min-h-[36px] px-2.5 rounded-lg text-xs font-black transition-all cursor-pointer",
                         selectedDifficulty === diff
                           ? diff === 'easy'
                             ? "bg-emerald-500 text-slate-950 shadow-sm"
@@ -790,14 +782,20 @@ export default function GamesHub() {
                 className="w-full h-full rounded-full object-cover bg-slate-950"
               />
             </div>
-            <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 border-2 border-slate-950 rounded-full" />
+            {user && <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 border-2 border-slate-950 rounded-full" />}
           </div>
           <div className="min-w-0 flex-1">
             <h4 className="text-sm font-black text-white truncate">{displayName}</h4>
-            <div className="flex items-center gap-1.5 text-[11px] text-slate-400 font-semibold">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span>Trạng thái: Trực tuyến</span>
-            </div>
+            {user ? (
+              <div className="flex items-center gap-1.5 text-[11px] text-slate-400 font-semibold">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span>Đang học</span>
+              </div>
+            ) : (
+              <Link to="/login" state={{ from: { pathname: "/games" } }} className="text-xs font-bold text-cyan-400 hover:text-cyan-300">
+                Đăng nhập để lưu tiến độ →
+              </Link>
+            )}
           </div>
         </div>
 
@@ -841,99 +839,6 @@ export default function GamesHub() {
           </div>
         </div>
 
-        {/* Hoạt động gần đây (Recent Activities) */}
-        <div className="space-y-3 p-4 rounded-3xl bg-[#0b1222] border border-slate-800 shadow-xl">
-          <div className="flex items-center justify-between">
-            <h4 className="text-xs sm:text-sm font-black text-slate-200 tracking-wider uppercase">
-              Hoạt động gần đây
-            </h4>
-            <span className="text-xs text-cyan-400 font-bold">5 bạn bè</span>
-          </div>
-
-          <div className="space-y-2.5">
-            {recentActivities.map((act) => (
-              <div key={act.id} className="flex items-center justify-between gap-3 text-xs sm:text-sm">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="relative shrink-0">
-                    <img
-                      src={act.avatar}
-                      alt={act.name}
-                      className="w-8 h-8 rounded-full object-cover border border-slate-700"
-                    />
-                    {act.online && (
-                      <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-emerald-500 border border-slate-950" />
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-xs sm:text-sm font-bold text-slate-200 truncate">{act.name}</p>
-                    <p className="text-xs text-slate-400 truncate">{act.action}</p>
-                  </div>
-                </div>
-                {act.online ? (
-                  <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                    online
-                  </span>
-                ) : (
-                  <span className="text-xs text-slate-400">vừa xong</span>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Weekly Learning Wave Chart */}
-        <div className="p-4 rounded-3xl bg-[#0b1222] border border-slate-800 shadow-xl space-y-3">
-          <div className="flex items-center justify-between text-xs sm:text-sm">
-            <span className="text-xs sm:text-sm font-black text-slate-200 uppercase tracking-wider">
-              Nhịp Độ Học Tập Tuần
-            </span>
-            <span className="text-xs font-bold text-fuchsia-400">+15% tuần này</span>
-          </div>
-
-          {/* SVG Sine Wave Graph with Glowing Node */}
-          <div className="relative py-2">
-            <svg className="w-full h-14 overflow-visible" viewBox="0 0 280 50">
-              <defs>
-                <linearGradient id="waveGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#ec4899" stopOpacity="0.8" />
-                  <stop offset="60%" stopColor="#d946ef" stopOpacity="0.95" />
-                  <stop offset="100%" stopColor="#06b6d4" stopOpacity="0.8" />
-                </linearGradient>
-                <linearGradient id="waveFill" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stopColor="#ec4899" stopOpacity="0.3" />
-                  <stop offset="100%" stopColor="#a855f7" stopOpacity="0" />
-                </linearGradient>
-              </defs>
-              <path
-                d="M 10 40 C 45 42, 70 25, 100 32 C 130 38, 160 10, 190 18 C 220 25, 245 35, 270 28"
-                fill="none"
-                stroke="url(#waveGrad)"
-                strokeWidth="3.5"
-                strokeLinecap="round"
-              />
-              <path
-                d="M 10 40 C 45 42, 70 25, 100 32 C 130 38, 160 10, 190 18 C 220 25, 245 35, 270 28 L 270 50 L 10 50 Z"
-                fill="url(#waveFill)"
-              />
-              {/* Highlight active glowing node on Wednesday/Today */}
-              <circle cx="190" cy="18" r="5" fill="#f43f5e" className="animate-pulse" />
-              <circle cx="190" cy="18" r="9" fill="#f43f5e" opacity="0.35" />
-            </svg>
-
-            {/* Days labels */}
-            <div className="flex items-center justify-between text-xs font-bold text-slate-400 pt-1">
-              <span>Sat</span>
-              <span>Sun</span>
-              <span>Mon</span>
-              <span>Tue</span>
-              <span className="px-2 py-0.5 rounded-full bg-fuchsia-500 text-white font-black text-xs shadow-[0_0_10px_rgba(217,70,239,0.5)]">
-                Wed
-              </span>
-              <span>Thu</span>
-              <span>Fri</span>
-            </div>
-          </div>
-        </div>
       </aside>
     </div>
 

@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { Skeleton } from "@/components/ui/skeleton";
 import ErrorState from "@/components/ErrorState";
+import EmptyState from "@/components/EmptyState";
 
 const FullTestList = () => {
   const { courseId } = useParams();
@@ -83,10 +84,8 @@ const FullTestList = () => {
           <EmptyState
             title="Chưa có đề thi nào"
             description="Hiện tại kho đề thi đang được chuẩn bị và cập nhật. Vui lòng quay lại sau nhé!"
-            action={{
-              label: "Quay về trang khóa học",
-              onClick: () => window.history.back(),
-            }}
+            actionLabel={"Quay về trang khóa học"}
+            onAction={() => window.history.back()}
           />
         ) : (
           <Accordion type="multiple" defaultValue={Object.keys(grouped).map((_, i) => `cat-${i}`)} className="space-y-4">

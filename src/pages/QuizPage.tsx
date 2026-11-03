@@ -16,6 +16,16 @@ import ErrorState from "@/components/ErrorState";
 import { StickyPartAudioPlayer } from "@/components/audio/StickyPartAudioPlayer";
 import { formatAudioUrl } from "@/utils/audioUrl";
 
+/** Nhãn loại câu hỏi hiển thị cho học viên (không hiện mã kỹ thuật như "multiple_choice"). */
+const questionTypeLabel = (type?: string | null): string | null => {
+  if (!type) return null;
+  if (type === "multiple_choice") return "Trắc nghiệm";
+  const part = /^part(\d)$/.exec(type);
+  if (part) return `Part ${part[1]}`;
+  if (type === "fill_blank" || type === "dictation") return "Điền từ";
+  return null;
+};
+
 const QuizPage = () => {
   const { courseId, quizId } = useParams();
   const navigate = useNavigate();
@@ -589,7 +599,7 @@ const QuizPage = () => {
                         <div className="flex items-center justify-between border-b border-border/50 pb-3">
                           <div className="flex items-center gap-2">
                             <span className="badge-duo badge-blue">Câu {q.originalIdx + 1} / {totalQ}</span>
-                            {q.question_type && <span className="text-xs font-extrabold text-muted-foreground uppercase tracking-wider bg-muted px-2.5 py-1 rounded-full">{q.question_type}</span>}
+                            {questionTypeLabel(q.question_type) && <span className="text-xs font-extrabold text-muted-foreground uppercase tracking-wider bg-muted px-2.5 py-1 rounded-full">{questionTypeLabel(q.question_type)}</span>}
                           </div>
                           
                           {/* Flag for review button */}
@@ -631,12 +641,15 @@ const QuizPage = () => {
                             // Hide text for Part 1 and Part 2 (force listening)
                             const isPart1ByTitle = quiz?.title?.toLowerCase().includes("part 1") || quiz?.title?.toLowerCase().includes("photos of people") || quiz?.title?.toLowerCase().includes("tranh");
                             const isPart2ByTitle = quiz?.title?.toLowerCase().includes("part 2") || quiz?.title?.toLowerCase().includes("hỏi đáp");
-                            const hideText = 
+                            // Chỉ ẩn chữ khi thật sự có audio để nghe; không có audio thì học viên phải đọc được đáp án
+                            const isRealAudio = (u?: string | null) => !!u && u !== "null";
+                            const hasAudio = isRealAudio(q.audio_url) || isRealAudio(currentGroup?.audio_url) || isRealAudio(quiz?.audio_url);
+                            const hideText = hasAudio && (
                               q.question_type === "part1" || 
                               q.question_type === "part2" ||
                               (isPart1ByTitle && q.question_type === "multiple_choice") ||
                               (isPart2ByTitle && q.question_type === "multiple_choice") ||
-                              (!!quiz?.audio_url && quiz.audio_url !== "null" && q.question_type === "multiple_choice" && !!q.image_url);
+                              (!!quiz?.audio_url && quiz.audio_url !== "null" && q.question_type === "multiple_choice" && !!q.image_url));
 
                             return (
                               <label
@@ -859,15 +872,15 @@ const QuizPage = () => {
       {showConfirm && (
         <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="p-6 max-w-sm w-full space-y-4 animate-in zoom-in-95 duration-200 bg-card rounded-2xl border border-border/70 shadow-soft-2xl">
-            <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto mb-2 shadow-soft-xs">
-               <CheckCircle className="w-8 h-8" />
+            <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-2 shadow-soft-xs ${unanswered > 0 ? "bg-amber-500/10 text-amber-500 dark:text-amber-400" : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"}`}>
+               {unanswered > 0 ? <AlertTriangle className="w-8 h-8" /> : <CheckCircle className="w-8 h-8" />}
             </div>
             <h3 className="font-bold text-xl text-center text-foreground">Xác nhận nộp bài</h3>
             
             <div className="bg-muted/40 rounded-xl p-4 space-y-2 border border-border/60 text-sm">
               <div className="flex justify-between items-center font-semibold">
                 <span className="text-muted-foreground">Đã trả lời:</span>
-                <span className="text-emerald-600 dark:text-emerald-400 font-bold text-base">{answeredCount}/{totalQ}</span>
+                <span className={`font-bold text-base ${unanswered > 0 ? "text-amber-500 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"}`}>{answeredCount}/{totalQ}</span>
               </div>
               {flaggedCount > 0 && (
                 <div className="flex justify-between items-center font-semibold">

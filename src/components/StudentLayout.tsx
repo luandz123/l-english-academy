@@ -4,7 +4,8 @@ import {
   BookOpen, 
   GraduationCap,
   User, 
-  LogOut, 
+  LogOut,
+  LogIn,
   Menu, 
   X, 
   ChevronRight, 
@@ -49,8 +50,8 @@ const primaryNavItems = [
   { to: "/library", label: "Kho khóa học", icon: BookOpen },
   { to: "/my-courses", label: "Khóa học của tôi", icon: GraduationCap },
   { to: "/fulltests", label: "Luyện đề", icon: FileCheck2 },
-  { to: "/listening", label: "Nghe Chép Chính Tả", icon: Headphones },
-  { to: "/part2-coach", label: "Luyện Nghe Từng Phần", icon: Zap },
+  { to: "/listening", label: "Chép Chính Tả", icon: Headphones },
+  { to: "/part2-coach", label: "Phản Xạ Part 2", icon: Zap },
   { to: "/games", label: "Trò Chơi", icon: Gamepad2 },
 ];
 
@@ -60,8 +61,8 @@ const mobileNavItems = [
   { to: "/dashboard", label: "Bàn học", icon: LayoutDashboard },
   { to: "/my-courses", label: "Của tôi", icon: GraduationCap },
   { to: "/fulltests", label: "Luyện đề", icon: FileCheck2 },
-  { to: "/listening", label: "Chép chính tả", icon: Headphones },
-  { to: "/part2-coach", label: "Từng phần", icon: Zap, isHighlight: true },
+  { to: "/listening", label: "Chính tả", icon: Headphones },
+  { to: "/part2-coach", label: "Part 2", icon: Zap, isHighlight: true },
 ];
 
 const StudentLayout = ({ children }: { children: React.ReactNode }) => {
@@ -114,9 +115,9 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
     return () => window.removeEventListener("open-upgrade-pro", handleOpenUpgrade);
   }, []);
 
-  const displayName = profile?.full_name || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Học viên";
+  const displayName = profile?.full_name || user?.user_metadata?.full_name || user?.email?.split("@")[0] || (user ? "Học viên" : "Khách");
   const initials = displayName.charAt(0).toUpperCase();
-  const email = user?.email || "";
+  const email = user?.email || (user ? "" : "Chưa đăng nhập");
   const avatarUrl =
     profile?.avatar_url ||
     (user?.user_metadata?.avatar_url as string) ||
@@ -125,7 +126,7 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
 
   const handleSignOut = async () => {
     await signOut();
-    navigate("/login");
+    navigate("/");
   };
 
   const isPart2Active = location.pathname.startsWith("/part2-coach");
@@ -135,25 +136,49 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
   const isMyCoursesActive = location.pathname === "/my-courses";
   const isGamesActive = location.pathname.startsWith("/games");
 
+  // Breadcrumb: bỏ đoạn ID (số), nhãn tiếng Việt, chỉ tạo link tới trang có thật
+  const CRUMB_LABELS: Record<string, string> = {
+    courses: "Khóa học của tôi",
+    dashboard: "Bàn học",
+    "my-courses": "Khóa học của tôi",
+    profile: "Hồ sơ",
+    learn: "Bài học",
+    quiz: "Bài tập",
+    result: "Kết quả",
+    dictation: "Chép chính tả",
+    fulltest: "Full Test",
+    "part2-coach": "Phản xạ Part 2",
+    fulltests: "Luyện đề",
+    listening: "Chép chính tả",
+    library: "Kho khóa học",
+    games: "Trò chơi",
+    "word-shooter": "Phi cơ diệt từ vựng",
+    "word-defense": "Word Defense",
+    vocab: "Từ vựng",
+    "vocab-lesson": "Bài từ vựng",
+    speaking: "Phòng luyện nói",
+  };
+  // Đoạn đường dẫn có trang riêng (bấm được); các đoạn khác chỉ hiển thị chữ
+  const LINKABLE_SEGMENTS = new Set([
+    "dashboard", "my-courses", "profile", "learn", "fulltest", "fulltests", "listening",
+    "library", "games", "part2-coach", "vocab", "speaking", "word-shooter", "word-defense",
+  ]);
   const pathSegments = location.pathname.split("/").filter(Boolean);
-  const breadcrumbs = pathSegments.map((segment, index) => {
-    const path = `/${pathSegments.slice(0, index + 1).join("/")}`;
-    let label = segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, " ");
-    if (segment === "courses") label = "Khóa học";
-    if (segment === "dashboard") label = "Bàn học";
-    if (segment === "my-courses") label = "Khóa học của tôi";
-    if (segment === "profile") label = "Hồ sơ";
-    if (segment === "learn") label = "Bài học";
-    if (segment === "quiz") label = "Bài tập";
-    if (segment === "dictation") label = "Luyện nghe";
-    if (segment === "fulltest") label = "Full Test";
-    if (segment === "part2-coach") label = "Luyện Nghe Từng Bước";
-    if (segment === "fulltests") label = "Luyện đề";
-    if (segment === "listening") label = "Nghe Chép Chính Tả";
-    if (segment === "library") label = "Kho khóa học";
-    if (segment === "games") label = "Trò Chơi";
-    return { path, label };
-  });
+  const breadcrumbs = pathSegments
+    .map((segment, index) => {
+      if (/^\d+$/.test(segment) || /^[0-9a-f-]{20,}$/i.test(segment)) return null;
+      // Đoạn ngay sau một đoạn số (vd. quizId) là bài cụ thể — vẫn hiện nhãn
+      let path = `/${pathSegments.slice(0, index + 1).join("/")}`;
+      if (segment === "courses") path = "/my-courses";
+      const label =
+        CRUMB_LABELS[segment] ||
+        segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, " ");
+      const linkable = segment === "courses" || LINKABLE_SEGMENTS.has(segment);
+      return { path, label, linkable };
+    })
+    .filter((c): c is { path: string; label: string; linkable: boolean } => c !== null)
+    // Bỏ nhãn lặp liền nhau (vd. "Khóa học của tôi" khi đi từ /courses)
+    .filter((c, i, arr) => i === 0 || arr[i - 1].label !== c.label);
 
   return (
     <div className="min-h-screen flex bg-[#050914] text-slate-100 selection:bg-cyan-500/30 selection:text-cyan-200 relative overflow-x-hidden font-sans">
@@ -180,7 +205,7 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
         {/* Logo */}
         <div className={cn("h-16 border-b border-slate-800/80 flex items-center justify-between", isCollapsed ? "px-3 justify-center" : "px-5")}>
           <Logo imgClassName="w-8 h-8" showText={!isCollapsed} />
-          <Button variant="ghost" size="icon" className="md:hidden h-8 w-8 text-muted-foreground" onClick={() => setSidebarOpen(false)}>
+          <Button variant="ghost" size="icon" className="md:hidden h-10 w-10 text-muted-foreground" onClick={() => setSidebarOpen(false)} aria-label="Đóng menu">
             <X className="w-4 h-4" />
           </Button>
           <Button
@@ -379,17 +404,32 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
             <Home className="w-4 h-4 shrink-0 text-cyan-400" />
             {!isCollapsed && <span>Về Trang chủ</span>}
           </Link>
-          <button
-            onClick={handleSignOut}
-            title={isCollapsed ? "Đăng xuất" : undefined}
-            className={cn(
-              "flex items-center rounded-xl text-xs sm:text-sm font-semibold text-slate-300 hover:text-rose-400 hover:bg-rose-950/30 transition-all active:scale-95 w-full text-left",
-              isCollapsed ? "justify-center p-2.5" : "gap-2.5 px-3 py-2.5"
-            )}
-          >
-            <LogOut className="w-4 h-4 shrink-0 text-rose-500" />
-            {!isCollapsed && <span>Đăng xuất</span>}
-          </button>
+          {user ? (
+            <button
+              onClick={handleSignOut}
+              title={isCollapsed ? "Đăng xuất" : undefined}
+              className={cn(
+                "flex items-center rounded-xl text-xs sm:text-sm font-semibold text-slate-300 hover:text-rose-400 hover:bg-rose-950/30 transition-all active:scale-95 w-full text-left",
+                isCollapsed ? "justify-center p-2.5" : "gap-2.5 px-3 py-2.5"
+              )}
+            >
+              <LogOut className="w-4 h-4 shrink-0 text-rose-500" />
+              {!isCollapsed && <span>Đăng xuất</span>}
+            </button>
+          ) : (
+            <Link
+              to="/login"
+              state={{ from: location }}
+              title={isCollapsed ? "Đăng nhập" : undefined}
+              className={cn(
+                "flex items-center rounded-xl text-xs sm:text-sm font-semibold text-cyan-300 hover:text-white hover:bg-cyan-950/40 transition-all active:scale-95 w-full text-left",
+                isCollapsed ? "justify-center p-2.5" : "gap-2.5 px-3 py-2.5"
+              )}
+            >
+              <LogIn className="w-4 h-4 shrink-0 text-cyan-400" />
+              {!isCollapsed && <span>Đăng nhập</span>}
+            </Link>
+          )}
         </div>
       </aside>
 
@@ -403,7 +443,7 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
               <Logo imgClassName="w-7 h-7" />
             </div>
 
-            <Button variant="ghost" size="icon" className="md:hidden h-8 w-8 text-slate-400 hover:text-white" onClick={() => setSidebarOpen(true)} title="Mở menu">
+            <Button variant="ghost" size="icon" className="md:hidden h-10 w-10 text-slate-400 hover:text-white" onClick={() => setSidebarOpen(true)} title="Mở menu" aria-label="Mở menu">
               <Menu className="w-4 h-4" />
             </Button>
 
@@ -423,17 +463,22 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
                 <span>Trang chủ</span>
               </Link>
               {breadcrumbs.map((crumb, i) => (
-                <React.Fragment key={crumb.path}>
+                <React.Fragment key={`${crumb.path}-${i}`}>
                   <ChevronRight className="w-3.5 h-3.5 text-slate-600 shrink-0" />
-                  <Link 
-                    to={crumb.path} 
-                    className={cn(
-                      "truncate max-w-[150px] transition-colors",
-                      i === breadcrumbs.length - 1 ? "text-cyan-300 font-semibold" : "hover:text-slate-200"
-                    )}
-                  >
-                    {crumb.label}
-                  </Link>
+                  {i === breadcrumbs.length - 1 || !crumb.linkable ? (
+                    <span
+                      className={cn(
+                        "truncate max-w-[150px]",
+                        i === breadcrumbs.length - 1 ? "text-cyan-300 font-semibold" : "text-slate-400"
+                      )}
+                    >
+                      {crumb.label}
+                    </span>
+                  ) : (
+                    <Link to={crumb.path} className="truncate max-w-[150px] transition-colors hover:text-slate-200">
+                      {crumb.label}
+                    </Link>
+                  )}
                 </React.Fragment>
               ))}
             </div>
@@ -462,7 +507,17 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
 
             <GamificationChips />
 
-            {/* User Profile Dropdown */}
+            {/* User Profile Dropdown (khách chưa đăng nhập thấy nút Đăng nhập) */}
+            {!user ? (
+              <Link
+                to="/login"
+                state={{ from: location }}
+                className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold transition-colors"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span>Đăng nhập</span>
+              </Link>
+            ) : (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-2 p-1 rounded-full hover:ring-2 hover:ring-primary/20 transition-all outline-none cursor-pointer">
@@ -519,6 +574,7 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            )}
           </div>
         </header>
 

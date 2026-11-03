@@ -337,6 +337,19 @@ const FullTestExam = () => {
     });
   }, [allQuestions, selectedParts]);
 
+  // Chỉ hiện tab cho Part thực sự có câu hỏi trong đề (tránh tab "Part 1 · 0/0 câu")
+  const partsWithQuestions = useMemo(
+    () => selectedParts.filter((part) => examQuestions.some((q: { part_number: number }) => q.part_number === part)),
+    [selectedParts, examQuestions]
+  );
+
+  // Tab đang chọn luôn là một Part có câu hỏi (mặc định Part đầu tiên có câu)
+  useEffect(() => {
+    if (partsWithQuestions.length > 0 && !partsWithQuestions.includes(palettePartTab)) {
+      setPalettePartTab(partsWithQuestions[0]);
+    }
+  }, [partsWithQuestions, palettePartTab]);
+
   // Detect single part shared audio
   const partAudioInfo = useMemo(() => {
     const map: Record<number, { isSinglePartAudio: boolean; audioUrl: string | null; count: number; questionRange: string }> = {};
@@ -900,7 +913,7 @@ const FullTestExam = () => {
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <label className="text-xs font-black uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-                <Sparkles className="w-4 h-4 text-cyan-400" /> Chọn Cấu Hình Phòng Thi (Quick Presets)
+                <Sparkles className="w-4 h-4 text-cyan-400" /> Chọn cấu hình phòng thi
               </label>
               <span className="text-[11px] text-cyan-400 font-semibold">Khuyên dùng</span>
             </div>
@@ -1358,7 +1371,7 @@ const FullTestExam = () => {
 
         {/* Center: Part Switcher Chips for Top Quick Jump */}
         <div className="hidden xl:flex items-center gap-1">
-          {selectedParts.map((part) => (
+          {partsWithQuestions.map((part) => (
             <button
               key={part}
               onClick={() => goToPart(part)}
@@ -1472,7 +1485,7 @@ const FullTestExam = () => {
 
             {/* Part Horizontal Tabs */}
             <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-none">
-              {selectedParts.map((part) => {
+              {partsWithQuestions.map((part) => {
                 const partQuestions = examQuestions.filter((q: any) => q.part_number === part);
                 const partDone = partQuestions.filter((q: any) => answers[q.sessionIdx] !== undefined).length;
                 const isTabActive = palettePartTab === part;
@@ -1964,7 +1977,7 @@ const FullTestExam = () => {
 
             {/* Mobile Part Tabs */}
             <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-none">
-              {selectedParts.map((part) => (
+              {partsWithQuestions.map((part) => (
                 <button
                   key={part}
                   onClick={() => setPalettePartTab(part)}

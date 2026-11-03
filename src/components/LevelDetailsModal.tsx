@@ -78,7 +78,7 @@ export const LevelDetailsModal: React.FC<LevelDetailsModalProps> = ({
       color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/30",
     },
     {
-      title: "Luyện Nghe Từng Bước (Part 2 Coach)",
+      title: "Phản Xạ Part 2",
       xp: "+200 XP",
       icon: Zap,
       color: "text-orange-400 bg-orange-500/10 border-orange-500/30",

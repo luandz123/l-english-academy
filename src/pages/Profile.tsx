@@ -190,20 +190,21 @@ const Profile = () => {
   // =========================================================================
   const {
     data: dbStats = {
-      totalQuestions: 24382,
-      listeningQuestions: 12676,
-      readingQuestions: 11706,
-      totalFullTests: 55,
+      totalQuestions: 0,
+      listeningQuestions: 0,
+      readingQuestions: 0,
+      totalFullTests: 0,
     },
   } = useQuery({
     queryKey: ["system-db-stats"],
     queryFn: async () => {
       const { data } = await getAssessmentStatsOverview();
       return {
-        totalQuestions: data?.total_questions || 24382,
-        listeningQuestions: data?.listening_questions || 12676,
-        readingQuestions: data?.reading_questions || 11706,
-        totalFullTests: data?.total_full_tests || 55,
+        // Số thật từ server; không dùng số mặc định viết cứng
+        totalQuestions: data?.total_questions ?? 0,
+        listeningQuestions: data?.listening_questions ?? 0,
+        readingQuestions: data?.reading_questions ?? 0,
+        totalFullTests: data?.total_full_tests ?? 0,
       };
     },
     staleTime: 1000 * 60 * 30, // 30 phút
@@ -1128,7 +1129,7 @@ const Profile = () => {
 
                   <div className="space-y-0.5">
                     <span className="text-[11px] font-semibold text-muted-foreground">
-                      Huy hiệu gần nhất
+                      {unlockedBadges.length > 0 ? "Huy hiệu gần nhất" : "Huy hiệu đầu tiên cần đạt"}
                     </span>
                     <h4 className="text-sm font-black text-foreground leading-snug">
                       {mostRecentBadge?.title || "Tập Sự Khởi Đầu"}
