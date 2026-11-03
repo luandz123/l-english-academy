@@ -22,7 +22,7 @@ const Register = () => {
   // Redirect if already logged in
   useEffect(() => {
     if (user) {
-      navigate(isAdmin ? "/admin/dashboard" : "/profile", { replace: true });
+      navigate(isAdmin ? "/admin/dashboard" : "/dashboard", { replace: true });
     }
   }, [user, isAdmin, navigate]);
 
@@ -67,7 +67,7 @@ const Register = () => {
         }
         
         toast({ title: "Đăng ký thành công!", description: "Chào mừng bạn đến với L-English!" });
-        navigate("/profile", { replace: true });
+        navigate("/dashboard", { replace: true });
       } else {
         setLoading(false);
         toast({ 
@@ -192,7 +192,7 @@ const Register = () => {
               <button
                 type="button"
                 onClick={() => setShowPassword((p) => !p)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-cyan-300 transition-colors p-1"
+                className="absolute right-1 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-lg text-slate-400 hover:text-cyan-300 transition-colors"
                 aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -260,7 +260,7 @@ const Register = () => {
             Đã có tài khoản?{" "}
             <Link
               to="/login"
-              className="text-cyan-400 font-bold hover:text-cyan-300 hover:underline"
+              className="text-cyan-400 font-bold hover:text-cyan-300 hover:underline inline-flex items-center min-h-[40px] px-1 -mx-1"
             >
               Đăng nhập
             </Link>

@@ -25,6 +25,10 @@ export function getFriendlyErrorMessage(error: any): string {
     return "Tài khoản chưa được xác thực email. Vui lòng kiểm tra hộp thư (hoặc mục Spam) để kích hoạt tài khoản.";
   }
 
+  if (code === "provider_disabled" || msg.includes("provider is not enabled")) {
+    return "Đăng nhập bằng Google đang tạm tắt. Bạn vui lòng đăng nhập bằng email và mật khẩu, hoặc nhắn Zalo 0334 729 066 để được hỗ trợ.";
+  }
+
   if (msg.includes("password should be at least")) {
     return "Mật khẩu quá ngắn. Vui lòng đặt mật khẩu tối thiểu 6 ký tự để đảm bảo an toàn.";
   }

@@ -257,6 +257,20 @@ export const authClient = {
     });
     const base = (import.meta.env.VITE_API_URL ?? "/api/v1").replace(/\/+$/, "");
     const url = `${base}/auth/${params.provider}?${query.toString()}`;
+    // Kiểm tra trước: nếu server chưa bật đăng nhập Google (503) thì báo lỗi thân thiện
+    // thay vì chuyển cả trang sang một trang JSON lỗi. Server đã bật thì trả 302 (opaqueredirect).
+    try {
+      const probe = await fetch(url, { method: "GET", redirect: "manual", credentials: "include" });
+      if (probe.type !== "opaqueredirect" && !probe.ok && probe.status >= 400) {
+        const body = await probe.json().catch(() => ({}));
+        return {
+          data: { provider: params.provider, url },
+          error: new ApiError(probe.status, body?.code || "UNKNOWN", body?.message || `HTTP ${probe.status}`),
+        };
+      }
+    } catch {
+      /* lỗi mạng khi kiểm tra trước: vẫn thử chuyển trang như cũ */
+    }
     window.location.assign(url);
     return { data: { provider: params.provider, url }, error: null };
   },
