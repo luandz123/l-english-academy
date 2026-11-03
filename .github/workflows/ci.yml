@@ -74,19 +74,8 @@ jobs:
       - name: Build
         run: npm run build
 
-  ui-diff:
-    # Chặn thay đổi JSX/className/câu chữ/queryKey trong PR (REFACTOR_PLAN §5)
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Check UI diff
-        run: node scripts/check-ui-diff.mjs origin/${{ github.base_ref }} HEAD
+  # Job ui-diff (chặn sửa JSX/className/câu chữ) đã gỡ khi chuyển sang giai đoạn UI/UX (AGENTS.md).
+  # Script vẫn còn ở scripts/check-ui-diff.mjs nếu cần chạy tay.
 
   deploy-staging:
     # Chỉ khi push lên nhánh refactor và cả frontend + backend đều xanh.

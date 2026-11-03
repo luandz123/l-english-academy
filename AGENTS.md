@@ -1,11 +1,21 @@
 # Bối cảnh
-Refactor L-English từ React + Supabase gọi trực tiếp sang React + NestJS + PostgreSQL (modular monolith). Trước mỗi task đọc: docs/HLD.md, docs/PARITY.md, docs/PROGRESS.md, docs/OPEN_QUESTIONS.md và phần liên quan trong docs/CURRENT_STATE.md.
-Code cũ (src/, supabase/, api/) là nguồn sự thật về hành vi. Không xóa cho tới khi PROGRESS.md ghi đã parity toàn bộ.
+Giai đoạn refactor (React + Supabase → React + NestJS + PostgreSQL) đã xong và cutover lên production (docs/PROGRESS.md, docs/CUTOVER.md).
+**Giai đoạn hiện tại: tối ưu UI/UX** (từ 2026-11-03). Trước mỗi task đọc docs/UX_REVIEW.md và docs/PROGRESS.md.
+Tài liệu refactor (HLD, PARITY, OPEN_QUESTIONS, CURRENT_STATE) vẫn dùng làm tham chiếu cho tầng dữ liệu.
 
-# Luật cứng
-1. Không sửa JSX, CSS, class Tailwind, layout, câu chữ giao diện. Chỉ sửa tầng dữ liệu (hooks, services, api client).
+# Luật giai đoạn UI/UX
+1. Được sửa JSX, CSS, class Tailwind, layout, câu chữ giao diện để giải quyết vấn đề trải nghiệm đã ghi trong docs/UX_REVIEW.md hoặc chủ dự án yêu cầu.
+2. Không đổi route, query key TanStack Query hay hợp đồng API nếu không bắt buộc; nếu phải đổi thì ghi rõ trong commit.
+3. Không thêm tính năng mới ngoài yêu cầu. Thay đổi nội dung/sản phẩm (bỏ tính năng, đổi tên, đổi lời hứa) phải có quyết định của chủ dự án, ghi vào docs/UX_REVIEW.md.
+4. Giữ phong cách hiện có (nền tối, màu cyan/xanh, component shadcn/ui). Không thêm thư viện UI mới.
+5. Không hiển thị số liệu giả như số thật (bạn bè giả, tiến độ bịa, số đếm viết cứng).
+6. Số liên hệ chính thức: hotline/Zalo **0334 729 066**.
+7. Kiểm tra trên cả máy tính (1440px) và điện thoại (390px); vùng bấm trên điện thoại tối thiểu ~40px.
+
+# Luật cứng giai đoạn refactor (vẫn áp dụng cho tầng dữ liệu và backend)
+1. (Hết hiệu lực từ giai đoạn UI/UX, xem luật giai đoạn UI/UX ở trên.)
 2. Tầng dữ liệu mới trả về đúng shape cũ để component không phải đổi.
-3. Không thêm, bớt hay 'cải thiện' chức năng. Gặp hành vi lạ thì ghi OPEN_QUESTIONS.md và giữ hành vi cũ, không tự quyết.
+3. Ở tầng dữ liệu/backend: không thêm, bớt chức năng khi chưa có quyết định của chủ dự án. Gặp hành vi lạ thì ghi lại, không tự quyết.
 4. Mỗi policy RLS cũ phải có kiểm tra tương ứng ở backend và có test.
 5. Điểm số, đáp án đúng, quyền truy cập, giá tiền, XP: luôn tính ở server. Client không gửi các giá trị này.
 6. Mỗi task chỉ một module. Chỉ sửa module khác khi tối thiểu cần thiết và phải ghi rõ.
@@ -23,4 +33,4 @@ Code cũ (src/, supabase/, api/) là nguồn sự thật về hành vi. Không x
 - Gọi API chỉ qua src/lib/api. Component không gọi fetch trực tiếp. Giữ nguyên query key và cách dùng TanStack Query hiện có.
 
 # Definition of Done
-Lint, typecheck, test, build pass (dán output thật). Visual test không lệch. PARITY.md tick đúng dòng kèm file cũ và file mới. Swagger cập nhật. PROGRESS.md cập nhật. Commit theo Conventional Commits.
+Lint, typecheck, test, build pass (dán output thật). Với task UI/UX: ảnh trước/sau ở desktop và mobile, cập nhật trạng thái mục trong docs/UX_REVIEW.md. Với task backend: Swagger cập nhật, test phân quyền. PROGRESS.md cập nhật. Commit theo Conventional Commits.
