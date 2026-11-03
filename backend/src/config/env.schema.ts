@@ -105,7 +105,12 @@ export const envSchema = z
 export type Env = z.infer<typeof envSchema>;
 
 export function validateEnv(raw: Record<string, unknown>): Env {
-  const result = envSchema.safeParse(raw);
+  // Biến để trống (vd. `GOOGLE_CLIENT_ID=` chép từ .env.example) coi như chưa đặt,
+  // để không làm sập app (Google OAuth trả 503, SePay từ chối webhook như khi thiếu biến).
+  const cleaned = Object.fromEntries(
+    Object.entries(raw).filter(([, value]) => value !== ''),
+  );
+  const result = envSchema.safeParse(cleaned);
   if (!result.success) {
     const issues = result.error.issues
       .map((i) => `  - ${i.path.join('.')}: ${i.message}`)
