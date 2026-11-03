@@ -16,6 +16,7 @@ Cách rà soát: chạy app cục bộ (Postgres + NestJS + Vite) với dữ li�
 | D6 | (2026-11-03) **Bỏ gói nâng cấp PRO/VIP**, chuyển thanh toán sang **mua từng khóa học**. |
 | D7 | (2026-11-03) Làm luôn **Phòng luyện nói** (module backend T-031 + frontend T-032). |
 | D8 | (2026-11-03) Banner trang chủ dùng **nền động** (bầu trời đêm có sao băng, núi và rừng thông) với nội dung thật đặt lên trên, thay tấm ảnh có chữ vẽ sẵn. |
+| D9 | (2026-11-03) Nền banner **do admin cấu hình** (tải ảnh/GIF/video hoặc dán link, bật/tắt, độ tối, thứ tự) và **tự chuyển** giữa các nền theo số giây admin đặt. |
 
 ## Trạng thái từng mục
 
@@ -71,6 +72,7 @@ Cách rà soát: chạy app cục bộ (Postgres + NestJS + Vite) với dữ li�
 | F10 | Vercel function thanh toán cũ (`api/payment-webhook.ts`, `check-payment.ts`, `simulate-payment.ts`) vẫn được deploy, dùng Supabase và anon key viết cứng; trang admin hiển thị URL webhook cũ | ✅ Xóa (chủ dự án yêu cầu); trang cài đặt hiển thị và kiểm tra webhook mới `/api/v1/payments/webhooks/sepay` (OPEN_QUESTIONS #30) |
 | F11 | Phòng luyện nói: nút "Tạo phòng và bắt đầu nói" bị khóa (mờ) cho tới khi nhập tên phòng mà không báo gì | ✅ Nút luôn bấm được; thiếu tên → báo lỗi ngay dưới ô tên và đưa con trỏ vào ô (`SpeakingCreateRoomCard.tsx`) |
 | F12 | Banner trang chủ là ảnh tĩnh có chữ và nút vẽ sẵn (khó đọc trên điện thoại) | ✅ D8: `HeroCarousel.tsx` dựng nền động bằng CSS/SVG (12 sao băng, 70 sao lấp lánh, núi, rừng thông, sương), chữ/nút/hotline là HTML thật; QR Zalo ảnh nét riêng (`zalo-qr.png`); tắt chuyển động khi máy bật giảm chuyển động. Ảnh mẫu chủ dự án gửi chỉ còn 1 khung hình và 400×300 px nên dựng lại bằng code |
+| F13 | D9: cấu hình `hero_banner` trong `homepage_showcase_config` (`normalizeHeroBanner` lọc mục lỗi, luôn còn ≥ 1 nền); admin: khối "Nền Banner Đầu Trang Chủ" ở tab Kệ Trang Chủ (`HeroBannerManager.tsx`, tải lên thư mục `uploads` qua API media sẵn có); trang chủ chuyển mờ dần giữa các nền, chấm chọn nền, dừng khi rê chuột/tab ẩn/giảm chuyển động | ✅ |
 
 ### Bật đăng nhập Google (việc của chủ dự án, không sửa bằng code)
 1. Google Cloud Console → project L-English → **APIs & Services → Credentials → Create credentials → OAuth client ID** → loại *Web application*.

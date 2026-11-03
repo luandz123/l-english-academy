@@ -1,5 +1,12 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import {
+  DEFAULT_HOMEPAGE_CONFIG,
+  getHomepageShowcaseConfig,
+  type HeroBackground,
+  type HomepageShowcaseConfig,
+} from "@/services/homepageShowcaseService";
 import { ArrowRight, BadgeCheck, FileCheck2, Headphones, Sparkles, Trophy } from "lucide-react";
 import teacherImg from "@/assets/hero-teacher.webp";
 import zaloQrImg from "@/assets/zalo-qr.png";
@@ -45,11 +52,8 @@ const FEATURES = [
   { tag: "NGHE NÓI", text: "Nghe chép chính tả & Luyện nghe từng bước", href: "#section-listening", id: "section-listening" },
 ] as const;
 
-/**
- * Banner trang chủ: bầu trời đêm động (sao băng, sao lấp lánh, núi và rừng thông, sương trôi)
- * với nội dung thật đặt lên trên — thay tấm ảnh có chữ vẽ sẵn (chữ đọc được trên điện thoại, nút bấm được).
- */
-export const HeroCarousel = () => {
+/** Nền động dựng sẵn: bầu trời đêm (sao băng, sao lấp lánh), núi, rừng thông, sương trôi. */
+const NightSkyBackground = () => {
   const stars = useMemo(() => {
     const rand = seeded(7);
     return Array.from({ length: 70 }, () => ({
@@ -76,74 +80,132 @@ export const HeroCarousel = () => {
   const forestNear = useMemo(() => pineForest(1200, 285, 46, 70, 140, 11), []);
 
   return (
+    <div className="absolute inset-0">
+      {/* Bầu trời */}
+      <div className="absolute inset-0 bg-gradient-to-b from-[#060b1f] via-[#121a45] to-[#1d1f4f]" />
+      <div className="absolute left-1/2 bottom-[18%] -translate-x-1/2 w-[120%] h-[55%] rounded-[50%] bg-[radial-gradient(ellipse_at_center,rgba(56,189,248,0.22),rgba(129,140,248,0.12)_45%,transparent_70%)]" />
+
+      {/* Sao lấp lánh */}
+      {stars.map((s, i) => (
+        <span
+          key={i}
+          className="hero-star absolute rounded-full bg-indigo-100"
+          style={{
+            left: `${s.left}%`,
+            top: `${s.top}%`,
+            width: s.size,
+            height: s.size,
+            boxShadow: s.size >= 3 ? "0 0 6px 1px rgba(199,210,254,0.8)" : undefined,
+            ["--dur" as string]: `${s.dur}s`,
+            ["--delay" as string]: `${s.delay}s`,
+          }}
+        />
+      ))}
+
+      {/* Sao băng */}
+      {meteors.map((m, i) => (
+        <span
+          key={i}
+          className="hero-shooting-star"
+          style={{
+            left: `${m.left}%`,
+            top: `${m.top}%`,
+            ["--len" as string]: `${m.len}px`,
+            ["--dur" as string]: `${m.dur}s`,
+            ["--delay" as string]: `${m.delay}s`,
+          }}
+        />
+      ))}
+
+      {/* Núi và rừng thông */}
+      <svg className="absolute bottom-0 left-0 w-full h-[46%] sm:h-[52%]" viewBox="0 0 1200 300" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="hero-mtn-far" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#5b5fc7" stopOpacity="0.9" />
+            <stop offset="100%" stopColor="#252b6e" stopOpacity="0.95" />
+          </linearGradient>
+          <linearGradient id="hero-mtn-mid" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#1f2a63" />
+            <stop offset="100%" stopColor="#111842" />
+          </linearGradient>
+        </defs>
+        <path
+          d="M0 210 L120 150 L210 185 L330 95 L420 150 L520 120 L640 40 L760 140 L860 110 L980 170 L1080 120 L1200 160 L1200 300 L0 300 Z"
+          fill="url(#hero-mtn-far)"
+        />
+        <path
+          d="M0 240 L140 200 L260 225 L380 175 L520 220 L650 185 L780 230 L900 195 L1040 228 L1200 200 L1200 300 L0 300 Z"
+          fill="url(#hero-mtn-mid)"
+        />
+        <path d={forestFar} fill="#0b1233" />
+        <path d={forestNear} fill="#050914" />
+      </svg>
+
+      {/* Sương trôi */}
+      <div className="hero-fog absolute -left-[10%] bottom-[10%] w-[120%] h-24 bg-[radial-gradient(ellipse_at_center,rgba(148,163,255,0.18),transparent_70%)] blur-2xl" />
+    </div>
+  );
+};
+
+/** Một lớp nền theo cấu hình admin. */
+const BackgroundLayer = ({ bg, active }: { bg: HeroBackground; active: boolean }) => (
+  <div
+    className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${active ? "opacity-100" : "opacity-0"}`}
+    aria-hidden="true"
+  >
+    {bg.type === "night_sky" ? (
+      <NightSkyBackground />
+    ) : bg.type === "video" ? (
+      <video className="absolute inset-0 w-full h-full object-cover" src={bg.url} autoPlay muted loop playsInline preload="metadata" />
+    ) : (
+      <img className="absolute inset-0 w-full h-full object-cover" src={bg.url} alt="" loading={active ? "eager" : "lazy"} draggable={false} />
+    )}
+    {bg.dim > 0 && <div className="absolute inset-0 bg-[#050914]" style={{ opacity: bg.dim / 100 }} />}
+  </div>
+);
+
+/**
+ * Banner trang chủ: bầu trời đêm động (sao băng, sao lấp lánh, núi và rừng thông, sương trôi)
+ * với nội dung thật đặt lên trên — thay tấm ảnh có chữ vẽ sẵn (chữ đọc được trên điện thoại, nút bấm được).
+ */
+export const HeroCarousel = () => {
+  const { data: config = DEFAULT_HOMEPAGE_CONFIG } = useQuery<HomepageShowcaseConfig>({
+    queryKey: ["homepage-showcase-config"],
+    queryFn: () => getHomepageShowcaseConfig(),
+  });
+  const backgrounds = useMemo(() => {
+    const enabled = (config.hero_banner ?? DEFAULT_HOMEPAGE_CONFIG.hero_banner).backgrounds.filter((b) => b.enabled);
+    return enabled.length > 0 ? enabled : DEFAULT_HOMEPAGE_CONFIG.hero_banner.backgrounds;
+  }, [config.hero_banner]);
+  const intervalMs = (config.hero_banner?.interval_seconds ?? 8) * 1000;
+
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
+  useEffect(() => {
+    if (activeIndex >= backgrounds.length) setActiveIndex(0);
+  }, [activeIndex, backgrounds.length]);
+  // Tự chuyển nền (dừng khi rê chuột, khi tab ẩn, hoặc máy bật giảm chuyển động)
+  useEffect(() => {
+    if (backgrounds.length < 2 || paused) return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    const timer = setInterval(() => {
+      if (document.visibilityState === "visible") setActiveIndex((i) => (i + 1) % backgrounds.length);
+    }, intervalMs);
+    return () => clearInterval(timer);
+  }, [backgrounds.length, intervalMs, paused]);
+
+  return (
     <section
       aria-labelledby="hero-title"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
       className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-cyan-500/30 bg-[#050914] shadow-[0_10px_50px_rgba(0,0,0,0.8),0_0_35px_rgba(6,182,212,0.18)] isolate"
     >
-      {/* ---------- NỀN ĐỘNG ---------- */}
+      {/* ---------- NỀN (admin cấu hình, tự chuyển) ---------- */}
       <div aria-hidden="true" className="absolute inset-0 -z-10 pointer-events-none">
-        {/* Bầu trời */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#060b1f] via-[#121a45] to-[#1d1f4f]" />
-        <div className="absolute left-1/2 bottom-[18%] -translate-x-1/2 w-[120%] h-[55%] rounded-[50%] bg-[radial-gradient(ellipse_at_center,rgba(56,189,248,0.22),rgba(129,140,248,0.12)_45%,transparent_70%)]" />
-
-        {/* Sao lấp lánh */}
-        {stars.map((s, i) => (
-          <span
-            key={i}
-            className="hero-star absolute rounded-full bg-indigo-100"
-            style={{
-              left: `${s.left}%`,
-              top: `${s.top}%`,
-              width: s.size,
-              height: s.size,
-              boxShadow: s.size >= 3 ? "0 0 6px 1px rgba(199,210,254,0.8)" : undefined,
-              ["--dur" as string]: `${s.dur}s`,
-              ["--delay" as string]: `${s.delay}s`,
-            }}
-          />
+        {backgrounds.map((bg, i) => (
+          <BackgroundLayer key={bg.id} bg={bg} active={i === activeIndex} />
         ))}
-
-        {/* Sao băng */}
-        {meteors.map((m, i) => (
-          <span
-            key={i}
-            className="hero-shooting-star"
-            style={{
-              left: `${m.left}%`,
-              top: `${m.top}%`,
-              ["--len" as string]: `${m.len}px`,
-              ["--dur" as string]: `${m.dur}s`,
-              ["--delay" as string]: `${m.delay}s`,
-            }}
-          />
-        ))}
-
-        {/* Núi và rừng thông */}
-        <svg className="absolute bottom-0 left-0 w-full h-[46%] sm:h-[52%]" viewBox="0 0 1200 300" preserveAspectRatio="none">
-          <defs>
-            <linearGradient id="hero-mtn-far" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#5b5fc7" stopOpacity="0.9" />
-              <stop offset="100%" stopColor="#252b6e" stopOpacity="0.95" />
-            </linearGradient>
-            <linearGradient id="hero-mtn-mid" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#1f2a63" />
-              <stop offset="100%" stopColor="#111842" />
-            </linearGradient>
-          </defs>
-          <path
-            d="M0 210 L120 150 L210 185 L330 95 L420 150 L520 120 L640 40 L760 140 L860 110 L980 170 L1080 120 L1200 160 L1200 300 L0 300 Z"
-            fill="url(#hero-mtn-far)"
-          />
-          <path
-            d="M0 240 L140 200 L260 225 L380 175 L520 220 L650 185 L780 230 L900 195 L1040 228 L1200 200 L1200 300 L0 300 Z"
-            fill="url(#hero-mtn-mid)"
-          />
-          <path d={forestFar} fill="#0b1233" />
-          <path d={forestNear} fill="#050914" />
-        </svg>
-
-        {/* Sương trôi */}
-        <div className="hero-fog absolute -left-[10%] bottom-[10%] w-[120%] h-24 bg-[radial-gradient(ellipse_at_center,rgba(148,163,255,0.18),transparent_70%)] blur-2xl" />
         {/* Lớp tối dưới chữ để luôn dễ đọc */}
         <div className="absolute inset-0 bg-gradient-to-r from-[#050914]/85 via-[#050914]/45 to-transparent" />
       </div>
@@ -259,6 +321,24 @@ export const HeroCarousel = () => {
           </a>
         </div>
       </div>
+
+      {/* Chấm chọn nền */}
+      {backgrounds.length > 1 && (
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1">
+          {backgrounds.map((bg, i) => (
+            <button
+              key={bg.id}
+              type="button"
+              onClick={() => setActiveIndex(i)}
+              aria-label={`Hiện nền ${i + 1}${bg.label ? `: ${bg.label}` : ""}`}
+              aria-current={i === activeIndex}
+              className="w-8 h-8 flex items-center justify-center"
+            >
+              <span className={`block h-1.5 rounded-full transition-all ${i === activeIndex ? "w-6 bg-cyan-300" : "w-1.5 bg-white/40 hover:bg-white/70"}`} />
+            </button>
+          ))}
+        </div>
+      )}
     </section>
   );
 };
