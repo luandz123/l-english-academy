@@ -74,7 +74,7 @@ export default function WordDefenseGame() {
     try {
       const earnedXp = Math.max(20, Math.min(150, Math.floor((stats.score || 50) / 15 + (victory ? 35 : 10))));
       addXp(earnedXp, `Chiến trường Thủ Thành Từ Vựng (${victory ? 'Chiến Thắng!' : 'Hoàn thành'})`);
-      recordVocabProgress(Math.min(5, Math.max(1, Math.floor((stats.wordsDestroyed || 3) / 3))));
+      recordVocabProgress(Math.min(5, Math.max(1, Math.floor((stats.zombiesDefeated || 3) / 3))));
     } catch (e) {
       console.warn('Gamification reward error:', e);
     }
