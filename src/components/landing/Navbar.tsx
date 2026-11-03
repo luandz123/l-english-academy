@@ -53,34 +53,24 @@ const Navbar = ({ onOpenSidebar }: NavbarProps) => {
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase().trim();
-      if (q.includes("test") || q.includes("đề") || q.includes("ets")) {
-        const el = document.getElementById("section-fulltest");
-        if (el) el.scrollIntoView({ behavior: "smooth" });
-        else navigate("/fulltests");
-        return;
-      }
-      if (q.includes("nghe") || q.includes("dictation") || q.includes("chép")) {
-        const el = document.getElementById("section-listening");
-        if (el) el.scrollIntoView({ behavior: "smooth" });
-        else navigate("/listening");
-        return;
-      }
-      if (q.includes("game") || q.includes("chơi") || q.includes("trò chơi")) {
-        navigate("/games");
-        return;
-      }
-      if (q.includes("nói") || q.includes("speak") || q.includes("voice") || q.includes("thoại")) {
-        navigate("/speaking");
-        return;
-      }
-      const el = document.getElementById("section-video") || document.getElementById("combos");
-      if (el) {
-        el.scrollIntoView({ behavior: "smooth" });
-      } else {
-        navigate("/#section-video");
-      }
+    const raw = searchQuery.trim();
+    if (!raw) return;
+    const q = raw.toLowerCase();
+    // Lối tắt tới trang riêng
+    if (q === "game" || q.includes("trò chơi")) {
+      navigate("/games");
+      return;
+    }
+    if (q.includes("luyện nói") || q.includes("speaking")) {
+      navigate("/speaking");
+      return;
+    }
+    // Còn lại: tìm theo tên khóa học ở Kho khóa học (khách đăng nhập xong sẽ quay lại đúng kết quả)
+    const target = `/library?search=${encodeURIComponent(raw)}`;
+    if (user) {
+      navigate(target);
+    } else {
+      navigate("/login", { state: { from: target } });
     }
   };
 
@@ -158,7 +148,7 @@ const Navbar = ({ onOpenSidebar }: NavbarProps) => {
             onClick={(e) => handleNavClick(e, "section-listening", "luyen_nghe", "/listening")}
             className="px-3.5 py-1.5 rounded-xl text-xs xl:text-[13px] font-bold text-slate-300 hover:text-purple-300 hover:bg-purple-500/10 border border-transparent hover:border-purple-500/30 hover:shadow-[0_0_14px_rgba(168,85,247,0.2)] transition-all duration-200 whitespace-nowrap cursor-pointer select-none active:scale-95"
           >
-            <span>Luyện Nghe Từng Bước</span>
+            <span>Chép Chính Tả</span>
           </a>
 
           {/* 3. Nghe - Đọc 700+ */}
@@ -347,7 +337,7 @@ const Navbar = ({ onOpenSidebar }: NavbarProps) => {
                     }}
                     className="flex items-center justify-between px-3.5 py-2.5 rounded-xl font-bold text-xs text-slate-200 hover:bg-purple-500/10 hover:text-purple-400 border border-transparent hover:border-purple-500/20 transition-all"
                   >
-                    <span>Luyện Nghe Từng Bước</span>
+                    <span>Chép Chính Tả</span>
                     <ArrowRight className="w-3.5 h-3.5 text-slate-500" />
                   </a>
 

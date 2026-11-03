@@ -33,7 +33,7 @@ import {
   watchPaymentOrder,
 } from "@/lib/api/payments";
 import { cn } from "@/lib/utils";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 export interface UpgradeProCardProps {
   className?: string;
@@ -72,6 +72,7 @@ export const UpgradeProCard: React.FC<UpgradeProCardProps> = ({
   const { user, isAdmin, refreshUserData } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
   const channelRef = useRef<any>(null);
 
   // Tự động nạp dữ liệu động từ database / config hệ thống nếu props chưa truyền
@@ -121,7 +122,8 @@ export const UpgradeProCard: React.FC<UpgradeProCardProps> = ({
 
   // Lắng nghe Realtime trạng thái đơn hàng từ Supabase
   useEffect(() => {
-    if (!orderCode) return;
+    // Khách chưa đăng nhập không có đơn thật trên server, không cần theo dõi
+    if (!orderCode || !user) return;
 
     // Hủy lần theo dõi cũ nếu có
     if (channelRef.current) {
@@ -145,7 +147,7 @@ export const UpgradeProCard: React.FC<UpgradeProCardProps> = ({
         channelRef.current = null;
       }
     };
-  }, [orderCode, refreshUserData, toast]);
+  }, [orderCode, user, refreshUserData, toast]);
 
   // Nội dung chuyển khoản chuẩn cho SePay (chỉ chứa chữ và số, không khoảng trắng, không ký tự lạ)
   const transferSyntax = (orderCode || "LEAPRO").replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
@@ -464,21 +466,32 @@ export const UpgradeProCard: React.FC<UpgradeProCardProps> = ({
                 <div>
                   <p className="font-bold text-white">Bạn chưa đăng nhập tài khoản</p>
                   <p className="text-amber-200/80 mt-0.5 leading-relaxed">
-                    Vui lòng đăng nhập trước khi quét mã để hệ thống tự động gán gói VIP PRO vào đúng tài khoản của bạn ngay khi tiền về.
+                    Đăng nhập để nhận mã chuyển khoản riêng. Hệ thống dùng mã này để tự động kích hoạt VIP PRO cho đúng tài khoản của bạn ngay khi tiền về.
                   </p>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => navigate("/auth")}
-                className="w-full py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-              >
-                <span>Đăng Nhập / Đăng Ký Tài Khoản Ngay</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => navigate("/login", { state: { from: location } })}
+                  className="w-full py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <span>Đăng nhập</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate("/register", { state: { from: location } })}
+                  className="w-full py-2.5 rounded-lg bg-white/10 hover:bg-white/15 border border-amber-500/40 text-amber-200 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <span>Tạo tài khoản</span>
+                </button>
+              </div>
             </div>
           )}
 
+          {user && (
+          <>
           {/* Trạng thái Realtime Radar SePay */}
           <div className="flex items-center justify-center">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs shadow-[0_0_15px_rgba(6,182,212,0.15)]">
@@ -646,8 +659,8 @@ export const UpgradeProCard: React.FC<UpgradeProCardProps> = ({
               )}
             </button>
 
-            {/* Test Simulation Button (Dành cho Admin hoặc Kiểm chứng tính năng) */}
-            {user && (
+            {/* Nút giả lập chỉ hiện khi bật VITE_PAYMENT_SIMULATION=true (dev/staging); production không hiện */}
+            {user && import.meta.env.VITE_PAYMENT_SIMULATION === "true" && (
               <button
                 type="button"
                 onClick={handleSimulatePayment}
@@ -676,6 +689,8 @@ export const UpgradeProCard: React.FC<UpgradeProCardProps> = ({
               <ExternalLink className="w-3 h-3 text-slate-400" />
             </a>
           </div>
+          </>
+          )}
         </div>
       )}
     </div>
