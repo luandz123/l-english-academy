@@ -74,6 +74,7 @@ export const Part2Step5Shadowing: React.FC<Part2Step5ShadowingProps> = ({
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordingActiveRef = useRef(false);
+  const recognitionFailedRef = useRef(false);
   const audioChunksRef = useRef<Blob[]>([]);
   const recognitionRef = useRef<any>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -129,6 +130,7 @@ export const Part2Step5Shadowing: React.FC<Part2Step5ShadowingProps> = ({
     setUserAudioUrl(null);
     audioChunksRef.current = [];
     recordingActiveRef.current = true;
+    recognitionFailedRef.current = false;
 
     // 1. Audio MediaRecorder (bản ghi để nghe lại)
     const startMediaRecorder = async () => {
@@ -193,11 +195,17 @@ export const Part2Step5Shadowing: React.FC<Part2Step5ShadowingProps> = ({
             'not-allowed': 'Vui lòng bật quyền Micro để luyện nói.',
             'service-not-allowed': 'Vui lòng bật quyền Micro để luyện nói.',
             'audio-capture': 'Không lấy được micro. Kiểm tra tai nghe/micro đang chọn rồi thử lại.',
-            network: 'Lỗi mạng khi nhận giọng nói. Kiểm tra kết nối (tắt VPN/chặn quảng cáo) rồi thử lại.',
+            network:
+              'Trình duyệt không kết nối được dịch vụ nhận giọng nói nên không chấm điểm được. Bạn vẫn nghe lại được bản ghi để tự so với câu mẫu.',
             'no-speech': 'Không nghe thấy giọng nói. Hãy nói gần micro hơn.',
           };
           if (event.error === 'aborted') return;
           setMicError(messages[event.error] ?? 'Không nhận được giọng nói. Hãy thử lại.');
+          if (event.error !== 'no-speech') {
+            // Nhận giọng hỏng: không chấm điểm, nhưng vẫn ghi âm để người học nghe lại
+            recognitionFailedRef.current = true;
+            if (mediaRecorderRef.current?.state !== 'recording') startMediaRecorder();
+          }
         };
 
         recognition.start();
@@ -236,7 +244,7 @@ export const Part2Step5Shadowing: React.FC<Part2Step5ShadowingProps> = ({
       } catch (e) {}
     }
 
-    if (evaluate) {
+    if (evaluate && !recognitionFailedRef.current) {
       setTimeout(() => {
         setSpokenTranscript((latest) => {
           const { score } = calculateWordAccuracy(targetText, latest);
