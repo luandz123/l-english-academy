@@ -73,6 +73,8 @@ export const Part2Step5Shadowing: React.FC<Part2Step5ShadowingProps> = ({
   const [scores, setScores] = useState<Record<string, number>>({});
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordingActiveRef = useRef(false);
+  const recognitionFailedRef = useRef(false);
   const audioChunksRef = useRef<Blob[]>([]);
   const recognitionRef = useRef<any>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -127,29 +129,38 @@ export const Part2Step5Shadowing: React.FC<Part2Step5ShadowingProps> = ({
     setSpokenTranscript('');
     setUserAudioUrl(null);
     audioChunksRef.current = [];
+    recordingActiveRef.current = true;
+    recognitionFailedRef.current = false;
 
-    // 1. Audio MediaRecorder
-    try {
-      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        const mediaRecorder = new MediaRecorder(stream);
-        mediaRecorderRef.current = mediaRecorder;
+    // 1. Audio MediaRecorder (bản ghi để nghe lại)
+    const startMediaRecorder = async () => {
+      try {
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          if (!recordingActiveRef.current) {
+            // Người dùng đã dừng trước khi micro mở xong
+            stream.getTracks().forEach((track) => track.stop());
+            return;
+          }
+          const mediaRecorder = new MediaRecorder(stream);
+          mediaRecorderRef.current = mediaRecorder;
 
-        mediaRecorder.ondataavailable = (event) => {
-          if (event.data.size > 0) audioChunksRef.current.push(event.data);
-        };
+          mediaRecorder.ondataavailable = (event) => {
+            if (event.data.size > 0) audioChunksRef.current.push(event.data);
+          };
 
-        mediaRecorder.onstop = () => {
-          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-          setUserAudioUrl(URL.createObjectURL(audioBlob));
-          stream.getTracks().forEach((track) => track.stop());
-        };
+          mediaRecorder.onstop = () => {
+            const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+            setUserAudioUrl(URL.createObjectURL(audioBlob));
+            stream.getTracks().forEach((track) => track.stop());
+          };
 
-        mediaRecorder.start();
+          mediaRecorder.start();
+        }
+      } catch (err) {
+        setMicError('Vui lòng bật quyền Micro để luyện nói.');
       }
-    } catch (err) {
-      setMicError('Vui lòng bật quyền Micro để luyện nói.');
-    }
+    };
 
     // 2. SpeechRecognition
     const SpeechRecognition =
@@ -173,10 +184,37 @@ export const Part2Step5Shadowing: React.FC<Part2Step5ShadowingProps> = ({
           setSpokenTranscript(recognizedText);
         };
 
+        // Mở MediaRecorder sau khi nhận giọng đã giữ micro: mở cùng lúc làm tai nghe
+        // (nhất là Bluetooth) đổi chế độ micro giữa chừng → nhận giọng lỗi audio-capture.
+        recognition.onaudiostart = () => {
+          startMediaRecorder();
+        };
+
+        recognition.onerror = (event: { error: string }) => {
+          const messages: Record<string, string> = {
+            'not-allowed': 'Vui lòng bật quyền Micro để luyện nói.',
+            'service-not-allowed': 'Vui lòng bật quyền Micro để luyện nói.',
+            'audio-capture': 'Không lấy được micro. Kiểm tra tai nghe/micro đang chọn rồi thử lại.',
+            network:
+              'Trình duyệt không kết nối được dịch vụ nhận giọng nói nên không chấm điểm được. Bạn vẫn nghe lại được bản ghi để tự so với câu mẫu.',
+            'no-speech': 'Không nghe thấy giọng nói. Hãy nói gần micro hơn.',
+          };
+          if (event.error === 'aborted') return;
+          setMicError(messages[event.error] ?? 'Không nhận được giọng nói. Hãy thử lại.');
+          if (event.error !== 'no-speech') {
+            // Nhận giọng hỏng: không chấm điểm, nhưng vẫn ghi âm để người học nghe lại
+            recognitionFailedRef.current = true;
+            if (mediaRecorderRef.current?.state !== 'recording') startMediaRecorder();
+          }
+        };
+
         recognition.start();
       } catch (e) {
         console.warn('SpeechRecognition error:', e);
+        await startMediaRecorder();
       }
+    } else {
+      await startMediaRecorder();
     }
 
     setIsRecording(true);
@@ -187,6 +225,7 @@ export const Part2Step5Shadowing: React.FC<Part2Step5ShadowingProps> = ({
   };
 
   const stopRecording = (evaluate = true) => {
+    recordingActiveRef.current = false;
     setIsRecording(false);
     if (timerRef.current) {
       clearTimeout(timerRef.current);
@@ -205,7 +244,7 @@ export const Part2Step5Shadowing: React.FC<Part2Step5ShadowingProps> = ({
       } catch (e) {}
     }
 
-    if (evaluate) {
+    if (evaluate && !recognitionFailedRef.current) {
       setTimeout(() => {
         setSpokenTranscript((latest) => {
           const { score } = calculateWordAccuracy(targetText, latest);
