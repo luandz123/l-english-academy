@@ -15,6 +15,7 @@ import {
 import { cn } from '@/lib/utils';
 import { soundAudioPlayer } from '@/services/soundAudioPlayer';
 import { useSound } from '@/hooks/useSound';
+import { transcribeSpeech } from '@/lib/api/speaking';
 
 interface Part2Step5ShadowingProps {
   questions: Part2CoachQuestion[];
@@ -75,6 +76,10 @@ export const Part2Step5Shadowing: React.FC<Part2Step5ShadowingProps> = ({
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordingActiveRef = useRef(false);
   const recognitionFailedRef = useRef(false);
+  // Nhận giọng của trình duyệt không chạy → khi dừng, gửi bản ghi lên server (Whisper) để chấm
+  const serverEvalRef = useRef(false);
+  const recognitionSupportedRef = useRef(false);
+  const attemptRef = useRef(0);
   const audioChunksRef = useRef<Blob[]>([]);
   const recognitionRef = useRef<any>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -131,6 +136,32 @@ export const Part2Step5Shadowing: React.FC<Part2Step5ShadowingProps> = ({
     audioChunksRef.current = [];
     recordingActiveRef.current = true;
     recognitionFailedRef.current = false;
+    serverEvalRef.current = false;
+    const attempt = ++attemptRef.current;
+
+    const applyScore = (spoken: string) => {
+      const { score } = calculateWordAccuracy(targetText, spoken);
+      setScores((prev) => ({ ...prev, [targetKey]: score }));
+      if (score >= 60) {
+        playSound('correct');
+      } else {
+        playSound('incorrect');
+      }
+    };
+
+    const evaluateOnServer = async (audioBlob: Blob) => {
+      const { data, error } = await transcribeSpeech(audioBlob);
+      if (attempt !== attemptRef.current) return; // đã sang câu khác hoặc ghi lại
+      if (data) {
+        setMicError(null);
+        setSpokenTranscript(data.text);
+        applyScore(data.text);
+      } else {
+        console.warn('transcribeSpeech error:', error?.message);
+        // Trình duyệt không có nhận giọng: giữ như cũ (chấm với chữ rỗng)
+        if (!recognitionSupportedRef.current) applyScore('');
+      }
+    };
 
     // 1. Audio MediaRecorder (bản ghi để nghe lại)
     const startMediaRecorder = async () => {
@@ -153,6 +184,12 @@ export const Part2Step5Shadowing: React.FC<Part2Step5ShadowingProps> = ({
             const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
             setUserAudioUrl(URL.createObjectURL(audioBlob));
             stream.getTracks().forEach((track) => track.stop());
+            if (serverEvalRef.current && attempt === attemptRef.current) {
+              serverEvalRef.current = false;
+              evaluateOnServer(
+                new Blob(audioChunksRef.current, { type: mediaRecorder.mimeType || 'audio/webm' }),
+              );
+            }
           };
 
           mediaRecorder.start();
@@ -167,6 +204,7 @@ export const Part2Step5Shadowing: React.FC<Part2Step5ShadowingProps> = ({
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
     let recognizedText = '';
+    recognitionSupportedRef.current = Boolean(SpeechRecognition);
     if (SpeechRecognition) {
       try {
         const recognition = new SpeechRecognition();
@@ -211,6 +249,7 @@ export const Part2Step5Shadowing: React.FC<Part2Step5ShadowingProps> = ({
         recognition.start();
       } catch (e) {
         console.warn('SpeechRecognition error:', e);
+        recognitionFailedRef.current = true;
         await startMediaRecorder();
       }
     } else {
@@ -226,6 +265,10 @@ export const Part2Step5Shadowing: React.FC<Part2Step5ShadowingProps> = ({
 
   const stopRecording = (evaluate = true) => {
     recordingActiveRef.current = false;
+    const recorderRunning = mediaRecorderRef.current?.state === 'recording';
+    const useServer = evaluate && (recognitionFailedRef.current || !recognitionSupportedRef.current);
+    if (!evaluate) attemptRef.current++;
+    serverEvalRef.current = useServer && recorderRunning;
     setIsRecording(false);
     if (timerRef.current) {
       clearTimeout(timerRef.current);
@@ -244,7 +287,7 @@ export const Part2Step5Shadowing: React.FC<Part2Step5ShadowingProps> = ({
       } catch (e) {}
     }
 
-    if (evaluate && !recognitionFailedRef.current) {
+    if (evaluate && !useServer) {
       setTimeout(() => {
         setSpokenTranscript((latest) => {
           const { score } = calculateWordAccuracy(targetText, latest);

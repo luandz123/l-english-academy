@@ -58,3 +58,6 @@ services:
         sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
+      # Nhận giọng shadowing bằng Whisper (Groq). Bỏ trống → chỉ chấm bằng trình duyệt
+      - key: STT_API_KEY
+        sync: false
