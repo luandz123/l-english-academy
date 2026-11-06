@@ -108,3 +108,15 @@ export function updateMyEnglishLevel(level: EnglishLevel): Result<SpeakingStats>
 export function getSpeakingVoiceToken(roomId: string): Result<VoiceToken> {
   return toResult(apiClient.post<VoiceToken>(`speaking/rooms/${encodeURIComponent(roomId)}/token`));
 }
+
+/**
+ * Nhận giọng shadowing bằng Whisper ở server (khi Web Speech API của trình duyệt không chạy).
+ * Server chỉ trả chữ; việc so với câu mẫu vẫn ở component như cũ.
+ */
+export function transcribeSpeech(audio: Blob): Result<{ text: string }> {
+  const type = audio.type.split(";")[0];
+  const ext = type.includes("mp4") ? "mp4" : type.includes("ogg") ? "ogg" : type.includes("wav") ? "wav" : "webm";
+  const formData = new FormData();
+  formData.append("file", audio, `speech.${ext}`);
+  return toResult(apiClient.post<{ text: string }>("speaking/transcribe", formData));
+}

@@ -9,18 +9,28 @@ import {
   Post,
   Put,
   Query,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import {
+  ApiBadGatewayResponse,
+  ApiBadRequestResponse,
   ApiBearerAuth,
+  ApiBody,
   ApiConflictResponse,
+  ApiConsumes,
   ApiCreatedResponse,
   ApiForbiddenResponse,
   ApiNoContentResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiServiceUnavailableResponse,
   ApiTags,
+  ApiTooManyRequestsResponse,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -43,7 +53,13 @@ import {
   UpdateLevelDto,
   VoiceTokenDto,
 } from './dto/speaking.dto';
+import { TranscriptionDto } from './dto/transcription.dto';
 import { SpeakingService } from './speaking.service';
+import {
+  MAX_SPEECH_FILE_SIZE,
+  type SpeechFileInput,
+  TranscriptionService,
+} from './transcription.service';
 
 const uuid = new ParseUUIDPipe({ version: '4' });
 
@@ -53,7 +69,10 @@ const uuid = new ParseUUIDPipe({ version: '4' });
 @UseGuards(JwtAuthGuard)
 @Controller('speaking')
 export class SpeakingController {
-  constructor(private readonly speaking: SpeakingService) {}
+  constructor(
+    private readonly speaking: SpeakingService,
+    private readonly transcription: TranscriptionService,
+  ) {}
 
   @Get('rooms')
   @ApiOperation({
@@ -179,5 +198,44 @@ export class SpeakingController {
     @Body() dto: UpdateLevelDto,
   ): Promise<SpeakingStatsDto> {
     return this.speaking.updateLevel(user.id, dto.english_level);
+  }
+
+  @Post('transcribe')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: MAX_SPEECH_FILE_SIZE, files: 1 },
+    }),
+  )
+  @ApiOperation({
+    summary: 'Chuyển bản ghi giọng nói (tiếng Anh) thành chữ bằng Whisper',
+    description:
+      'Dùng cho bước shadowing khi nhận giọng của trình duyệt không chạy. Chỉ trả chữ, không chấm điểm.',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['file'],
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+          description: 'File ghi âm audio/* (tối đa 5MB)',
+        },
+      },
+    },
+  })
+  @ApiOkResponse({ type: TranscriptionDto })
+  @ApiBadRequestResponse({ description: 'Thiếu file hoặc không phải audio' })
+  @ApiTooManyRequestsResponse({ description: 'Quá 30 lượt/phút' })
+  @ApiBadGatewayResponse({ description: 'Dịch vụ nhận giọng lỗi' })
+  @ApiServiceUnavailableResponse({ description: 'Chưa cấu hình STT_API_KEY' })
+  transcribe(
+    @UploadedFile() file: SpeechFileInput | undefined,
+  ): Promise<TranscriptionDto> {
+    return this.transcription.transcribe(file);
   }
 }

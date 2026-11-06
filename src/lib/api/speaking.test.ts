@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createSpeakingRoom, fetchPublicRooms, joinSpeakingRoom, getVoiceToken } from "@/services/speakingService";
+import { transcribeSpeech } from "@/lib/api/speaking";
 
 function mockFetch(...responses: Array<[number, unknown]>) {
   const fn = vi.fn();
@@ -42,5 +43,21 @@ describe("speakingService → backend /api/v1/speaking", () => {
     expect(await getVoiceToken("r1")).toMatchObject({ mode: "webrtc-mesh" });
     expect(fetchMock.mock.calls[0][0]).toBe("/api/v1/speaking/rooms/r1/token");
     await expect(getVoiceToken("r1")).rejects.toThrow("Bạn chưa vào phòng này");
+  });
+
+  it("nhận giọng shadowing: gửi multipart file đúng đuôi, không gửi điểm; lỗi server → error", async () => {
+    const fetchMock = mockFetch([200, { text: "Good morning." }], [503, { code: "STT_NOT_CONFIGURED", message: "x" }]);
+    const res = await transcribeSpeech(new Blob(["a"], { type: "audio/webm;codecs=opus" }));
+    expect(res).toEqual({ data: { text: "Good morning." }, error: null });
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe("/api/v1/speaking/transcribe");
+    expect(init.method).toBe("POST");
+    const form = init.body as FormData;
+    expect([...form.keys()]).toEqual(["file"]);
+    expect((form.get("file") as File).name).toBe("speech.webm");
+    const failed = await transcribeSpeech(new Blob(["a"], { type: "audio/mp4" }));
+    expect(failed.data).toBeNull();
+    expect(failed.error?.code).toBe("STT_NOT_CONFIGURED");
+    expect((fetchMock.mock.calls[1][1].body.get("file") as File).name).toBe("speech.mp4");
   });
 });
