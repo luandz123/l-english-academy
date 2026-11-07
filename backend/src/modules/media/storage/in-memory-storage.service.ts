@@ -20,6 +20,11 @@ export class InMemoryStorageService implements StorageService {
     );
   }
 
+  /** Kho trong bộ nhớ không nhận tải trực tiếp → client dùng lại đường multipart cũ. */
+  createSignedUploadUrl(): Promise<string | null> {
+    return Promise.resolve(null);
+  }
+
   getPublicUrl(bucket: string, path: string): string {
     const cleanPath = path.replace(/^\/+/, '');
     return `${this.baseUrl}/storage/v1/object/public/${bucket}/${cleanPath}`;

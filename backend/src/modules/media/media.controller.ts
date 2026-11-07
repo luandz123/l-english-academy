@@ -24,7 +24,13 @@ import {
   JwtAuthGuard,
 } from '../auth/guards/jwt-auth.guard';
 import { Roles, RolesGuard } from '../auth/guards/roles.guard';
-import { MediaResponseDto, UploadAvatarDto, UploadMediaDto } from './dto';
+import {
+  CreateUploadUrlDto,
+  MediaResponseDto,
+  UploadAvatarDto,
+  UploadMediaDto,
+  UploadUrlResponseDto,
+} from './dto';
 import {
   MAX_AVATAR_FILE_SIZE,
   MAX_MEDIA_FILE_SIZE,
@@ -90,6 +96,30 @@ export class MediaController {
     @Body() dto: UploadMediaDto,
   ): Promise<MediaResponseDto> {
     return this.mediaService.uploadMedia(file, dto);
+  }
+
+  @Post('upload-url')
+  @HttpCode(HttpStatus.CREATED)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(AppRole.admin)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Xin URL ký tạm để tải tệp lớn thẳng lên Storage (chỉ Admin)',
+    description:
+      'Trình duyệt PUT tệp vào upload_url (hạn 2 giờ) rồi dùng public_url. Không đi qua Vercel/Render ' +
+      'nên không vướng giới hạn dung lượng body. upload_url = null khi kho không hỗ trợ → dùng POST /media/upload.',
+  })
+  @ApiResponse({ status: 201, type: UploadUrlResponseDto })
+  @ApiResponse({
+    status: 400,
+    description: 'Thư mục, loại tệp hoặc dung lượng không hợp lệ',
+  })
+  @ApiResponse({ status: 401, description: 'Chưa đăng nhập' })
+  @ApiResponse({ status: 403, description: 'Không có quyền admin' })
+  createUploadUrl(
+    @Body() dto: CreateUploadUrlDto,
+  ): Promise<UploadUrlResponseDto> {
+    return this.mediaService.createUploadUrl(dto);
   }
 
   @Post('avatar')
