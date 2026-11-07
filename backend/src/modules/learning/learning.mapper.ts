@@ -6,6 +6,7 @@ import type {
   Material,
   UserFavorite,
   UserLessonProgress,
+  UserListeningStepProgress,
   UserNote,
 } from '../../generated/prisma/client';
 import { CourseDto } from '../catalog/dto';
@@ -18,6 +19,7 @@ import {
   FavoriteDto,
   LessonDto,
   LessonProgressDto,
+  ListeningStepProgressDto,
   MaterialDto,
   MyEnrollmentDto,
   NoteDto,
@@ -133,6 +135,18 @@ export class LearningMapper {
     enrollments: EnrollmentWithFullCourse[],
   ): MyEnrollmentDto[] {
     return enrollments.map((e) => this.toMyEnrollmentDto(e));
+  }
+
+  toListeningStepProgressDto(
+    p: UserListeningStepProgress,
+  ): ListeningStepProgressDto {
+    return {
+      cluster_id: p.clusterId,
+      completed_steps: [...p.completedSteps].sort((a, b) => a - b),
+      current_step: p.currentStep,
+      completed_at: p.completedAt ? p.completedAt.toISOString() : null,
+      updated_at: p.updatedAt.toISOString(),
+    };
   }
 
   toLessonProgressDto(progress: UserLessonProgress): LessonProgressDto {

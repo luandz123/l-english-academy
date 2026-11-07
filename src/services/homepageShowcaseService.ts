@@ -161,16 +161,16 @@ export const DEFAULT_HOMEPAGE_CONFIG: HomepageShowcaseConfig = {
     youtube_url: "https://www.youtube.com/@YOUR_YOUTUBE",
   },
   part2_banner: {
-    badge: "Quy trình 8 bước độc quyền",
-    title: "Luyện Nghe Phản Xạ TOEIC Part 2 (Quy Trình 8 Bước Độc Quyền)",
-    description: "Bẻ nhỏ Functional Chunks • Phản xạ 1s bật nghĩa • Đoán hướng trả lời • Shadowing nối âm nuốt âm • Vạch trần bẫy ETS.",
-    button_text: "Trải Nghiệm 8 Bước Ngay",
+    badge: "Luyện nghe từng bước · 7 bước",
+    title: "Luyện Nghe Từng Bước TOEIC Part 2",
+    description: "Nghe thử • Học cụm từ • Hiểu nhanh câu hỏi • Bật câu đáp • Nhại theo (shadowing) • Làm thử đề • Nghe lặp cho ngấm.",
+    button_text: "Học Thử 7 Bước Ngay",
     button_link: "/part2-coach",
   },
   vip_combo: {
     badge: "GÓI VIP TOÀN DIỆN TOEIC · ƯU ĐÃI ĐỢT 1 TIẾT KIỆM 50%",
     title: "NÂNG CẤP VIP TRỌN ĐỜI",
-    subtitle: "Mở khóa vĩnh viễn toàn bộ kho đề thi ETS 200 câu có giải chi tiết, hệ thống Dictation 8 bước và trọn bộ video bài giảng Part 1–7.",
+    subtitle: "Mở khóa vĩnh viễn toàn bộ kho đề thi ETS 200 câu có giải chi tiết, luyện nghe từng bước 7 bước và trọn bộ video bài giảng Part 1–7.",
     original_price: 3500000,
     price: 1750000,
     price_note: "Thanh toán 1 lần duy nhất để học trọn đời",
@@ -183,7 +183,7 @@ export const DEFAULT_HOMEPAGE_CONFIG: HomepageShowcaseConfig = {
       },
       {
         title: "Luyện Nghe Dictation Không Giới Hạn",
-        desc: "Quy trình 8 bước độc quyền bẻ nhỏ âm thanh.",
+        desc: "Luyện nghe từng bước: 7 bước chia nhỏ âm thanh.",
       },
       {
         title: "Trọn Bộ Video Bài Giảng Part 1–7",
@@ -209,7 +209,7 @@ export const DEFAULT_HOMEPAGE_CONFIG: HomepageShowcaseConfig = {
       score_increase: "+320 điểm sau 2 tháng",
       avatar_emoji: "👩‍🎓",
       target: "Mục tiêu ra trường & Nộp hồ sơ VinFast",
-      quote: "Lộ trình cực kỳ sát đề thi thật! Mình chăm chỉ luyện 8 bước Part 2 và cày 10 đề Full Test trên web, lúc đi thi thật bấm giờ không hề bị khớp, tăng từ 535 lên 855 điểm.",
+      quote: "Lộ trình cực kỳ sát đề thi thật! Mình chăm chỉ luyện nghe từng bước Part 2 và cày 10 đề Full Test trên web, lúc đi thi thật bấm giờ không hề bị khớp, tăng từ 535 lên 855 điểm.",
     },
     {
       id: "t2",
@@ -245,7 +245,7 @@ export const DEFAULT_HOMEPAGE_CONFIG: HomepageShowcaseConfig = {
     },
     {
       question: "Tôi bị mất gốc tiếng Anh thì nên bắt đầu từ đâu?",
-      answer: "Bạn nên bắt đầu với phần Luyện từ vựng Arcade và Luyện nghe phản xạ 8 bước Part 2 để lấy lại phản xạ âm thanh, sau đó mới bước vào giải đề Full Test 200 câu.",
+      answer: "Bạn nên bắt đầu với phần Luyện từ vựng Arcade và Luyện nghe từng bước Part 2 để lấy lại phản xạ âm thanh, sau đó mới bước vào giải đề Full Test 200 câu.",
     },
   ],
   commitments: [
@@ -262,7 +262,7 @@ export const DEFAULT_HOMEPAGE_CONFIG: HomepageShowcaseConfig = {
     {
       id: "dictation",
       title: "Dictation Đột Phá",
-      desc: "Quy trình 8 bước bứt phá Listening",
+      desc: "Luyện nghe từng bước, bứt phá Listening",
     },
     {
       id: "mentor",

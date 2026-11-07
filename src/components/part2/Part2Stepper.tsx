@@ -38,12 +38,31 @@ export const Part2Stepper: React.FC<Part2StepperProps> = ({
           </span>
         </div>
 
-        {/* Thin horizontal progress bar */}
-        <div className="w-full bg-slate-200 dark:bg-zinc-800 h-1.5 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-gradient-to-r from-emerald-500 to-blue-600 rounded-full transition-all duration-300"
-            style={{ width: `${Math.max(5, progressPercent)}%` }}
-          />
+        {/* 7 ô bước bấm được: thấy toàn bộ lộ trình và nhảy bước ngay trên điện thoại */}
+        <div className="grid grid-cols-7 gap-1.5">
+          {PART2_STEPS_META.map((step) => {
+            const isCurrent = step.id === currentStep;
+            const isCompleted = completedSteps.has(step.id);
+            return (
+              <button
+                key={step.id}
+                type="button"
+                onClick={() => onStepSelect(step.id)}
+                aria-label={`Bước ${step.id}: ${step.shortName}${isCompleted ? ' (đã xong)' : ''}`}
+                aria-current={isCurrent ? 'step' : undefined}
+                className={cn(
+                  'h-10 rounded-xl flex items-center justify-center text-xs font-black transition-colors cursor-pointer',
+                  isCurrent
+                    ? 'bg-[#2563EB] text-white shadow-[0_0_12px_rgba(37,99,235,0.45)]'
+                    : isCompleted
+                    ? 'bg-emerald-600 text-white'
+                    : 'bg-muted/60 text-[#94A3B8]'
+                )}
+              >
+                {isCompleted && !isCurrent ? <Check className="w-4 h-4 stroke-[3]" /> : step.id}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -69,6 +88,7 @@ export const Part2Stepper: React.FC<Part2StepperProps> = ({
                     : 'bg-muted/40 text-[#94A3B8] hover:text-foreground hover:bg-muted font-medium'
                 )}
                 title={`Bước ${step.id}: ${step.name} - ${step.subtitle}`}
+                aria-current={isCurrent ? 'step' : undefined}
               >
                 {/* Circle Badge inside capsule */}
                 <span

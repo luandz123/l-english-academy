@@ -48,7 +48,7 @@ const scrollToSection = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => 
 
 const FEATURES = [
   { tag: "THI THỬ", text: "Chuẩn đề ETS 120 phút, chấm điểm tự động", href: "#section-fulltest", id: "section-fulltest" },
-  { tag: "TỪ VỰNG", text: "Phương pháp phản xạ âm 8 bước & Minigames", to: "/games" },
+  { tag: "TỪ VỰNG", text: "Học từ vựng qua minigame vui như chơi", to: "/games" },
   { tag: "NGHE NÓI", text: "Nghe chép chính tả & Luyện nghe từng bước", href: "#section-listening", id: "section-listening" },
 ] as const;
 

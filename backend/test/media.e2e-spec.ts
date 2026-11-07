@@ -157,6 +157,60 @@ describe('MediaModule (e2e)', () => {
     });
   });
 
+  describe('POST /api/v1/media/upload-url (tải trực tiếp tệp lớn)', () => {
+    const body = {
+      folder: 'uploads',
+      filename: 'hero banner!.gif',
+      content_type: 'image/gif',
+      size: 12_000_000,
+    };
+
+    it('401 khi chưa đăng nhập, 403 khi là học viên', async () => {
+      await http().post('/api/v1/media/upload-url').send(body).expect(401);
+      await http()
+        .post('/api/v1/media/upload-url')
+        .set(bearer(studentToken))
+        .send(body)
+        .expect(403);
+    });
+
+    it('400 khi thư mục sai, loại tệp không cho phép hoặc quá 50MB', async () => {
+      const folder = await http()
+        .post('/api/v1/media/upload-url')
+        .set(bearer(adminToken))
+        .send({ ...body, folder: 'secrets' })
+        .expect(400);
+      expect(folder.body).toMatchObject({ code: 'INVALID_FOLDER' });
+      await http()
+        .post('/api/v1/media/upload-url')
+        .set(bearer(adminToken))
+        .send({ ...body, content_type: 'text/html' })
+        .expect(400);
+      const big = await http()
+        .post('/api/v1/media/upload-url')
+        .set(bearer(adminToken))
+        .send({ ...body, size: 51 * 1024 * 1024 })
+        .expect(400);
+      expect(big.body).toMatchObject({ code: 'FILE_TOO_LARGE' });
+    });
+
+    it('201 admin nhận path/public_url (kho trong bộ nhớ → upload_url null)', async () => {
+      const res = await http()
+        .post('/api/v1/media/upload-url')
+        .set(bearer(adminToken))
+        .send(body)
+        .expect(201);
+      const out = res.body as {
+        upload_url: string | null;
+        path: string;
+        public_url: string;
+      };
+      expect(out.path).toMatch(/^uploads\/\d+_herobanner\.gif$/);
+      expect(out.public_url).toContain(`/materials/${out.path}`);
+      expect(out.upload_url).toBeNull();
+    });
+  });
+
   describe('POST /api/v1/media/avatar (Avatar / Cover)', () => {
     it('401 khi chưa đăng nhập', async () => {
       await http()

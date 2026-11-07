@@ -13,6 +13,10 @@ import {
   EnrollmentResponseDto,
   FavoriteDto,
   LessonProgressDto,
+  LISTENING_CLUSTER_ID_PATTERN,
+  LISTENING_STEP_COUNT,
+  ListeningStepProgressDto,
+  SaveListeningStepProgressDto,
   MaterialDto,
   MyEnrollmentDto,
   NoteDto,
@@ -218,6 +222,49 @@ export class LearningService {
   async getMyProgress(userId: string): Promise<LessonProgressDto[]> {
     const list = await this.repo.findProgressByUser(userId);
     return list.map((p) => this.mapper.toLessonProgressDto(p));
+  }
+
+  /** Tiến độ "Luyện nghe từng bước" của tôi, bài mở gần nhất lên đầu. */
+  async getListeningStepProgress(
+    userId: string,
+  ): Promise<ListeningStepProgressDto[]> {
+    const list = await this.repo.findListeningStepProgress(userId);
+    return list.map((p) => this.mapper.toListeningStepProgressDto(p));
+  }
+
+  /**
+   * Lưu tiến độ một bài. Bước đã xong chỉ cộng thêm, không bị xóa (gửi từ 2 máy
+   * cùng lúc không làm mất tiến độ). completed_at ghi lần đầu đủ 7 bước.
+   */
+  async saveListeningStepProgress(
+    userId: string,
+    clusterId: string,
+    dto: SaveListeningStepProgressDto,
+  ): Promise<ListeningStepProgressDto> {
+    if (!LISTENING_CLUSTER_ID_PATTERN.test(clusterId)) {
+      throw new BadRequestException({
+        code: 'INVALID_CLUSTER_ID',
+        message: 'Mã bài luyện không hợp lệ',
+      });
+    }
+    const existing = await this.repo.findOneListeningStepProgress(
+      userId,
+      clusterId,
+    );
+    const completedSteps = Array.from(
+      new Set([...(existing?.completedSteps ?? []), ...dto.completed_steps]),
+    ).sort((a, b) => a - b);
+    const isAllDone = completedSteps.length >= LISTENING_STEP_COUNT;
+    const saved = await this.repo.upsertListeningStepProgress(
+      userId,
+      clusterId,
+      {
+        completedSteps,
+        currentStep: dto.current_step,
+        completedAt: existing?.completedAt ?? (isAllDone ? new Date() : null),
+      },
+    );
+    return this.mapper.toListeningStepProgressDto(saved);
   }
 
   /**

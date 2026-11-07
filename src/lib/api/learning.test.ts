@@ -17,6 +17,8 @@ import {
   listMyNotes,
   listMyProgress,
   listMyProgressRows,
+  listListeningStepProgress,
+  saveListeningStepProgress,
   listAllEnrollments,
   listCourseEnrollments,
   listUserEnrollments,
@@ -1034,6 +1036,47 @@ describe("learning adapter", () => {
       const [url, init] = fetchMock.mock.calls[0];
       expect(url).toBe("/api/v1/learning/my-courses/modules");
       expect(init?.method).toBe("GET");
+    });
+  });
+
+  describe("listening steps progress", () => {
+    it("GET đúng URL và trả danh sách", async () => {
+      const rows = [
+        {
+          cluster_id: "dictation-part2-unit1",
+          completed_steps: [1, 2],
+          current_step: 3,
+          completed_at: null,
+          updated_at: "2026-11-07T00:00:00.000Z",
+        },
+      ];
+      const fn = mockFetch(200, rows);
+      const res = await listListeningStepProgress();
+      expect(String(fn.mock.calls[0][0])).toContain("/learning/listening-steps/progress");
+      expect(res).toEqual({ data: rows, error: null });
+    });
+
+    it("PUT đúng URL và body { completed_steps, current_step }", async () => {
+      const fn = mockFetch(200, {
+        cluster_id: "fulltest-01-q7-q11",
+        completed_steps: [1],
+        current_step: 2,
+        completed_at: null,
+        updated_at: "2026-11-07T00:00:00.000Z",
+      });
+      const res = await saveListeningStepProgress("fulltest-01-q7-q11", [1], 2);
+      const [url, init] = fn.mock.calls[0];
+      expect(String(url)).toContain("/learning/listening-steps/progress/fulltest-01-q7-q11");
+      expect(init.method).toBe("PUT");
+      expect(JSON.parse(init.body)).toEqual({ completed_steps: [1], current_step: 2 });
+      expect(res.error).toBeNull();
+    });
+
+    it("trả error khi chưa đăng nhập", async () => {
+      mockFetch(401, { statusCode: 401, code: "UNAUTHORIZED", message: "Unauthorized" });
+      const res = await listListeningStepProgress();
+      expect(res.data).toBeNull();
+      expect(res.error).toBeInstanceOf(ApiError);
     });
   });
 });

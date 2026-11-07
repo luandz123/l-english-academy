@@ -96,6 +96,44 @@ export class MediaService {
     };
   }
 
+  /**
+   * Cấp URL ký tạm để admin tải tệp lớn thẳng lên Supabase Storage (không qua Vercel/Render).
+   * Cùng kiểm tra thư mục và dung lượng như uploadMedia; tên tệp luôn có tiền tố thời gian.
+   */
+  async createUploadUrl(dto: {
+    folder: string;
+    filename: string;
+    size: number;
+  }): Promise<{ upload_url: string | null; path: string; public_url: string }> {
+    if (dto.size > MAX_MEDIA_FILE_SIZE) {
+      throw new BadRequestException({
+        code: 'FILE_TOO_LARGE',
+        message: `Kích thước tệp vượt quá giới hạn cho phép (${MAX_MEDIA_FILE_SIZE / (1024 * 1024)}MB)`,
+      });
+    }
+    const folder = dto.folder?.trim();
+    if (
+      !folder ||
+      !(ALLOWED_MEDIA_FOLDERS as readonly string[]).includes(folder)
+    ) {
+      throw new BadRequestException({
+        code: 'INVALID_FOLDER',
+        message: `Thư mục tải lên không hợp lệ. Cho phép: ${ALLOWED_MEDIA_FOLDERS.join(', ')}`,
+      });
+    }
+    const sanitized = dto.filename.trim().replace(/[^a-zA-Z0-9.\-_]/g, '');
+    const path = `${folder}/${Date.now()}_${sanitized || 'media'}`;
+    const uploadUrl = await this.storage.createSignedUploadUrl(
+      BUCKET_MATERIALS,
+      path,
+    );
+    return {
+      upload_url: uploadUrl,
+      path,
+      public_url: this.storage.getPublicUrl(BUCKET_MATERIALS, path),
+    };
+  }
+
   async uploadAvatar(
     userId: string,
     file: UploadFileInput | undefined,

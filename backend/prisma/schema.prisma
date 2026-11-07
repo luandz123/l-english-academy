@@ -30,23 +30,24 @@ model User {
   createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  refreshTokens       RefreshToken[]
-  authTokens          AuthToken[]
-  profile             Profile?
-  roles               UserRole[]
-  enrollments         Enrollment[]
-  paymentOrders       PaymentOrder[]
-  lessonProgress      UserLessonProgress[]
-  notes               UserNote[]
-  favorites           UserFavorite[]
-  quizResults         UserQuizResult[]
-  fullTestResults     UserFullTestResult[]
-  adminActivityLogs   AdminActivityLog[]
-  adminNotesWritten   AdminStudentNote[]   @relation("AdminStudentNoteAdmin")
-  adminNotesAboutMe   AdminStudentNote[]   @relation("AdminStudentNoteStudent")
-  speakingRoomsHosted SpeakingRoom[]
-  speakingMemberships SpeakingRoomMember[]
-  speakingSessions    SpeakingSession[]
+  refreshTokens         RefreshToken[]
+  authTokens            AuthToken[]
+  profile               Profile?
+  roles                 UserRole[]
+  enrollments           Enrollment[]
+  paymentOrders         PaymentOrder[]
+  lessonProgress        UserLessonProgress[]
+  listeningStepProgress UserListeningStepProgress[]
+  notes                 UserNote[]
+  favorites             UserFavorite[]
+  quizResults           UserQuizResult[]
+  fullTestResults       UserFullTestResult[]
+  adminActivityLogs     AdminActivityLog[]
+  adminNotesWritten     AdminStudentNote[]          @relation("AdminStudentNoteAdmin")
+  adminNotesAboutMe     AdminStudentNote[]          @relation("AdminStudentNoteStudent")
+  speakingRoomsHosted   SpeakingRoom[]
+  speakingMemberships   SpeakingRoomMember[]
+  speakingSessions      SpeakingSession[]
 
   @@map("users")
 }
@@ -458,6 +459,21 @@ model UserLessonProgress {
 
   @@unique([userId, lessonId])
   @@map("user_lesson_progress")
+}
+
+/// Tiến độ "Luyện nghe từng bước" (7 bước) theo từng bài; bài luyện là dữ liệu tĩnh ở frontend nên chỉ lưu mã bài
+model UserListeningStepProgress {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String    @map("user_id") @db.Uuid
+  clusterId      String    @map("cluster_id")
+  completedSteps Int[]     @default([]) @map("completed_steps")
+  currentStep    Int       @default(1) @map("current_step")
+  completedAt    DateTime? @map("completed_at") @db.Timestamptz(6)
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([userId, clusterId])
+  @@map("user_listening_step_progress")
 }
 
 model UserNote {

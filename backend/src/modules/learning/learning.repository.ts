@@ -13,6 +13,7 @@ import type {
   Quiz,
   UserFavorite,
   UserLessonProgress,
+  UserListeningStepProgress,
   UserNote,
 } from '../../generated/prisma/client';
 
@@ -150,6 +151,40 @@ export class LearningRepository {
       update: {
         isCompleted,
       },
+    });
+  }
+
+  findListeningStepProgress(
+    userId: string,
+  ): Promise<UserListeningStepProgress[]> {
+    return this.prisma.userListeningStepProgress.findMany({
+      where: { userId },
+      orderBy: [{ updatedAt: 'desc' }],
+    });
+  }
+
+  findOneListeningStepProgress(
+    userId: string,
+    clusterId: string,
+  ): Promise<UserListeningStepProgress | null> {
+    return this.prisma.userListeningStepProgress.findUnique({
+      where: { userId_clusterId: { userId, clusterId } },
+    });
+  }
+
+  upsertListeningStepProgress(
+    userId: string,
+    clusterId: string,
+    data: {
+      completedSteps: number[];
+      currentStep: number;
+      completedAt: Date | null;
+    },
+  ): Promise<UserListeningStepProgress> {
+    return this.prisma.userListeningStepProgress.upsert({
+      where: { userId_clusterId: { userId, clusterId } },
+      create: { userId, clusterId, ...data },
+      update: data,
     });
   }
 

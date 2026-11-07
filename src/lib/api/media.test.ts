@@ -8,6 +8,7 @@ import {
   renameAdminMaterialFolder,
   uploadAvatar,
   uploadMedia,
+  uploadMediaDirect,
   uploadMediaSafe,
 } from "./media";
 
@@ -170,5 +171,51 @@ describe("src/lib/api/media", () => {
       });
     });
   });
-});
 
+  describe("uploadMediaDirect", () => {
+    afterEach(() => vi.unstubAllGlobals());
+
+    it("xin URL ký tạm rồi PUT tệp thẳng lên kho, trả public_url", async () => {
+      const postSpy = vi.spyOn(apiClient, "post").mockResolvedValueOnce({
+        upload_url: "https://p.supabase.co/storage/v1/object/upload/sign/materials/uploads/1_a.gif?token=t",
+        path: "uploads/1_a.gif",
+        public_url: "https://p.supabase.co/storage/v1/object/public/materials/uploads/1_a.gif",
+      });
+      const fetchMock = vi.fn().mockResolvedValue(new Response("{}", { status: 200 }));
+      vi.stubGlobal("fetch", fetchMock);
+      const file = new File(["gif-bytes"], "a.gif", { type: "image/gif" });
+
+      const res = await uploadMediaDirect(file, "uploads");
+
+      expect(postSpy).toHaveBeenCalledWith("media/upload-url", {
+        folder: "uploads",
+        filename: "a.gif",
+        content_type: "image/gif",
+        size: file.size,
+      });
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toContain("/object/upload/sign/materials/uploads/1_a.gif?token=t");
+      expect(init.method).toBe("PUT");
+      expect(init.body).toBe(file);
+      expect(res).toEqual({ data: { publicUrl: "https://p.supabase.co/storage/v1/object/public/materials/uploads/1_a.gif", path: "uploads/1_a.gif" }, error: null });
+    });
+
+    it("kho không hỗ trợ (upload_url null) → dùng lại POST /media/upload", async () => {
+      const postSpy = vi
+        .spyOn(apiClient, "post")
+        .mockResolvedValueOnce({ upload_url: null, path: "uploads/1_a.gif", public_url: "x" })
+        .mockResolvedValueOnce({ path: "uploads/2_a.gif", public_url: "https://cdn/uploads/2_a.gif" });
+      const res = await uploadMediaDirect(new File(["x"], "a.gif", { type: "image/gif" }), "uploads");
+      expect(postSpy.mock.calls[1][0]).toBe("/media/upload");
+      expect(res.data?.publicUrl).toBe("https://cdn/uploads/2_a.gif");
+    });
+
+    it("kho từ chối → trả lỗi kèm mã trạng thái, không ném", async () => {
+      vi.spyOn(apiClient, "post").mockResolvedValueOnce({ upload_url: "https://p/u", path: "p", public_url: "q" });
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("too big", { status: 413 })));
+      const res = await uploadMediaDirect(new File(["x"], "a.mp4", { type: "video/mp4" }), "uploads");
+      expect(res.data).toBeNull();
+      expect(res.error?.message).toContain("413");
+    });
+  });
+});

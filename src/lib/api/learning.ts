@@ -238,6 +238,38 @@ export async function setLessonProgress(
   );
 }
 
+/** Tiến độ "Luyện nghe từng bước" (7 bước) của một bài. */
+export interface ListeningStepProgressRow {
+  cluster_id: string;
+  completed_steps: number[];
+  current_step: number;
+  completed_at: string | null;
+  updated_at: string;
+}
+
+export async function listListeningStepProgress(): Promise<{
+  data: ListeningStepProgressRow[] | null;
+  error: ApiError | null;
+}> {
+  return toResult(
+    apiClient.get<ListeningStepProgressRow[]>("learning/listening-steps/progress"),
+  );
+}
+
+/** Server gộp các bước đã xong với dữ liệu đã lưu, không xóa bước nào. */
+export async function saveListeningStepProgress(
+  clusterId: string,
+  completedSteps: number[],
+  currentStep: number,
+): Promise<{ data: ListeningStepProgressRow | null; error: ApiError | null }> {
+  return toResult(
+    apiClient.put<ListeningStepProgressRow>(
+      `learning/listening-steps/progress/${encodeURIComponent(clusterId)}`,
+      { completed_steps: completedSteps, current_step: currentStep },
+    ),
+  );
+}
+
 export async function listMyFavorites(): Promise<{
   data: FavoriteRow[] | null;
   error: ApiError | null;

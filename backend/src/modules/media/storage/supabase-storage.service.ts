@@ -15,6 +15,32 @@ export class SupabaseStorageService implements StorageService {
     this.serviceRoleKey = options.serviceRoleKey;
   }
 
+  /** Supabase Storage: POST /object/upload/sign → `{ url: "/object/upload/sign/...?token=..." }` (hạn 2 giờ). */
+  async createSignedUploadUrl(bucket: string, path: string): Promise<string> {
+    const cleanPath = path.replace(/^\/+/, '');
+    const res = await fetch(
+      `${this.baseUrl}/storage/v1/object/upload/sign/${bucket}/${cleanPath}`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${this.serviceRoleKey}`,
+          apikey: this.serviceRoleKey,
+          'Content-Type': 'application/json',
+          'x-upsert': 'true',
+        },
+        body: '{}',
+      },
+    );
+    if (!res.ok) {
+      throw new Error(
+        `Supabase signed upload URL failed (${res.status}): ${await res.text()}`,
+      );
+    }
+    const data = (await res.json()) as { url?: string };
+    if (!data.url) throw new Error('Supabase signed upload URL missing');
+    return `${this.baseUrl}/storage/v1${data.url}`;
+  }
+
   getPublicUrl(bucket: string, path: string): string {
     const cleanPath = path.replace(/^\/+/, '');
     return `${this.baseUrl}/storage/v1/object/public/${bucket}/${cleanPath}`;

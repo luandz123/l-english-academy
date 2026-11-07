@@ -30,7 +30,7 @@ const Footer = () => {
               <span>🎮</span>
             </p>
             <p className="text-xs text-slate-400 font-medium leading-relaxed max-w-sm">
-              L-English — Hệ thống học và luyện thi TOEIC tốt nhất 2026. Kết hợp đề thi thử chuẩn ETS, phương pháp phản xạ bắt âm 8 bước và đấu trường học từ vựng Arcade.
+              L-English — Hệ thống học và luyện thi TOEIC tốt nhất 2026. Kết hợp đề thi thử chuẩn ETS, luyện nghe từng bước (7 bước) và đấu trường học từ vựng Arcade.
             </p>
 
             <div className="pt-2">
@@ -110,7 +110,7 @@ const Footer = () => {
                 Chép Chính Tả (Dictation)
               </a>
               <Link to="/part2-coach" className="hover:text-cyan-400 transition-colors">
-                Phản Xạ Part 2 (Quy Trình 8 Bước)
+                Luyện Nghe Từng Bước (7 Bước)
               </Link>
               <a href="#section-video" className="hover:text-cyan-400 transition-colors">
                 Khóa Học Video Nghe - Đọc 700+

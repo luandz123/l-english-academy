@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { PART2_STEPS_META } from '@/data/part2CoachData';
 import { Part2CoachQuestion } from '@/types/part2Coach';
 import { Button } from '@/components/ui/button';
 import { soundAudioPlayer } from '@/services/soundAudioPlayer';
@@ -134,8 +135,7 @@ export const Part2Step1Diagnostic: React.FC<Part2Step1DiagnosticProps> = ({
       <div className="flex items-center justify-between gap-3 bg-card border border-border/70 px-4 py-2.5 rounded-2xl shadow-soft-xs">
         <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-foreground min-w-0">
           <span className="w-2 h-2 rounded-full bg-purple-600 animate-pulse shrink-0" />
-          <span className="font-black text-purple-600 dark:text-purple-400">B1: Nghe thử</span>
-          <span className="text-muted-foreground text-xs">• Chỉ nghe quen tai &amp; định hình phản xạ</span>
+          <span className="text-xs sm:text-sm text-muted-foreground font-medium leading-snug">{PART2_STEPS_META[0].howTo}</span>
         </div>
         <span className="text-xs font-black text-muted-foreground">
           Câu {currentIndex + 1}/{questions.length}

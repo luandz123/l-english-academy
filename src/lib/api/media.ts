@@ -90,6 +90,43 @@ export async function uploadAvatar(
 }
 
 /**
+ * Tải tệp lớn (GIF động, video…) THẲNG từ trình duyệt lên Supabase Storage bằng URL ký tạm,
+ * không đi qua Vercel/Render (tránh giới hạn dung lượng body của proxy và bộ nhớ server).
+ * Kho không hỗ trợ (dev/test) → tự dùng lại POST /media/upload.
+ */
+export async function uploadMediaDirect(
+  file: File,
+  folder: string,
+): Promise<{ data: { publicUrl: string; path: string } | null; error: Error | null }> {
+  try {
+    const signed = await apiClient.post<{ upload_url: string | null; path: string; public_url: string }>(
+      "media/upload-url",
+      {
+        folder,
+        filename: file.name || "upload.bin",
+        content_type: file.type || "application/octet-stream",
+        size: file.size,
+      },
+    );
+    if (!signed.upload_url) {
+      return uploadMediaSafe(file, folder) as Promise<{ data: { publicUrl: string; path: string } | null; error: Error | null }>;
+    }
+    const res = await fetch(signed.upload_url, {
+      method: "PUT",
+      headers: { "Content-Type": file.type || "application/octet-stream", "x-upsert": "true" },
+      body: file,
+    });
+    if (!res.ok) {
+      const detail = await res.text().catch(() => "");
+      return { data: null, error: new Error(`Kho lưu trữ từ chối tệp (${res.status})${detail ? `: ${detail.slice(0, 200)}` : ""}`) };
+    }
+    return { data: { publicUrl: signed.public_url, path: signed.path }, error: null };
+  } catch (err: unknown) {
+    return { data: null, error: err instanceof Error ? err : new Error(String(err)) };
+  }
+}
+
+/**
  * Phiên bản bọc { data, error } tương thích với các component cũ xử lý lỗi theo kiểu Supabase.
  */
 export async function uploadMediaSafe(

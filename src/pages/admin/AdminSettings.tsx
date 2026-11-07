@@ -640,8 +640,8 @@ const AdminSettings = () => {
 
                 <div className="flex items-center justify-between p-3.5 rounded-xl bg-muted/40 border border-border/60">
                   <div className="space-y-0.5">
-                    <Label className="font-bold text-xs cursor-pointer">Banner Luyện Nghe 8 Bước</Label>
-                    <p className="text-[11px] text-muted-foreground">Banner phản xạ 8 bước Part 2</p>
+                    <Label className="font-bold text-xs cursor-pointer">Banner Luyện Nghe Từng Bước</Label>
+                    <p className="text-[11px] text-muted-foreground">Banner luyện nghe từng bước (7 bước) Part 2</p>
                   </div>
                   <Switch
                     checked={showcaseConfig.section_toggles.show_part2_banner}
@@ -1054,7 +1054,7 @@ const AdminSettings = () => {
               <div className="flex items-center gap-2.5 pb-2 border-b border-border/60">
                 <Headphones className="w-5 h-5 text-purple-500" />
                 <h3 className="text-base font-black text-foreground">
-                  Cấu Hình Banner Luyện Nghe Phản Xạ 8 Bước Part 2
+                  Cấu Hình Banner Luyện Nghe Từng Bước Part 2
                 </h3>
               </div>
 
@@ -1086,7 +1086,7 @@ const AdminSettings = () => {
                   />
                 </div>
                 <div className="space-y-1.5 sm:col-span-2">
-                  <Label className="font-bold text-xs">Mô tả quy trình 8 bước</Label>
+                  <Label className="font-bold text-xs">Mô tả quy trình 7 bước</Label>
                   <Textarea
                     value={showcaseConfig.part2_banner.description}
                     onChange={(e) =>

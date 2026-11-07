@@ -1,5 +1,6 @@
 import { MediaService } from './media.service';
 import { InMemoryStorageService } from './storage/in-memory-storage.service';
+import { SupabaseStorageService } from './storage/supabase-storage.service';
 
 describe('MediaService', () => {
   let service: MediaService;
@@ -184,6 +185,77 @@ describe('MediaService', () => {
         /^profiles\/covers\/user-uuid-123-\d+-[a-z0-9]+\.jpg$/,
       );
       expect(result.public_url).toContain('/profiles/covers/user-uuid-123-');
+    });
+  });
+
+  describe('createUploadUrl', () => {
+    it('đặt tiền tố thời gian + làm sạch tên tệp; trả URL công khai', async () => {
+      const res = await service.createUploadUrl({
+        folder: 'uploads',
+        filename: 'nền động 1.gif',
+        size: 1000,
+      });
+      expect(res.path).toMatch(/^uploads\/\d+_nnng1\.gif$/);
+      expect(res.public_url).toBe(
+        `https://test.supabase.co/storage/v1/object/public/materials/${res.path}`,
+      );
+      expect(res.upload_url).toBeNull();
+    });
+
+    it('từ chối thư mục ngoài whitelist và tệp > 50MB', async () => {
+      await expect(
+        service.createUploadUrl({ folder: 'x', filename: 'a.gif', size: 1 }),
+      ).rejects.toMatchObject({ response: { code: 'INVALID_FOLDER' } });
+      await expect(
+        service.createUploadUrl({
+          folder: 'uploads',
+          filename: 'a.mp4',
+          size: 51 * 1024 * 1024,
+        }),
+      ).rejects.toMatchObject({ response: { code: 'FILE_TOO_LARGE' } });
+    });
+  });
+
+  describe('SupabaseStorageService.createSignedUploadUrl', () => {
+    afterEach(() => jest.restoreAllMocks());
+
+    it('gọi /object/upload/sign bằng service key và trả URL tuyệt đối', async () => {
+      const fetchMock = jest.spyOn(global, 'fetch').mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            url: '/object/upload/sign/materials/uploads/a.gif?token=t1',
+          }),
+          { status: 200 },
+        ),
+      );
+      const sb = new SupabaseStorageService({
+        supabaseUrl: 'https://p.supabase.co/',
+        serviceRoleKey: 'srk',
+      });
+      const url = await sb.createSignedUploadUrl('materials', 'uploads/a.gif');
+      expect(url).toBe(
+        'https://p.supabase.co/storage/v1/object/upload/sign/materials/uploads/a.gif?token=t1',
+      );
+      const [calledUrl, init] = fetchMock.mock.calls[0];
+      expect(calledUrl).toBe(
+        'https://p.supabase.co/storage/v1/object/upload/sign/materials/uploads/a.gif',
+      );
+      expect((init?.headers as Record<string, string>).Authorization).toBe(
+        'Bearer srk',
+      );
+    });
+
+    it('Supabase báo lỗi → ném lỗi kèm mã trạng thái', async () => {
+      jest
+        .spyOn(global, 'fetch')
+        .mockResolvedValue(new Response('denied', { status: 403 }));
+      const sb = new SupabaseStorageService({
+        supabaseUrl: 'https://p.supabase.co',
+        serviceRoleKey: 'srk',
+      });
+      await expect(
+        sb.createSignedUploadUrl('materials', 'uploads/a.gif'),
+      ).rejects.toThrow('(403)');
     });
   });
 });

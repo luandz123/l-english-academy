@@ -17,6 +17,7 @@ Cách rà soát: chạy app cục bộ (Postgres + NestJS + Vite) với dữ li�
 | D7 | (2026-11-03) Làm luôn **Phòng luyện nói** (module backend T-031 + frontend T-032). |
 | D8 | (2026-11-03) Banner trang chủ dùng **nền động** (bầu trời đêm có sao băng, núi và rừng thông) với nội dung thật đặt lên trên, thay tấm ảnh có chữ vẽ sẵn. |
 | D9 | (2026-11-03) Nền banner **do admin cấu hình** (tải ảnh/GIF/video hoặc dán link, bật/tắt, độ tối, thứ tự) và **tự chuyển** giữa các nền theo số giây admin đặt. |
+| D10 | (2026-11-07) Tính năng `/part2-coach` gọi thống nhất là **"Luyện nghe từng bước"**, quảng cáo đúng **7 bước** (bỏ chữ "8 bước"; xóa component bẫy ETS không dùng). Làm lần lượt 4 đợt cải tiến ở mục "Luyện nghe từng bước" bên dưới. |
 
 ## Trạng thái từng mục
 
@@ -92,3 +93,25 @@ Cách rà soát: chạy app cục bộ (Postgres + NestJS + Vite) với dữ li�
 - Backend module `speaking` (migration `20261103000000_speaking_rooms`): danh sách/chi tiết/tạo/vào/rời/đóng phòng, ghép cặp, thống kê thời gian nói, đổi trình độ, cấp token âm thanh. Quyền thay RLS cũ: mã phòng riêng tư chỉ chủ phòng thấy (bản Supabase cũ trả cả mã cho mọi người), chỉ chủ phòng đóng phòng, token chỉ cấp cho thành viên đã vào phòng, vào phòng khóa dòng để không vượt sĩ số.
 - Frontend: `src/lib/api/speaking.ts`; `speakingService.ts` giữ chữ ký hàm cũ nhưng gọi backend; danh sách phòng tự làm mới mỗi 5 giây. Xóa `api/speaking-token.ts`.
 - Âm thanh: có `LIVEKIT_API_KEY/SECRET/URL` trên Render → dùng LiveKit (khuyên dùng, ổn định hơn); không có → WebRTC mesh qua STUN công khai, tín hiệu đi qua Supabase Realtime Broadcast (giữ theo T-030). Mesh có thể không nối được khi cả hai bên ở sau NAT chặt (không có TURN).
+
+## Luyện nghe từng bước (D10, 2026-11-07)
+
+| # | Vấn đề | Đã làm | Trạng thái |
+|---|---|---|---|
+| L1 | Trong một bài, menu "Chép Chính Tả" sáng cùng "Phản Xạ Part 2" (mã bài có chữ `dictation-`) | `StudentLayout.tsx`: loại `/part2-coach` khỏi điều kiện Chính tả; breadcrumb hiện "Bài đang học" thay mã bài | ✅ |
+| L2 | Khung tiêu đề dính (sticky) lệch 56px, đè lên dòng đầu của mỗi bước (cả desktop) | `main` dùng `overflow-x-clip` thay `overflow-x-hidden` (hidden biến `main` thành khung cuộn nên `top-16` bị cộng thêm) | ✅ |
+| L3 | Gợi ý phím tắt (Space/R/←→) hiện trên điện thoại | Ẩn dưới 768px | ✅ |
+| L4 | Điện thoại chỉ thấy "Bước 1/7", không nhảy bước được | 7 ô bước bấm được (cao 40px), ô xong có dấu ✓ | ✅ |
+| L5 | Bước 7: 2 nút chỉ có biểu tượng, nút tốc độ/phụ đề nhỏ | Thêm `aria-label`, nút cao 40px trên điện thoại; nút Phát không xuống dòng | ✅ |
+| L6 | Một tính năng 3 tên, "8 bước" vs 7 bước thật | Đổi tên ở menu, trang tổng, footer, banner Part 2, kệ trang chủ, admin, modal cấp độ; hàng TỪ VỰNG trên banner trang chủ không còn nói "phản xạ âm 8 bước". Banner Part 2 và kệ khóa học **đã lưu trong DB** vẫn giữ chữ cũ đến khi admin sửa ở tab Kệ trang chủ | ✅ |
+| L7 | Tên bài "Bài 02: Câu 1 – 5" không nói nội dung; số câu trông như chồng nhau (bài 3 "Câu 6–10", bài 7 "Câu 7–11") | Tên bài ghép từ dạng câu hỏi trong bài (vd. "Where · Why · Câu trần thuật"); dòng nguồn ghi rõ "Bài nghe điền từ · Câu 1–5" / "Đề Fulltest 01 · Câu 7–11" | ✅ |
+| L8 | Nhãn độ khó sai: "Trung cấp (650+)" hiện "Nâng cao", "Nâng cao (800+)" hiện "Cơ bản" | Hiện đúng `difficulty` của dữ liệu | ✅ |
+| L9 | Trang tổng nói "cụm 5 câu" nhưng Bài 01 có 2 câu; tiêu đề dài 2 dòng | Tiêu đề "Luyện Nghe Từng Bước", mô tả tính số câu thật (2–5), có dải 7 bước | ✅ |
+| L10 | Tên bước khó hiểu ("PX Hỏi", "PX Đáp") và không có hướng dẫn | Tên ngắn mới: Hiểu câu hỏi, Bật câu đáp, Nhại theo, Làm thử đề, Nghe lặp; mỗi bước có 1 câu hướng dẫn thao tác (`howTo`) ở đầu bước | ✅ |
+| L11 | Không có lối "học tiếp" | Nút "Học tiếp / Bắt đầu học" ở đầu trang tổng (bài mở gần nhất, đúng bước còn dở) + thanh tiến độ chung "Đã xong x/25 bài" | ✅ |
+| L12 | Xong một bước tự nhảy bước, không có phản hồi | Thẻ "Xong bước N" (tiến độ 7 ô, giới thiệu bước sau, nút "Sang bước N+1" / "Ôn lại bước này") | ✅ |
+| L13 | Thẻ bài khó phân biệt trạng thái | Nhãn "Hoàn thành ✓", "Đang học x/7", "Nên học tiếp"; viền màu theo trạng thái; cả thẻ là nút bấm được bằng bàn phím | ✅ |
+| L14 | Tiến độ chỉ ở trình duyệt, đổi máy là mất | API `GET/PUT /api/v1/learning/listening-steps/progress` (bảng `user_listening_step_progress`); server gộp bước đã xong, không xóa; tiến độ cũ trong trình duyệt tự đẩy lên lần đầu | ✅ |
+| L15 | Shadowing chỉ hiện % | Thêm 1–3 sao và lời nhắc theo điểm (60/75/90%) | ✅ |
+| L16 | XP vẫn tính ở trình duyệt | **Chưa đổi**: toàn bộ XP/level/streak (`useGamification`) đang lưu ở trình duyệt, không riêng Part 2. Chỉ chặn cộng lại 200 XP khi server đã ghi nhận bài xong ở máy khác. Chuyển XP lên server là việc riêng, cần chủ dự án quyết | ⏳ |
+

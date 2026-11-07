@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { PART2_STEPS_META } from '@/data/part2CoachData';
 import { Part2CoachQuestion } from '@/types/part2Coach';
 import { Button } from '@/components/ui/button';
 import {
@@ -93,8 +94,7 @@ export const Part2Step4ReflexA: React.FC<Part2Step4ReflexAProps> = ({
       <div className="flex items-center justify-between gap-3 bg-card border border-border/70 px-4 py-2.5 rounded-2xl shadow-soft-xs">
         <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-foreground min-w-0">
           <span className="w-2 h-2 rounded-full bg-teal-500 animate-pulse shrink-0" />
-          <span className="font-black text-teal-600 dark:text-teal-400">B4: Phản xạ đáp</span>
-          <span className="text-muted-foreground text-xs">• Tự phản xạ câu trả lời</span>
+          <span className="text-xs sm:text-sm text-muted-foreground font-medium leading-snug">{PART2_STEPS_META[3].howTo}</span>
         </div>
         <span className="text-xs font-black text-muted-foreground">
           Câu {currentIndex + 1}/{questions.length}

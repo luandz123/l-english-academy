@@ -9,3 +9,4 @@ export * from './practice.dto';
 export * from './admin-lesson.dto';
 export * from './admin-practice.dto';
 export * from './admin-enrollment.dto';
+export * from './listening-step-progress.dto';

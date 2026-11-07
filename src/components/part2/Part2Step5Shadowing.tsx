@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { PART2_STEPS_META } from '@/data/part2CoachData';
 import { Part2CoachQuestion } from '@/types/part2Coach';
 import { Button } from '@/components/ui/button';
 import {
@@ -369,8 +370,7 @@ export const Part2Step5Shadowing: React.FC<Part2Step5ShadowingProps> = ({
       <div className="flex items-center justify-between gap-3 bg-card border border-border/70 px-4 py-2.5 rounded-2xl shadow-soft-xs">
         <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-foreground min-w-0">
           <span className="w-2 h-2 rounded-full bg-violet-600 animate-pulse shrink-0" />
-          <span className="font-black text-violet-600 dark:text-violet-400">B5: Shadowing</span>
-          <span className="text-muted-foreground text-xs">• Luyện giọng 2 lượt</span>
+          <span className="text-xs sm:text-sm text-muted-foreground font-medium leading-snug">{PART2_STEPS_META[4].howTo}</span>
         </div>
         <span className="text-xs font-black text-muted-foreground">
           Câu {currentIndex + 1}/{questions.length}
@@ -525,6 +525,25 @@ export const Part2Step5Shadowing: React.FC<Part2Step5ShadowingProps> = ({
                 </span>
               )}
             </div>
+
+            {currentScore !== undefined && (
+              <div className="flex items-center gap-2" aria-label={`${currentScore >= 90 ? 3 : currentScore >= 75 ? 2 : currentScore >= 60 ? 1 : 0} trên 3 sao`}>
+                <span className="text-lg leading-none tracking-wider" aria-hidden="true">
+                  {[1, 2, 3].map((n) => (
+                    <span key={n} className={(currentScore >= 90 ? 3 : currentScore >= 75 ? 2 : currentScore >= 60 ? 1 : 0) >= n ? 'text-amber-400' : 'text-muted-foreground/30'}>★</span>
+                  ))}
+                </span>
+                <span className="text-xs font-bold text-foreground">
+                  {currentScore >= 90
+                    ? 'Tuyệt vời, nghe như người bản xứ!'
+                    : currentScore >= 75
+                    ? 'Rất tốt! Thử lại để lấy đủ 3 sao.'
+                    : currentScore >= 60
+                    ? 'Đạt rồi! Nhìn các từ gạch đỏ và nói lại nhé.'
+                    : 'Chưa đạt 60%. Bấm Nghe mẫu rồi nói chậm, rõ từng từ.'}
+                </span>
+              </div>
+            )}
 
             {/* Word by word highlight */}
             <div className="flex flex-wrap gap-1.5 text-sm sm:text-base font-bold">

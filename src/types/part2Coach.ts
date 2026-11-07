@@ -111,6 +111,8 @@ export interface Part2StepMeta {
   shortName: string;
   subtitle: string;
   description: string;
+  /** Một câu hướng dẫn thao tác, hiện ở đầu mỗi bước cho người mới */
+  howTo: string;
   iconName: string;
   badge: string;
 }

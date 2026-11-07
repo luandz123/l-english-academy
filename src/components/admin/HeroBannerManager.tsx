@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { uploadMediaSafe } from "@/lib/api/media";
+import { uploadMediaDirect } from "@/lib/api/media";
 import type { HeroBackground, HeroBannerConfig } from "@/services/homepageShowcaseService";
 
 interface Props {
@@ -61,8 +61,8 @@ export const HeroBannerManager = ({ value, onChange }: Props) => {
       return;
     }
     setUploading(true);
-    const ext = (file.name.split(".").pop() || (isVideo ? "mp4" : "jpg")).toLowerCase().replace(/[^a-z0-9]/g, "");
-    const { data, error } = await uploadMediaSafe(file, "uploads", `hero-banner-${Date.now()}.${ext}`);
+    // Tải thẳng lên kho lưu trữ (file lớn như GIF động/video không đi qua proxy Vercel nên không bị chặn)
+    const { data, error } = await uploadMediaDirect(file, "uploads");
     setUploading(false);
     if (error || !data) {
       toast({ title: "Tải lên thất bại", description: error?.message, variant: "destructive" });
