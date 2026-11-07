@@ -42,7 +42,7 @@ const primaryNavItems = [
   { to: "/my-courses", label: "Khóa học của tôi", icon: GraduationCap },
   { to: "/fulltests", label: "Luyện đề", icon: FileCheck2 },
   { to: "/listening", label: "Chép Chính Tả", icon: Headphones },
-  { to: "/part2-coach", label: "Phản Xạ Part 2", icon: Zap },
+  { to: "/part2-coach", label: "Luyện Nghe Từng Bước", icon: Zap },
   { to: "/games", label: "Trò Chơi", icon: Gamepad2 },
 ];
 
@@ -53,7 +53,7 @@ const mobileNavItems = [
   { to: "/my-courses", label: "Của tôi", icon: GraduationCap },
   { to: "/fulltests", label: "Luyện đề", icon: FileCheck2 },
   { to: "/listening", label: "Chính tả", icon: Headphones },
-  { to: "/part2-coach", label: "Part 2", icon: Zap, isHighlight: true },
+  { to: "/part2-coach", label: "Từng bước", icon: Zap, isHighlight: true },
 ];
 
 const StudentLayout = ({ children }: { children: React.ReactNode }) => {
@@ -99,7 +99,9 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
 
   const isPart2Active = location.pathname.startsWith("/part2-coach");
   const isFullTestActive = location.pathname === "/fulltests" || location.pathname.includes("/fulltest");
-  const isListeningActive = location.pathname === "/listening" || location.pathname.includes("/dictation");
+  // Mã bài Part 2 có chữ "dictation-..." nên phải loại trang Luyện nghe từng bước ra
+  const isListeningActive =
+    !isPart2Active && (location.pathname === "/listening" || location.pathname.includes("/dictation"));
   const isLibraryActive = location.pathname === "/library";
   const isMyCoursesActive = location.pathname === "/my-courses";
   const isGamesActive = location.pathname.startsWith("/games");
@@ -115,7 +117,7 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
     result: "Kết quả",
     dictation: "Chép chính tả",
     fulltest: "Full Test",
-    "part2-coach": "Phản xạ Part 2",
+    "part2-coach": "Luyện nghe từng bước",
     fulltests: "Luyện đề",
     listening: "Chép chính tả",
     library: "Kho khóa học",
@@ -138,7 +140,9 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
       // Đoạn ngay sau một đoạn số (vd. quizId) là bài cụ thể — vẫn hiện nhãn
       let path = `/${pathSegments.slice(0, index + 1).join("/")}`;
       if (segment === "courses") path = "/my-courses";
+      // Mã bài luyện nghe từng bước (vd. dictation-part2-unit1) không có nghĩa với người học
       const label =
+        (pathSegments[index - 1] === "part2-coach" ? "Bài đang học" : undefined) ||
         CRUMB_LABELS[segment] ||
         segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, " ");
       const linkable = segment === "courses" || LINKABLE_SEGMENTS.has(segment);
@@ -428,7 +432,7 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
         </header>
 
         {/* Main page content container - padding bottom ensures content isn't covered by mobile bottom nav */}
-        <main className="flex-1 p-3.5 sm:p-4 md:p-6 lg:p-8 overflow-x-hidden bg-transparent pb-24 md:pb-8 relative z-10">{children}</main>
+        <main className="flex-1 p-3.5 sm:p-4 md:p-6 lg:p-8 overflow-x-clip bg-transparent pb-24 md:pb-8 relative z-10">{children}</main>
 
         {/* Mobile Bottom Navigation Bar (Ultra Ergonomic & Modern) */}
         <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-[#070e1c]/95 backdrop-blur-xl border-t border-slate-800/80 shadow-[0_-4px_24px_rgba(0,0,0,0.6)] pb-[env(safe-area-inset-bottom,0px)]">

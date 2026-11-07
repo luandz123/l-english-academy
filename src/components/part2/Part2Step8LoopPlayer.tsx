@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { PART2_STEPS_META } from '@/data/part2CoachData';
 import { Part2CoachQuestion } from '@/types/part2Coach';
 import { Button } from '@/components/ui/button';
 import {
@@ -157,8 +158,7 @@ export const Part2Step8LoopPlayer: React.FC<Part2Step8LoopPlayerProps> = ({
       <div className="flex items-center justify-between gap-3 bg-card border border-border/70 px-4 py-2.5 rounded-2xl shadow-soft-xs">
         <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-foreground min-w-0">
           <span className="w-2 h-2 rounded-full bg-violet-600 animate-pulse shrink-0" />
-          <span className="font-black text-violet-600 dark:text-violet-400">B7: Nghe ngấm</span>
-          <span className="text-muted-foreground text-xs">• Lặp vô thức</span>
+          <span className="text-xs sm:text-sm text-muted-foreground font-medium leading-snug">{PART2_STEPS_META[6].howTo}</span>
         </div>
         <span className="text-xs font-black text-muted-foreground">
           Đã lặp: {loopCount} vòng
@@ -241,6 +241,8 @@ export const Part2Step8LoopPlayer: React.FC<Part2Step8LoopPlayerProps> = ({
               variant="outline"
               size="icon"
               onClick={handlePrev}
+              aria-label="Câu trước"
+              title="Câu trước (phím ←)"
               className={cn(
                 "w-12 h-12 rounded-2xl border-border cursor-pointer transition-transform duration-75 active:translate-y-[2px]",
                 pressedKey === 'ArrowLeft' && "translate-y-[2px] bg-accent"
@@ -248,7 +250,7 @@ export const Part2Step8LoopPlayer: React.FC<Part2Step8LoopPlayerProps> = ({
             >
               <SkipBack className="w-5 h-5" />
             </Button>
-            <span className="text-[10px] font-mono font-bold text-muted-foreground bg-muted/80 px-2 py-0.5 rounded border border-border/60 shadow-[0_1px_0_rgba(0,0,0,0.1)]">
+            <span className="hidden md:inline-block text-[10px] font-mono font-bold text-muted-foreground bg-muted/80 px-2 py-0.5 rounded border border-border/60 shadow-[0_1px_0_rgba(0,0,0,0.1)]">
               ←
             </span>
           </div>
@@ -267,7 +269,7 @@ export const Part2Step8LoopPlayer: React.FC<Part2Step8LoopPlayerProps> = ({
               {isPlaying ? <Pause className="w-5 h-5 mr-1.5" /> : <Play className="w-5 h-5 ml-0.5 mr-1.5" />}
               {isPlaying ? 'Tạm dừng' : 'Phát'}
             </Button>
-            <span className="text-[10px] font-mono font-bold text-muted-foreground bg-muted/80 px-2.5 py-0.5 rounded border border-border/60 shadow-[0_1px_0_rgba(0,0,0,0.1)]">
+            <span className="hidden md:inline-block text-[10px] font-mono font-bold text-muted-foreground bg-muted/80 px-2.5 py-0.5 rounded border border-border/60 shadow-[0_1px_0_rgba(0,0,0,0.1)]">
               Space
             </span>
           </div>
@@ -278,6 +280,8 @@ export const Part2Step8LoopPlayer: React.FC<Part2Step8LoopPlayerProps> = ({
               variant="outline"
               size="icon"
               onClick={handleNext}
+              aria-label="Câu tiếp theo"
+              title="Câu tiếp theo (phím →)"
               className={cn(
                 "w-12 h-12 rounded-2xl border-border cursor-pointer transition-transform duration-75 active:translate-y-[2px]",
                 pressedKey === 'ArrowRight' && "translate-y-[2px] bg-accent"
@@ -285,7 +289,7 @@ export const Part2Step8LoopPlayer: React.FC<Part2Step8LoopPlayerProps> = ({
             >
               <SkipForward className="w-5 h-5" />
             </Button>
-            <span className="text-[10px] font-mono font-bold text-muted-foreground bg-muted/80 px-2 py-0.5 rounded border border-border/60 shadow-[0_1px_0_rgba(0,0,0,0.1)]">
+            <span className="hidden md:inline-block text-[10px] font-mono font-bold text-muted-foreground bg-muted/80 px-2 py-0.5 rounded border border-border/60 shadow-[0_1px_0_rgba(0,0,0,0.1)]">
               →
             </span>
           </div>
@@ -298,9 +302,12 @@ export const Part2Step8LoopPlayer: React.FC<Part2Step8LoopPlayerProps> = ({
             {[0.8, 1.0, 1.2].map((spd) => (
               <button
                 key={spd}
+                type="button"
                 onClick={() => setPlaybackSpeed(spd)}
+                aria-pressed={playbackSpeed === spd}
+                aria-label={`Tốc độ ${spd}x`}
                 className={cn(
-                  'px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer',
+                  'px-3 min-h-10 md:min-h-0 md:py-1 rounded-lg text-xs font-bold transition-all cursor-pointer',
                   playbackSpeed === spd
                     ? 'bg-card text-foreground shadow-xs font-black'
                     : 'text-muted-foreground hover:text-foreground'
@@ -316,9 +323,11 @@ export const Part2Step8LoopPlayer: React.FC<Part2Step8LoopPlayerProps> = ({
             {(['both', 'en_only', 'hidden'] as const).map((mode) => (
               <button
                 key={mode}
+                type="button"
                 onClick={() => setSubtitleMode(mode)}
+                aria-pressed={subtitleMode === mode}
                 className={cn(
-                  'px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer',
+                  'px-3 min-h-10 md:min-h-0 md:py-1 rounded-lg text-xs font-bold transition-all cursor-pointer',
                   subtitleMode === mode
                     ? 'bg-card text-foreground shadow-xs font-black'
                     : 'text-muted-foreground hover:text-foreground'
@@ -356,7 +365,7 @@ export const Part2Step8LoopPlayer: React.FC<Part2Step8LoopPlayerProps> = ({
                 Xuất sắc!
               </h3>
               <p className="text-xs text-muted-foreground">
-                Bạn đã hoàn thành trọn vẹn 7 bước luyện phản xạ!
+                Bạn đã hoàn thành trọn vẹn 7 bước của bài này!
               </p>
             </div>
 
@@ -375,7 +384,7 @@ export const Part2Step8LoopPlayer: React.FC<Part2Step8LoopPlayerProps> = ({
                 }}
                 className="rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold"
               >
-                Đổi cụm khác
+                Chọn bài khác
               </Button>
             </div>
           </div>

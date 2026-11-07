@@ -35,11 +35,13 @@ import {
   EnrollmentResponseDto,
   FavoriteDto,
   LessonProgressDto,
+  ListeningStepProgressDto,
   MaterialDto,
   MyEnrollmentDto,
   NoteDto,
   PracticeDto,
   PracticeQuestionDto,
+  SaveListeningStepProgressDto,
   UpdateLessonProgressDto,
 } from './dto';
 import { LearningService } from './learning.service';
@@ -125,6 +127,39 @@ export class LearningController {
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<LessonProgressDto[]> {
     return this.learning.getMyProgress(user.id);
+  }
+
+  @Get('listening-steps/progress')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: 'Tiến độ "Luyện nghe từng bước" (7 bước) của tôi',
+    description: 'Mỗi phần tử là một bài đã mở; bài mở gần nhất lên đầu.',
+  })
+  @ApiOkResponse({ type: [ListeningStepProgressDto] })
+  @ApiUnauthorizedResponse({ description: 'Chưa đăng nhập' })
+  getListeningStepProgress(
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<ListeningStepProgressDto[]> {
+    return this.learning.getListeningStepProgress(user.id);
+  }
+
+  @Put('listening-steps/progress/:clusterId')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: 'Lưu tiến độ một bài "Luyện nghe từng bước"',
+    description:
+      'Gộp các bước đã xong với dữ liệu đã lưu (không xóa bước đã xong). ' +
+      'Chỉ ghi tiến độ của chính người gọi.',
+  })
+  @ApiOkResponse({ type: ListeningStepProgressDto })
+  @ApiBadRequestResponse({ description: 'Mã bài hoặc số bước không hợp lệ' })
+  @ApiUnauthorizedResponse({ description: 'Chưa đăng nhập' })
+  saveListeningStepProgress(
+    @Param('clusterId') clusterId: string,
+    @Body() dto: SaveListeningStepProgressDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<ListeningStepProgressDto> {
+    return this.learning.saveListeningStepProgress(user.id, clusterId, dto);
   }
 
   @Put('lessons/:lessonId/progress')

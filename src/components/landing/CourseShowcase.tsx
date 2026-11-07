@@ -346,7 +346,7 @@ export const CourseShowcase = () => {
                     </Link>
                   </div>
 
-                  {/* BANNER ĐẶC THÙ: Chế độ Luyện Nghe Phản Xạ 8 Bước Part 2 */}
+                  {/* BANNER ĐẶC THÙ: Luyện Nghe Từng Bước (7 bước) Part 2 */}
                   {theme.isListening && section_toggles.show_part2_banner && (
                     <div className="relative overflow-hidden bg-gradient-to-r from-purple-900/90 via-indigo-900/90 to-blue-900/90 rounded-2xl p-6 sm:p-7 text-white flex flex-col md:flex-row items-start md:items-center justify-between gap-5 shadow-[0_0_30px_rgba(147,51,234,0.25)] border border-purple-400/40">
                       <div className="space-y-2 relative z-10">

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { PART2_STEPS_META } from '@/data/part2CoachData';
 import { Part2CoachQuestion } from '@/types/part2Coach';
 import { Button } from '@/components/ui/button';
 import {
@@ -202,8 +203,7 @@ export const Part2Step7ExamMode: React.FC<Part2Step7ExamModeProps> = ({
       <div className="flex items-center justify-between gap-3 bg-card border border-border/70 px-4 py-2.5 rounded-2xl shadow-soft-xs">
         <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-foreground min-w-0">
           <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse shrink-0" />
-          <span className="font-black text-blue-600 dark:text-blue-400">B6: Thực chiến</span>
-          <span className="text-muted-foreground text-xs">• Đã làm: {answeredCount}/{questions.length}</span>
+          <span className="text-xs sm:text-sm text-muted-foreground font-medium leading-snug">{PART2_STEPS_META[5].howTo}</span>
         </div>
 
         {!isSubmitted ? (

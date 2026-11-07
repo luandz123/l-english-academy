@@ -229,10 +229,11 @@ export const Part2SpatialWaveformPlayer: React.FC<Part2SpatialWaveformPlayerProp
                 !canPrev && 'opacity-40 cursor-not-allowed'
               )}
               title="Câu trước (Phím ←)"
+              aria-label="Câu trước"
             >
               <ChevronLeft className="w-5 h-5" />
             </button>
-            <kbd className="px-1.5 py-0.5 rounded-md bg-muted border border-border/80 text-[10px] font-mono text-muted-foreground font-black shadow-[0_1px_0_rgba(0,0,0,0.15)]">
+            <kbd className="hidden md:inline-block px-1.5 py-0.5 rounded-md bg-muted border border-border/80 text-[10px] font-mono text-muted-foreground font-black shadow-[0_1px_0_rgba(0,0,0,0.15)]">
               ←
             </kbd>
           </div>
@@ -244,7 +245,7 @@ export const Part2SpatialWaveformPlayer: React.FC<Part2SpatialWaveformPlayerProp
             type="button"
             onClick={onTogglePlay}
             className={cn(
-              'h-12 sm:h-13 px-7 rounded-2xl text-white font-black text-sm flex items-center justify-center gap-2 shadow-[0_4px_0_#4c1d95] transition-all duration-100 cursor-pointer select-none active:translate-y-[2px] active:shadow-[0_2px_0_#4c1d95]',
+              'h-12 sm:h-13 px-5 sm:px-7 whitespace-nowrap rounded-2xl text-white font-black text-sm flex items-center justify-center gap-2 shadow-[0_4px_0_#4c1d95] transition-all duration-100 cursor-pointer select-none active:translate-y-[2px] active:shadow-[0_2px_0_#4c1d95]',
               isPlaying
                 ? 'bg-amber-500 hover:bg-amber-600 shadow-[0_4px_0_#b45309]'
                 : 'bg-purple-600 hover:bg-purple-700',
@@ -255,7 +256,7 @@ export const Part2SpatialWaveformPlayer: React.FC<Part2SpatialWaveformPlayerProp
             {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
             <span>{isPlaying ? 'Tạm dừng' : 'Phát âm thanh'}</span>
           </button>
-          <kbd className="px-2 py-0.5 rounded-md bg-muted border border-border/80 text-[10px] font-mono text-muted-foreground font-black shadow-[0_1px_0_rgba(0,0,0,0.15)]">
+          <kbd className="hidden md:inline-block px-2 py-0.5 rounded-md bg-muted border border-border/80 text-[10px] font-mono text-muted-foreground font-black shadow-[0_1px_0_rgba(0,0,0,0.15)]">
             Space
           </kbd>
         </div>
@@ -270,10 +271,11 @@ export const Part2SpatialWaveformPlayer: React.FC<Part2SpatialWaveformPlayerProp
               pressedKey === 'KeyR' && 'translate-y-[2px] bg-accent shadow-none ring-2 ring-purple-500/40'
             )}
             title="Nghe lại từ đầu (Phím R)"
+            aria-label="Nghe lại từ đầu"
           >
             <RotateCcw className="w-4 h-4" />
           </button>
-          <kbd className="px-1.5 py-0.5 rounded-md bg-muted border border-border/80 text-[10px] font-mono text-muted-foreground font-black shadow-[0_1px_0_rgba(0,0,0,0.15)]">
+          <kbd className="hidden md:inline-block px-1.5 py-0.5 rounded-md bg-muted border border-border/80 text-[10px] font-mono text-muted-foreground font-black shadow-[0_1px_0_rgba(0,0,0,0.15)]">
             R
           </kbd>
         </div>
@@ -291,10 +293,11 @@ export const Part2SpatialWaveformPlayer: React.FC<Part2SpatialWaveformPlayerProp
                 !canNext && 'opacity-40 cursor-not-allowed'
               )}
               title="Câu tiếp theo (Phím →)"
+              aria-label="Câu tiếp theo"
             >
               <ChevronRight className="w-5 h-5" />
             </button>
-            <kbd className="px-1.5 py-0.5 rounded-md bg-muted border border-border/80 text-[10px] font-mono text-muted-foreground font-black shadow-[0_1px_0_rgba(0,0,0,0.15)]">
+            <kbd className="hidden md:inline-block px-1.5 py-0.5 rounded-md bg-muted border border-border/80 text-[10px] font-mono text-muted-foreground font-black shadow-[0_1px_0_rgba(0,0,0,0.15)]">
               →
             </kbd>
           </div>

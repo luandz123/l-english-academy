@@ -55,8 +55,8 @@ export const ListeningPage: React.FC = () => {
           <EmptyState
             icon={<Headphones className="w-8 h-8 text-purple-600" />}
             title="Các bài luyện nghe đang được tổng hợp"
-            description="Bạn có thể chuyển sang thử sức với các bài thi Full Test ETS hoặc luyện phản xạ Part 2 ngay bây giờ."
-            actionLabel="Luyện Phản Xạ Part 2"
+            description="Bạn có thể chuyển sang thử sức với các bài thi Full Test ETS hoặc luyện nghe từng bước Part 2 ngay bây giờ."
+            actionLabel="Luyện nghe từng bước"
             onAction={() => window.location.href = "/part2-coach"}
           />
         )}

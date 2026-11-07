@@ -14,20 +14,14 @@ import { Part2Step7ExamMode } from '@/components/part2/Part2Step7ExamMode';
 import { Part2Step8LoopPlayer } from '@/components/part2/Part2Step8LoopPlayer';
 import { Part2ClusterSelector } from '@/components/part2/Part2ClusterSelector';
 import { Button } from '@/components/ui/button';
-import {
-  ArrowLeft,
-  Sparkles,
-  Layers,
-  HelpCircle,
-  RotateCcw,
-  Zap,
-  Award,
-  ChevronLeft
-} from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { cn } from '@/lib/utils';
+import { ArrowRight, CheckCircle2, Layers, ChevronLeft } from 'lucide-react';
 import { useSound } from '@/hooks/useSound';
 import { useAuth } from '@/hooks/useAuth';
 import { useGamification, XP_REWARDS } from '@/hooks/useGamification';
 import { soundAudioPlayer } from '@/services/soundAudioPlayer';
+import { useListeningStepProgress } from '@/hooks/useListeningStepProgress';
 
 const Part2CoachPage: React.FC = () => {
   const { clusterId: paramClusterId, quizId, courseId } = useParams();
@@ -48,43 +42,26 @@ const Part2CoachPage: React.FC = () => {
     return null;
   });
 
-  const getClusterProgressKey = (userId: string | undefined, cId: string) =>
-    `lenglish_part2_progress_v2_${userId || 'guest'}_${cId}`;
+  const { getProgress, saveProgress, isLoaded: progressLoaded } = useListeningStepProgress();
 
-  const loadClusterProgress = (userId: string | undefined, cId: string) => {
-    try {
-      const raw = localStorage.getItem(getClusterProgressKey(userId, cId));
-      if (!raw) return null;
-      const parsed = JSON.parse(raw);
-      return {
-        completedSteps: Array.isArray(parsed.completedSteps) ? (parsed.completedSteps as Part2StepId[]) : [],
-        currentStep: (parsed.currentStep >= 1 && parsed.currentStep <= 7 ? parsed.currentStep : 1) as Part2StepId,
-        hasReceivedClusterXp: !!parsed.hasReceivedClusterXp,
-      };
-    } catch {
-      return null;
-    }
+  const loadClusterProgress = (_userId: string | undefined, cId: string) => {
+    const p = getProgress(cId);
+    if (p.updatedAt === 0 && p.completedSteps.length === 0) return null;
+    return {
+      completedSteps: p.completedSteps as Part2StepId[],
+      currentStep: p.currentStep as Part2StepId,
+      hasReceivedClusterXp: p.hasReceivedClusterXp,
+      finishedOnServer: p.finishedOnServer,
+    };
   };
 
   const saveClusterProgress = (
-    userId: string | undefined,
+    _userId: string | undefined,
     cId: string,
     completed: Part2StepId[],
     step: Part2StepId,
     hasReceivedXp?: boolean
-  ) => {
-    try {
-      const existing = loadClusterProgress(userId, cId);
-      localStorage.setItem(
-        getClusterProgressKey(userId, cId),
-        JSON.stringify({
-          completedSteps: completed,
-          currentStep: step,
-          hasReceivedClusterXp: hasReceivedXp ?? existing?.hasReceivedClusterXp ?? false,
-        })
-      );
-    } catch {}
-  };
+  ) => saveProgress(cId, completed, step, { hasReceivedClusterXp: hasReceivedXp });
 
   const stepParam = parseInt(searchParams.get('step') || '1', 10);
   const initialStep = (stepParam >= 1 && stepParam <= 7 ? stepParam : 1) as Part2StepId;
@@ -93,6 +70,8 @@ const Part2CoachPage: React.FC = () => {
   const [completedSteps, setCompletedSteps] = useState<Set<Part2StepId>>(new Set());
   const [step1Diagnostics, setStep1Diagnostics] = useState<Record<number, { guess: 'A' | 'B' | 'C'; rating: number }>>({});
   const [isClusterModalOpen, setIsClusterModalOpen] = useState(false);
+  // Bước vừa xong: hiện thẻ chúc mừng ngắn + giới thiệu bước sau thay vì tự nhảy bước
+  const [justCompletedStep, setJustCompletedStep] = useState<Part2StepId | null>(null);
 
   // Load saved progress for active cluster
   useEffect(() => {
@@ -125,6 +104,16 @@ const Part2CoachPage: React.FC = () => {
       }, { replace: true });
     }
   }, [activeCluster?.id, user?.id]);
+
+  // Tiến độ trên server về sau (máy khác đã học): gộp thêm các bước đã xong
+  useEffect(() => {
+    if (!activeCluster?.id || !progressLoaded) return;
+    const merged = getProgress(activeCluster.id).completedSteps as Part2StepId[];
+    setCompletedSteps((prev) => {
+      if (merged.every((s) => prev.has(s))) return prev;
+      return new Set([...prev, ...merged]);
+    });
+  }, [activeCluster?.id, progressLoaded, getProgress]);
 
   // Sync step from URL searchParams
   useEffect(() => {
@@ -200,9 +189,17 @@ const Part2CoachPage: React.FC = () => {
     }
 
     if (stepId < 7) {
-      handleStepSelect(nextStep);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      soundAudioPlayer.stop();
+      setJustCompletedStep(stepId);
     }
+  };
+
+  const goToNextStepAfterComplete = () => {
+    if (!justCompletedStep) return;
+    const nextStep = (justCompletedStep + 1) as Part2StepId;
+    setJustCompletedStep(null);
+    handleStepSelect(nextStep);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleFinishAll = () => {
@@ -210,9 +207,10 @@ const Part2CoachPage: React.FC = () => {
     setCompletedSteps(nextCompleted);
     if (activeCluster?.id) {
       const existing = loadClusterProgress(user?.id, activeCluster.id);
-      const alreadyClaimed = existing?.hasReceivedClusterXp;
+      // Đã nhận ở máy này hoặc đã xong bài ở máy khác (server ghi completed_at) thì không cộng lại
+      const alreadyClaimed = existing?.hasReceivedClusterXp || existing?.finishedOnServer;
       if (!alreadyClaimed) {
-        addXp(XP_REWARDS.PART2_CLUSTER_COMPLETE, "Hoàn thành cụm Phản Xạ!");
+        addXp(XP_REWARDS.PART2_CLUSTER_COMPLETE, "Hoàn thành bài luyện nghe từng bước!");
       }
       saveClusterProgress(user?.id, activeCluster.id, Array.from(nextCompleted), 7, true);
     }
@@ -229,7 +227,7 @@ const Part2CoachPage: React.FC = () => {
         {!activeCluster ? (
           <Part2HubView onSelectCluster={handleSelectClusterFromHub} />
         ) : (
-          /* Active Cluster 8-Step Training Mode */
+          /* Bài đang học: 7 bước */
           <div className="space-y-4 sm:space-y-5">
             {/* Sticky Compact 1-Row Header & Slim Dot Stepper */}
             <div className="sticky top-16 z-30 bg-[#070e1c]/95 backdrop-blur-md border border-slate-800/80 rounded-2xl p-3 sm:px-4 sm:py-3 shadow-[0_4px_25px_rgba(0,0,0,0.5)] space-y-2.5">
@@ -240,10 +238,11 @@ const Part2CoachPage: React.FC = () => {
                     size="sm"
                     onClick={handleBackToHub}
                     className="h-8 px-2 rounded-xl text-muted-foreground hover:text-foreground shrink-0 flex items-center gap-1 font-bold text-xs cursor-pointer"
-                    title="Quay lại Hub Part 2"
+                    title="Quay lại danh sách bài"
+                    aria-label="Quay lại danh sách bài"
                   >
                     <ChevronLeft className="w-4 h-4" />
-                    <span className="hidden sm:inline">Hub Phản Xạ</span>
+                    <span className="hidden sm:inline">Danh sách bài</span>
                   </Button>
 
                   <div className="h-4 w-px bg-border shrink-0" />
@@ -333,7 +332,7 @@ const Part2CoachPage: React.FC = () => {
             </div>
 
             {/* Global Minimal Shortcut Indicator Bar (Phong cách Bàn học) */}
-            <div className="flex items-center justify-center gap-3 py-2 text-[11px] text-muted-foreground/80 font-medium">
+            <div className="hidden md:flex items-center justify-center gap-3 py-2 text-[11px] text-muted-foreground/80 font-medium">
               <span className="inline-flex items-center gap-1">
                 <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border text-[10px] font-mono">Space</kbd>
                 Phát / Dừng
@@ -349,6 +348,68 @@ const Part2CoachPage: React.FC = () => {
                 Đổi câu
               </span>
             </div>
+
+            {/* Thẻ "Xong bước" */}
+            <Dialog open={justCompletedStep !== null} onOpenChange={(open) => !open && setJustCompletedStep(null)}>
+              <DialogContent className="max-w-sm rounded-3xl text-center">
+                {justCompletedStep !== null && (() => {
+                  const doneMeta = PART2_STEPS_META[justCompletedStep - 1];
+                  const nextMeta = PART2_STEPS_META[justCompletedStep];
+                  const doneCount = completedSteps.size;
+                  return (
+                    <>
+                      <DialogHeader className="items-center space-y-3">
+                        <div className="w-14 h-14 rounded-full bg-emerald-500/15 text-emerald-400 flex items-center justify-center">
+                          <CheckCircle2 className="w-8 h-8" />
+                        </div>
+                        <DialogTitle className="text-lg font-black">
+                          Xong bước {doneMeta.id}: {doneMeta.shortName}!
+                        </DialogTitle>
+                        <DialogDescription className="text-xs">
+                          Bạn đã đi được {doneCount}/{PART2_STEPS_META.length} bước của bài này.
+                        </DialogDescription>
+                      </DialogHeader>
+
+                      <div className="flex items-center gap-1" aria-hidden="true">
+                        {PART2_STEPS_META.map((st) => (
+                          <div
+                            key={st.id}
+                            className={cn('h-1.5 flex-1 rounded-full', completedSteps.has(st.id) ? 'bg-emerald-500' : 'bg-muted')}
+                          />
+                        ))}
+                      </div>
+
+                      {nextMeta && (
+                        <div className="rounded-2xl bg-muted/50 border border-border/60 p-3 text-left space-y-1">
+                          <p className="text-[11px] font-black uppercase tracking-wider text-cyan-400">
+                            Tiếp theo · Bước {nextMeta.id}
+                          </p>
+                          <p className="text-sm font-black text-foreground">{nextMeta.name}</p>
+                          <p className="text-xs text-muted-foreground leading-relaxed">{nextMeta.howTo}</p>
+                        </div>
+                      )}
+
+                      <div className="flex flex-col-reverse sm:flex-row gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => setJustCompletedStep(null)}
+                          className="h-11 flex-1 rounded-xl font-bold text-xs"
+                        >
+                          Ôn lại bước này
+                        </Button>
+                        <Button
+                          onClick={goToNextStepAfterComplete}
+                          className="h-11 flex-1 rounded-xl font-black text-xs bg-cyan-500 hover:bg-cyan-400 text-slate-950"
+                          autoFocus
+                        >
+                          Sang bước {nextMeta?.id} <ArrowRight className="w-4 h-4 ml-1" />
+                        </Button>
+                      </div>
+                    </>
+                  );
+                })()}
+              </DialogContent>
+            </Dialog>
 
             {/* Cluster Selection Modal */}
             <Part2ClusterSelector

@@ -55,7 +55,7 @@ export const Part2ClusterSelector: React.FC<Part2ClusterSelectorProps> = ({
               <Layers className="w-4 h-4" />
             </div>
             <DialogTitle className="text-xl sm:text-2xl font-black text-foreground">
-              Chọn Bài Luyện Phản Xạ Part 2
+              Chọn bài luyện nghe từng bước
             </DialogTitle>
           </div>
           <DialogDescription className="text-sm font-medium text-muted-foreground">

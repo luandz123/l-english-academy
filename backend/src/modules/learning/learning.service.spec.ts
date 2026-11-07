@@ -9,6 +9,7 @@ import { LearningService } from './learning.service';
 import type {
   UserFavorite,
   UserLessonProgress,
+  UserListeningStepProgress,
   UserNote,
 } from '../../generated/prisma/client';
 
@@ -35,6 +36,9 @@ describe('LearningService', () => {
       findPracticesByLesson: jest.fn(),
       findPracticeById: jest.fn(),
       findQuestionsWithAnswers: jest.fn(),
+      findListeningStepProgress: jest.fn(),
+      findOneListeningStepProgress: jest.fn(),
+      upsertListeningStepProgress: jest.fn(),
     };
 
     const mockAuth: Partial<jest.Mocked<AuthService>> = {
@@ -436,6 +440,76 @@ describe('LearningService', () => {
       expect(res[0].answers).toHaveLength(2);
       expect(res[0].answers[0].is_correct).toBe(true);
       expect(res[0].answers[1].is_correct).toBe(false);
+    });
+  });
+
+  describe('saveListeningStepProgress', () => {
+    const row = (
+      over: Partial<UserListeningStepProgress>,
+    ): UserListeningStepProgress => ({
+      id: 'p1',
+      userId: mockUserId,
+      clusterId: 'dictation-part2-unit1',
+      completedSteps: [],
+      currentStep: 1,
+      completedAt: null,
+      updatedAt: new Date('2026-11-07T00:00:00Z'),
+      ...over,
+    });
+
+    beforeEach(() => {
+      repo.upsertListeningStepProgress.mockImplementation(
+        (userId, clusterId, data) =>
+          Promise.resolve(row({ userId, clusterId, ...data })),
+      );
+    });
+
+    it('từ chối mã bài không hợp lệ (INVALID_CLUSTER_ID)', async () => {
+      await expect(
+        service.saveListeningStepProgress(mockUserId, 'Bad Id!', {
+          completed_steps: [1],
+          current_step: 2,
+        }),
+      ).rejects.toThrow(BadRequestException);
+      expect(repo.upsertListeningStepProgress).not.toHaveBeenCalled();
+    });
+
+    it('gộp bước đã xong với dữ liệu cũ, không xóa bước đã lưu', async () => {
+      repo.findOneListeningStepProgress.mockResolvedValue(
+        row({ completedSteps: [1, 2, 3], currentStep: 4 }),
+      );
+      const res = await service.saveListeningStepProgress(
+        mockUserId,
+        'dictation-part2-unit1',
+        { completed_steps: [2, 5], current_step: 6 },
+      );
+      expect(res.completed_steps).toEqual([1, 2, 3, 5]);
+      expect(res.current_step).toBe(6);
+      expect(res.completed_at).toBeNull();
+    });
+
+    it('ghi completed_at khi đủ 7 bước lần đầu và giữ nguyên ở lần sau', async () => {
+      repo.findOneListeningStepProgress.mockResolvedValueOnce(
+        row({ completedSteps: [1, 2, 3, 4, 5, 6] }),
+      );
+      const first = await service.saveListeningStepProgress(
+        mockUserId,
+        'dictation-part2-unit1',
+        { completed_steps: [7], current_step: 7 },
+      );
+      expect(first.completed_steps).toHaveLength(7);
+      expect(first.completed_at).not.toBeNull();
+
+      const doneAt = new Date('2026-11-01T00:00:00Z');
+      repo.findOneListeningStepProgress.mockResolvedValueOnce(
+        row({ completedSteps: [1, 2, 3, 4, 5, 6, 7], completedAt: doneAt }),
+      );
+      const again = await service.saveListeningStepProgress(
+        mockUserId,
+        'dictation-part2-unit1',
+        { completed_steps: [], current_step: 1 },
+      );
+      expect(again.completed_at).toBe(doneAt.toISOString());
     });
   });
 });
