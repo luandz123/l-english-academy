@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -194,13 +194,22 @@ const LearnPage = () => {
 
   const allLessons = useMemo(() => modules.flatMap((m: any) => m.lessons), [modules]);
 
+  // ?quiz=<id>: mở đúng bài chứa bài luyện đó (vd. quay lại từ trang luyện chép chính tả riêng)
+  const [searchParams] = useSearchParams();
+  const quizParam = Number(searchParams.get("quiz")) || null;
+
   useEffect(() => {
     if (allLessons.length > 0 && !currentLessonId) {
+      const fromQuiz = quizParam ? allLessons.find((l: any) => l.quiz_id === quizParam) : null;
+      if (fromQuiz) {
+        setCurrentLessonId(fromQuiz.id);
+        return;
+      }
       const completedIds = new Set(progress.filter((p: any) => p.is_completed).map((p: any) => p.lesson_id));
       const firstIncomplete = allLessons.find((l: any) => !completedIds.has(l.id));
       setCurrentLessonId(firstIncomplete?.id ?? allLessons[0].id);
     }
-  }, [allLessons, progress, currentLessonId]);
+  }, [allLessons, progress, currentLessonId, quizParam]);
 
   const currentLesson = allLessons.find((l: any) => l.id === currentLessonId);
   const currentIndex = allLessons.findIndex((l: any) => l.id === currentLessonId);
@@ -802,6 +811,13 @@ const LearnPage = () => {
               <span className="sm:hidden">Trước</span>
             </Button>
             
+            {isDictationLesson && canStudyCurrentLesson && !isCompleted ? (
+              // Bài chép chính tả tự hoàn thành khi làm hết các câu, không cho bấm tay
+              <span className="text-[11px] sm:text-xs font-bold text-muted-foreground text-center px-2">
+                <span className="hidden sm:inline">Làm hết các câu để hoàn thành bài</span>
+                <span className="sm:hidden">Làm hết câu để xong</span>
+              </span>
+            ) : (
             <Button
               className={cn(
                 "btn-3d text-xs sm:text-sm font-extrabold h-9 px-4 sm:px-6 transition-all",
@@ -839,6 +855,7 @@ const LearnPage = () => {
                 </>
               )}
             </Button>
+            )}
 
             <Button
               variant="outline"
