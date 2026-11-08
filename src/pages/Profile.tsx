@@ -7,6 +7,7 @@ import {
 } from "@/lib/api/assessment";
 import { authClient, updateMyProfile } from "@/lib/api/auth";
 import { uploadAvatar } from "@/lib/api/media";
+import { prepareImageForUpload } from "@/lib/imageResize";
 import { listMyFullTestResults } from "@/lib/api/fullTest";
 import { listMyProgressRows } from "@/lib/api/learning";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -14,16 +15,12 @@ import { useToast } from "@/hooks/use-toast";
 import { useState, useMemo } from "react";
 import {
   Trophy,
-  Calendar,
-  Mail,
   Loader2,
   Flame,
   CheckCircle2,
   Sparkles,
-  Zap,
   Edit3,
   Award,
-  Layers,
   HelpCircle,
   FileCheck2,
   Clock,
@@ -31,13 +28,8 @@ import {
   Image as ImageIcon,
   Check,
   ChevronRight,
-  ShieldCheck,
-  BrainCircuit,
-  Volume2,
-  BookOpenCheck,
   GraduationCap,
   Timer,
-  TrendingUp,
   Camera,
   Upload,
 } from "lucide-react";
@@ -141,8 +133,8 @@ function classifyItemType(
 }
 
 const Profile = () => {
-  const { user, profile, isAdmin } = useAuth();
-  const { levelInfo, xp, streak, badges } = useGamification();
+  const { user, profile, isAdmin, refreshUserData } = useAuth();
+  const { levelInfo, badges } = useGamification();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -154,7 +146,7 @@ const Profile = () => {
   const initialBio =
     (user?.user_metadata?.bio as string) ||
     localStorage.getItem(bioStorageKey) ||
-    "Học viên L-English Academy • Quyết tâm chinh phục mục tiêu TOEIC 800+ 🚀";
+    "";
   const initialCover =
     (user?.user_metadata?.cover_url as string) ||
     localStorage.getItem(coverStorageKey) ||
@@ -162,6 +154,7 @@ const Profile = () => {
 
   const [bio, setBio] = useState(initialBio);
   const [coverUrl, setCoverUrl] = useState(initialCover);
+  const [coverFailed, setCoverFailed] = useState(false);
 
   // Edit Modal State
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -272,18 +265,16 @@ const Profile = () => {
     let totalTimeSeconds = 0;
     let maxFullTestScore = 0;
     let totalFullTestScoreSum = 0;
-    let totalQuizScoreSum = 0;
 
     // A. Xử lý các bài Quiz đã làm
     quizResults.forEach((q: any) => {
-      const qCorrect =
-        Number(q.correct_answers) ||
-        (q.score !== null ? Math.round((Number(q.score) / 10) * (Number(q.total_questions) || 10)) : 0);
-      const qTotal = Number(q.total_questions) || 10;
+      // Dùng correct_answers/total_questions do server chấm. Không suy từ `score`:
+      // bài chép chính tả lưu score = số câu đã làm, không phải thang 10.
+      const qTotal = Number(q.total_questions) || 0;
+      const qCorrect = Math.min(qTotal, Number(q.correct_answers) || 0);
       const timeSpent = Number(q.time_spent_seconds) || 0;
 
       totalTimeSeconds += timeSpent;
-      totalQuizScoreSum += Number(q.score) || 0;
 
       const quizObj = q.quizzes as any;
       const courseTitle = quizObj?.modules?.courses?.title || "";
@@ -308,7 +299,6 @@ const Profile = () => {
     fullTestResults.forEach((t: any) => {
       const listCorrect = Number(t.listening_correct) || 0;
       const readCorrect = Number(t.reading_correct) || 0;
-      const totalCorrect = Number(t.correct_answers) || (listCorrect + readCorrect);
       const totalQ = Number(t.total_questions) || 200;
       const timeSpent = Number(t.time_spent_seconds) || 0;
       const testScore = Number(t.total_score) || 0;
@@ -334,12 +324,14 @@ const Profile = () => {
     const overallAccuracy =
       totalAttempted > 0 ? ((totalSolved / totalAttempted) * 100).toFixed(1) : "0.0";
 
-    const avgQuizScore =
-      quizResults.length > 0 ? (totalQuizScoreSum / quizResults.length).toFixed(1) : "0.0";
     const avgFullTestScore =
       fullTestResults.length > 0 ? Math.round(totalFullTestScoreSum / fullTestResults.length) : 0;
 
-    const totalTimeHours = (totalTimeSeconds / 3600).toFixed(1);
+    const totalMinutes = Math.round(totalTimeSeconds / 60);
+    const totalTimeLabel =
+      totalMinutes < 60
+        ? `${totalMinutes} phút`
+        : `${Math.floor(totalMinutes / 60)} giờ ${totalMinutes % 60} phút`;
 
     return {
       listeningSolved,
@@ -351,10 +343,9 @@ const Profile = () => {
       totalSolved,
       totalAttempted,
       overallAccuracy,
-      avgQuizScore,
       avgFullTestScore,
       maxFullTestScore,
-      totalTimeHours,
+      totalTimeLabel,
     };
   }, [quizResults, fullTestResults]);
 
@@ -364,7 +355,7 @@ const Profile = () => {
   // Tỷ lệ hoàn thành so với kho dữ liệu thật của hệ thống
   const solvedPercent =
     dbStats.totalQuestions > 0
-      ? Math.max(2, Math.min(100, Math.round((statsCalc.totalSolved / dbStats.totalQuestions) * 100)))
+      ? Math.min(100, Math.round((statsCalc.totalSolved / dbStats.totalQuestions) * 100))
       : 0;
 
   // Badges calculations
@@ -376,13 +367,18 @@ const Profile = () => {
   // =========================================================================
   // 4. ACTIVITY HEATMAP (365 DAYS / 52 WEEKS) TÍNH THỰC TẾ
   // =========================================================================
-  const { heatmapWeeks, totalActiveDays, maxYearStreak, totalYearSubmissions } = useMemo(() => {
+  const { heatmapWeeks, totalActiveDays, maxYearStreak, currentStreak, totalYearSubmissions } = useMemo(() => {
     const dateCountMap = new Map<string, number>();
+    // Ngày theo giờ máy người học (không cắt chuỗi ISO UTC: làm bài sau 0h–7h sáng VN bị tính sang hôm trước)
+    const localDay = (iso: string) => {
+      const d = new Date(iso);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    };
 
     // Add quiz submissions
     quizResults.forEach((q) => {
       if (q.completed_at) {
-        const d = q.completed_at.split("T")[0];
+        const d = localDay(q.completed_at);
         dateCountMap.set(d, (dateCountMap.get(d) || 0) + 1);
       }
     });
@@ -390,7 +386,7 @@ const Profile = () => {
     // Add full test submissions
     fullTestResults.forEach((t) => {
       if (t.completed_at) {
-        const d = t.completed_at.split("T")[0];
+        const d = localDay(t.completed_at);
         dateCountMap.set(d, (dateCountMap.get(d) || 0) + 1);
       }
     });
@@ -398,7 +394,7 @@ const Profile = () => {
     // Add lesson completions
     lessonProgress.forEach((p) => {
       if (p.created_at) {
-        const d = p.created_at.split("T")[0];
+        const d = localDay(p.created_at);
         dateCountMap.set(d, (dateCountMap.get(d) || 0) + 1);
       }
     });
@@ -455,13 +451,23 @@ const Profile = () => {
       loopDate.setDate(loopDate.getDate() + 1);
     }
 
+    // Chuỗi hiện tại: số ngày liên tiếp có làm bài, tính tới hôm nay (hoặc hôm qua nếu hôm nay chưa học)
+    let currentRun = 0;
+    const cursor = new Date(today);
+    if (!dateCountMap.has(localDay(cursor.toISOString()))) cursor.setDate(cursor.getDate() - 1);
+    while (dateCountMap.has(localDay(cursor.toISOString()))) {
+      currentRun++;
+      cursor.setDate(cursor.getDate() - 1);
+    }
+
     return {
       heatmapWeeks: weeks,
       totalActiveDays: activeDaysCount,
-      maxYearStreak: Math.max(computedMaxStreak, streak),
+      maxYearStreak: computedMaxStreak,
+      currentStreak: currentRun,
       totalYearSubmissions: totalSubmissions,
     };
-  }, [quizResults, fullTestResults, lessonProgress, streak]);
+  }, [quizResults, fullTestResults, lessonProgress]);
 
   // =========================================================================
   // 5. RECENT SUBMISSIONS MERGED LIST
@@ -478,17 +484,16 @@ const Profile = () => {
     }> = [];
 
     quizResults.forEach((q: any) => {
-      const scoreNum = Number(q.score) || 0;
-      const totalQ = Number(q.total_questions) || 10;
-      const correct = Number(q.correct_answers) || Math.round((scoreNum / 10) * totalQ);
+      const totalQ = Number(q.total_questions) || 0;
+      const correct = Math.min(totalQ, Number(q.correct_answers) || 0);
       const acc = totalQ > 0 ? Math.round((correct / totalQ) * 100) : 0;
 
       list.push({
         id: `quiz-${q.id}`,
         title: (q.quizzes as any)?.title || "Bài luyện tập trắc nghiệm",
         type: "quiz",
-        scoreDisplay: `${scoreNum}/10 (${acc}%)`,
-        status: scoreNum >= 7 ? "passed" : "completed",
+        scoreDisplay: `${correct}/${totalQ} câu (${acc}%)`,
+        status: acc >= 70 ? "passed" : "completed",
         completedAt: q.completed_at,
         accuracy: acc,
       });
@@ -504,7 +509,7 @@ const Profile = () => {
         id: `test-${t.id}`,
         title: (t.full_tests as any)?.title || "Đề thi Full Test TOEIC chuẩn",
         type: "test",
-        scoreDisplay: `${scoreNum}/990 điểm (${acc}%)`,
+        scoreDisplay: `${scoreNum}/990 điểm`,
         status: scoreNum >= 650 ? "passed" : "completed",
         completedAt: t.completed_at,
         accuracy: acc,
@@ -534,36 +539,31 @@ const Profile = () => {
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [isUploadingCover, setIsUploadingCover] = useState(false);
 
-  // Helper đọc và lưu file ảnh (Ưu tiên Supabase storage bucket 'materials', fallback Base64)
+  // Thu nhỏ ảnh trên trình duyệt rồi tải lên kho; lỗi thì báo thật, KHÔNG lưu ảnh base64
+  // (chuỗi base64 dài hơn giới hạn 2000 ký tự của avatar_url nên server luôn từ chối)
   const processImageFile = async (file: File, folder: "avatars" | "covers"): Promise<string> => {
-    if (!file.type.startsWith("image/")) {
-      throw new Error("Vui lòng chọn tệp hình ảnh hợp lệ (PNG, JPG, WebP, GIF...)");
-    }
-    if (file.size > 15 * 1024 * 1024) {
-      throw new Error("Dung lượng ảnh tối đa là 15MB");
-    }
-
-    const fileExt = file.name.split(".").pop() || "jpg";
-    const fileName = `${user?.id || "user"}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
-    const filePath = `profiles/${folder}/${fileName}`;
-
-    // 1. Thử tải lên API backend
-    try {
-      const { publicUrl } = await uploadAvatar(file, folder);
-      if (publicUrl) {
-        return publicUrl;
-      }
-    } catch (err) {
-      console.warn("Media avatar upload error, fallback to data url:", err);
-    }
-
-    // 2. Fallback Base64 Data URL (luôn thành công 100% trên mọi máy tính)
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = () => reject(new Error("Không thể đọc tệp ảnh từ máy tính"));
-      reader.readAsDataURL(file);
+    const prepared = await prepareImageForUpload(file, {
+      maxSide: folder === "avatars" ? 512 : 1600,
+      square: folder === "avatars",
+      baseName: folder === "avatars" ? "avatar" : "cover",
     });
+    try {
+      const { publicUrl } = await uploadAvatar(prepared, folder);
+      if (!publicUrl) throw new Error("Không nhận được đường dẫn ảnh");
+      return publicUrl;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "";
+      throw new Error(message ? `Không tải được ảnh lên: ${message}` : "Không tải được ảnh lên, vui lòng thử lại.");
+    }
+  };
+
+  // Lưu ảnh đại diện vào hồ sơ + metadata; lỗi ở bước nào cũng ném ra (trước đây bị bỏ qua)
+  const saveAvatarUrl = async (newUrl: string | null) => {
+    const { error: profileError } = await updateMyProfile({ avatar_url: newUrl });
+    if (profileError) throw profileError;
+    const { error: metaError } = await authClient.updateUser({ data: { avatar_url: newUrl } });
+    if (metaError) throw metaError;
+    await refreshUserData();
   };
 
   // Upload ảnh đại diện trực tiếp từ máy tính
@@ -574,19 +574,11 @@ const Profile = () => {
 
     try {
       const newUrl = await processImageFile(file, "avatars");
-
-      await updateMyProfile({ avatar_url: newUrl });
-
-      await authClient.updateUser({
-        data: { avatar_url: newUrl },
-      });
-
+      await saveAvatarUrl(newUrl);
       setEditAvatarUrl(newUrl);
-      await queryClient.invalidateQueries();
 
       toast({
-        title: "Tải ảnh đại diện thành công! 🎉",
-        description: "Ảnh đại diện mới đã được cập nhật từ máy tính.",
+        title: "Đã đổi ảnh đại diện",
       });
     } catch (err: any) {
       toast({
@@ -609,18 +601,19 @@ const Profile = () => {
     try {
       const newUrl = await processImageFile(file, "covers");
 
-      await authClient.updateUser({
+      const { error: coverError } = await authClient.updateUser({
         data: { cover_url: newUrl },
       });
+      if (coverError) throw coverError;
 
       localStorage.setItem(coverStorageKey, newUrl);
+      setCoverFailed(false);
       setCoverUrl(newUrl);
       setEditCoverUrl(newUrl);
       await queryClient.invalidateQueries();
 
       toast({
-        title: "Tải ảnh bìa thành công! 🎉",
-        description: "Ảnh bìa mới đã được cập nhật từ máy tính.",
+        title: "Đã đổi ảnh bìa",
       });
     } catch (err: any) {
       toast({
@@ -639,6 +632,10 @@ const Profile = () => {
   // =========================================================================
   const handleSaveProfile = async () => {
     if (!user) return;
+    if (editAvatarUrl && !/^https?:\/\//i.test(editAvatarUrl)) {
+      toast({ title: "Link ảnh đại diện phải bắt đầu bằng http:// hoặc https://", variant: "destructive" });
+      return;
+    }
     setSavingProfile(true);
 
     try {
@@ -651,7 +648,7 @@ const Profile = () => {
       if (profileError) throw profileError;
 
       // 2. Cập nhật Auth metadata
-      await authClient.updateUser({
+      const { error: metaError } = await authClient.updateUser({
         data: {
           full_name: editFullName,
           avatar_url: editAvatarUrl || null,
@@ -659,15 +656,17 @@ const Profile = () => {
           cover_url: editCoverUrl,
         },
       });
+      if (metaError) throw metaError;
 
       // 3. Lưu localStorage làm fallback
       localStorage.setItem(bioStorageKey, editBio);
       localStorage.setItem(coverStorageKey, editCoverUrl);
       setBio(editBio);
+      setCoverFailed(false);
       setCoverUrl(editCoverUrl);
 
-      // 4. Invalidate auth queries
-      await queryClient.invalidateQueries();
+      // 4. Nạp lại hồ sơ để ảnh/tên đổi ngay trên thanh trên cùng
+      await refreshUserData();
 
       toast({
         title: "Cập nhật thành công! 🎉",
@@ -709,11 +708,16 @@ const Profile = () => {
         {/* 1. COVER BANNER (ẢNH BÌA PROFILE NẰM PHÍA SAU AVATAR)             */}
         {/* ================================================================ */}
         <div className="relative w-full h-56 sm:h-64 md:h-72 rounded-3xl overflow-hidden border border-border/70 shadow-md group">
-          <img
-            src={coverUrl}
-            alt="Profile Cover"
-            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-          />
+          {/* Nền dự phòng khi ảnh bìa lỗi/chưa tải được */}
+          <div className="absolute inset-0 bg-gradient-to-br from-[#0b1a3a] via-[#11285a] to-[#0a3a4a]" />
+          {coverUrl && !coverFailed && (
+            <img
+              src={coverUrl}
+              alt=""
+              onError={() => setCoverFailed(true)}
+              className="relative w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+            />
+          )}
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/25 to-transparent" />
 
           {/* Cụm nút thay đổi ảnh bìa: Cho phép tải trực tiếp từ máy tính hoặc chọn mẫu */}
@@ -750,130 +754,90 @@ const Profile = () => {
           </div>
         </div>
 
+        {/* ẢNH ĐẠI DIỆN + TÊN: căn giữa, đè lên mép dưới ảnh bìa */}
+        <div className="relative z-10 -mt-16 sm:-mt-20 flex flex-col items-center text-center px-4">
+          <div className="relative group/avatar">
+            {userAvatar ? (
+              <img
+                src={userAvatar}
+                alt={displayName}
+                className="w-28 h-28 sm:w-36 sm:h-36 rounded-full object-cover border-4 border-[#050914] shadow-2xl bg-card"
+              />
+            ) : (
+              <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-full bg-gradient-to-br from-blue-600 via-indigo-600 to-cyan-500 text-white flex items-center justify-center text-4xl font-black border-4 border-[#050914] shadow-2xl">
+                {initials}
+              </div>
+            )}
+
+            {/* Nút đổi ảnh: luôn thấy trên điện thoại (không có rê chuột) */}
+            <label
+              title="Đổi ảnh đại diện"
+              className="absolute bottom-1 right-1 w-10 h-10 rounded-full bg-cyan-500 hover:bg-cyan-400 text-slate-950 flex items-center justify-center border-4 border-[#050914] shadow-lg cursor-pointer"
+            >
+              {isUploadingAvatar ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
+              <span className="sr-only">Đổi ảnh đại diện</span>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleDirectAvatarUpload}
+                className="hidden"
+                disabled={isUploadingAvatar}
+              />
+            </label>
+          </div>
+
+          <div className="mt-3 flex items-center justify-center gap-2 flex-wrap">
+            <h1 className="text-2xl font-black text-foreground tracking-tight">{displayName}</h1>
+            {isAdmin && (
+              <span className="px-2 py-0.5 rounded-full bg-amber-400 text-amber-950 text-[10px] font-black uppercase tracking-wider">
+                Admin
+              </span>
+            )}
+          </div>
+          <div className="mt-1.5 flex items-center justify-center gap-2 flex-wrap text-xs">
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20">
+              <GraduationCap className="w-3.5 h-3.5" />
+              Lv.{levelInfo.level} · {levelInfo.title}
+            </span>
+            <span className="text-muted-foreground">
+              Tham gia {user?.created_at ? new Date(user.created_at).toLocaleDateString("vi-VN") : "—"}
+            </span>
+          </div>
+
+          {bio ? (
+            <p className="mt-3 max-w-xl text-sm text-foreground/80 leading-relaxed">{bio}</p>
+          ) : (
+            <p className="mt-3 max-w-xl text-xs text-muted-foreground italic">Chưa có lời giới thiệu.</p>
+          )}
+
+          <button
+            onClick={() => {
+              setEditFullName(displayName);
+              setEditAvatarUrl(profile?.avatar_url || "");
+              setEditCoverUrl(coverUrl);
+              setEditBio(bio);
+              setIsEditOpen(true);
+            }}
+            className="mt-4 h-10 px-5 rounded-xl bg-muted/70 hover:bg-muted text-foreground text-xs font-bold border border-border/80 transition-all flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <Edit3 className="w-3.5 h-3.5 text-muted-foreground" />
+            Chỉnh sửa hồ sơ
+          </button>
+        </div>
+
         {/* ================================================================ */}
         {/* 2. MAIN 2-COLUMN LAYOUT (AVATAR NẰM ĐÈ LÊN ẢNH BÌA)              */}
         {/* ================================================================ */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start relative z-10 -mt-20 sm:-mt-24">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start mt-6">
           {/* -------------------------------------------------------------- */}
           {/* CỘT TRÁI (LEFT SIDEBAR): THÔNG TIN HỌC VIÊN & CHỈ SỐ THỰC TẾ   */}
           {/* -------------------------------------------------------------- */}
           <div className="lg:col-span-4 space-y-5">
             {/* USER CARD */}
-            <div className="bg-card rounded-3xl border border-border/80 p-5 pt-0 shadow-xl space-y-5">
-              {/* Avatar + Basic Meta */}
-              <div className="flex flex-col items-center text-center">
-                {/* AVATAR: NẰM ĐÈ LÊN ẢNH BÌA, ẢNH BÌA Ở PHÍA SAU AVATAR */}
-                <div className="relative -mt-16 sm:-mt-20 mb-3 group/avatar">
-                  {userAvatar ? (
-                    <img
-                      src={userAvatar}
-                      alt={displayName}
-                      className="w-28 h-28 sm:w-32 sm:h-32 rounded-3xl object-cover border-4 border-card shadow-2xl ring-4 ring-black/40"
-                    />
-                  ) : (
-                    <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-3xl bg-gradient-to-br from-blue-600 via-indigo-600 to-cyan-500 text-white flex items-center justify-center text-3xl font-black border-4 border-card shadow-2xl">
-                      {initials}
-                    </div>
-                  )}
-
-                  {/* Level Badge icon */}
-                  <div
-                    title={`Cấp độ: ${levelInfo.title}`}
-                    className="absolute -bottom-1 -right-1 w-8 h-8 rounded-xl bg-amber-500 text-amber-950 flex items-center justify-center font-black text-xs border-2 border-card shadow-md z-10"
-                  >
-                    {levelInfo.level}
-                  </div>
-
-                  {/* Nút bấm tải ảnh đại diện trực tiếp từ máy tính */}
-                  <label
-                    title="Nhấn để tải ảnh đại diện từ máy tính"
-                    className="absolute inset-0 rounded-3xl bg-black/60 opacity-0 group-hover/avatar:opacity-100 flex flex-col items-center justify-center text-white transition-all duration-200 cursor-pointer backdrop-blur-xs select-none"
-                  >
-                    {isUploadingAvatar ? (
-                      <Loader2 className="w-6 h-6 animate-spin text-cyan-400" />
-                    ) : (
-                      <>
-                        <Camera className="w-6 h-6 mb-1 text-cyan-300" />
-                        <span className="text-[10px] font-bold">Đổi ảnh</span>
-                      </>
-                    )}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleDirectAvatarUpload}
-                      className="hidden"
-                      disabled={isUploadingAvatar}
-                    />
-                  </label>
-                </div>
-
-                <div className="space-y-1 w-full">
-                  <div className="flex items-center justify-center gap-2 flex-wrap">
-                    <h1 className="text-xl font-black text-foreground tracking-tight">
-                      {displayName}
-                    </h1>
-                    {isAdmin && (
-                      <span className="px-2 py-0.5 rounded-full bg-amber-400 text-amber-950 text-[10px] font-black uppercase tracking-wider">
-                        Admin
-                      </span>
-                    )}
-                  </div>
-
-                  <p className="text-xs text-muted-foreground font-mono">
-                    @{user?.email ? user.email.split("@")[0] : "student"}
-                  </p>
-
-                  <div className="pt-1 flex items-center justify-center gap-2">
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-                      <GraduationCap className="w-3.5 h-3.5" />
-                      {levelInfo.title}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Edit Profile Button */}
-                <button
-                  onClick={() => {
-                    setEditFullName(displayName);
-                    setEditAvatarUrl(profile?.avatar_url || "");
-                    setEditCoverUrl(coverUrl);
-                    setEditBio(bio);
-                    setIsEditOpen(true);
-                  }}
-                  className="w-full mt-4 py-2 px-4 rounded-xl bg-muted/70 hover:bg-muted text-foreground text-xs font-bold border border-border/80 transition-all flex items-center justify-center gap-2 shadow-2xs hover:shadow-xs cursor-pointer"
-                >
-                  <Edit3 className="w-3.5 h-3.5 text-muted-foreground" />
-                  Chỉnh sửa hồ sơ
-                </button>
-              </div>
-
-              {/* Bio Quote */}
-              <div className="pt-2 border-t border-border/60">
-                <p className="text-xs text-foreground/80 leading-relaxed italic bg-muted/30 p-3 rounded-xl border border-border/40">
-                  "{bio}"
-                </p>
-              </div>
-
-              {/* Real Measured Statistics */}
-              <div className="pt-2 border-t border-border/60 space-y-2.5 text-xs">
-                <div className="flex items-center justify-between py-1">
-                  <span className="text-muted-foreground flex items-center gap-2">
-                    <Mail className="w-3.5 h-3.5" /> Email
-                  </span>
-                  <span className="font-semibold text-foreground truncate max-w-[160px]">
-                    {user?.email}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between py-1">
-                  <span className="text-muted-foreground flex items-center gap-2">
-                    <Calendar className="w-3.5 h-3.5" /> Tham gia
-                  </span>
-                  <span className="font-semibold text-foreground">
-                    {user?.created_at ? new Date(user.created_at).toLocaleDateString("vi-VN") : "—"}
-                  </span>
-                </div>
-
+            <div className="bg-card rounded-3xl border border-border/80 p-5 shadow-sm space-y-3">
+              {/* Số liệu học tập (tính từ bài đã nộp trên server) */}
+              <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Số liệu học tập</h2>
+              <div className="space-y-2.5 text-xs">
                 <div className="flex items-center justify-between py-1">
                   <span className="text-muted-foreground flex items-center gap-2">
                     <FileCheck2 className="w-3.5 h-3.5 text-blue-500" /> Tổng lượt nộp bài
@@ -915,7 +879,7 @@ const Profile = () => {
                     <Flame className="w-3.5 h-3.5 text-orange-500" /> Chuỗi học tập
                   </span>
                   <span className="font-black text-orange-600 dark:text-orange-400">
-                    {streak} ngày liên tiếp
+                    {currentStreak} ngày liên tiếp
                   </span>
                 </div>
 
@@ -924,77 +888,18 @@ const Profile = () => {
                     <Timer className="w-3.5 h-3.5 text-purple-500" /> Thời gian làm bài
                   </span>
                   <span className="font-black text-purple-600 dark:text-purple-400">
-                    {statsCalc.totalTimeHours} giờ
+                    {statsCalc.totalTimeLabel}
                   </span>
                 </div>
               </div>
 
-              {/* Real Skills Breakdown */}
-              <div className="pt-3 border-t border-border/60 space-y-2">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                  <BrainCircuit className="w-3.5 h-3.5 text-blue-500" /> Kỹ năng đã luyện
-                </h4>
-                <div className="space-y-1.5 pt-1">
-                  {/* Listening */}
-                  <div className="flex items-center justify-between p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs">
-                    <span className="font-medium flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400">
-                      <Volume2 className="w-3.5 h-3.5" /> Listening (Nghe)
-                    </span>
-                    <span className="font-bold text-foreground">
-                      {statsCalc.listeningSolved} câu đúng{" "}
-                      <span className="text-[10px] text-muted-foreground">
-                        ({statsCalc.listeningAttempted > 0 ? Math.round((statsCalc.listeningSolved / statsCalc.listeningAttempted) * 100) : 0}%)
-                      </span>
-                    </span>
-                  </div>
-
-                  {/* Reading */}
-                  <div className="flex items-center justify-between p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs">
-                    <span className="font-medium flex items-center gap-1.5 text-amber-700 dark:text-amber-400">
-                      <BookOpenCheck className="w-3.5 h-3.5" /> Reading (Đọc)
-                    </span>
-                    <span className="font-bold text-foreground">
-                      {statsCalc.readingSolved} câu đúng{" "}
-                      <span className="text-[10px] text-muted-foreground">
-                        ({statsCalc.readingAttempted > 0 ? Math.round((statsCalc.readingSolved / statsCalc.readingAttempted) * 100) : 0}%)
-                      </span>
-                    </span>
-                  </div>
-
-                  {/* Grammar & Vocab */}
-                  <div className="flex items-center justify-between p-2 rounded-lg bg-purple-500/10 border border-purple-500/20 text-xs">
-                    <span className="font-medium flex items-center gap-1.5 text-purple-700 dark:text-purple-400">
-                      <Layers className="w-3.5 h-3.5" /> Grammar & Quiz
-                    </span>
-                    <span className="font-bold text-foreground">
-                      {statsCalc.grammarSolved} câu đúng{" "}
-                      <span className="text-[10px] text-muted-foreground">
-                        ({statsCalc.grammarAttempted > 0 ? Math.round((statsCalc.grammarSolved / statsCalc.grammarAttempted) * 100) : 0}%)
-                      </span>
-                    </span>
-                  </div>
-
-                  {/* Full Tests */}
-                  <div className="flex items-center justify-between p-2 rounded-lg bg-blue-500/10 border border-blue-500/20 text-xs">
-                    <span className="font-medium flex items-center gap-1.5 text-blue-700 dark:text-blue-400">
-                      <ShieldCheck className="w-3.5 h-3.5" /> Full Test TOEIC
-                    </span>
-                    <span className="font-bold text-foreground">
-                      {fullTestResults.length} đề{" "}
-                      <span className="text-[10px] text-muted-foreground">
-                        (Max: {statsCalc.maxFullTestScore}đ)
-                      </span>
-                    </span>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
 
           {/* -------------------------------------------------------------- */}
           {/* CỘT PHẢI (RIGHT MAIN): TIẾN ĐỘ + HUY HIỆU + HEATMAP + LỊCH SỬ  */}
           {/* -------------------------------------------------------------- */}
-          <div className="lg:col-span-8 space-y-6 pt-20 sm:pt-24 lg:pt-24">
+          <div className="lg:col-span-8 space-y-6">
             {/* ROW 1: SOLVED CIRCULAR GAUGE + BADGES (2-BENTO GRID) */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
               {/* BENTO 1: VÒNG TRÒN SOLVED QUESTIONS (LeetCode Solved Style) */}
@@ -1097,7 +1002,7 @@ const Profile = () => {
                       </div>
                       <div className="text-right">
                         <span className="font-black text-foreground">{fullTestResults.length}</span>
-                        <span className="text-[10px] text-muted-foreground">/{dbStats.totalFullTests || 55} đề</span>
+                        <span className="text-[10px] text-muted-foreground">/{dbStats.totalFullTests} đề</span>
                       </div>
                     </div>
                   </div>
@@ -1166,7 +1071,7 @@ const Profile = () => {
 
                 <div className="flex items-center gap-4 text-xs font-semibold text-muted-foreground flex-wrap">
                   <span>
-                    Tổng ngày active: <strong className="text-foreground">{totalActiveDays}</strong>
+                    Số ngày có học: <strong className="text-foreground">{totalActiveDays}</strong>
                   </span>
                   <span>•</span>
                   <span>
@@ -1174,18 +1079,18 @@ const Profile = () => {
                   </span>
                   <span>•</span>
                   <span className="flex items-center gap-1 text-orange-600 dark:text-orange-400 font-bold">
-                    <Flame className="w-3.5 h-3.5 fill-orange-500 text-orange-500" /> Hiện tại: {streak} ngày
+                    <Flame className="w-3.5 h-3.5 fill-orange-500 text-orange-500" /> Hiện tại: {currentStreak} ngày
                   </span>
                 </div>
               </div>
 
               {/* Heatmap Grid (Scrollable on small screens) */}
               <div className="overflow-x-auto pb-2 scrollbar-thin">
-                <div className="min-w-[720px] space-y-2">
-                  {/* Heatmap Matrix: 52 columns x 7 rows */}
-                  <div className="flex gap-[3.5px]">
+                <div className="min-w-[560px] space-y-2">
+                  {/* 52 cột tuần x 7 hàng ngày, co giãn theo bề rộng thẻ */}
+                  <div className="grid gap-[3px]" style={{ gridTemplateColumns: `repeat(${heatmapWeeks.length}, minmax(0, 1fr))` }}>
                     {heatmapWeeks.map((week, wIndex) => (
-                      <div key={wIndex} className="flex flex-col gap-[3.5px]">
+                      <div key={wIndex} className="grid gap-[3px]">
                         {week.map((day, dIndex) => {
                           let bgClass = "bg-muted/50 border border-border/40";
                           if (day.count === 1) {
@@ -1199,8 +1104,8 @@ const Profile = () => {
                           return (
                             <div
                               key={dIndex}
-                              title={`${day.count} lượt nộp bài vào ngày ${day.dateStr}`}
-                              className={`w-3 h-3 rounded-[3px] transition-colors cursor-pointer hover:ring-2 hover:ring-blue-400 ${bgClass}`}
+                              title={`${day.count} lượt vào ngày ${day.dateStr.split("-").reverse().join("/")}`}
+                              className={`w-full aspect-square rounded-[2px] ${bgClass}`}
                             />
                           );
                         })}
@@ -1298,7 +1203,7 @@ const Profile = () => {
                           </h4>
                           <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
                             <span className="capitalize">
-                              {item.type === "test" ? "Đề Full Test TOEIC" : "Bài Quiz Luyện Tập"}
+                              {item.type === "test" ? "Đề Full Test TOEIC" : "Bài luyện tập"}
                             </span>
                             <span>•</span>
                             <span className="flex items-center gap-1">
@@ -1319,7 +1224,7 @@ const Profile = () => {
                               : "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20"
                           }`}
                         >
-                          {item.status === "passed" ? "Đạt Mốc" : "Hoàn Thành"}
+                          {item.status === "passed" ? (item.type === "test" ? "Đạt 650+" : "Đạt ≥70%") : "Cần luyện thêm"}
                         </span>
                       </div>
                     </div>
