@@ -115,3 +115,17 @@ Cách rà soát: chạy app cục bộ (Postgres + NestJS + Vite) với dữ li�
 | L15 | Shadowing chỉ hiện % | Thêm 1–3 sao và lời nhắc theo điểm (60/75/90%) | ✅ |
 | L16 | XP vẫn tính ở trình duyệt | **Chưa đổi**: toàn bộ XP/level/streak (`useGamification`) đang lưu ở trình duyệt, không riêng Part 2. Chỉ chặn cộng lại 200 XP khi server đã ghi nhận bài xong ở máy khác. Chuyển XP lên server là việc riêng, cần chủ dự án quyết | ⏳ |
 
+
+## Hồ sơ cá nhân (2026-11-08)
+
+| # | Vấn đề | Đã làm | Trạng thái |
+|---|---|---|---|
+| H1 | Không đổi được ảnh đại diện: ảnh chụp điện thoại > 5MB hoặc đuôi lạ (.jfif) bị API từ chối → trang lưu ảnh dạng base64 (dài hơn giới hạn 2000 ký tự) → server từ chối nhưng trang **bỏ qua lỗi và vẫn báo thành công** | Thu nhỏ ảnh trên trình duyệt (`src/lib/imageResize.ts`: avatar cắt vuông 512px, bìa 1600px, JPEG); bỏ base64; kiểm tra lỗi từng bước lưu; nạp lại hồ sơ để ảnh đổi ngay cả trên thanh trên cùng | ✅ |
+| H2 | Ảnh đại diện lệch trái so với ảnh bìa; nút đổi ảnh chỉ hiện khi rê chuột (điện thoại không thấy) | Ảnh tròn căn giữa đè mép dưới ảnh bìa, tên/cấp độ/ngày tham gia/giới thiệu/nút sửa ở giữa; nút máy ảnh luôn hiện; ảnh bìa lỗi thì hiện nền gradient | ✅ |
+| H3 | API thống kê trả **số bịa** khi đếm được 0 (24.382 câu, 12.676 câu nghe, 11.706 câu đọc, 55 đề, 1.500 học viên, 12 khóa) — hồ sơ hiện "0/12,676" cạnh "Kho câu hỏi: 9" | Backend trả số đếm thật; câu nghe = câu có audio riêng hoặc thuộc bài có audio; test e2e | ✅ |
+| H4 | Lịch sử bài hiện "điểm/10" nhưng bài chép chính tả lưu `score` = số câu đã làm; nhãn "Hoàn thành" cho bài 0% | Hiện "x/y câu (z%)" từ số câu đúng do server chấm; nhãn "Đạt ≥70%" / "Đạt 650+" / "Cần luyện thêm" | ✅ |
+| H5 | Chuỗi học tập lấy từ bộ đếm trong trình duyệt, "chuỗi dài nhất" trộn số trình duyệt; lịch hoạt động cắt ngày theo giờ UTC (làm bài 0h–7h sáng bị tính sang hôm trước) | Chuỗi hiện tại/dài nhất tính từ bài đã nộp trên server, theo giờ máy người học | ✅ |
+| H6 | Vòng tròn "đã giải" luôn tối thiểu 2% dù chưa giải câu nào; số đề mặc định 55 | Bỏ | ✅ |
+| H7 | Lời giới thiệu mặc định "Quyết tâm chinh phục TOEIC 800+" như người dùng tự viết; khối "Kỹ năng đã luyện" lặp lại "Thống kê bài giải"; email hiển thị trong thẻ | Không có lời giới thiệu thì ghi "Chưa có lời giới thiệu."; bỏ khối lặp và dòng email | ✅ |
+| H8 | Lịch hoạt động tràn ngang, cắt chú thích "Nhiều hơn" | Lưới 52 tuần co giãn theo bề rộng thẻ | ✅ |
+| H9 | Cấp độ, XP, huy hiệu vẫn lưu trong trình duyệt (`useGamification`) | Chưa đổi — cùng việc L16, cần chủ dự án quyết | ⏳ |

@@ -191,6 +191,22 @@ describe('Assessment Leaderboard & Stats Overview (e2e - T-033)', () => {
       expect(typeof body.total_questions).toBe('number');
       expect(typeof body.total_users).toBe('number');
     });
+
+    it('trả số đếm thật trong DB, không thay 0 bằng số viết cứng', async () => {
+      const res = await http()
+        .get('/api/v1/assessment/stats/overview')
+        .expect(200);
+      const body = res.body as Record<string, number>;
+      const [questions, fullTests, users] = await Promise.all([
+        prisma.question.count(),
+        prisma.fullTest.count(),
+        prisma.user.count(),
+      ]);
+      expect(body.total_questions).toBe(questions);
+      expect(body.listening_questions + body.reading_questions).toBe(questions);
+      expect(body.total_full_tests).toBe(fullTests);
+      expect(body.total_users).toBe(users);
+    });
   });
 
   describe('GET /api/v1/assessment/vocab/pool', () => {

@@ -143,6 +143,7 @@ export class FullTestRepository {
     });
   }
 
+  /** Số đếm thật; kho trống thì trả 0 (không dùng số mặc định viết cứng — luật UI/UX số 5). */
   async getStatsOverview(): Promise<{
     total_questions: number;
     listening_questions: number;
@@ -151,6 +152,12 @@ export class FullTestRepository {
     total_users: number;
     total_courses: number;
   }> {
+    const listeningWhere: Prisma.QuestionWhereInput = {
+      OR: [
+        { audioUrl: { not: null } },
+        { quiz: { is: { audioUrl: { not: null } } } },
+      ],
+    };
     const [
       totalQuestions,
       listeningQuestions,
@@ -160,20 +167,21 @@ export class FullTestRepository {
       totalCourses,
     ] = await Promise.all([
       this.prisma.question.count(),
-      this.prisma.question.count({ where: { audioUrl: { not: null } } }),
-      this.prisma.question.count({ where: { audioUrl: null } }),
+      // Câu nghe: có audio riêng hoặc thuộc bài có audio chung (Part 2/3/4, chép chính tả)
+      this.prisma.question.count({ where: listeningWhere }),
+      this.prisma.question.count({ where: { NOT: listeningWhere } }),
       this.prisma.fullTest.count(),
       this.prisma.user.count(),
       this.prisma.course.count({ where: { isActive: true } }),
     ]);
 
     return {
-      total_questions: totalQuestions || 24382,
-      listening_questions: listeningQuestions || 12676,
-      reading_questions: readingQuestions || 11706,
-      total_full_tests: totalFullTests || 55,
-      total_users: totalUsers || 1500,
-      total_courses: totalCourses || 12,
+      total_questions: totalQuestions,
+      listening_questions: listeningQuestions,
+      reading_questions: readingQuestions,
+      total_full_tests: totalFullTests,
+      total_users: totalUsers,
+      total_courses: totalCourses,
     };
   }
 }
