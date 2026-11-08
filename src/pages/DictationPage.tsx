@@ -1,3 +1,13 @@
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useParams, useNavigate, Link, useLocation } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -450,7 +460,9 @@ const DictationInput = ({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { playSound } = useSound();
 
-  const [errorDetails, setErrorDetails] = useState<{ correctWord: string, inputWord?: string, isMissing?: boolean, isExtra?: boolean } | null>(null);
+  const [errorDetails, setErrorDetails] = useState<{ correctWord: string, inputWord?: string, isMissing?: boolean, isExtra?: boolean, wordNumber?: number } | null>(null);
+  // Số lần sai liên tiếp ở cùng một chỗ (để tăng mức gợi ý)
+  const [sameErrorCount, setSameErrorCount] = useState(0);
 
   // Auto-resize textarea height so entire sentence is always fully visible
   useEffect(() => {
@@ -460,62 +472,33 @@ const DictationInput = ({
     }
   }, [value]);
 
+  // Gợi ý tăng dần, KHÔNG hiện cả câu đáp án (muốn xem cả câu thì bấm "Xem đáp án", câu đó không tính):
+  // sai lần 1 ở một chỗ → chỉ ra vị trí; lần 2 → chữ cái đầu; từ lần 3 → hiện đúng từ đó.
+  const maskWord = (w: string) => (w.length <= 1 ? w : w[0] + "•".repeat(w.length - 1));
   const getHintText = () => {
-    if (errorDetails) {
-      return (
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-2">
-            <span className="text-sm sm:text-base font-bold">
-              {errorDetails.isMissing ? (
-                <>Gợi ý từ tiếp theo: <span className="text-[var(--duo-blue)] bg-card px-2 py-0.5 rounded-lg border border-[var(--duo-blue)]/30 font-extrabold shadow-soft-xs">"{errorDetails.correctWord}"</span></>
-              ) : errorDetails.isExtra ? (
-                <>Từ bị thừa: <span className="text-[var(--duo-red)] bg-card px-2 py-0.5 rounded-lg border border-[var(--duo-red)]/30 line-through font-extrabold shadow-soft-xs">"{errorDetails.inputWord}"</span></>
-              ) : (
-                <>Sửa <span className="text-[var(--duo-red)] bg-card px-2 py-0.5 rounded-lg border border-[var(--duo-red)]/30 line-through font-extrabold shadow-soft-xs">"{errorDetails.inputWord}"</span> thành <span className="text-[var(--duo-correct)] bg-card px-2 py-0.5 rounded-lg border border-[var(--duo-correct)]/30 font-extrabold shadow-soft-xs">"{errorDetails.correctWord}"</span></>
-              )}
-            </span>
-          </div>
-          <div className="text-xs font-extrabold border-t border-border/70 pt-1.5 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <span className="bg-muted-foreground/20 text-foreground px-1.5 py-0.5 rounded text-xs uppercase font-bold">Đáp án đầy đủ</span>
-              <span className="text-sm font-bold">{fullExpected}</span>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                setValue(fullExpected);
-                setStatus("correct");
-                setShowHint(false);
-                playSound("correct");
-                onCorrect();
-              }}
-              className="text-xs font-black text-[var(--duo-blue)] hover:underline shrink-0 cursor-pointer ml-auto"
-            >
-              Điền đáp án đúng
-            </button>
-          </div>
-        </div>
-      );
-    }
+    if (!errorDetails) return <span>Câu chưa khớp, nghe lại và kiểm tra dấu câu, chính tả nhé.</span>;
+    const pos = errorDetails.wordNumber ? `Từ thứ ${errorDetails.wordNumber}` : "Một từ";
+    const level = sameErrorCount;
+    const wordHint =
+      level >= 3 ? (
+        <span className="text-[var(--duo-correct)] font-extrabold">"{errorDetails.correctWord}"</span>
+      ) : level === 2 ? (
+        <span className="font-extrabold tracking-wider">"{maskWord(errorDetails.correctWord)}"</span>
+      ) : null;
     return (
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <span className="bg-[var(--duo-correct)] text-white px-1.5 py-0.5 rounded text-xs uppercase font-bold">Đáp án</span>
-          <span className="text-sm sm:text-base font-bold">{fullExpected}</span>
+      <div className="space-y-1">
+        <div className="text-sm font-bold">
+          {errorDetails.isExtra ? (
+            <>{pos} bị thừa: <span className="line-through text-[var(--duo-red)]">"{errorDetails.inputWord}"</span></>
+          ) : errorDetails.isMissing ? (
+            <>Còn thiếu từ ở vị trí số {errorDetails.wordNumber ?? "?"}{wordHint && <> — gợi ý: {wordHint}</>}</>
+          ) : (
+            <>{pos} chưa đúng: <span className="line-through text-[var(--duo-red)]">"{errorDetails.inputWord}"</span>{wordHint && <> → {wordHint}</>}</>
+          )}
         </div>
-        <button
-          type="button"
-          onClick={() => {
-            setValue(fullExpected);
-            setStatus("correct");
-            setShowHint(false);
-            playSound("correct");
-            onCorrect();
-          }}
-          className="text-xs font-black text-[var(--duo-blue)] hover:underline shrink-0 cursor-pointer ml-auto"
-        >
-          Điền đáp án đúng
-        </button>
+        {level < 3 && !errorDetails.isExtra && (
+          <p className="text-xs font-semibold opacity-80">Kiểm tra lại thêm lần nữa để nhận gợi ý rõ hơn.</p>
+        )}
       </div>
     );
   };
@@ -536,11 +519,18 @@ const DictationInput = ({
       setTimeout(() => setShake(false), 200);
       setMistakeCount(prev => prev + 1);
       if (errorInfo) {
+        const wordNumber = getWords(value.slice(0, errorInfo.startIndex)).length + 1;
+        const sameSpot =
+          errorDetails &&
+          errorDetails.correctWord === errorInfo.correctWord &&
+          errorDetails.wordNumber === wordNumber;
+        setSameErrorCount(sameSpot ? sameErrorCount + 1 : 1);
         setErrorDetails({
           correctWord: errorInfo.correctWord,
           inputWord: errorInfo.inputWord,
           isMissing: errorInfo.isMissing,
-          isExtra: errorInfo.isExtra
+          isExtra: errorInfo.isExtra,
+          wordNumber,
         });
 
         // Nhảy đến ngay vị trí gõ sai để sửa cho tiện
@@ -860,6 +850,14 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
     return getLocalStorageCompleted(user?.id, quizId);
   });
   const [isSubmitted, setIsSubmitted] = useState(false);
+  // Câu đã bấm "Xem đáp án": hiện đáp án nhưng KHÔNG tính là đã làm, không có XP (quyết định chủ dự án 2026-11-08)
+  const [revealedIds, setRevealedIds] = useState<Set<number>>(new Set());
+  const revealedIdsRef = useRef<Set<number>>(revealedIds);
+  revealedIdsRef.current = revealedIds;
+  // Câu tự làm đúng trong lượt luyện này (chỉ những câu này mới được XP khi nộp)
+  const [solvedThisSession, setSolvedThisSession] = useState<Set<number>>(new Set());
+  const [confirmSubmitOpen, setConfirmSubmitOpen] = useState(false);
+  const [lastAwardedXp, setLastAwardedXp] = useState(0);
   const [showChestModal, setShowChestModal] = useState(false);
   const hasClaimedChest = useRef(false);
   const [combo, setCombo] = useState(0);
@@ -885,6 +883,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
   const handleKeywordCorrect = useCallback((questionId: number, word: string) => {
     const norm = word.toLowerCase().trim();
     if (!norm) return;
+    if (revealedIdsRef.current.has(questionId)) return;
     setCorrectKeywordsMap(prev => {
       const existing = prev[questionId];
       if (existing && existing.has(norm)) {
@@ -1010,6 +1009,13 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
 
   const completedQuestionIds = useMemo(() => new Set(userAnswers.map((ua: any) => ua.question_id)), [userAnswers]);
 
+  // Câu làm được ở ít nhất một chế độ (dùng để biết bài đã làm hết chưa)
+  const completableQuestions = useMemo(
+    () => rawQuestions.filter((q: any) =>
+      (["drag", "keyword", "full"] as const).some(m => isQuestionValidForMode(q, m, vocabWords).isValid)),
+    [rawQuestions, vocabWords]
+  );
+
   // Mode availability counts
   const modeCounts = useMemo(() => {
     const dragCount = rawQuestions.filter((q: any) => isQuestionValidForMode(q, "drag", vocabWords).isValid).length;
@@ -1049,6 +1055,9 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
   // Save answer mutation
   const saveAnswerMutation = useMutation({
     onMutate: async (question_id: number) => {
+      if (!isQuestionDone(question_id)) {
+        setSolvedThisSession(prev => new Set(prev).add(question_id));
+      }
       // 1. Mark as done immediately in state and local storage for instant UI response (0ms delay)
       setSessionDone(prev => {
         const next = new Set(prev);
@@ -1160,12 +1169,31 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
   }, [vocabWords, currentQuestion?.id]);
 
   const isCurrentDone = currentQuestion ? isQuestionDone(currentQuestion.id) : false;
+  const isCurrentRevealed = Boolean(currentQuestion && !isCurrentDone && revealedIds.has(currentQuestion.id));
 
   const handleCurrentQuestionComplete = useCallback(() => {
-    if (currentQuestion?.id) {
+    if (currentQuestion?.id && !revealedIdsRef.current.has(currentQuestion.id)) {
       saveAnswerMutation.mutate(currentQuestion.id);
     }
   }, [currentQuestion?.id, saveAnswerMutation.mutate]);
+
+  // "Xem đáp án": hiện toàn bộ đáp án của câu, không lưu là đã làm
+  const handleRevealCurrent = useCallback(() => {
+    const id = currentQuestion?.id;
+    if (!id || isQuestionDone(id)) return;
+    setRevealedIds(prev => new Set(prev).add(id));
+  }, [currentQuestion?.id, isQuestionDone]);
+
+  // Làm lại câu đã xem đáp án: ẩn đáp án, ô nhập trống lại
+  const handleRetryRevealed = useCallback(() => {
+    const id = currentQuestion?.id;
+    if (!id) return;
+    setRevealedIds(prev => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+  }, [currentQuestion?.id]);
 
   const handleCurrentQuestionRedo = useCallback(() => {
     if (currentQuestion?.id) {
@@ -1265,11 +1293,12 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
     }
   };
 
-  // Keyboard Shortcuts: Ctrl (Play/Pause), Alt+Left/Right (Seek -5s/+5s), Alt+[/]
+  // Phím tắt: Alt+Space (Phát/Dừng), Alt+←/→ (tua 5s), Alt+A (xem đáp án).
+  // Không dùng phím Ctrl đơn lẻ: người học hay bấm Ctrl+Backspace/Ctrl+A khi đang gõ và audio bị dừng/phát ngoài ý muốn.
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      // Play/Pause toggle with Ctrl or Alt+Space
-      if (e.key === "Control" || (e.altKey && e.code === "Space")) {
+      if (e.altKey && e.code === "Space") {
+        e.preventDefault();
         togglePlayPause();
       }
 
@@ -1290,15 +1319,15 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
         handleNext(true);
       }
 
-      // Alt + A to reveal & complete current question
+      // Alt + A: xem đáp án câu hiện tại (không tính là đã làm)
       if (e.altKey && e.key.toLowerCase() === 'a' && currentQuestion && !isQuestionDone(currentQuestion.id)) {
         e.preventDefault();
-        saveAnswerMutation.mutate(currentQuestion.id);
+        handleRevealCurrent();
       }
     };
     window.addEventListener("keydown", handleGlobalKeyDown);
     return () => window.removeEventListener("keydown", handleGlobalKeyDown);
-  }, [currentQuestion?.id, isQuestionDone, saveAnswerMutation]);
+  }, [currentQuestion?.id, isQuestionDone, handleRevealCurrent]);
 
   // Quick preset selectors for questions (5, 10, etc.)
   const selectPresetCount = (count: number) => {
@@ -1349,6 +1378,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
   useEffect(() => {
     setStarted(false);
     setIsSubmitted(false);
+    setRevealedIds(new Set());
     setShowChestModal(false);
     hasClaimedChest.current = false;
     setActiveQuestionIndices([]);
@@ -1456,29 +1486,56 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
       }
     }
 
-    const sessionDoneCount = activeQuestionIndices.filter(idx => isQuestionDone(questions[idx]?.id)).length;
-    recordDictationProgress(sessionDoneCount || 1);
-    
-    // Calculate total keywords correct for XP reward
-    let earnedXp = sessionDoneCount * 10;
-    if (isKeywordMode) {
-      let kwCount = 0;
-      activeQuestionIndices.forEach(idx => {
-        const q = questions[idx];
-        if (!q) return;
-        const st = getQuestionKeywordStats(q, vocabWords, isQuestionDone(q.id), correctKeywordsMap[q.id]);
-        kwCount += st.correctWords;
-      });
-      earnedXp = Math.max(10, kwCount * 5 + (sessionDoneCount > 0 ? 5 : 0));
+    // Chỉ câu TỰ làm đúng trong lượt này mới được tính (câu đã xong từ trước hoặc đã xem đáp án thì không)
+    let awarded = 0;
+    const solvedIds = activeQuestionIndices
+      .map(idx => questions[idx]?.id)
+      .filter((id): id is number => typeof id === "number" && solvedThisSession.has(id));
+    const solvedCount = solvedIds.length;
+
+    if (solvedCount > 0) {
+      recordDictationProgress(solvedCount);
+      let earnedXp = solvedCount * 10;
+      if (isKeywordMode) {
+        let kwCount = 0;
+        solvedIds.forEach(id => {
+          const q = questions.find(qq => qq.id === id);
+          if (!q) return;
+          const st = getQuestionKeywordStats(q, vocabWords, true, correctKeywordsMap[q.id]);
+          kwCount += st.correctWords;
+        });
+        earnedXp = kwCount * 5 + 5;
+      }
+      awarded = earnedXp;
+      addXp(earnedXp, `Làm đúng ${solvedCount} câu chép chính tả`);
+      if (!hasClaimedChest.current) {
+        setShowChestModal(true);
+        hasClaimedChest.current = true;
+      }
     }
-    
-    addXp(earnedXp, "Hoàn thành bài luyện nghe Dictation!");
+    setLastAwardedXp(awarded);
+    // Lượt sau tính lại từ đầu, nộp lại không được cộng XP lần nữa
+    setSolvedThisSession(new Set());
     setIsSubmitted(true);
-    if (!hasClaimedChest.current) {
-      setShowChestModal(true);
-      hasClaimedChest.current = true;
+
+    // Bài học trong khóa chỉ hoàn thành khi đã tự làm hết các câu của bài
+    const allDone = completableQuestions.length > 0 && completableQuestions.every((q: { id: number }) => isQuestionDone(q.id));
+    if (allDone) {
+      props?.onLessonComplete?.();
     }
-    props?.onLessonComplete?.();
+  };
+
+  // Nộp bài: còn câu chưa làm trong lượt này thì hỏi lại trước
+  const remainingInSession = activeQuestionIndices.filter(idx => {
+    const q = questions[idx];
+    return q && !isQuestionDone(q.id);
+  }).length;
+  const requestSubmit = () => {
+    if (remainingInSession > 0) {
+      setConfirmSubmitOpen(true);
+    } else {
+      handleSubmitQuiz();
+    }
   };
 
   const handleNext = (auto = false) => {
@@ -1519,6 +1576,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
     }
     setStarted(true);
     setIsSubmitted(false);
+    setRevealedIds(new Set());
     setShowChestModal(false);
     hasClaimedChest.current = false;
   };
@@ -1599,7 +1657,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
             </Button>
           </div>
 
-          <div className="bg-muted/20 border-2 rounded-2xl p-5 sm:p-6 space-y-5 max-h-[60vh] overflow-y-auto">
+          <div className="bg-muted/20 border-2 rounded-2xl p-5 sm:p-6 space-y-5">
              
              {/* Quick Settings Summary Bar */}
              <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 sm:p-4 bg-card rounded-2xl border border-border/70 shadow-soft-xs">
@@ -1833,8 +1891,23 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
            )}
           </div>
           
-          <div className="flex justify-end pt-4 border-t-2">
-             <Button onClick={startDictation} disabled={activeQuestionIndices.length === 0} className="btn-3d btn-3d-primary text-lg px-8 py-6 h-auto w-full sm:w-auto">
+          {/* Điện thoại, trong trang khóa học: trang cuộn cả khối nên dùng thanh cố định đáy màn hình */}
+          {isEmbedded && (
+            <>
+              <div className="h-20 lg:hidden" aria-hidden="true" />
+              <div className="lg:hidden fixed inset-x-0 bottom-0 z-40 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-[#070e1c]/95 backdrop-blur-md border-t border-slate-800">
+                <Button onClick={startDictation} disabled={activeQuestionIndices.length === 0} className="btn-3d btn-3d-primary w-full h-12 text-base">
+                  <Play className="w-5 h-5 mr-2" /> Bắt đầu luyện ({activeQuestionIndices.length} câu)
+                </Button>
+              </div>
+            </>
+          )}
+          {/* Nút bắt đầu luôn nằm trong tầm mắt (dính đáy khung cuộn), không phải cuộn xuống mới thấy */}
+          <div className={cn(
+            "sticky z-20 flex justify-end pt-3 pb-3 border-t-2 bg-card/95 backdrop-blur-md -mx-5 sm:-mx-8 lg:-mx-10 px-5 sm:px-8 lg:px-10 rounded-b-2xl",
+            isEmbedded ? "bottom-0 hidden lg:flex" : "bottom-16 md:bottom-0"
+          )}>
+             <Button onClick={startDictation} disabled={activeQuestionIndices.length === 0} className="btn-3d btn-3d-primary text-base sm:text-lg px-8 h-12 w-full sm:w-auto">
                <Play className="w-5 h-5 mr-2" /> Bắt đầu luyện ({activeQuestionIndices.length} câu)
              </Button>
           </div>
@@ -2070,12 +2143,13 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
     if (isKeywordMode && totalKeywordsCount > 0) {
       accuracy = Math.round((correctKeywordsCount / totalKeywordsCount) * 100);
       scoreOutOf10 = Number(((correctKeywordsCount / totalKeywordsCount) * 10).toFixed(1));
-      xpEarned = Math.max(10, correctKeywordsCount * 5);
+
     } else {
       accuracy = totalPracticed > 0 ? Math.round((correctIndices.length / totalPracticed) * 100) : 0;
       scoreOutOf10 = totalPracticed > 0 ? Number(((correctIndices.length / totalPracticed) * 10).toFixed(1)) : 0;
-      xpEarned = correctIndices.length * 10;
     }
+    // Hiện đúng số XP đã cộng khi nộp (chỉ câu tự làm đúng trong lượt này)
+    xpEarned = lastAwardedXp;
 
     // Filter questions for review list
     const filteredReviewIndices = activeQuestionIndices.filter(idx => {
@@ -2195,7 +2269,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                   +{xpEarned} <span className="text-xs font-bold">XP</span>
                 </span>
                 <span className="text-xs font-bold text-amber-400">
-                  Thưởng luyện tập
+                  {xpEarned > 0 ? "Câu tự làm đúng lượt này" : "Không có câu mới làm đúng"}
                 </span>
               </div>
             </div>
@@ -2209,6 +2283,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                     setActiveQuestionIndices(skippedIndices);
                     setCurrentIndex(skippedIndices[0]);
                     setIsSubmitted(false);
+                    setRevealedIds(new Set());
                     setShowChestModal(false);
                     hasClaimedChest.current = false;
                     toast({ title: "Luyện lại các câu chưa hoàn thành", description: `Bắt đầu luyện lại ${skippedIndices.length} câu.` });
@@ -2235,6 +2310,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                 className="btn-3d btn-3d-blue py-5 px-6 text-base font-extrabold h-auto"
                 onClick={() => {
                   setIsSubmitted(false);
+                  setRevealedIds(new Set());
                   setShowChestModal(false);
                   hasClaimedChest.current = false;
                   setCurrentIndex(activeQuestionIndices[0]);
@@ -2339,13 +2415,17 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                         {isDone ? (
                           isKeywordMode ? (
                             <span className="inline-flex items-center gap-1 text-xs font-black text-[var(--duo-correct)] bg-[var(--duo-correct)]/10 px-2.5 py-1 rounded-xl border border-[var(--duo-correct)]/30">
-                              <CheckCircle className="w-3.5 h-3.5" /> Đúng đủ {qStats.totalWords}/{qStats.totalWords} từ khóa (+{qStats.totalWords * 5} XP)
+                              <CheckCircle className="w-3.5 h-3.5" /> Đúng đủ {qStats.totalWords}/{qStats.totalWords} từ khóa
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-1 text-xs font-black text-[var(--duo-correct)] bg-[var(--duo-correct)]/10 px-2.5 py-1 rounded-xl border border-[var(--duo-correct)]/30">
-                              <CheckCircle className="w-3.5 h-3.5" /> Chính xác (+10 XP)
+                              <CheckCircle className="w-3.5 h-3.5" /> Chính xác
                             </span>
                           )
+                        ) : revealedIds.has(q.id) ? (
+                          <span className="inline-flex items-center gap-1 text-xs font-black bg-amber-500/15 text-amber-400 px-2.5 py-1 rounded-xl border border-amber-500/30">
+                            <Eye className="w-3.5 h-3.5" /> Đã xem đáp án (không tính)
+                          </span>
                         ) : isKeywordMode && qStats.correctWords > 0 ? (
                           <span className="inline-flex items-center gap-1 text-xs font-black text-[var(--duo-orange)] bg-amber-500/15 text-amber-400 px-2.5 py-1 rounded-xl border border-amber-500/30">
                             <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-500" /> Đúng {qStats.correctWords}/{qStats.totalWords} từ (Thiếu {qStats.incorrectWords} từ)
@@ -2685,9 +2765,9 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                   {currentIndex + 1} / {questions.length}
                 </span>
               </div>
-              <div className="hidden sm:flex items-center gap-2 text-xs font-bold text-muted-foreground bg-muted/40 px-3 py-1.5 rounded-xl border">
+              <div className="hidden md:flex items-center gap-2 text-xs font-bold text-muted-foreground bg-muted/40 px-3 py-1.5 rounded-xl border">
                 <span className="flex items-center gap-1">
-                  <kbd className="px-1.5 py-0.5 bg-muted rounded border border-border/80 shadow-2xs text-xs font-mono text-foreground">Ctrl</kbd>
+                  <kbd className="px-1.5 py-0.5 bg-muted rounded border border-border/80 shadow-2xs text-xs font-mono text-foreground">Alt + Space</kbd>
                   <span>Phát/Dừng</span>
                 </span>
                 <span>•</span>
@@ -2708,7 +2788,7 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                     type="button"
                     onClick={togglePlayPause}
                     className="w-12 h-12 rounded-2xl bg-[var(--duo-blue)] text-white flex items-center justify-center shadow-[0_3px_0_#1899D6] hover:brightness-110 active:translate-y-0.5 transition-all shrink-0 cursor-pointer"
-                    title="Phát / Tạm dừng (Ctrl hoặc Alt+Space)"
+                    title="Phát / Tạm dừng (Alt+Space)"
                   >
                     {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-0.5" />}
                   </button>
@@ -2805,8 +2885,12 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
 
             {/* Dictation Question and Options (Spacious & Wrapped) */}
             <div className="w-full pt-1">
+              {isCurrentRevealed ? (
+                <RevealedAnswerCard question={currentQuestion} onRetry={handleRetryRevealed} />
+              ) : (
               <QuestionDictationSection 
                 key={`q-${currentQuestion.id}`}
+                onRevealAnswer={handleRevealCurrent}
                 question={currentQuestion} 
                 isCompleted={completedQuestionIds.has(currentQuestion.id)}
                 isDoneInSession={isCurrentDone}
@@ -2817,59 +2901,63 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
                 vocabWords={vocabWords}
                 allLessonKeywords={allLessonKeywords}
               />
+              )}
             </div>
 
-            {/* Bottom Navigation & Actions */}
-            <div className="pt-4 border-t border-border/70 flex flex-col sm:flex-row items-center justify-between gap-3 mt-4">
-               <div className="flex items-center gap-2 w-full sm:w-auto">
-                 <Button 
-                   variant="outline"
-                   onClick={handlePrev}
-                   disabled={activeQuestionIndices.indexOf(currentIndex) === 0}
-                   className="bg-card text-foreground hover:bg-muted border border-border/70 text-xs sm:text-sm font-extrabold h-10 px-3 flex-1 sm:flex-none rounded-xl shadow-soft-xs transition-all duration-120 active:scale-95"
-                 >
-                   <ChevronLeft className="w-4 h-4 mr-1" /> Câu trước
-                 </Button>
-                 <span className="text-xs sm:text-sm font-extrabold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-3 py-2 rounded-xl border border-emerald-500/20 text-center flex-1 sm:flex-none">
-                   Đã làm {completedTotalCount}/{questions.length}
-                 </span>
-               </div>
-
-               <div className="flex flex-row gap-2 w-full sm:w-auto justify-end">
-                 {isCurrentDone ? (
-                   <Button 
-                     onClick={() => handleNext(true)} 
-                     className="btn-3d btn-3d-primary text-sm sm:text-base px-5 sm:px-7 py-2.5 h-10 sm:h-11 flex-1 sm:flex-none font-extrabold transition-all duration-120 active:scale-95"
-                   >
-                     Tiếp tục <ChevronRight className="w-4 h-4 ml-1.5" />
-                   </Button>
-                 ) : (
-                    <>
-                      <Button 
-                        type="button"
-                        variant="outline"
-                        className="bg-card text-primary hover:bg-primary/10 border border-primary/30 text-xs sm:text-sm px-3.5 py-2 h-10 flex-1 sm:flex-none font-extrabold rounded-xl shadow-soft-xs transition-all duration-120 active:scale-95" 
-                        onClick={handleCurrentQuestionComplete}
-                        title="Xem toàn bộ đáp án và hoàn thành câu này (Alt+A)"
-                      >
-                        <Eye className="w-4 h-4 mr-1.5" /> Xem đáp án
-                      </Button>
-                      <Button 
-                        variant="outline"
-                        className="bg-card text-muted-foreground hover:text-foreground hover:bg-muted border border-border/70 text-xs sm:text-sm px-4 py-2 h-10 flex-1 sm:flex-none font-extrabold rounded-xl shadow-soft-xs transition-all duration-120 active:scale-95" 
-                        onClick={() => handleNext(false)}
-                      >
-                        <SkipForward className="w-4 h-4 mr-1.5" /> Bỏ qua
-                      </Button>
-                    </>
-                 )}
-                 <Button 
-                   className="btn-3d btn-3d-blue text-xs sm:text-sm px-4 py-2 h-10 flex-1 sm:flex-none font-extrabold shadow-soft-sm transition-all duration-120 active:scale-95"
-                   onClick={handleSubmitQuiz}
-                 >
-                   <CheckCircle className="w-4 h-4 mr-1.5" /> Nộp bài & Chấm điểm
-                 </Button>
-               </div>
+            {/* Bottom Navigation & Actions: lưới 2 hàng trên điện thoại, 1 hàng trên máy tính, chữ không chồng nhau */}
+            <div className="pt-4 border-t border-border/70 mt-4 space-y-2">
+              <div className="flex items-center justify-between text-xs font-bold text-muted-foreground">
+                <span>
+                  Đã làm <span className="text-emerald-400">{completedTotalCount}/{questions.length}</span> câu
+                  {revealedIds.size > 0 && <span className="text-amber-400"> · xem đáp án {revealedIds.size}</span>}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 sm:flex sm:flex-wrap sm:items-center gap-2">
+                <Button
+                  variant="outline"
+                  onClick={handlePrev}
+                  disabled={activeQuestionIndices.indexOf(currentIndex) === 0}
+                  className="h-11 rounded-xl text-sm font-extrabold sm:mr-auto"
+                >
+                  <ChevronLeft className="w-4 h-4 mr-1" /> Câu trước
+                </Button>
+                {isCurrentDone || isCurrentRevealed ? (
+                  <Button
+                    onClick={() => handleNext(true)}
+                    className="btn-3d btn-3d-primary h-11 rounded-xl text-sm font-extrabold"
+                  >
+                    Câu tiếp <ChevronRight className="w-4 h-4 ml-1" />
+                  </Button>
+                ) : (
+                  <>
+                    <Button
+                      variant="outline"
+                      onClick={() => handleNext(false)}
+                      className="h-11 rounded-xl text-sm font-extrabold"
+                    >
+                      <SkipForward className="w-4 h-4 mr-1.5" /> Bỏ qua
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleRevealCurrent}
+                      title="Xem đáp án (Alt+A) — câu này sẽ không tính là đã làm"
+                      className="h-11 rounded-xl text-sm font-extrabold text-amber-400 border-amber-500/40 hover:bg-amber-500/10"
+                    >
+                      <Eye className="w-4 h-4 mr-1.5" /> Xem đáp án
+                    </Button>
+                  </>
+                )}
+                <Button
+                  onClick={requestSubmit}
+                  className={cn(
+                    "btn-3d btn-3d-blue h-11 rounded-xl text-sm font-extrabold",
+                    isCurrentDone || isCurrentRevealed ? "col-span-2 sm:col-span-1" : ""
+                  )}
+                >
+                  <CheckCircle className="w-4 h-4 mr-1.5" /> Nộp bài
+                </Button>
+              </div>
             </div>
           </div>
 
@@ -3035,6 +3123,24 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
       <MysteryChestModal isOpen={showChestModal} onClose={() => setShowChestModal(false)} />
       <ComboCounter combo={combo} />
 
+      {/* Xác nhận nộp bài khi còn câu chưa làm */}
+      <AlertDialog open={confirmSubmitOpen} onOpenChange={setConfirmSubmitOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Còn {remainingInSession} câu chưa làm</AlertDialogTitle>
+            <AlertDialogDescription>
+              Nộp bây giờ thì chỉ tính các câu bạn đã tự làm đúng. Câu chưa làm hoặc đã xem đáp án có thể luyện lại sau.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Làm tiếp</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setConfirmSubmitOpen(false); handleSubmitQuiz(); }}>
+              Vẫn nộp bài
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Mobile Accessory Bar: Fixed above virtual keyboard, thumb-reachable */}
       {currentQuestion && (
         <div className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-background/95 backdrop-blur-md border-t border-border/80 px-3 py-2 shadow-lg flex items-center justify-between gap-3 safe-bottom">
@@ -3077,6 +3183,58 @@ const saveLocalStorageCompleted = (userId: string, qId: string | number, ids: Se
 };
 
 // Component managing dictation inputs, drag & drop, and completed options
+// Thẻ hiện đáp án khi người học bấm "Xem đáp án": câu này KHÔNG tính là đã làm
+const RevealedAnswerCard = ({ question, onRetry }: { question: any; onRetry: () => void }) => {
+  const lines: { label: string; text: string; isCorrect?: boolean }[] = [];
+  if (question.question_text?.trim() && question.question_text !== "Audio dictation") {
+    lines.push({ label: "Q", text: question.question_text.replace(/\[___\]/g, "____") });
+  }
+  (question.answers || []).forEach((ans: any, idx: number) => {
+    if (ans.answer_text?.trim()) {
+      lines.push({ label: String.fromCharCode(65 + idx), text: ans.answer_text, isCorrect: ans.is_correct === true });
+    }
+  });
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-amber-500/10 border border-amber-500/30 px-3 py-2">
+        <span className="text-xs sm:text-sm font-bold text-amber-400">
+          Đã xem đáp án · câu này không tính là đã làm
+        </span>
+        <Button type="button" size="sm" variant="outline" onClick={onRetry} className="h-9 rounded-xl text-xs font-bold">
+          <RefreshCcw className="w-4 h-4 mr-1.5" /> Tự làm lại câu này
+        </Button>
+      </div>
+      {lines.map((l, i) => (
+        <div key={i} className="flex items-start gap-3">
+          <div className={cn(
+            "w-9 h-9 rounded-xl shrink-0 flex items-center justify-center font-black text-sm border-2",
+            l.isCorrect ? "bg-[var(--duo-correct)] text-white border-[var(--duo-correct-dark)]" : "bg-card text-[var(--duo-blue)] border-[var(--duo-blue)]/40"
+          )}>
+            {l.label}
+          </div>
+          <div className="flex-1 min-w-0 flex items-start justify-between gap-3 p-3 rounded-2xl border-2 border-border/70 bg-card">
+            <p className="text-base sm:text-lg font-bold leading-relaxed break-words">{l.text}</p>
+            <button
+              type="button"
+              onClick={() => speakText(l.text)}
+              className="p-1.5 rounded-lg text-muted-foreground hover:text-[var(--duo-blue)] hover:bg-muted shrink-0"
+              aria-label="Nghe câu này"
+            >
+              <Volume2 className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      ))}
+      {question.translation && (
+        <div className="p-4 bg-[var(--duo-blue)]/5 rounded-2xl border-2 border-[var(--duo-blue)]/20 space-y-1">
+          <p className="text-xs font-black text-[var(--duo-blue)] uppercase tracking-wider">🇻🇳 Bản dịch nghĩa tiếng Việt:</p>
+          <p className="text-base font-bold text-foreground leading-relaxed whitespace-pre-wrap">{question.translation}</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const QuestionDictationSection = ({ 
   question, 
   isCompleted, 
@@ -3086,7 +3244,8 @@ const QuestionDictationSection = ({
   onKeywordCorrect,
   dictationMode = "drag",
   vocabWords,
-  allLessonKeywords
+  allLessonKeywords,
+  onRevealAnswer
 }: { 
   question: any, 
   isCompleted: boolean, 
@@ -3096,7 +3255,8 @@ const QuestionDictationSection = ({
   onKeywordCorrect?: (word: string) => void,
   dictationMode?: "drag" | "keyword" | "full",
   vocabWords?: any[],
-  allLessonKeywords?: string[]
+  allLessonKeywords?: string[],
+  onRevealAnswer?: () => void
 }) => {
   const isKeywordMode = dictationMode === "drag" || dictationMode === "keyword";
   const [fields, setFields] = useState<boolean[]>([]);
@@ -3192,6 +3352,7 @@ const QuestionDictationSection = ({
         onComplete={onComplete}
         onRedo={onRedo}
         onKeywordCorrect={onKeywordCorrect}
+        onRevealAnswer={onRevealAnswer}
       />
     );
   }
@@ -3208,6 +3369,7 @@ const QuestionDictationSection = ({
           onComplete={onComplete}
           onKeywordCorrect={onKeywordCorrect}
           onRedo={onRedo}
+          onRevealAnswer={onRevealAnswer}
           allLessonKeywords={allLessonKeywords}
           vocabWords={vocabWords}
         />
@@ -3265,6 +3427,7 @@ const QuestionDictationSection = ({
                   forceReveal={revealAllInQuestion}
                   onComplete={() => setFieldComplete(idx)}
                   onKeywordCorrect={onKeywordCorrect}
+                  onRevealAnswer={onRevealAnswer}
                   autoFocus={focusedIndex === idx}
                   onFocusItem={() => setFocusedIndex(idx)}
                 />
@@ -3332,7 +3495,8 @@ const DragDropQuestionGroup = ({
   isDoneInSession,
   onComplete,
   onRedo,
-  onKeywordCorrect
+  onKeywordCorrect,
+  onRevealAnswer
 }: {
   question: any;
   items: { type: string; text: string; placeholder?: string }[];
@@ -3342,6 +3506,7 @@ const DragDropQuestionGroup = ({
   onComplete: () => void;
   onRedo: () => void;
   onKeywordCorrect?: (word: string) => void;
+  onRevealAnswer?: () => void;
 }) => {
   const [status, setStatus] = useState<"idle" | "correct" | "error">(isDoneInSession || isCompleted ? "correct" : "idle");
   const [wrongBlanks, setWrongBlanks] = useState<Set<string>>(new Set());
@@ -3420,16 +3585,6 @@ const DragDropQuestionGroup = ({
   // 5. Placed map: blankKey -> token | null
   const [placedMap, setPlacedMap] = useState<Record<string, { id: string; word: string; blankKey?: string } | null>>({});
 
-  // Keyboard shortcut Alt + A
-  useEffect(() => {
-    const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      if (e.altKey && e.key.toLowerCase() === 'a') {
-        handleRevealAll();
-      }
-    };
-    window.addEventListener('keydown', handleGlobalKeyDown);
-    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, [allBlanks]);
 
   const hasAutoCompletedRef = useRef(false);
 
@@ -3458,19 +3613,6 @@ const DragDropQuestionGroup = ({
       setPlacedMap(correctPlaced);
     }
   }, [isDoneInSession, isCompleted, status, allBlanks]);
-
-  const handleRevealAll = () => {
-    setStatus("correct");
-    setWrongBlanks(new Set());
-    const correctPlaced: Record<string, any> = {};
-    allBlanks.forEach((b) => {
-      correctPlaced[b.blankKey] = { id: `reveal-${b.blankKey}`, word: b.expectedWord, blankKey: b.blankKey };
-      onKeywordCorrect?.(b.expectedWord);
-    });
-    setPlacedMap(correctPlaced);
-    playSound("correct");
-    onComplete();
-  };
 
   // Available tokens remaining in the question's word bank
   const placedTokenIds = useMemo(() => {
@@ -3845,6 +3987,7 @@ const DragDropQuestionGroup = ({
 // Cloze Drag & Drop Component for questions containing [___]
 // =========================================================================
 const DragDropClozeSection = ({
+  onRevealAnswer,
   question,
   clozeParts,
   isCompleted,
@@ -3883,15 +4026,6 @@ const DragDropClozeSection = ({
   // Placed map: blankIdx -> token | null
   const [placedMap, setPlacedMap] = useState<Record<number, { id: string; word: string; expectedBlankIdx?: number } | null>>({});
 
-  useEffect(() => {
-    const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      if (e.altKey && e.key.toLowerCase() === 'a') {
-        handleRevealAll();
-      }
-    };
-    window.addEventListener('keydown', handleGlobalKeyDown);
-    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, [expectedAnswers]);
 
   useEffect(() => {
     if ((isDoneInSession || isCompleted) && status !== "correct") {
@@ -3904,19 +4038,8 @@ const DragDropClozeSection = ({
     }
   }, [isDoneInSession, isCompleted, status, expectedAnswers]);
 
-  const handleRevealAll = () => {
-    setForceRevealAll(true);
-    setStatus("correct");
-    setWrongBlanks(new Set());
-    const correctPlaced: Record<number, any> = {};
-    expectedAnswers.forEach((b: any) => {
-      correctPlaced[b.blankIdx] = { id: `reveal-${b.blankIdx}`, word: b.expectedWord, expectedBlankIdx: b.blankIdx };
-      onKeywordCorrect?.(b.expectedWord);
-    });
-    setPlacedMap(correctPlaced);
-    playSound("correct");
-    onComplete();
-  };
+  // Xem đáp án do trang cha xử lý (không tính là đã làm)
+  const handleRevealAll = () => onRevealAnswer?.();
 
   const placedTokenIds = useMemo(() => {
     const ids = new Set<string>();
@@ -4272,6 +4395,7 @@ const DragDropClozeSection = ({
 // Keyword Mode Item (Typing Mode)
 // =========================================================================
 const KeywordModeItem = ({ 
+  onRevealAnswer,
   item, 
   question, 
   vocabWords, 
@@ -4294,15 +4418,6 @@ const KeywordModeItem = ({
     setInternalForceReveal(false);
   }, [question?.id, item?.text]);
 
-  useEffect(() => {
-    const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      if (e.altKey && e.key.toLowerCase() === 'a') {
-        setInternalForceReveal(true);
-      }
-    };
-    window.addEventListener('keydown', handleGlobalKeyDown);
-    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, []);
 
   const keywords = useMemo(() => {
     return getQuestionKeywords(question, vocabWords);
@@ -4390,7 +4505,7 @@ const KeywordModeItem = ({
     <div className="bg-card p-4 sm:p-5 rounded-2xl border-2 border-border/80 leading-loose sm:leading-[2.6] text-base sm:text-lg font-medium shadow-sm flex flex-col items-start gap-2 relative group">
       {!isDoneInSession && keywordIndices.length > 0 && !forceRevealAll && (
         <button 
-          onClick={() => setInternalForceReveal(true)}
+          onClick={() => onRevealAnswer?.()}
           className="absolute right-3 top-3 z-10 text-xs font-black bg-muted/60 hover:bg-muted text-muted-foreground px-2.5 py-1 rounded-lg border transition-colors shadow-2xs"
           title="Phím tắt: Alt + A"
         >

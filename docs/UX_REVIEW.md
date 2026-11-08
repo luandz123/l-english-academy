@@ -18,6 +18,7 @@ Cách rà soát: chạy app cục bộ (Postgres + NestJS + Vite) với dữ li�
 | D8 | (2026-11-03) Banner trang chủ dùng **nền động** (bầu trời đêm có sao băng, núi và rừng thông) với nội dung thật đặt lên trên, thay tấm ảnh có chữ vẽ sẵn. |
 | D9 | (2026-11-03) Nền banner **do admin cấu hình** (tải ảnh/GIF/video hoặc dán link, bật/tắt, độ tối, thứ tự) và **tự chuyển** giữa các nền theo số giây admin đặt. |
 | D10 | (2026-11-07) Tính năng `/part2-coach` gọi thống nhất là **"Luyện nghe từng bước"**, quảng cáo đúng **7 bước** (bỏ chữ "8 bước"; xóa component bẫy ETS không dùng). Làm lần lượt 4 đợt cải tiến ở mục "Luyện nghe từng bước" bên dưới. |
+| D11 | (2026-11-08) Chép chính tả: bấm **"Xem đáp án" không tính là đã làm câu** (không lưu tiến độ, không XP). |
 
 ## Trạng thái từng mục
 
@@ -129,3 +130,16 @@ Cách rà soát: chạy app cục bộ (Postgres + NestJS + Vite) với dữ li�
 | H7 | Lời giới thiệu mặc định "Quyết tâm chinh phục TOEIC 800+" như người dùng tự viết; khối "Kỹ năng đã luyện" lặp lại "Thống kê bài giải"; email hiển thị trong thẻ | Không có lời giới thiệu thì ghi "Chưa có lời giới thiệu."; bỏ khối lặp và dòng email | ✅ |
 | H8 | Lịch hoạt động tràn ngang, cắt chú thích "Nhiều hơn" | Lưới 52 tuần co giãn theo bề rộng thẻ | ✅ |
 | H9 | Cấp độ, XP, huy hiệu vẫn lưu trong trình duyệt (`useGamification`) | Chưa đổi — cùng việc L16, cần chủ dự án quyết | ⏳ |
+
+## Chép chính tả (2026-11-08)
+
+| # | Vấn đề | Đã làm | Trạng thái |
+|---|---|---|---|
+| C1 | Nộp bài khi chưa làm câu nào vẫn +10 XP, mở rương, bài học trong khóa bị đánh dấu hoàn thành, +1 câu vào huy hiệu; nộp lại bao nhiêu lần cũng cộng XP; không hỏi lại | XP chỉ tính câu **tự làm đúng trong lượt này**; hỏi lại khi còn câu chưa làm; bài học chỉ hoàn thành khi đã làm hết các câu; màn kết quả hiện đúng số XP đã cộng | ✅ |
+| C2 | "Xem đáp án" (nút dưới, nút trong câu, Alt+A) tính câu là đã làm + XP | D11: hiện thẻ đáp án + bản dịch, ghi "không tính", có nút "Tự làm lại câu này"; không gọi API đánh dấu xong; kết quả ghi "Đã xem đáp án (không tính)" | ✅ |
+| C3 | Bấm riêng phím Ctrl là phát/dừng audio (đụng Ctrl+Backspace/Ctrl+A khi gõ) | Chỉ còn Alt+Space; gợi ý phím tắt ẩn trên điện thoại | ✅ |
+| C4 | Gõ cả câu: sai 1 từ là hiện cả câu đáp án + nút "Điền đáp án đúng" | Gợi ý tăng dần: lần 1 chỉ ra từ thứ mấy sai, lần 2 hiện chữ cái đầu, từ lần 3 hiện từ đó; cả câu chỉ hiện khi bấm "Xem đáp án" | ✅ |
+| C5 | Thanh nút dưới chồng chữ ("Đã làm 0" đè "Xem đáp án"), tràn trên điện thoại | Dòng "Đã làm x/y câu" tách riêng; nút cao 44px, lưới 2×2 trên điện thoại | ✅ |
+| C6 | Trong trang khóa học phải cuộn mới thấy "Bắt đầu luyện"; có thể bấm tay "Hoàn thành bài học" cho bài chép chính tả | Nút bắt đầu dính đáy (máy tính) / thanh cố định đáy màn hình (điện thoại); bài chép chính tả không còn nút hoàn thành tay, ghi "Làm hết các câu để hoàn thành bài" | ✅ |
+| C7 | Kéo thả báo ✕ trước khi bấm Kiểm tra; gõ từ khóa sai chỉ hiện "!"; màn chuẩn bị dày; 2 giao diện cho cùng một bài; nhiều tên gọi | Đề xuất, chưa làm | ⏳ |
+

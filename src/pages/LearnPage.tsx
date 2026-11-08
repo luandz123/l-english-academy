@@ -802,6 +802,13 @@ const LearnPage = () => {
               <span className="sm:hidden">Trước</span>
             </Button>
             
+            {isDictationLesson && canStudyCurrentLesson && !isCompleted ? (
+              // Bài chép chính tả tự hoàn thành khi làm hết các câu, không cho bấm tay
+              <span className="text-[11px] sm:text-xs font-bold text-muted-foreground text-center px-2">
+                <span className="hidden sm:inline">Làm hết các câu để hoàn thành bài</span>
+                <span className="sm:hidden">Làm hết câu để xong</span>
+              </span>
+            ) : (
             <Button
               className={cn(
                 "btn-3d text-xs sm:text-sm font-extrabold h-9 px-4 sm:px-6 transition-all",
@@ -839,6 +846,7 @@ const LearnPage = () => {
                 </>
               )}
             </Button>
+            )}
 
             <Button
               variant="outline"
