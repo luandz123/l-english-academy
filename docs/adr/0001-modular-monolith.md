@@ -3,13 +3,13 @@
 - **Trạng thái**: Đã chấp thuận (Accepted)
 - **Ngày**: 2026-10-24
 - **Người quyết định**: Kỹ sư trưởng (Lead Engineer) & Đội ngũ Phát triển L-English
-- **Tài liệu tham chiếu**: [CURRENT_STATE.md](../CURRENT_STATE.md), [HLD.md](../HLD.md), [AGENTS.md](../../AGENTS.md)
+- **Tài liệu tham chiếu**: [CURRENT_STATE.md](../archive/refactor/CURRENT_STATE.md), [HLD.md](../archive/refactor/HLD.md), [AGENTS.md](../../AGENTS.md)
 
 ---
 
 ## 1. Bối Cảnh (Context)
 
-Hệ thống L-English Academy ban đầu được xây dựng dựa trên kiến trúc Backend-as-a-Service (BaaS) với React (Vite) ở Frontend và Supabase SDK gọi trực tiếp CSDL. Mặc dù mô hình này cho phép tạo nhanh MVP, quá trình vận hành đã bộc lộ những lỗ hổng bảo mật và nợ kỹ thuật nghiêm trọng (chi tiết tại mục 5.3 và 10 của [CURRENT_STATE.md](../CURRENT_STATE.md)):
+Hệ thống L-English Academy ban đầu được xây dựng dựa trên kiến trúc Backend-as-a-Service (BaaS) với React (Vite) ở Frontend và Supabase SDK gọi trực tiếp CSDL. Mặc dù mô hình này cho phép tạo nhanh MVP, quá trình vận hành đã bộc lộ những lỗ hổng bảo mật và nợ kỹ thuật nghiêm trọng (chi tiết tại mục 5.3 và 10 của [CURRENT_STATE.md](../archive/refactor/CURRENT_STATE.md)):
 
 1. **Lộ đáp án trắc nghiệm**: Bảng `answers` có RLS `SELECT USING (true)` chứa cả cột `is_correct: true/false`. Học viên mở DevTools là thấy toàn bộ đáp án của bài thi.
 2. **Client tự chấm điểm**: Frontend tự so sánh ID đáp án, tự tính điểm và gửi `score: 10/10` trực tiếp vào bảng điểm CSDL `user_quiz_results` và `user_full_test_results`.

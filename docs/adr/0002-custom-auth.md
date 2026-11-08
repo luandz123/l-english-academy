@@ -3,7 +3,7 @@
 - **Trạng thái**: Đã chấp thuận
 - **Ngày**: 2026-10-25
 - **Người quyết định**: Chủ dự án (DECISIONS D-05 → D-09)
-- **Tài liệu tham chiếu**: [DECISIONS.md](../DECISIONS.md), [REFACTOR_PLAN.md](../REFACTOR_PLAN.md) §2 P1
+- **Tài liệu tham chiếu**: [DECISIONS.md](../DECISIONS.md), [REFACTOR_PLAN.md](../archive/refactor/REFACTOR_PLAN.md) §2 P1
 
 ---
 

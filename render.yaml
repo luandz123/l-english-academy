@@ -1,5 +1,5 @@
 # Render Blueprint — backend (ADR 0003). Trước cutover là staging; ngày cutover service này
-# được nâng lên production (đổi nhánh sang main, tắt giả lập) — docs/CUTOVER.md. Render → New → Blueprint → chọn repo này.
+# được nâng lên production (đổi nhánh sang main, tắt giả lập) — docs/archive/refactor/CUTOVER.md. Render → New → Blueprint → chọn repo này.
 # Deploy KHÔNG tự động theo git: job deploy-staging trong .github/workflows/ci.yml chạy migration
 # lên Neon rồi mới gọi Deploy Hook, để migration lỗi thì không deploy.
 services:
@@ -34,7 +34,7 @@ services:
       - key: CORS_ORIGINS # cùng giá trị FRONTEND_URL
         sync: false
       # Render free chặn mọi cổng SMTP ra ngoài (từ 26/09/2025) → gửi thư qua Gmail API (HTTPS).
-      # Cách tạo client + refresh token: docs/STAGING.md §2.5
+      # Cách tạo client + refresh token: docs/archive/refactor/STAGING.md §2.5
       - key: MAIL_PROVIDER
         value: gmail_api
       - key: GMAIL_CLIENT_ID

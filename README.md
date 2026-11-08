@@ -69,14 +69,14 @@ flowchart LR
 
 Every Row-Level Security policy from the old database has a matching backend check **and** an e2e test that covers a guest (`401`), the wrong user or role (`403`/`404`) and the owner or admin (`2xx`). The e2e suite also covers answer leakage, replayed payment webhooks and rollback of a failed import.
 
-`scripts/check-ui-diff.mjs` runs on every pull request. It fails when a `.tsx` change touches JSX, `className` or UI text outside the data-fetching code, which is how the refactor showed it left the interface unchanged.
+During the refactor a CI check (`check-ui-diff`, since removed) ran on every pull request. It failed when a `.tsx` change touched JSX, `className` or UI text outside the data-fetching code, which is how the refactor showed it left the interface unchanged.
 
 ## How the migration was run
 
-- **Parity matrix:** 155 existing behaviors, each traced from the old `file:line` to its new endpoint, its test and its status ([docs/PARITY.md](docs/PARITY.md)).
-- **Recorded decisions:** architecture decision records live in [docs/adr](docs/adr). Ambiguous legacy behavior went into [docs/OPEN_QUESTIONS.md](docs/OPEN_QUESTIONS.md) and was kept as-is unless explicitly decided otherwise.
+- **Parity matrix:** 155 existing behaviors, each traced from the old `file:line` to its new endpoint, its test and its status ([docs/archive/refactor/PARITY.md](docs/archive/refactor/PARITY.md)).
+- **Recorded decisions:** architecture decision records live in [docs/adr](docs/adr). Ambiguous legacy behavior went into [docs/archive/refactor/OPEN_QUESTIONS.md](docs/archive/refactor/OPEN_QUESTIONS.md) and was kept as-is unless explicitly decided otherwise.
 - **Staging first:** every merge deployed automatically to a staging stack (Vercel preview → Render → Neon) and was smoke-tested there.
-- **Single cutover:** test data was wiped, 15 content tables (~129k rows) were copied from Supabase and verified by row count **and** MD5 per table, then production was switched. Rollback means promoting the previous Vercel deployment ([docs/CUTOVER.md](docs/CUTOVER.md)).
+- **Single cutover:** test data was wiped, 15 content tables (~129k rows) were copied from Supabase and verified by row count **and** MD5 per table, then production was switched. Rollback means promoting the previous Vercel deployment ([docs/archive/refactor/CUTOVER.md](docs/archive/refactor/CUTOVER.md)).
 
 ## Project structure
 
@@ -120,7 +120,6 @@ Useful commands:
 cd backend && npm test            # unit tests
 cd backend && npm run test:e2e    # e2e (needs Docker for Testcontainers)
 npm test                          # frontend adapter tests
-npm run check:ui                  # check for UI changes against a base branch
 ```
 
 ## Known limitations

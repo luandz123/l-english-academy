@@ -3,7 +3,7 @@
 - **Trạng thái**: Đã chấp thuận (thay phần "Chiến lược di chuyển" trong HLD §4)
 - **Ngày**: 2026-10-25
 - **Người quyết định**: Claude đề xuất, chủ dự án duyệt (DECISIONS C-01)
-- **Tài liệu tham chiếu**: [DECISIONS.md](../DECISIONS.md), [REFACTOR_PLAN.md](../REFACTOR_PLAN.md) §2, §6
+- **Tài liệu tham chiếu**: [DECISIONS.md](../DECISIONS.md), [REFACTOR_PLAN.md](../archive/refactor/REFACTOR_PLAN.md) §2, §6
 
 ---
 
