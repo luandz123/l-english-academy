@@ -24,12 +24,12 @@ export const ListeningPage: React.FC = () => {
     <StudentLayout>
       <div className="space-y-6 max-w-7xl mx-auto">
         <PageHeader
-          title="Luyện Nghe Điền Từ (Dictation)"
-          description="Luyện nghe chép chính tả Part 1–4, kéo thả từ khóa mượt mà, phản xạ nghe và ghi nhớ từ vựng tức thì."
+          title="Chép Chính Tả"
+          description="Nghe từng câu rồi điền từ khóa hoặc gõ lại cả câu. Có 3 cách làm: kéo thả, gõ từ khóa, gõ cả câu."
           icon={Headphones}
           iconBgColor="bg-purple-500/10"
           iconTextColor="text-purple-600 dark:text-purple-400"
-          badge={`${courses.length} Khóa Luyện`}
+          badge={`${courses.length} khóa`}
         />
 
         {/* Content Body */}
@@ -41,8 +41,8 @@ export const ListeningPage: React.FC = () => {
           </div>
         ) : isError ? (
           <ErrorState
-            title="Không thể tải danh sách khóa luyện nghe"
-            message="Không thể kết nối đến máy chủ để lấy danh sách Dictation. Vui lòng thử lại."
+            title="Không tải được danh sách khóa chép chính tả"
+            message="Không kết nối được máy chủ. Vui lòng thử lại."
             onRetry={() => refetch()}
           />
         ) : courses.length > 0 ? (
@@ -54,7 +54,7 @@ export const ListeningPage: React.FC = () => {
         ) : (
           <EmptyState
             icon={<Headphones className="w-8 h-8 text-purple-600" />}
-            title="Các bài luyện nghe đang được tổng hợp"
+            title="Chưa có khóa chép chính tả"
             description="Bạn có thể chuyển sang thử sức với các bài thi Full Test ETS hoặc luyện nghe từng bước Part 2 ngay bây giờ."
             actionLabel="Luyện nghe từng bước"
             onAction={() => window.location.href = "/part2-coach"}

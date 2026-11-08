@@ -141,5 +141,10 @@ Cách rà soát: chạy app cục bộ (Postgres + NestJS + Vite) với dữ li�
 | C4 | Gõ cả câu: sai 1 từ là hiện cả câu đáp án + nút "Điền đáp án đúng" | Gợi ý tăng dần: lần 1 chỉ ra từ thứ mấy sai, lần 2 hiện chữ cái đầu, từ lần 3 hiện từ đó; cả câu chỉ hiện khi bấm "Xem đáp án" | ✅ |
 | C5 | Thanh nút dưới chồng chữ ("Đã làm 0" đè "Xem đáp án"), tràn trên điện thoại | Dòng "Đã làm x/y câu" tách riêng; nút cao 44px, lưới 2×2 trên điện thoại | ✅ |
 | C6 | Trong trang khóa học phải cuộn mới thấy "Bắt đầu luyện"; có thể bấm tay "Hoàn thành bài học" cho bài chép chính tả | Nút bắt đầu dính đáy (máy tính) / thanh cố định đáy màn hình (điện thoại); bài chép chính tả không còn nút hoàn thành tay, ghi "Làm hết các câu để hoàn thành bài" | ✅ |
-| C7 | Kéo thả báo ✕ trước khi bấm Kiểm tra; gõ từ khóa sai chỉ hiện "!"; màn chuẩn bị dày; 2 giao diện cho cùng một bài; nhiều tên gọi | Đề xuất, chưa làm | ⏳ |
+| C7 | Kéo thả: vừa xếp đủ đã tự chấm, dấu ✕ (nút gỡ) hiện sẵn như báo sai | Chỉ chấm khi bấm "Kiểm tra đáp án" (bật khi điền đủ); báo "N từ đặt sai chỗ…"; dấu gỡ chỉ hiện khi rê chuột | ✅ |
+| C8 | Gõ từ khóa: sai chỉ hiện "!"; **bấm Enter lần 2 là tự điền đáp án và tính đúng**; ô trống ghi "..." | Enter chỉ kiểm tra lại; ô ghi "7 chữ"/"2 từ"; gợi ý tăng dần: "Chưa đúng…" → chữ cái đầu → chữ đầu và cuối | ✅ |
+| C9 | Màn chuẩn bị dày: lưới chọn từng câu luôn mở, khung "0 từ vựng" vẫn hiện | Lưới chọn câu thu gọn sau nút "Chọn từng câu"; khung từ vựng chỉ hiện khi có; câu dẫn nói rõ mặc định 5 câu chưa làm | ✅ |
+| C10 | Khung "Từ vựng trong câu" trống vẫn chiếm chỗ; nút "Xem đáp án (Alt+A)" trong câu đè chữ trên điện thoại và trùng nút dưới | Ẩn khung khi trống; bỏ nút trong câu (chỉ còn nút ở thanh dưới) | ✅ |
+| C11 | Hai nơi mở cùng một bài (trong trang khóa học và trang riêng sau bài từ vựng); "Quay lại" từ trang riêng mở bài đầu tiên chưa xong | Giữ trang riêng cho luồng "Luyện nghe các câu này" sau bài từ vựng; "Quay lại" mở đúng bài (`/courses/:id/learn?quiz=<id>`, tham số mới, không đổi route) | ✅ |
+| C12 | Nhiều tên: "Chép Chính Tả", "Luyện Nghe Điền Từ (Dictation)", "Luyện nghe điền từ"; mô tả hứa "Part 1–4, mượt mà" | Thống nhất "Chép chính tả" ở danh sách, trong bài, cài đặt, footer; mô tả nói đúng 3 cách làm | ✅ |
 

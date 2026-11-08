@@ -107,7 +107,7 @@ const Footer = () => {
                 Phòng Thi Thử Full Test ETS 2026
               </a>
               <a href="#section-listening" className="hover:text-cyan-400 transition-colors">
-                Chép Chính Tả (Dictation)
+                Chép Chính Tả
               </a>
               <Link to="/part2-coach" className="hover:text-cyan-400 transition-colors">
                 Luyện Nghe Từng Bước (7 Bước)

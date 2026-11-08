@@ -63,3 +63,5 @@
 
 **2026-11-08 — Chép chính tả (D11):** sửa nộp bài/XP/hoàn thành bài học, "Xem đáp án" không tính, bỏ phím Ctrl đơn, gợi ý tăng dần ở chế độ gõ cả câu, thanh nút dưới, nút bắt đầu bị che (chi tiết docs/UX_REVIEW.md C1–C7). Chỉ frontend (`DictationPage.tsx`, `LearnPage.tsx`), không đổi API. Kiểm tra: frontend test 263/263, lint không thêm lỗi (677 vấn đề có sẵn), typecheck 3 lỗi có sẵn, build OK; Playwright 1440px/390px: xem đáp án không gọi API đánh dấu xong, nộp sớm hỏi lại và +0 XP, làm hết 5 câu → +50 XP và bài học tự hoàn thành.
 
+**2026-11-08 — Chép chính tả nhóm B:** kéo thả chỉ chấm khi bấm Kiểm tra; gõ từ khóa bỏ việc Enter lần 2 tự điền đáp án, thêm gợi ý độ dài/tăng dần; màn chuẩn bị gọn; ẩn khung từ vựng trống; "Quay lại" từ trang riêng mở đúng bài (`?quiz=`); thống nhất tên "Chép chính tả" (docs/UX_REVIEW.md C7–C12). Chỉ frontend. Kiểm tra: test 263/263, lint 676 vấn đề có sẵn (622 lỗi, không thêm), typecheck 3 lỗi có sẵn, build OK; Playwright 1440px/390px.
+
