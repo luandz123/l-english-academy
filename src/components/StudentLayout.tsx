@@ -19,7 +19,10 @@ import {
   PanelLeftOpen,
   Home,
   Mic2,
-  Route as RouteIcon
+  Route as RouteIcon,
+  Layers,
+  BookX,
+  Bookmark
 } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
@@ -43,6 +46,9 @@ const primaryNavItems = [
   { to: "/library", label: "Kho khóa học", icon: BookOpen },
   { to: "/my-courses", label: "Khóa học của tôi", icon: GraduationCap },
   { to: "/fulltests", label: "Luyện đề", icon: FileCheck2 },
+  { to: "/practice", label: "Luyện theo dạng câu", icon: Layers },
+  { to: "/mistakes", label: "Câu hỏi sai của tôi", icon: BookX },
+  { to: "/favorites", label: "Đề yêu thích", icon: Bookmark },
   { to: "/listening", label: "Chép Chính Tả", icon: Headphones },
   { to: "/part2-coach", label: "Luyện Nghe Từng Bước", icon: Zap },
   { to: "/games", label: "Trò Chơi", icon: Gamepad2 },
@@ -124,6 +130,11 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
     listening: "Chép chính tả",
     library: "Kho khóa học",
     games: "Trò chơi",
+    practice: "Luyện theo dạng câu",
+    session: "Lượt luyện",
+    history: "Lịch sử",
+    mistakes: "Câu hỏi sai của tôi",
+    favorites: "Đề yêu thích",
     "word-shooter": "Phi cơ diệt từ vựng",
     "word-defense": "Word Defense",
     vocab: "Từ vựng",
@@ -135,7 +146,7 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
   const LINKABLE_SEGMENTS = new Set([
     "dashboard", "my-courses", "profile", "learn", "fulltest", "fulltests", "listening",
     "library", "games", "part2-coach", "vocab", "speaking", "word-shooter", "word-defense",
-    "roadmap",
+    "roadmap", "practice", "mistakes", "favorites",
   ]);
   const pathSegments = location.pathname.split("/").filter(Boolean);
   const breadcrumbs = pathSegments
