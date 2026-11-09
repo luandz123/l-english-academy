@@ -65,3 +65,4 @@
 
 **2026-11-08 — Chép chính tả nhóm B:** kéo thả chỉ chấm khi bấm Kiểm tra; gõ từ khóa bỏ việc Enter lần 2 tự điền đáp án, thêm gợi ý độ dài/tăng dần; màn chuẩn bị gọn; ẩn khung từ vựng trống; "Quay lại" từ trang riêng mở đúng bài (`?quiz=`); thống nhất tên "Chép chính tả" (docs/UX_REVIEW.md C7–C12). Chỉ frontend. Kiểm tra: test 263/263, lint 676 vấn đề có sẵn (622 lỗi, không thêm), typecheck 3 lỗi có sẵn, build OK; Playwright 1440px/390px.
 
+**2026-11-09 — Tách deploy khỏi CI:** GitHub Actions bị khóa vì lỗi billing của tài khoản. Backend deploy bằng Render `autoDeploy` theo `main`, container tự chạy `prisma migrate deploy` khi khởi động (`backend/docker-entrypoint.sh`); bỏ job `deploy-staging`, `deploy-staging-frontend` và `deploy-vercel.yml` (Vercel Git integration đã tự deploy). Cần làm trên Render: thêm `DATABASE_URL_UNPOOLED`, bật Auto-Deploy cho nhánh `main`.

@@ -33,3 +33,7 @@ src/
 test/              e2e specs + Testcontainers global setup
 prisma/            schema.prisma, migrations/
 ```
+
+## Deploy
+
+Render builds `backend/Dockerfile` on every push to `main` (`autoDeploy: true` in `render.yaml`). On startup the container runs `prisma migrate deploy` against `DATABASE_URL_UNPOOLED` (falls back to `DATABASE_URL`) and only then starts the app (`docker-entrypoint.sh`). If a migration fails the container exits, the health check never passes and Render keeps the previous deploy running. Set `SKIP_MIGRATIONS=true` to start the image without touching the database. Deploys do not depend on GitHub Actions.

@@ -1,19 +1,19 @@
-# Render Blueprint — backend (ADR 0003). Trước cutover là staging; ngày cutover service này
-# được nâng lên production (đổi nhánh sang main, tắt giả lập) — docs/CUTOVER.md. Render → New → Blueprint → chọn repo này.
-# Deploy KHÔNG tự động theo git: job deploy-staging trong .github/workflows/ci.yml chạy migration
-# lên Neon rồi mới gọi Deploy Hook, để migration lỗi thì không deploy.
+# Render Blueprint — backend production (ADR 0003). Render → New → Blueprint → chọn repo này.
+# Deploy tự động mỗi khi nhánh main thay đổi. Container chạy `prisma migrate deploy` trước khi
+# khởi động app (backend/docker-entrypoint.sh): migration lỗi → container thoát, health check
+# không đạt, Render giữ bản đang chạy. Không phụ thuộc GitHub Actions.
 services:
   - type: web
     name: lenglish-api
     runtime: docker
     region: singapore
     plan: free
-    branch: refactor/nestjs-backend
+    branch: main
     rootDir: backend
     dockerfilePath: ./Dockerfile
     dockerContext: .
     healthCheckPath: /api/health
-    autoDeploy: false
+    autoDeploy: true
     envVars:
       - key: NODE_ENV
         value: production
@@ -29,7 +29,9 @@ services:
       # Các biến dưới đây nhập tay trên Render (sync: false = không lưu giá trị trong repo)
       - key: DATABASE_URL # Neon pooled (host có -pooler), sslmode=verify-full
         sync: false
-      - key: FRONTEND_URL # https://<preview Vercel của nhánh refactor>
+      - key: DATABASE_URL_UNPOOLED # Neon direct (không -pooler), cho `prisma migrate deploy` lúc khởi động
+        sync: false
+      - key: FRONTEND_URL # https://<domain production>
         sync: false
       - key: CORS_ORIGINS # cùng giá trị FRONTEND_URL
         sync: false
@@ -51,8 +53,8 @@ services:
         sync: false
       - key: SEPAY_WEBHOOK_API_KEY # >= 16 ký tự, khai cùng giá trị ở SePay > Webhooks > API Key
         sync: false
-      - key: PAYMENT_SIMULATION_ENABLED # staging: "true". Ngày cutover đổi thành "false" trên Render
-        value: "true"
+      - key: PAYMENT_SIMULATION_ENABLED # production: "false". Chỉ đặt "true" ở môi trường thử
+        sync: false
       # Supabase Storage (T-026)
       - key: SUPABASE_URL
         sync: false
