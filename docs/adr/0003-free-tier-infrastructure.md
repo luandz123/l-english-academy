@@ -27,6 +27,8 @@ Một người làm, ngân sách 0đ/tháng, chưa có domain, người dùng �
 
 **Staging (2026-10-27)**: `backend/Dockerfile` multi-stage (~526MB, user `node`, tini). Migration **không** chạy lúc khởi động container mà ở job `deploy-staging` trong CI (migration lỗi → không deploy; image không cần Prisma CLI ~240MB). `render.yaml` khai báo service (`autoDeploy: false`). `workflow_run` và `schedule` chỉ kích hoạt với file trên nhánh mặc định nên deploy được đặt làm job trong `ci.yml`. Backup hằng đêm **chưa bật**: repo public, không lưu dump thô ở artifact (OPEN_QUESTIONS #17). Hướng dẫn: `docs/STAGING.md`.
 
+**Tách deploy khỏi CI (2026-11-09)**: GitHub khóa Actions của tài khoản vì lỗi billing, làm mọi job (kể cả `deploy-staging`) không chạy. Từ đây deploy không qua GitHub Actions nữa. Backend: Render `autoDeploy: true` theo `main`, container chạy `prisma migrate deploy` trong `backend/docker-entrypoint.sh` trước khi khởi động (migration lỗi → container thoát, health check không đạt, Render giữ bản cũ). Đổi lại, image giữ Prisma CLI và mỗi lần khởi động lạnh mất thêm vài giây kiểm tra migration. Frontend: Vercel Git integration. CI chỉ còn lint, typecheck, test, build.
+
 ## 3. Hệ Quả
 - **Tích cực**: 0đ/tháng; mọi thành phần thay được bằng bản trả phí/VPS mà không sửa code (qua biến môi trường, đã Docker hóa). 62 MB nằm thoải mái trong 0,5 GB của Neon free.
 - **Đánh đổi**:
