@@ -74,14 +74,12 @@ jobs:
       - name: Build
         run: npm run build
 
-  # Job ui-diff (chặn sửa JSX/className/câu chữ) đã gỡ khi chuyển sang giai đoạn UI/UX (AGENTS.md).
-  # Script vẫn còn ở scripts/check-ui-diff.mjs nếu cần chạy tay.
 
   deploy-staging:
     # Chỉ khi push lên nhánh refactor và cả frontend + backend đều xanh.
     # Áp migration lên Neon trước; migration lỗi → không gọi Render, bản đang chạy giữ nguyên.
     # (Không dùng workflow_run: nó chỉ kích hoạt khi file workflow nằm trên nhánh mặc định.)
-    # Sau cutover service Render chạy nhánh main (docs/CUTOVER.md) nên deploy theo cả main.
+    # Sau cutover service Render chạy nhánh main (docs/archive/refactor/CUTOVER.md) nên deploy theo cả main.
     if: github.event_name == 'push' && (github.ref == 'refs/heads/refactor/nestjs-backend' || github.ref == 'refs/heads/main')
     needs: [quality-check, backend]
     runs-on: ubuntu-latest
