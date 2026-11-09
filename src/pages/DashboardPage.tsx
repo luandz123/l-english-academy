@@ -55,6 +55,7 @@ import { MysteryChestModal } from "@/components/MysteryChestModal";
 import { LevelDetailsModal } from "@/components/LevelDetailsModal";
 import { TestHistoryModal } from "@/components/TestHistoryModal";
 import { LeaderboardModal } from "@/components/LeaderboardModal";
+import { RoadmapSummaryCard } from "@/components/roadmap/RoadmapSummaryCard";
 import { useToast } from "@/hooks/use-toast";
 
 export const DashboardPage: React.FC = () => {
@@ -877,6 +878,7 @@ export const DashboardPage: React.FC = () => {
 
           {/* ================= CỘT PHẢI (COCKPIT ĐỘNG LỰC & RETENTION) ================= */}
           <div className="lg:col-span-5 xl:col-span-4 space-y-6 xl:space-y-8">
+            <RoadmapSummaryCard />
             {/* ================= 5. NHIỆM VỤ HÔM NAY (DAILY QUESTS VỚI KỸ THUẬT JUICE) ================= */}
             <div className="p-6 sm:p-7 rounded-3xl bg-[#070e1c]/90 backdrop-blur-xl border border-cyan-500/25 shadow-[0_4px_25px_rgba(0,0,0,0.5),0_0_20px_rgba(6,182,212,0.04)] space-y-4 relative overflow-hidden group">
               <div className="absolute inset-x-8 -top-px h-px bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent" />

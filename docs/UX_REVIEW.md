@@ -19,6 +19,7 @@ Cách rà soát: chạy app cục bộ (Postgres + NestJS + Vite) với dữ li�
 | D9 | (2026-11-03) Nền banner **do admin cấu hình** (tải ảnh/GIF/video hoặc dán link, bật/tắt, độ tối, thứ tự) và **tự chuyển** giữa các nền theo số giây admin đặt. |
 | D10 | (2026-11-07) Tính năng `/part2-coach` gọi thống nhất là **"Luyện nghe từng bước"**, quảng cáo đúng **7 bước** (bỏ chữ "8 bước"; xóa component bẫy ETS không dùng). Làm lần lượt 4 đợt cải tiến ở mục "Luyện nghe từng bước" bên dưới. |
 | D11 | (2026-11-08) Chép chính tả: bấm **"Xem đáp án" không tính là đã làm câu** (không lưu tiến độ, không XP). |
+| D12 | (2026-11-09) Làm tính năng mới **Lộ trình học** (wizard 4 bước). Bài test nhanh dùng **một quiz admin chỉ định**; chủ điểm/đề luyện **gắn với khóa, chương, bộ từ vựng, đề có sẵn**; lộ trình **lưu DB, xem lại ở Bàn học**. Khác D3: bài test nằm trong wizard, là quiz ngắn do admin chọn, không phải đề 200 câu trên Bàn học. |
 
 ## Trạng thái từng mục
 
@@ -147,4 +148,19 @@ Cách rà soát: chạy app cục bộ (Postgres + NestJS + Vite) với dữ li�
 | C10 | Khung "Từ vựng trong câu" trống vẫn chiếm chỗ; nút "Xem đáp án (Alt+A)" trong câu đè chữ trên điện thoại và trùng nút dưới | Ẩn khung khi trống; bỏ nút trong câu (chỉ còn nút ở thanh dưới) | ✅ |
 | C11 | Hai nơi mở cùng một bài (trong trang khóa học và trang riêng sau bài từ vựng); "Quay lại" từ trang riêng mở bài đầu tiên chưa xong | Giữ trang riêng cho luồng "Luyện nghe các câu này" sau bài từ vựng; "Quay lại" mở đúng bài (`/courses/:id/learn?quiz=<id>`, tham số mới, không đổi route) | ✅ |
 | C12 | Nhiều tên: "Chép Chính Tả", "Luyện Nghe Điền Từ (Dictation)", "Luyện nghe điền từ"; mô tả hứa "Part 1–4, mượt mà" | Thống nhất "Chép chính tả" ở danh sách, trong bài, cài đặt, footer; mô tả nói đúng 3 cách làm | ✅ |
+
+## Lộ trình học (D12, 2026-11-09)
+
+Nhánh `feature/roadmap`. Route mới `/roadmap` (menu "Lộ trình học"), thẻ "Lộ trình của bạn" ở cột phải Bàn học.
+
+| Bước | Nội dung |
+|---|---|
+| 1. Điểm xuất phát | Tự khai điểm (chip + ô nhập 10–985), "Chưa thi / Mất gốc" (server coi là 150), hoặc bài test nhanh. Bài test chỉ hiện khi admin đã nhập ID quiz ở Cài đặt → Nền tảng và học viên có quyền làm quiz đó (nên chọn quiz miễn phí). Đi làm bài thì nháp wizard giữ trong `sessionStorage`; trang kết quả quiz có nút "Quay lại tạo lộ trình". Điểm ước lượng do server tính từ kết quả đã chấm (trần 900). |
+| 2. Mục tiêu | Chip 450–900 hoặc nhập số (300–990, bội số 5, phải cao hơn điểm xuất phát); mục đích: tốt nghiệp, xin việc, thăng chức, nâng phản xạ. |
+| 3. Quỹ thời gian | Tổng thời gian (1/2/3/4/6 tháng) hoặc ngày thi (cách hôm nay 2 tuần – 2 năm); phút mỗi ngày (30/60/90/120); số ngày rảnh mỗi tuần (1–7). |
+| 4. Kết quả | Tổng giờ cần học, quỹ giờ, số tuần, tuần hiện tại; cảnh báo khi thiếu thời gian (điểm có thể đạt, số phút/ngày nên học); các chặng theo dải điểm (Nền tảng / Bứt phá 300–500 / Tăng tốc 500–700 / Chinh phục 700–850 / Về đích 850+) + chặng Luyện đề tổng hợp, mỗi chặng có số tuần, ngày, giờ, tỷ trọng Nghe/Đọc/Ngữ pháp/Từ vựng, chủ điểm ngữ pháp, từ vựng, cách luyện và link tới chương "Part N", bộ từ vựng, đề full có sẵn. |
+
+Cách tính (server, `backend/src/modules/roadmap/roadmap-planner.ts`): giờ cho mỗi 100 điểm theo dải (dưới 300: 60h, 300–500: 80h, 500–700: 110h, 700–850: 150h, trên 850: 220h), cộng 15% cho luyện đề. Các con số này là ước lượng của nhóm phát triển, chủ dự án có thể chỉnh trong file đó.
+
+Kiểm tra tay (Postgres tạm + dữ liệu mẫu, 1440px và 390px): tạo lộ trình từ bài test nhanh 3/4 câu → xuất phát 650; chặng, chủ điểm, link chương hiện đúng; không cuộn ngang ở 390px; thẻ Bàn học hiện chặng hiện tại và tuần.
 

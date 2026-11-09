@@ -91,6 +91,7 @@ const VocabPage = lazyWithRetry(() => import("./pages/VocabPage"));
 const DictationPage = lazyWithRetry(() => import("./pages/DictationPage"));
 const Part2CoachPage = lazyWithRetry(() => import("./pages/Part2CoachPage"));
 const FullTestsPage = lazyWithRetry(() => import("./pages/FullTestsPage"));
+const RoadmapPage = lazyWithRetry(() => import("./pages/RoadmapPage"));
 const ListeningPage = lazyWithRetry(() => import("./pages/ListeningPage"));
 const LibraryPage = lazyWithRetry(() => import("./pages/LibraryPage"));
 const MyCoursesPage = lazyWithRetry(() => import("./pages/MyCoursesPage"));
@@ -216,6 +217,7 @@ const App = () => {
                 <Route path="/courses/:courseId/fulltest/:testId/result" element={<ProtectedRoute><FullTestResult /></ProtectedRoute>} />
                 <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                 <Route path="/fulltests" element={<ProtectedRoute><FullTestsPage /></ProtectedRoute>} />
+                <Route path="/roadmap" element={<ProtectedRoute><RoadmapPage /></ProtectedRoute>} />
                 <Route path="/fulltests/:testId" element={<ProtectedRoute><FullTestDirectRedirect /></ProtectedRoute>} />
                 <Route path="/listening" element={<ProtectedRoute><ListeningPage /></ProtectedRoute>} />
                 <Route path="/library" element={<ProtectedRoute><LibraryPage /></ProtectedRoute>} />
