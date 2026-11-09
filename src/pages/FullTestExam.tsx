@@ -47,6 +47,10 @@ import { useToast } from "@/hooks/use-toast";
 import { useSound } from "@/hooks/useSound";
 import { useGamification, XP_REWARDS } from "@/hooks/useGamification";
 import { StickyPartAudioPlayer } from "@/components/audio/StickyPartAudioPlayer";
+import { getBookmarkedQuestionIds, getExamCard } from "@/lib/api/practice";
+import { BookmarkButton } from "@/components/practice/BookmarkButton";
+import { ReportIssueButton } from "@/components/practice/ReportIssueButton";
+import { FavoriteButton, VerifiedBadge } from "@/components/practice/ExamBits";
 
 // Metadata for TOEIC Parts
 const partMeta: Record<
@@ -286,6 +290,19 @@ const FullTestExam = () => {
       return data;
     },
   });
+
+  // Thẻ đề (yêu thích, xác minh) và các câu đã lưu vào Sổ câu sai
+  const { data: examCard } = useQuery({
+    queryKey: ["exam-card", Number(testId), user?.id],
+    queryFn: () => getExamCard(Number(testId)),
+    enabled: !!user && !!testId,
+  });
+  const { data: bookmarkedIds } = useQuery({
+    queryKey: ["practice-bookmarks", user?.id],
+    queryFn: getBookmarkedQuestionIds,
+    enabled: !!user,
+  });
+  const bookmarkedSet = useMemo(() => new Set(bookmarkedIds ?? []), [bookmarkedIds]);
 
   // Check enrollment
   const { data: enrollment, isLoading: loadingEnrollment } = useQuery({
@@ -896,6 +913,13 @@ const FullTestExam = () => {
             <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
               {testInfo?.title ?? `Đề thi TOEIC Chuẩn Hóa`}
             </h1>
+            {examCard && (
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <VerifiedBadge status={examCard.verification_status} verifiedAt={examCard.verified_at} withText />
+                <FavoriteButton testId={examCard.id} favorited={examCard.favorited} withLabel />
+                <ReportIssueButton testId={examCard.id} />
+              </div>
+            )}
             <p className="text-xs sm:text-sm text-slate-400 font-medium max-w-lg mx-auto">
               Không gian thi trực tuyến công thái học cao cấp. Chọn nhanh cấu hình bài thi bên dưới để bắt đầu.
             </p>
@@ -1758,6 +1782,7 @@ const FullTestExam = () => {
                                   </span>
                                 </div>
 
+                                <div className="flex items-center gap-1.5">
                                 {/* Flag / Bookmark Button */}
                                 <button
                                   type="button"
@@ -1779,6 +1804,9 @@ const FullTestExam = () => {
                                   )}
                                   <span>{isFlagged ? "Đã gắn cờ" : "Gắn cờ (F)"}</span>
                                 </button>
+                                <BookmarkButton questionId={q.id} bookmarked={bookmarkedSet.has(q.id)} compact />
+                                <ReportIssueButton questionId={q.id} testId={Number(testId)} compact />
+                                </div>
                               </div>
 
                               {/* Question Image if specific to this question */}

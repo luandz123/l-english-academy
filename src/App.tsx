@@ -92,6 +92,13 @@ const DictationPage = lazyWithRetry(() => import("./pages/DictationPage"));
 const Part2CoachPage = lazyWithRetry(() => import("./pages/Part2CoachPage"));
 const FullTestsPage = lazyWithRetry(() => import("./pages/FullTestsPage"));
 const RoadmapPage = lazyWithRetry(() => import("./pages/RoadmapPage"));
+const PracticeHubPage = lazyWithRetry(() => import("./pages/PracticeHubPage"));
+const PracticeSessionPage = lazyWithRetry(() => import("./pages/PracticeSessionPage"));
+const PracticeResultPage = lazyWithRetry(() => import("./pages/PracticeResultPage"));
+const PracticeHistoryPage = lazyWithRetry(() => import("./pages/PracticeHistoryPage"));
+const MistakeNotebookPage = lazyWithRetry(() => import("./pages/MistakeNotebookPage"));
+const FavoritesPage = lazyWithRetry(() => import("./pages/FavoritesPage"));
+const AdminExamReview = lazyWithRetry(() => import("./pages/admin/AdminExamReview"));
 const ListeningPage = lazyWithRetry(() => import("./pages/ListeningPage"));
 const LibraryPage = lazyWithRetry(() => import("./pages/LibraryPage"));
 const MyCoursesPage = lazyWithRetry(() => import("./pages/MyCoursesPage"));
@@ -218,6 +225,13 @@ const App = () => {
                 <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                 <Route path="/fulltests" element={<ProtectedRoute><FullTestsPage /></ProtectedRoute>} />
                 <Route path="/roadmap" element={<ProtectedRoute><RoadmapPage /></ProtectedRoute>} />
+                <Route path="/practice" element={<ProtectedRoute><PracticeHubPage /></ProtectedRoute>} />
+                <Route path="/practice/history" element={<ProtectedRoute><PracticeHistoryPage /></ProtectedRoute>} />
+                <Route path="/practice/session/:id" element={<ProtectedRoute><PracticeSessionPage /></ProtectedRoute>} />
+                <Route path="/practice/session/:id/result" element={<ProtectedRoute><PracticeResultPage /></ProtectedRoute>} />
+                <Route path="/reading" element={<Navigate to="/practice?skill=reading" replace />} />
+                <Route path="/mistakes" element={<ProtectedRoute><MistakeNotebookPage /></ProtectedRoute>} />
+                <Route path="/favorites" element={<ProtectedRoute><FavoritesPage /></ProtectedRoute>} />
                 <Route path="/fulltests/:testId" element={<ProtectedRoute><FullTestDirectRedirect /></ProtectedRoute>} />
                 <Route path="/listening" element={<ProtectedRoute><ListeningPage /></ProtectedRoute>} />
                 <Route path="/library" element={<ProtectedRoute><LibraryPage /></ProtectedRoute>} />
@@ -240,6 +254,7 @@ const App = () => {
                 <Route path="/admin/courses/new" element={<AdminRoute><AdminCourseNew /></AdminRoute>} />
                 <Route path="/admin/courses/:courseId" element={<AdminRoute><AdminCourseDetail /></AdminRoute>} />
                 <Route path="/admin/fulltests" element={<AdminRoute><AdminFullTestManager /></AdminRoute>} />
+                <Route path="/admin/exam-review" element={<AdminRoute><AdminExamReview /></AdminRoute>} />
                 <Route path="/admin/fulltests/:testId/questions" element={<AdminRoute><AdminFullTestQuestions /></AdminRoute>} />
                 <Route path="/admin/import-json" element={<AdminRoute><AdminCourseJsonImport /></AdminRoute>} />
                 <Route path="/admin/students" element={<AdminRoute><AdminStudents /></AdminRoute>} />

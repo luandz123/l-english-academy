@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, BookOpen, Users, ClipboardList, FileText, BarChart3, Settings, LogOut, Menu, X, Sun, Moon, ChevronRight, ShieldAlert, Home, FileJson, Gamepad2, Database, CreditCard } from "lucide-react";
+import { LayoutDashboard, BookOpen, Users, ClipboardList, FileText, BarChart3, Settings, LogOut, Menu, X, Sun, Moon, ChevronRight, ShieldAlert, Home, FileJson, Gamepad2, Database, CreditCard, ShieldCheck } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -13,6 +13,7 @@ const navItems = [
   { to: "/admin/categories", label: "Danh mục", icon: BookOpen },
   { to: "/admin/courses", label: "Khóa học", icon: BookOpen },
   { to: "/admin/fulltests", label: "Full Test TOEIC", icon: ClipboardList },
+  { to: "/admin/exam-review", label: "Kiểm duyệt đề", icon: ShieldCheck },
   { to: "/admin/import-json", label: "Import Part JSON", icon: FileJson },
   { to: "/admin/students", label: "Học viên", icon: Users },
   { to: "/admin/enrollments", label: "Đăng ký & Đơn hàng", icon: ClipboardList },

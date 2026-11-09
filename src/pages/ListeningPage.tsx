@@ -1,11 +1,12 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { listCourses } from "@/lib/api/catalog";
 import StudentLayout from "@/components/StudentLayout";
 import { CourseCard, CourseRow } from "@/components/CourseCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/ErrorState";
-import { Headphones } from "lucide-react";
+import { Headphones, Layers, Zap } from "lucide-react";
 
 import { PageHeader } from "@/components/ui/PageHeader";
 import EmptyState from "@/components/EmptyState";
@@ -31,6 +32,29 @@ export const ListeningPage: React.FC = () => {
           iconTextColor="text-purple-600 dark:text-purple-400"
           badge={`${courses.length} khóa`}
         />
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Link
+            to="/practice?skill=listening"
+            className="p-4 rounded-2xl border border-cyan-500/30 bg-cyan-500/5 hover:bg-cyan-500/10 transition-colors flex items-center gap-3 min-h-[64px]"
+          >
+            <Layers className="w-6 h-6 text-cyan-400 shrink-0" />
+            <div>
+              <div className="font-bold text-white text-sm">Luyện nghe theo dạng câu hỏi</div>
+              <div className="text-xs text-slate-400">Chọn Part 1–4 rồi chọn dạng: WH, Yes/No, câu hỏi lựa chọn…</div>
+            </div>
+          </Link>
+          <Link
+            to="/practice?tab=mini"
+            className="p-4 rounded-2xl border border-violet-500/30 bg-violet-500/5 hover:bg-violet-500/10 transition-colors flex items-center gap-3 min-h-[64px]"
+          >
+            <Zap className="w-6 h-6 text-violet-400 shrink-0" />
+            <div>
+              <div className="font-bold text-white text-sm">Listening Mini Test</div>
+              <div className="text-xs text-slate-400">10–30 câu nghe, làm nhanh trong vài phút</div>
+            </div>
+          </Link>
+        </div>
 
         {/* Content Body */}
         {isLoading ? (

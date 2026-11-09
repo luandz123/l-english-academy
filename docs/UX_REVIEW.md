@@ -20,6 +20,7 @@ Cách rà soát: chạy app cục bộ (Postgres + NestJS + Vite) với dữ li�
 | D10 | (2026-11-07) Tính năng `/part2-coach` gọi thống nhất là **"Luyện nghe từng bước"**, quảng cáo đúng **7 bước** (bỏ chữ "8 bước"; xóa component bẫy ETS không dùng). Làm lần lượt 4 đợt cải tiến ở mục "Luyện nghe từng bước" bên dưới. |
 | D11 | (2026-11-08) Chép chính tả: bấm **"Xem đáp án" không tính là đã làm câu** (không lưu tiến độ, không XP). |
 | D12 | (2026-11-09) Làm tính năng mới **Lộ trình học** (wizard 4 bước). Bài test nhanh dùng **một quiz admin chỉ định**; chủ điểm/đề luyện **gắn với khóa, chương, bộ từ vựng, đề có sẵn**; lộ trình **lưu DB, xem lại ở Bàn học**. Khác D3: bài test nằm trong wizard, là quiz ngắn do admin chọn, không phải đề 200 câu trên Bàn học. |
+| D13 | (2026-11-09) Làm nhóm **Luyện đề ưu tiên 1** (E03/L02/R02 luyện theo dạng câu, E05 bộ lọc thư viện đề, R07/L09 Sổ câu sai, E07 đề yêu thích, E04 Mini Test + Daily Challenge, E06 đề đã xác minh). Chốt: **nhãn dạng câu do script gắn tự động, admin sửa được**; câu luyện **theo quyền đề nguồn** (cùng luật FULLTEST_LOCKED); trang **/practice** (tab Listening/Reading) + lối vào ở /listening, /fulltests, Bàn học, menu; **chỉ admin** xác minh đề, học viên **báo lỗi** được; lượt luyện **cộng XP như Quiz**; Daily Challenge **riêng từng người**. |
 
 ## Trạng thái từng mục
 
@@ -164,3 +165,22 @@ Cách tính (server, `backend/src/modules/roadmap/roadmap-planner.ts`): giờ ch
 
 Kiểm tra tay (Postgres tạm + dữ liệu mẫu, 1440px và 390px): tạo lộ trình từ bài test nhanh 3/4 câu → xuất phát 650; chặng, chủ điểm, link chương hiện đúng; không cuộn ngang ở 390px; thẻ Bàn học hiện chặng hiện tại và tuần.
 
+
+## Luyện đề ưu tiên 1 (D13, 2026-11-09)
+
+Nhánh `feature/exam-practice`. Module backend mới `PracticeModule` (`backend/src/modules/practice/`).
+
+| Mã | Tính năng | Ở đâu |
+|---|---|---|
+| E03/L02/R02 | Luyện theo dạng câu: chọn Part → một/nhiều dạng (số câu thật theo quyền) → số câu (5/10/15/20/tùy chỉnh), độ khó, Practice/Test, xem giải thích sau mỗi câu hoặc khi nộp, thứ tự. Thiếu câu → báo số câu hiện có + nút "Luyện N câu". Dạng không có câu thì ẩn. Part 7 phân cấp: Single/Double/Triple là nhóm chính, loại văn bản (email, quảng cáo, bài báo, thông báo, tin nhắn, biểu mẫu/lịch…) là bộ lọc phụ. | `/practice` (`/reading` → tab Reading), thẻ ở `/listening`, `/fulltests` |
+| E05 | Thư viện đề: tìm theo tên/mã (LE-0052), lọc năm/độ khó/chủ đề/loại đề/kỹ năng/Part/trạng thái/Premium/xác minh (chọn nhiều), số đề phù hợp, xóa bộ lọc, sắp xếp mới nhất/phổ biến/độ khó/lượt làm, gợi ý bỏ bớt lọc khi không có kết quả. Lựa chọn lọc không có đề nào thì ẩn. | `/fulltests` (thay danh sách khóa cũ; trang đề theo khóa `/courses/:id/fulltest` giữ nguyên) |
+| R07/L09 | Sổ câu sai: tự lưu câu sai khi nộp lượt luyện **và** Full Test; bookmark tay (cả câu đúng) trong lúc làm, ở kết quả, trong Full Test. Trạng thái Chưa ôn / Đang cải thiện / Đã sửa đúng; không xóa khi làm đúng; lịch sử từng lần trả lời. Lọc Listening/Reading, Part, trạng thái, 7/30 ngày, sai ≥ 2 lần, bookmark; luyện lại theo bộ lọc, câu chưa sửa, gần đây, nhiều lần, câu đã sửa (kiểm tra ghi nhớ). Nghe lại audio, đổi tốc độ, transcript; Reading giữ nguyên đoạn văn của nhóm. | `/mistakes` (menu "Câu hỏi sai của tôi"), thẻ Bàn học |
+| E07 | Đề yêu thích: nút bookmark trên thẻ đề và màn chuẩn bị làm Full Test; trang danh sách lọc Full Test/Listening/Reading, ngày lưu; đề bị gỡ vẫn hiện "không còn khả dụng". | `/favorites`, thẻ Bàn học |
+| E04 | Mini Test theo kỹ năng hoặc Part, 5/10/15/20/30 câu, giờ tự động hoặc tùy chỉnh, độ khó, Practice/Test; kết quả có điểm, đúng/sai, thời gian, TB mỗi câu, phân tích theo Part/dạng, luyện lại câu sai, làm lượt mới. Daily Challenge: 5 Listening + 5 Reading/ngày (giờ VN), xoay Part trọng tâm, ưu tiên dạng đang yếu, tránh câu đã gặp 7 ngày, chuỗi ngày. Mỗi lượt có mã riêng, lưu lịch sử. | `/practice?tab=mini`, `/practice/history`, thẻ Bàn học |
+| E06 | Verified: admin duyệt checklist 9 mục (đủ mới xác minh), ngày xác minh hiện trên thẻ; sửa câu/đáp án/section của đề đã xác minh → trigger DB chuyển "Cần duyệt lại"; học viên báo lỗi câu/đề, admin xử lý. Ghi rõ Verified không phải đề ETS. | `/admin/exam-review` (menu admin "Kiểm duyệt đề") |
+
+Gắn nhãn tự động (`question-tagger.ts`, có unit test): Part 1 theo người/đồ vật trong đáp án; Part 2 theo từ đầu câu hỏi (lấy từ transcript khi đề ghi "Mark your answer"); Part 3/4 theo câu hỏi (chủ đề, người nói, chi tiết, yêu cầu, hành động tiếp, suy luận, biểu đồ); Part 5/6 theo 4 lựa chọn (từ loại, thì, đại từ, giới/liên từ, từ vựng, chèn câu); Part 7 theo vị trí trong Part (đề đủ 54 câu) + loại văn bản theo câu dẫn "refer to the following …". Độ khó mặc định Trung bình (chưa có dữ liệu thật để tự đánh giá), admin sửa từng câu. Câu nghe dùng chung một file audio cho cả Part (> 5 câu) không đưa vào luyện riêng vì không phát riêng từng câu được (vẫn luyện lại được trong Sổ câu sai). Bộ gắn nhãn tự chạy nền khi khởi động và trước khi đọc kho câu nếu còn câu chưa gắn; câu bị sửa nội dung được gắn lại; nhãn admin sửa tay không bị ghi đè.
+
+Kiểm tra tay (Postgres tạm cổng 5440 + 3 đề mẫu, 1440px và 390px): chọn Part 2 → WH 8 câu, báo "Chỉ có 8 câu" + nút đề xuất; làm lượt phản hồi ngay (đúng/sai, giải thích, transcript, nghe lại, 0.75x–1.25x, phím 1–4, ←/→); nộp → 1/8, sai 1, chưa trả lời 6, +10 XP; Sổ câu sai hiện câu sai; thư viện đề lọc và khóa đề Premium; admin mở checklist 0/9, nút Xác minh khóa.
+
+Còn mở: nhãn tự động là quy tắc trên chữ — nên cho admin rà các đề thật trước khi quảng bá tính năng; độ khó và chủ đề đề thi đang trống tới khi admin nhập.

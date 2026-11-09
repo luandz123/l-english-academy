@@ -2,11 +2,13 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { AuthService } from '../auth/auth.service';
 import type { AuthenticatedUser } from '../auth/guards/jwt-auth.guard';
 import { LearningService } from '../learning/learning.service';
+import { MistakesService } from '../practice/mistakes.service';
 import {
   FullTestAnswerDetailDto,
   FullTestDto,
@@ -24,11 +26,14 @@ const MAX_ANSWERS_MAP_KEYS = 400;
 
 @Injectable()
 export class FullTestService {
+  private readonly logger = new Logger(FullTestService.name);
+
   constructor(
     private readonly repo: FullTestRepository,
     private readonly mapper: FullTestMapper,
     private readonly learning: LearningService,
     private readonly auth: AuthService,
+    private readonly mistakes: MistakesService,
   ) {}
 
   /** Thay `FullTestExam.tsx:314`. Công khai như RLS cũ. */
@@ -120,6 +125,17 @@ export class FullTestService {
         },
       },
     });
+    // Sổ câu sai (R07/L09): tự lưu câu trả lời sai. Lỗi ở đây không làm hỏng bài đã chấm.
+    try {
+      await this.mistakes.recordAnswers(user.id, grade.details, {
+        source: 'full_test',
+        sourceId: String(result.id),
+      });
+    } catch (err) {
+      this.logger.error(
+        `Ghi sổ câu sai lỗi (result ${result.id}): ${String(err)}`,
+      );
+    }
     return this.mapper.toResultDto(result);
   }
 

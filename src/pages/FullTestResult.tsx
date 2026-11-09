@@ -763,6 +763,12 @@ const FullTestResult = () => {
           >
             🔄 Làm lại đề này
           </Link>
+          <Link
+            to="/mistakes"
+            className="py-3 px-6 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-300 hover:bg-rose-500/20 text-sm font-bold transition-all duration-120 active:scale-95 shadow-soft-xs cursor-pointer"
+          >
+            📕 Câu sai đã lưu vào Sổ câu sai
+          </Link>
         </div>
 
         {/* Detailed stats by part */}
