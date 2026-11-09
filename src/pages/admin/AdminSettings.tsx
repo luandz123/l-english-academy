@@ -137,12 +137,14 @@ const AdminSettings = () => {
   const [tagline, setTagline] = useState("");
   const [primaryColor, setPrimaryColor] = useState("");
   const [accentColor, setAccentColor] = useState("");
+  const [placementQuizId, setPlacementQuizId] = useState("");
 
   useEffect(() => {
     setPlatformName(settings["platform_name"] ?? "L-English");
     setTagline(settings["tagline"] ?? "Learn Smart. Score High.");
     setPrimaryColor(settings["primary_color"] ?? "#4f46e5");
     setAccentColor(settings["accent_color"] ?? "#10b981");
+    setPlacementQuizId(settings["roadmap_placement_quiz_id"] ?? "");
   }, [settings]);
 
   const saveMutation = useMutation({
@@ -152,6 +154,8 @@ const AdminSettings = () => {
         { key: "tagline", value: tagline },
         { key: "primary_color", value: primaryColor },
         { key: "accent_color", value: accentColor },
+        // Bài test nhanh cho wizard lộ trình (/roadmap); để trống = tắt
+        { key: "roadmap_placement_quiz_id", value: placementQuizId.trim() },
       ];
       for (const entry of entries) {
         await saveSetting(entry.key, entry.value);
@@ -1312,6 +1316,19 @@ const AdminSettings = () => {
                     <Input value={accentColor} onChange={(e) => setAccentColor(e.target.value)} className="flex-1 font-mono text-sm" />
                   </div>
                 </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="font-bold">ID bài test nhanh cho Lộ trình học</Label>
+                <Input
+                  value={placementQuizId}
+                  onChange={(e) => setPlacementQuizId(e.target.value.replace(/[^0-9]/g, ""))}
+                  inputMode="numeric"
+                  placeholder="Để trống nếu chưa có"
+                  className="font-mono text-sm max-w-xs"
+                />
+                <p className="text-xs text-muted-foreground">
+                  ID một quiz miễn phí (15–20 phút). Học viên chưa biết điểm sẽ làm bài này ở bước 1 của wizard lộ trình.
+                </p>
               </div>
               <div className="pt-2">
                 <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} className="btn-3d-green font-black rounded-xl active:scale-95 duration-120">

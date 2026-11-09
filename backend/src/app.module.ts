@@ -14,6 +14,7 @@ import { PaymentsModule } from './modules/payments/payments.module';
 import { SpeakingModule } from './modules/speaking/speaking.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { MediaModule } from './modules/media/media.module';
+import { RoadmapModule } from './modules/roadmap/roadmap.module';
 
 @Module({
   imports: [
@@ -58,6 +59,7 @@ import { MediaModule } from './modules/media/media.module';
     SpeakingModule,
     AdminModule,
     MediaModule,
+    RoadmapModule,
   ],
 })
 export class AppModule {}

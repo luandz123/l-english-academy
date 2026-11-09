@@ -17,7 +17,8 @@ import {
   HelpCircle,
   Headphones,
   Check,
-  X
+  X,
+  Route as RouteIcon
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -29,6 +30,7 @@ import {
   listResultAnswers,
 } from "@/lib/api/assessment";
 import { useAuth } from "@/hooks/useAuth";
+import { isPlacementQuiz } from "@/lib/api/roadmap";
 import { formatAudioUrl } from "@/utils/audioUrl";
 import { cn } from "@/lib/utils";
 import { StickyPartAudioPlayer } from "@/components/audio/StickyPartAudioPlayer";
@@ -954,6 +956,14 @@ const QuizResult = () => {
 
         {/* Action Controls */}
         <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+          {isPlacementQuiz(quizId) && (
+            <Link
+              to="/roadmap"
+              className="py-3 px-5 rounded-xl border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 text-sm font-bold transition-all duration-120 active:scale-95 shadow-soft-xs cursor-pointer inline-flex items-center gap-2"
+            >
+              <RouteIcon className="w-4 h-4" /> Quay lại tạo lộ trình
+            </Link>
+          )}
           <Link
             to={`/courses/${courseId}/learn`}
             className="py-3 px-5 rounded-xl border border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-sm font-bold text-slate-200 transition-all duration-120 active:scale-95 shadow-soft-xs cursor-pointer inline-flex items-center gap-2"

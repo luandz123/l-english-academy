@@ -18,7 +18,8 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Home,
-  Mic2
+  Mic2,
+  Route as RouteIcon
 } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
@@ -37,6 +38,7 @@ import GamificationChips from "@/components/GamificationChips";
 
 const primaryNavItems = [
   { to: "/dashboard", label: "Bàn học", icon: LayoutDashboard },
+  { to: "/roadmap", label: "Lộ trình học", icon: RouteIcon },
   { to: "/speaking", label: "Phòng Luyện Nói", icon: Mic2 },
   { to: "/library", label: "Kho khóa học", icon: BookOpen },
   { to: "/my-courses", label: "Khóa học của tôi", icon: GraduationCap },
@@ -127,11 +129,13 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
     vocab: "Từ vựng",
     "vocab-lesson": "Bài từ vựng",
     speaking: "Phòng luyện nói",
+    roadmap: "Lộ trình học",
   };
   // Đoạn đường dẫn có trang riêng (bấm được); các đoạn khác chỉ hiển thị chữ
   const LINKABLE_SEGMENTS = new Set([
     "dashboard", "my-courses", "profile", "learn", "fulltest", "fulltests", "listening",
     "library", "games", "part2-coach", "vocab", "speaking", "word-shooter", "word-defense",
+    "roadmap",
   ]);
   const pathSegments = location.pathname.split("/").filter(Boolean);
   const breadcrumbs = pathSegments
