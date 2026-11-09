@@ -413,6 +413,16 @@ describe('LearningService', () => {
           knowledgeTag: null,
           passageText: null,
           groupId: null,
+          toeicPart: null,
+          sourceTestId: null,
+          groupKey: null,
+          partIndex: null,
+          questionCategory: null,
+          passageType: null,
+          difficulty: null,
+          tagSource: null,
+          practiceEligible: false,
+          taggedAt: null,
           answers: [
             {
               id: 1001,

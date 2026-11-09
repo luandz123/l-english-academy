@@ -49,6 +49,10 @@ model User {
   speakingMemberships   SpeakingRoomMember[]
   speakingSessions      SpeakingSession[]
   roadmap               UserRoadmap?
+  practiceSessions      PracticeSession[]
+  mistakeItems          MistakeNotebookItem[]
+  favoriteExams         FavoriteExam[]
+  examReports           ExamReport[]
 
   @@map("users")
 }
@@ -222,6 +226,18 @@ model FullTest {
   audioUrl            String?              @map("audio_url")
   description         String?
   totalAttempts       Int?                 @default(10) @map("total_attempts")
+  /// Thông tin thư viện đề (module practice). year null → lấy từ tiêu đề.
+  year                  Int?
+  difficulty            String?
+  topics                String[]             @default([])
+  testType              String               @default("full") @map("test_type")
+  durationMinutes       Int?                 @map("duration_minutes")
+  /// 'unverified' | 'verified' | 'needs_review' (trigger đổi sang needs_review khi sửa nội dung)
+  verificationStatus    String               @default("unverified") @map("verification_status")
+  verificationChecklist Json?                @map("verification_checklist")
+  verifiedAt            DateTime?            @map("verified_at") @db.Timestamptz(6)
+  verifiedBy            String?              @map("verified_by") @db.Uuid
+  contentChangedAt      DateTime?            @map("content_changed_at") @db.Timestamptz(6)
   fullTestSections    FullTestSection[]
   course              Course?              @relation(fields: [courseId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   userFullTestResults UserFullTestResult[]
@@ -373,8 +389,24 @@ model Question {
   quiz                  Quiz?                  @relation(fields: [quizId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   userAnswers           UserAnswer[]
   vocabQuestions        VocabQuestion[]
+  /// Nhãn luyện tập (module practice). Bộ gắn nhãn tự động điền; admin sửa thì tag_source = 'admin'.
+  toeicPart             Int?                   @map("toeic_part") @db.SmallInt
+  sourceTestId          Int?                   @map("source_test_id")
+  groupKey              String?                @map("group_key")
+  partIndex             Int?                   @map("part_index")
+  questionCategory      String?                @map("question_category")
+  passageType           String?                @map("passage_type")
+  difficulty            String?
+  tagSource             String?                @map("tag_source")
+  practiceEligible      Boolean                @default(false) @map("practice_eligible")
+  taggedAt              DateTime?              @map("tagged_at") @db.Timestamptz(6)
+  practiceAnswers       PracticeAnswer[]
+  mistakeItems          MistakeNotebookItem[]
 
   @@index([quizId], map: "idx_questions_quiz_id")
+  @@index([toeicPart, practiceEligible, questionCategory], map: "idx_questions_practice")
+  @@index([sourceTestId], map: "idx_questions_source_test")
+  @@index([groupKey], map: "idx_questions_group_key")
   @@map("questions")
 }
 
@@ -652,4 +684,127 @@ model UserRoadmap {
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@map("user_roadmaps")
+}
+
+/// Một lượt luyện: theo dạng câu, Mini Test, Daily Challenge, luyện câu sai, luyện lại câu sai.
+model PracticeSession {
+  id               String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId           String           @map("user_id") @db.Uuid
+  /// 'question_type' | 'mini_test' | 'daily' | 'mistakes' | 'retry'
+  kind             String
+  /// 'listening' | 'reading' | 'mixed'
+  skill            String
+  /// 'practice' | 'test'
+  mode             String
+  /// 'immediate' | 'end' (chỉ có nghĩa ở chế độ practice)
+  feedback         String           @default("end")
+  config           Json             @default("{}")
+  questionIds      Int[]            @map("question_ids")
+  /// 'in_progress' | 'submitted' | 'abandoned'
+  status           String           @default("in_progress")
+  timeLimitSeconds Int?             @map("time_limit_seconds")
+  dailyDate        DateTime?        @map("daily_date") @db.Date
+  startedAt        DateTime         @default(now()) @map("started_at") @db.Timestamptz(6)
+  submittedAt      DateTime?        @map("submitted_at") @db.Timestamptz(6)
+  timeSpentSeconds Int?             @map("time_spent_seconds")
+  totalQuestions   Int              @map("total_questions")
+  correctCount     Int?             @map("correct_count")
+  wrongCount       Int?             @map("wrong_count")
+  unansweredCount  Int?             @map("unanswered_count")
+  createdAt        DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  answers          PracticeAnswer[]
+
+  @@index([userId, status], map: "idx_practice_sessions_user_status")
+  @@index([userId, kind, dailyDate], map: "idx_practice_sessions_daily")
+  @@map("practice_sessions")
+}
+
+model PracticeAnswer {
+  id               Int             @id @default(autoincrement())
+  sessionId        String          @map("session_id") @db.Uuid
+  questionId       Int             @map("question_id")
+  selectedAnswerId Int?            @map("selected_answer_id")
+  isCorrect        Boolean?        @map("is_correct")
+  /// Chế độ phản hồi ngay: câu đã chốt, không đổi được nữa
+  locked           Boolean         @default(false)
+  answeredAt       DateTime        @default(now()) @map("answered_at") @db.Timestamptz(6)
+  session          PracticeSession @relation(fields: [sessionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  question         Question        @relation(fields: [questionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([sessionId, questionId])
+  @@map("practice_answers")
+}
+
+/// Sổ câu sai: mỗi (học viên, câu hỏi) đúng một dòng. Lịch sử từng lần trả lời ở mistake_attempts.
+model MistakeNotebookItem {
+  id                   Int              @id @default(autoincrement())
+  userId               String           @map("user_id") @db.Uuid
+  questionId           Int              @map("question_id")
+  wrongCount           Int              @default(0) @map("wrong_count")
+  firstWrongAt         DateTime?        @map("first_wrong_at") @db.Timestamptz(6)
+  lastWrongAt          DateTime?        @map("last_wrong_at") @db.Timestamptz(6)
+  lastSelectedAnswerId Int?             @map("last_selected_answer_id")
+  /// 'not_reviewed' | 'improving' | 'fixed'
+  status               String           @default("not_reviewed")
+  reviewCount          Int              @default(0) @map("review_count")
+  lastReviewedAt       DateTime?        @map("last_reviewed_at") @db.Timestamptz(6)
+  isBookmarked         Boolean          @default(false) @map("is_bookmarked")
+  bookmarkedAt         DateTime?        @map("bookmarked_at") @db.Timestamptz(6)
+  createdAt            DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user                 User             @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  question             Question         @relation(fields: [questionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  attempts             MistakeAttempt[]
+
+  @@unique([userId, questionId])
+  @@index([userId, status], map: "idx_mistake_items_user_status")
+  @@map("mistake_notebook_items")
+}
+
+model MistakeAttempt {
+  id               Int                 @id @default(autoincrement())
+  itemId           Int                 @map("item_id")
+  selectedAnswerId Int?                @map("selected_answer_id")
+  isCorrect        Boolean             @map("is_correct")
+  /// 'full_test' | 'practice'
+  source           String
+  sourceId         String?             @map("source_id")
+  createdAt        DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  item             MistakeNotebookItem @relation(fields: [itemId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([itemId], map: "idx_mistake_attempts_item")
+  @@map("mistake_attempts")
+}
+
+/// Đề yêu thích. Không có FK tới full_tests: đề bị xóa vẫn giữ dòng để báo "không còn khả dụng".
+model FavoriteExam {
+  id         Int      @id @default(autoincrement())
+  userId     String   @map("user_id") @db.Uuid
+  testId     Int      @map("test_id")
+  titleCache String   @map("title_cache")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([userId, testId])
+  @@map("favorite_exams")
+}
+
+/// Học viên báo lỗi đề / câu hỏi; admin xử lý.
+model ExamReport {
+  id         Int       @id @default(autoincrement())
+  userId     String    @map("user_id") @db.Uuid
+  testId     Int?      @map("test_id")
+  questionId Int?      @map("question_id")
+  reason     String
+  message    String?
+  /// 'open' | 'resolved' | 'dismissed'
+  status     String    @default("open")
+  adminNote  String?   @map("admin_note")
+  resolvedAt DateTime? @map("resolved_at") @db.Timestamptz(6)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([status, createdAt], map: "idx_exam_reports_status")
+  @@map("exam_reports")
 }

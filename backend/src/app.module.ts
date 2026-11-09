@@ -15,6 +15,7 @@ import { SpeakingModule } from './modules/speaking/speaking.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { MediaModule } from './modules/media/media.module';
 import { RoadmapModule } from './modules/roadmap/roadmap.module';
+import { PracticeModule } from './modules/practice/practice.module';
 
 @Module({
   imports: [
@@ -60,6 +61,7 @@ import { RoadmapModule } from './modules/roadmap/roadmap.module';
     AdminModule,
     MediaModule,
     RoadmapModule,
+    PracticeModule,
   ],
 })
 export class AppModule {}

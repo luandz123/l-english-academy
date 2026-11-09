@@ -71,6 +71,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
         } else if (typeof p.message === 'string') {
           message = p.message;
         }
+        // Lỗi nghiệp vụ có thể kèm details (vd. INSUFFICIENT_QUESTIONS → { available })
+        if (details === undefined && p.details !== undefined)
+          details = p.details;
       }
       return { statusCode, code, message, details, path, timestamp };
     }

@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
 import { LearningModule } from '../learning/learning.module';
+import { PracticeModule } from '../practice/practice.module';
 import { AssessmentAdminController } from './assessment-admin.controller';
 import { AssessmentAdminRepository } from './assessment-admin.repository';
 import { AssessmentAdminService } from './assessment-admin.service';
@@ -22,7 +23,8 @@ import { VocabRepository } from './vocab.repository';
 import { VocabService } from './vocab.service';
 
 @Module({
-  imports: [AuthModule, LearningModule],
+  // PracticeModule: ghi câu sai vào sổ khi nộp Full Test (R07/L09)
+  imports: [AuthModule, LearningModule, PracticeModule],
   controllers: [
     AssessmentController,
     AssessmentAdminController,
