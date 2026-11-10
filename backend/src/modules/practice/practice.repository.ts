@@ -104,6 +104,24 @@ export class PracticeRepository {
     }));
   }
 
+  /** Câu học viên đã gặp trong lượt đã nộp (lượt luyện + Full Test). */
+  async seenQuestionIds(userId: string): Promise<number[]> {
+    const rows = await this.prisma.$queryRaw<{ id: number }[]>`
+      SELECT DISTINCT unnest(question_ids) AS id FROM practice_sessions
+      WHERE user_id = ${userId}::uuid AND status = 'submitted'
+      UNION
+      SELECT d.question_id FROM full_test_answer_details d
+      JOIN user_full_test_results r ON r.id = d.result_id WHERE r.user_id = ${userId}::uuid`;
+    return rows.map((r) => r.id);
+  }
+
+  findQuestionSources(ids: number[]) {
+    return this.prisma.question.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, sourceTestId: true, toeicPart: true },
+    });
+  }
+
   findQuestionsContent(ids: number[]): Promise<QuestionContent[]> {
     if (ids.length === 0) return Promise.resolve([]);
     return this.prisma.question.findMany({
@@ -168,6 +186,8 @@ export class PracticeRepository {
     selectedAnswerId: number | null;
     isCorrect: boolean | null;
     locked: boolean;
+    /** Chỉ ghi ở lần chọn đầu tiên của câu */
+    timeSeconds?: number | null;
   }) {
     return this.prisma.practiceAnswer.upsert({
       where: {
@@ -178,6 +198,7 @@ export class PracticeRepository {
       },
       create: { ...data, answeredAt: new Date() },
       update: {
+        // Giữ thời gian làm câu của lần chọn đầu
         selectedAnswerId: data.selectedAnswerId,
         isCorrect: data.isCorrect,
         locked: data.locked,

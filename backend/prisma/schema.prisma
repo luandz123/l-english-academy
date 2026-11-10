@@ -49,6 +49,8 @@ model User {
   speakingMemberships   SpeakingRoomMember[]
   speakingSessions      SpeakingSession[]
   roadmap               UserRoadmap?
+  roadmapWeekPlans      RoadmapWeekPlan[]
+  recommendationSkips   ExamRecommendationSkip[]
   practiceSessions      PracticeSession[]
   mistakeItems          MistakeNotebookItem[]
   favoriteExams         FavoriteExam[]
@@ -729,6 +731,8 @@ model PracticeAnswer {
   /// Chế độ phản hồi ngay: câu đã chốt, không đổi được nữa
   locked           Boolean         @default(false)
   answeredAt       DateTime        @default(now()) @map("answered_at") @db.Timestamptz(6)
+  /// Thời gian làm câu (giây), server ước tính từ mốc lưu đáp án trước đó trong lượt (P11 "Làm chậm")
+  timeSeconds      Int?            @map("time_seconds")
   session          PracticeSession @relation(fields: [sessionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   question         Question        @relation(fields: [questionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
@@ -807,4 +811,31 @@ model ExamReport {
 
   @@index([status, createdAt], map: "idx_exam_reports_status")
   @@map("exam_reports")
+}
+
+/// "Việc tuần này" của lộ trình (P03): chốt một lần đầu tuần (thứ Hai giờ VN) để trọng tâm đổi giữa tuần không làm mất việc đang làm dở.
+model RoadmapWeekPlan {
+  id        Int      @id @default(autoincrement())
+  userId    String   @map("user_id") @db.Uuid
+  weekStart DateTime @map("week_start") @db.Date
+  /// Danh sách key "part:category" trọng tâm lúc lập kế hoạch
+  focus     Json     @default("[]")
+  tasks     Json     @default("[]")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([userId, weekStart])
+  @@map("roadmap_week_plans")
+}
+
+/// Đề học viên bấm "Không phải lúc này" (E10): không đề xuất lại tới skipped_until.
+model ExamRecommendationSkip {
+  id           Int      @id @default(autoincrement())
+  userId       String   @map("user_id") @db.Uuid
+  testId       Int      @map("test_id")
+  skippedUntil DateTime @map("skipped_until") @db.Timestamptz(6)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([userId, testId])
+  @@map("exam_recommendation_skips")
 }

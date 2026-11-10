@@ -112,6 +112,8 @@ export class PracticeService {
         return this.createMistakes(user, dto);
       case 'retry':
         return this.createRetry(user, dto);
+      case 'questions':
+        return this.createFromQuestions(user, dto);
     }
   }
 
@@ -139,6 +141,9 @@ export class PracticeService {
       categories,
       passageTypes,
       difficulty: this.difficulty(dto),
+      excludeIds: dto.unseen_only
+        ? await this.repo.seenQuestionIds(user.id)
+        : undefined,
     });
     const ids = this.pickOrFail(
       pool,
@@ -248,6 +253,39 @@ export class PracticeService {
       ids: picked,
       title: `Luyện câu sai · ${picked.length} câu`,
       parts,
+    });
+  }
+
+  /** Luyện lại một danh sách câu (So sánh đề → "Luyện lại N câu này"). Chỉ giữ câu thuộc đề có quyền. */
+  private async createFromQuestions(
+    user: AuthenticatedUser,
+    dto: CreateSessionDto,
+  ) {
+    const wanted = [...new Set(dto.question_ids ?? [])];
+    if (wanted.length === 0) throw this.invalid('Chưa chọn câu nào');
+    const allowed = await this.access.accessibleTestIds(user);
+    const sources = await this.repo.findQuestionSources(wanted);
+    const ok = new Set(
+      sources
+        .filter((q) => q.sourceTestId !== null && allowed.has(q.sourceTestId))
+        .map((q) => q.id),
+    );
+    const ids = wanted.filter((id) => ok.has(id));
+    if (ids.length === 0) {
+      throw new UnprocessableEntityException({
+        code: 'NOTHING_TO_RETRY',
+        message: 'Không còn câu nào bạn có quyền luyện',
+        details: { available: 0 },
+      });
+    }
+    const parts = await this.partsOf(ids);
+    return this.persist(user.id, dto, {
+      kind: 'retry',
+      skill: skillOf(parts),
+      ids,
+      title: `Luyện lại ${ids.length} câu đã chọn`,
+      parts,
+      extra: { source: 'questions' },
     });
   }
 
@@ -482,7 +520,8 @@ export class PracticeService {
     if (selected !== null && !q.answers.some((a) => a.id === selected))
       throw this.invalidAnswer(dto.question_id);
 
-    const existing = (await this.repo.findAnswers(s.id)).find(
+    const sessionAnswers = await this.repo.findAnswers(s.id);
+    const existing = sessionAnswers.find(
       (a) => a.questionId === dto.question_id,
     );
     if (existing?.locked) {
@@ -502,6 +541,9 @@ export class PracticeService {
       selectedAnswerId: selected,
       isCorrect,
       locked: immediate,
+      timeSeconds: existing
+        ? undefined
+        : questionSeconds(s.startedAt, sessionAnswers),
     });
     if (!immediate) return { saved: true, locked: false, feedback: null };
 
@@ -785,6 +827,23 @@ export class PracticeService {
       message: `Câu trả lời không hợp lệ (câu ${questionId})`,
     });
   }
+}
+
+/**
+ * Thời gian làm một câu (P11 "Làm chậm"), server ước tính: từ mốc lưu đáp án gần nhất trong lượt
+ * (hoặc lúc bắt đầu) tới bây giờ. Quá 5 phút (rời đi rồi quay lại) → không tính.
+ */
+export function questionSeconds(
+  startedAt: Date,
+  answers: { answeredAt: Date }[],
+  now: Date = new Date(),
+): number | null {
+  const last = answers.reduce(
+    (m, a) => (a.answeredAt > m ? a.answeredAt : m),
+    startedAt,
+  );
+  const secs = Math.round((now.getTime() - last.getTime()) / 1000);
+  return secs >= 1 && secs <= 300 ? secs : null;
 }
 
 function skillOf(parts: number[]): string {

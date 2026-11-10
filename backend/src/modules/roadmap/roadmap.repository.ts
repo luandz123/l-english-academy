@@ -86,6 +86,85 @@ export class RoadmapRepository {
     });
   }
 
+  /** Số câu trong bộ bài kiểm tra trình độ (platform_settings.diagnostic_set), 0 = chưa có. */
+  async diagnosticSize(): Promise<number> {
+    const row = await this.prisma.platformSetting.findUnique({
+      where: { key: 'diagnostic_set' },
+    });
+    if (!row?.value) return 0;
+    try {
+      const ids = (JSON.parse(row.value) as { question_ids?: unknown })
+        .question_ids;
+      return Array.isArray(ids) ? ids.length : 0;
+    } catch {
+      return 0;
+    }
+  }
+
+  findWeekPlan(userId: string, weekStart: Date) {
+    return this.prisma.roadmapWeekPlan.findUnique({
+      where: { userId_weekStart: { userId, weekStart } },
+    });
+  }
+
+  async createWeekPlan(
+    userId: string,
+    weekStart: Date,
+    focus: string[],
+    tasks: unknown[],
+  ) {
+    try {
+      return await this.prisma.roadmapWeekPlan.create({
+        data: { userId, weekStart, focus, tasks: tasks as object[] },
+      });
+    } catch {
+      // Hai request cùng lúc: lấy bản đã tạo
+      return this.findWeekPlan(userId, weekStart);
+    }
+  }
+
+  /** Số bài học hoàn thành trong khoảng thời gian, theo chương. */
+  async lessonsCompleted(
+    userId: string,
+    moduleIds: number[],
+    from: Date,
+    to: Date,
+  ): Promise<Map<number, number>> {
+    if (moduleIds.length === 0) return new Map();
+    const rows = await this.prisma.userLessonProgress.findMany({
+      where: {
+        userId,
+        isCompleted: true,
+        lastWatchedAt: { gte: from, lt: to },
+        lesson: { moduleId: { in: moduleIds } },
+      },
+      select: { lesson: { select: { moduleId: true } } },
+    });
+    const m = new Map<number, number>();
+    for (const r of rows) {
+      const id = r.lesson.moduleId;
+      if (id !== null) m.set(id, (m.get(id) ?? 0) + 1);
+    }
+    return m;
+  }
+
+  /** Số câu đang sai trong Sổ câu sai (đọc chỉ-đọc). */
+  openMistakeCount(userId: string) {
+    return this.prisma.mistakeNotebookItem.count({
+      where: { userId, wrongCount: { gt: 0 }, status: { not: 'fixed' } },
+    });
+  }
+
+  advance(
+    userId: string,
+    data: { currentScore: number; startedAt: Date; durationWeeks: number },
+  ) {
+    return this.prisma.userRoadmap.update({
+      where: { userId },
+      data: { ...data, currentMode: 'score' },
+    });
+  }
+
   /** Nội dung đang mở để gắn vào các chặng (chỉ khóa đang hoạt động, chương đã xuất bản). */
   async loadCatalog(): Promise<Catalog> {
     const activeCourse = { isActive: true };

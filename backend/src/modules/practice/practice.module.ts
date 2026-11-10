@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
 import { LearningModule } from '../learning/learning.module';
+import { DiagnosticController } from './diagnostic.controller';
+import { DiagnosticService } from './diagnostic.service';
 import { LibraryRepository } from './library.repository';
 import { LibraryService } from './library.service';
 import { MistakesRepository } from './mistakes.repository';
@@ -20,7 +22,11 @@ import { QuestionTaggingService } from './question-tagging.service';
 @Module({
   // LearningModule: canAccessCourse — quyền với câu = quyền với đề nguồn
   imports: [AuthModule, LearningModule],
-  controllers: [PracticeController, PracticeAdminController],
+  controllers: [
+    PracticeController,
+    PracticeAdminController,
+    DiagnosticController,
+  ],
   providers: [
     PracticeService,
     PracticeRepository,
@@ -31,6 +37,7 @@ import { QuestionTaggingService } from './question-tagging.service';
     LibraryService,
     LibraryRepository,
     QuestionTaggingService,
+    DiagnosticService,
   ],
   exports: [MistakesService],
 })
