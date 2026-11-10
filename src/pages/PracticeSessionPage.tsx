@@ -90,7 +90,11 @@ const PracticeSessionPage: React.FC = () => {
       void queryClient.invalidateQueries({ queryKey: ["practice-daily"] });
       void queryClient.invalidateQueries({ queryKey: ["mistake-summary"] });
       void queryClient.invalidateQueries({ queryKey: ["practice-history"] });
-      navigate(`/practice/session/${id}/result`, { replace: true });
+      void queryClient.invalidateQueries({ queryKey: ["analysis-weaknesses"] });
+      void queryClient.invalidateQueries({ queryKey: ["analytics-progress"] });
+      void queryClient.invalidateQueries({ queryKey: ["roadmap"] });
+      // Bài kiểm tra trình độ có trang kết quả riêng (khoảng điểm, bản đồ Part)
+      navigate(result.kind === "diagnostic" ? `/diagnostic/result/${id}${window.location.search}` : `/practice/session/${id}/result`, { replace: true });
     },
     onError: (err) => {
       autoSubmitted.current = false;

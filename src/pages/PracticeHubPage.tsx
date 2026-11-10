@@ -124,10 +124,14 @@ const PracticeHubPage: React.FC = () => {
   const counts = useMemo(() => catalog?.counts ?? [], [catalog]);
   const partTotal = (p: number) => sumCounts(counts, { parts: [p], difficulty: "all" });
 
+  // Vào từ lộ trình / phân tích: ?part=&category= chọn sẵn Part và dạng câu
+  const presetPart = Number(params.get("part")) || null;
+  const presetCategory = params.get("category");
   useEffect(() => {
-    const first = parts.find((p) => partTotal(p.part) > 0);
+    const preset = presetPart ? parts.find((p) => p.part === presetPart) : undefined;
+    const first = preset ?? parts.find((p) => partTotal(p.part) > 0);
     setPart(first?.part ?? null);
-    setCategories([]);
+    setCategories(preset && presetCategory ? [presetCategory] : []);
     setPassageTypes([]);
   }, [skill, catalog]); // eslint-disable-line react-hooks/exhaustive-deps
 

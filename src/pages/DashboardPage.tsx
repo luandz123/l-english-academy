@@ -57,6 +57,8 @@ import { TestHistoryModal } from "@/components/TestHistoryModal";
 import { LeaderboardModal } from "@/components/LeaderboardModal";
 import { RoadmapSummaryCard } from "@/components/roadmap/RoadmapSummaryCard";
 import { DailyChallengeCard, FavoriteExamsCard, MistakeNotebookCard } from "@/components/practice/DashboardPracticeCards";
+import { RecommendationCard } from "@/components/analysis/AnalysisBits";
+import { ProgressSummaryCard } from "@/components/analysis/ProgressSummaryCard";
 import { useToast } from "@/hooks/use-toast";
 
 export const DashboardPage: React.FC = () => {
@@ -617,7 +619,10 @@ export const DashboardPage: React.FC = () => {
                 <Skeleton className="h-4 w-3/4 bg-slate-800/60" />
                 <Skeleton className="h-12 w-full bg-blue-900/40 rounded-xl" />
               </div>
-            ) : isFirstTimeUser ? null /* Bài kiểm tra đầu vào đã bỏ theo quyết định chủ dự án (docs/UX_REVIEW.md C2) */ : activeDraft ? (
+            ) : isFirstTimeUser ? (
+              /* Người mới: đề xuất đầu tiên là bài kiểm tra trình độ ~40 phút (P01, D14), không phải đề 200 câu */
+              <RecommendationCard title="Bạn đang ở mức nào?" />
+            ) : activeDraft ? (
               /* ================= TRƯỜNG HỢP 2: CÓ ĐỀ ĐANG LÀM DỞ (HIỆU ỨNG ZEIGARNIK ĐỈNH CAO) ================= */
               <div className="p-6 sm:p-7 rounded-2xl bg-gradient-to-br from-[#070e1c] via-[#09152e] to-[#041126] border-2 border-cyan-500/40 shadow-[0_12px_40px_rgba(0,0,0,0.6),0_0_30px_rgba(6,182,212,0.15)] relative overflow-hidden group">
                 <div className="absolute inset-x-8 -top-px h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent" />
@@ -684,55 +689,8 @@ export const DashboardPage: React.FC = () => {
                 </div>
               </div>
             ) : (
-              /* ================= TRƯỜNG HỢP 3: ĐÃ CÓ ĐỀ HOÀN THÀNH GẦN NHẤT & GỢI Ý ĐỀ TIẾP THEO ================= */
-              <div className="p-6 sm:p-7 rounded-2xl bg-gradient-to-br from-[#070e1c] via-[#09152e] to-[#041126] border-2 border-cyan-500/40 shadow-[0_12px_40px_rgba(0,0,0,0.6),0_0_30px_rgba(6,182,212,0.15)] relative overflow-hidden group">
-                <div className="absolute inset-x-8 -top-px h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent" />
-                <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/15 rounded-full blur-3xl pointer-events-none group-hover:bg-cyan-500/25 transition-all" />
-
-                <div className="space-y-4 relative z-10">
-                  <div className="flex items-center justify-between gap-3 flex-wrap">
-                    <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs sm:text-sm font-bold">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                      Vừa hoàn thành gần nhất
-                    </span>
-                    <span className="text-xs sm:text-sm text-amber-300 font-extrabold bg-amber-500/15 px-3 py-1 rounded-xl border border-amber-500/40">
-                      Điểm đạt: {latestFullTest?.total_score || 0}/990 điểm
-                    </span>
-                  </div>
-
-                  <div>
-                    <h2 className="text-xl sm:text-2xl font-display font-black text-white tracking-tight leading-snug">
-                      Đề tiếp theo: {nextRecommendedTest?.title || "Full Test ETS TOEIC Mới"}
-                    </h2>
-                    <p className="text-sm sm:text-base text-slate-200 leading-relaxed mt-2 font-normal">
-                      Kết quả đề gần nhất: <strong>{latestFullTest?.full_tests?.title || "ETS Test"}</strong> (Nghe: {latestFullTest?.listening_score || 0} • Đọc: {latestFullTest?.reading_score || 0}). Hãy làm tiếp đề mới để nâng điểm số mục tiêu!
-                    </p>
-                  </div>
-
-                  {/* PRIMARY HERO CTA BUTTON (#2563EB) */}
-                  <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                    <Link
-                      to={
-                        nextRecommendedTest?.course_id
-                          ? `/courses/${nextRecommendedTest.course_id}/fulltest/${nextRecommendedTest.id}`
-                          : `/fulltests/${nextRecommendedTest?.id || 1}`
-                      }
-                      className="flex-1 py-3.5 px-6 rounded-xl bg-[#2563EB] hover:bg-[#1d4ed8] text-white font-extrabold text-sm sm:text-base flex items-center justify-center gap-2 shadow-[0_4px_20px_rgba(37,99,235,0.4)] hover:shadow-[0_6px_25px_rgba(37,99,235,0.6)] active:scale-[0.98] transition-all cursor-pointer text-center"
-                    >
-                      <Play className="w-4 h-4 fill-current" />
-                      <span>Vào Luyện Đề Tiếp Theo Ngay</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </Link>
-
-                    <button
-                      onClick={() => setTestHistoryModalOpen(true)}
-                      className="py-3.5 px-5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-slate-200 text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition-all text-center cursor-pointer"
-                    >
-                      <span>Xem lại kết quả</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
+              /* ================= TRƯỜNG HỢP 3: ĐỀ TIẾP THEO DO HỆ THỐNG ĐỀ XUẤT (E10) ================= */
+              <RecommendationCard title="Đề tiếp theo cho bạn" />
             )}
 
             {/* ================= 3. LỘ TRÌNH KHÓA HỌC ĐANG HỌC (SECONDARY ACTION CARD) ================= */}
@@ -880,6 +838,7 @@ export const DashboardPage: React.FC = () => {
           {/* ================= CỘT PHẢI (COCKPIT ĐỘNG LỰC & RETENTION) ================= */}
           <div className="lg:col-span-5 xl:col-span-4 space-y-6 xl:space-y-8">
             <RoadmapSummaryCard />
+            <ProgressSummaryCard />
             <DailyChallengeCard />
             <MistakeNotebookCard />
             <FavoriteExamsCard />

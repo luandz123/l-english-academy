@@ -62,6 +62,40 @@ export interface Roadmap {
     current_phase_index: number;
   };
   phases: RoadmapPhase[];
+  /** Cá nhân hóa theo điểm yếu (P03) */
+  personal?: RoadmapPersonal | null;
+}
+
+export interface RoadmapWeekTask {
+  key: string;
+  type: "practice" | "mistakes" | "mini_test" | "full_test" | "lesson";
+  title: string;
+  target: number;
+  done: number;
+  unit: string;
+  part?: number;
+  category?: string;
+  url: string;
+  minutes: number;
+}
+
+export interface RoadmapPersonal {
+  focus_source: "analysis" | "diagnostic" | null;
+  focus: {
+    part: number;
+    category: string;
+    label: string;
+    accuracy: number;
+    answered: number;
+    required: number;
+    achieved: boolean;
+    practice: { action: "practice" | "review" | "locked" | "none"; available: number; mistakes: number };
+  }[];
+  deferred: string[];
+  adjusted_focus: RoadmapPhase["focus"];
+  adjustment_note: string | null;
+  week: { week_start: string; tasks: RoadmapWeekTask[]; completed: number; total: number };
+  notices: { type: "focus_changed" | "last_week" | "score_exceeded" | "phase_done"; message: string; action?: { label: string; kind: "advance" | "link"; url?: string } }[];
 }
 
 export interface RoadmapPlacement {
@@ -72,8 +106,13 @@ export interface RoadmapPlacement {
     total_questions: number;
     time_limit_seconds: number | null;
   } | null;
+  /** Bài kiểm tra trình độ (P01); có thì thay cho bài test nhanh cũ */
+  diagnostic?: { total_questions: number; minutes: number } | null;
   latest_result: {
     id: number;
+    source?: "quiz" | "diagnostic";
+    session_id?: string;
+    range?: { min: number; max: number } | null;
     correct_answers: number;
     total_questions: number;
     estimated_score: number;
@@ -124,4 +163,9 @@ export function isPlacementQuiz(quizId: string | number | undefined): boolean {
   } catch {
     return false;
   }
+}
+
+/** Điểm ước lượng mới đã vượt chặng: chuyển sang chặng sau (học viên bấm đồng ý). */
+export async function advanceRoadmap(): Promise<Roadmap> {
+  return apiClient.post<Roadmap>("roadmap/me/advance");
 }

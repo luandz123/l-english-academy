@@ -98,7 +98,7 @@ export const RoadmapWizard: React.FC<Props> = ({ existing, placement, submitting
           ? "Điểm hiện tại từ 10 đến 985"
           : null
       : d.mode === "placement" && !placementResult
-        ? "Hãy làm bài test nhanh trước"
+        ? "Hãy làm bài kiểm tra trình độ trước"
         : null;
   const step2Error = !target
     ? "Chọn hoặc nhập điểm mục tiêu"
@@ -111,6 +111,11 @@ export const RoadmapWizard: React.FC<Props> = ({ existing, placement, submitting
   const stepError = d.step === 1 ? step1Error : d.step === 2 ? step2Error : step3Error;
 
   const startPlacement = () => {
+    if (placement?.diagnostic) {
+      saveDraft({ ...d, mode: "placement" });
+      navigate("/diagnostic?from=roadmap");
+      return;
+    }
     if (!placement?.quiz) return;
     saveDraft({ ...d, mode: "placement" });
     markPlacementStarted(placement.quiz.id);
@@ -181,7 +186,11 @@ export const RoadmapWizard: React.FC<Props> = ({ existing, placement, submitting
                 [
                   { mode: "score", title: "Tôi biết điểm", desc: "Điểm thi thật hoặc đề thử gần đây" },
                   { mode: "none", title: "Chưa thi / Mất gốc", desc: "Bắt đầu từ nền tảng" },
-                  ...(placement?.quiz ? [{ mode: "placement", title: "Làm bài test nhanh", desc: "Không rõ trình độ hiện tại" }] : []),
+                  ...(placement?.diagnostic
+                    ? [{ mode: "placement", title: "Làm bài kiểm tra trình độ", desc: `${placement.diagnostic.total_questions} câu · ~${placement.diagnostic.minutes} phút, đủ 7 Part` }]
+                    : placement?.quiz
+                      ? [{ mode: "placement", title: "Làm bài test nhanh", desc: "Không rõ trình độ hiện tại" }]
+                      : []),
                 ] as Array<{ mode: RoadmapCurrentMode; title: string; desc: string }>
               ).map((o) => (
                 <button
@@ -225,20 +234,22 @@ export const RoadmapWizard: React.FC<Props> = ({ existing, placement, submitting
               </div>
             )}
 
-            {d.mode === "placement" && placement?.quiz && (
+            {d.mode === "placement" && (placement?.quiz || placement?.diagnostic) && (
               <div className="p-4 rounded-2xl bg-[#030712]/90 border border-slate-800 space-y-3">
                 <div className="flex items-center gap-2 text-white font-bold">
-                  <ClipboardCheck className="w-5 h-5 text-cyan-400" /> {placement.quiz.title}
+                  <ClipboardCheck className="w-5 h-5 text-cyan-400" /> {placement.diagnostic ? "Bài kiểm tra trình độ" : placement.quiz?.title}
                 </div>
                 <p className="text-sm text-slate-400">
-                  {placement.quiz.total_questions} câu
-                  {placement.quiz.time_limit_seconds ? ` · khoảng ${Math.round(placement.quiz.time_limit_seconds / 60)} phút` : ""}. Làm xong
-                  bạn quay lại đây, lựa chọn đã nhập được giữ nguyên.
+                  {placement.diagnostic
+                    ? `${placement.diagnostic.total_questions} câu trải đủ 7 Part · khoảng ${placement.diagnostic.minutes} phút`
+                    : `${placement.quiz?.total_questions} câu${placement.quiz?.time_limit_seconds ? ` · khoảng ${Math.round(placement.quiz.time_limit_seconds / 60)} phút` : ""}`}
+                  . Làm xong bạn quay lại đây, lựa chọn đã nhập được giữ nguyên.
                 </p>
                 {placementResult && (
                   <p className="text-sm text-emerald-300 font-bold">
-                    Kết quả gần nhất: đúng {placementResult.correct_answers}/{placementResult.total_questions} câu → ước lượng khoảng{" "}
-                    {placementResult.estimated_score} điểm.
+                    {placementResult.range
+                      ? `Kết quả gần nhất: khoảng ${placementResult.range.min}–${placementResult.range.max} điểm → điểm xuất phát ${placementResult.estimated_score}.`
+                      : `Kết quả gần nhất: đúng ${placementResult.correct_answers}/${placementResult.total_questions} câu → ước lượng khoảng ${placementResult.estimated_score} điểm.`}
                   </p>
                 )}
                 <button

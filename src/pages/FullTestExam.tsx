@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
@@ -82,6 +82,12 @@ type PresetKey = "full_ets" | "listening_sprint" | "reading_focus" | "custom";
 
 const FullTestExam = () => {
   const { courseId, testId } = useParams();
+  // Đề xuất đề (E10) có thể chọn sẵn Part: ?parts=3,4 — người học vẫn đổi được trước khi bắt đầu
+  const [searchParams] = useSearchParams();
+  const presetParts = (searchParams.get("parts") ?? "")
+    .split(",")
+    .map(Number)
+    .filter((n) => n >= 1 && n <= 7);
   const navigate = useNavigate();
   const { user, isAdmin } = useAuth();
   const { playSound } = useSound();
@@ -90,10 +96,10 @@ const FullTestExam = () => {
 
   // Selection & Configuration States
   const [started, setStarted] = useState(false);
-  const [activePreset, setActivePreset] = useState<PresetKey>("full_ets");
-  const [showCustomConfig, setShowCustomConfig] = useState(false);
+  const [activePreset, setActivePreset] = useState<PresetKey>(presetParts.length > 0 && presetParts.length < 7 ? "custom" : "full_ets");
+  const [showCustomConfig, setShowCustomConfig] = useState(presetParts.length > 0 && presetParts.length < 7);
   const [testMode, setTestMode] = useState<"exam" | "practice">("exam");
-  const [selectedParts, setSelectedParts] = useState<number[]>([1, 2, 3, 4, 5, 6, 7]);
+  const [selectedParts, setSelectedParts] = useState<number[]>(presetParts.length > 0 ? [...new Set(presetParts)].sort((a, b) => a - b) : [1, 2, 3, 4, 5, 6, 7]);
   const [customTimeMinutes, setCustomTimeMinutes] = useState<number | null>(null);
 
   // Exam runtime states

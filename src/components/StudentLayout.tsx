@@ -22,7 +22,10 @@ import {
   Route as RouteIcon,
   Layers,
   BookX,
-  Bookmark
+  Bookmark,
+  Search,
+  LineChart,
+  ClipboardCheck
 } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
@@ -42,10 +45,13 @@ import GamificationChips from "@/components/GamificationChips";
 const primaryNavItems = [
   { to: "/dashboard", label: "Bàn học", icon: LayoutDashboard },
   { to: "/roadmap", label: "Lộ trình học", icon: RouteIcon },
+  { to: "/progress", label: "Tiến độ học tập", icon: LineChart },
+  { to: "/analysis", label: "Phân tích điểm yếu", icon: Search },
   { to: "/speaking", label: "Phòng Luyện Nói", icon: Mic2 },
   { to: "/library", label: "Kho khóa học", icon: BookOpen },
   { to: "/my-courses", label: "Khóa học của tôi", icon: GraduationCap },
   { to: "/fulltests", label: "Luyện đề", icon: FileCheck2 },
+  { to: "/diagnostic", label: "Kiểm tra trình độ", icon: ClipboardCheck },
   { to: "/practice", label: "Luyện theo dạng câu", icon: Layers },
   { to: "/mistakes", label: "Câu hỏi sai của tôi", icon: BookX },
   { to: "/favorites", label: "Đề yêu thích", icon: Bookmark },
@@ -135,6 +141,10 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
     history: "Lịch sử",
     mistakes: "Câu hỏi sai của tôi",
     favorites: "Đề yêu thích",
+    analysis: "Phân tích điểm yếu",
+    progress: "Tiến độ học tập",
+    diagnostic: "Kiểm tra trình độ",
+    compare: "So sánh",
     "word-shooter": "Phi cơ diệt từ vựng",
     "word-defense": "Word Defense",
     vocab: "Từ vựng",
@@ -146,7 +156,7 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
   const LINKABLE_SEGMENTS = new Set([
     "dashboard", "my-courses", "profile", "learn", "fulltest", "fulltests", "listening",
     "library", "games", "part2-coach", "vocab", "speaking", "word-shooter", "word-defense",
-    "roadmap", "practice", "mistakes", "favorites",
+    "roadmap", "practice", "mistakes", "favorites", "analysis", "progress", "diagnostic",
   ]);
   const pathSegments = location.pathname.split("/").filter(Boolean);
   const breadcrumbs = pathSegments

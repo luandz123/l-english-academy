@@ -17,6 +17,7 @@ import {
 import { cn } from "@/lib/utils";
 import type { Roadmap, RoadmapResource } from "@/lib/api/roadmap";
 import { PURPOSE_LABELS, STATUS_META, formatDate } from "./roadmapLabels";
+import { RoadmapPersonalPanel } from "./RoadmapPersonalPanel";
 
 const card =
   "p-5 sm:p-7 rounded-3xl bg-[#070e1c]/90 backdrop-blur-xl border border-cyan-500/25 shadow-[0_4px_25px_rgba(0,0,0,0.5),0_0_20px_rgba(6,182,212,0.04)]";
@@ -137,6 +138,9 @@ export const RoadmapView: React.FC<Props> = ({ roadmap, onRedo, onDelete, deleti
           <Sparkles className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" /> {roadmap.purpose_note}
         </p>
       </div>
+
+      {/* Cá nhân hóa theo điểm yếu (P03) */}
+      <RoadmapPersonalPanel roadmap={roadmap} />
 
       {/* Các chặng */}
       <div className="space-y-4">

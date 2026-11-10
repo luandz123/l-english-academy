@@ -45,6 +45,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import ErrorState from "@/components/ErrorState";
+import { computeActivityStats } from "@/lib/activityStats";
 
 // Preset Cover Wallpapers (Chất lượng cao, phong cách Dev & Tech)
 const PRESET_COVERS = [
@@ -367,107 +368,10 @@ const Profile = () => {
   // =========================================================================
   // 4. ACTIVITY HEATMAP (365 DAYS / 52 WEEKS) TÍNH THỰC TẾ
   // =========================================================================
-  const { heatmapWeeks, totalActiveDays, maxYearStreak, currentStreak, totalYearSubmissions } = useMemo(() => {
-    const dateCountMap = new Map<string, number>();
-    // Ngày theo giờ máy người học (không cắt chuỗi ISO UTC: làm bài sau 0h–7h sáng VN bị tính sang hôm trước)
-    const localDay = (iso: string) => {
-      const d = new Date(iso);
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-    };
-
-    // Add quiz submissions
-    quizResults.forEach((q) => {
-      if (q.completed_at) {
-        const d = localDay(q.completed_at);
-        dateCountMap.set(d, (dateCountMap.get(d) || 0) + 1);
-      }
-    });
-
-    // Add full test submissions
-    fullTestResults.forEach((t) => {
-      if (t.completed_at) {
-        const d = localDay(t.completed_at);
-        dateCountMap.set(d, (dateCountMap.get(d) || 0) + 1);
-      }
-    });
-
-    // Add lesson completions
-    lessonProgress.forEach((p) => {
-      if (p.created_at) {
-        const d = localDay(p.created_at);
-        dateCountMap.set(d, (dateCountMap.get(d) || 0) + 1);
-      }
-    });
-
-    let totalSubmissions = 0;
-    dateCountMap.forEach((cnt) => {
-      totalSubmissions += cnt;
-    });
-
-    // Generate last 52 weeks (364 days ending today)
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const currentDayOfWeek = (today.getDay() + 6) % 7;
-    const startDate = new Date(today);
-    startDate.setDate(today.getDate() - currentDayOfWeek - 51 * 7);
-
-    const weeks: Array<Array<{ dateStr: string; count: number; dayOfWeek: number }>> = [];
-    let currentWeek: Array<{ dateStr: string; count: number; dayOfWeek: number }> = [];
-
-    let loopDate = new Date(startDate);
-    let activeDaysCount = 0;
-    let rollingStreak = 0;
-    let computedMaxStreak = 0;
-
-    for (let i = 0; i < 52 * 7; i++) {
-      const year = loopDate.getFullYear();
-      const month = String(loopDate.getMonth() + 1).padStart(2, "0");
-      const day = String(loopDate.getDate()).padStart(2, "0");
-      const dateStr = `${year}-${month}-${day}`;
-
-      const count = dateCountMap.get(dateStr) || 0;
-      if (count > 0) {
-        activeDaysCount++;
-        rollingStreak++;
-        if (rollingStreak > computedMaxStreak) {
-          computedMaxStreak = rollingStreak;
-        }
-      } else {
-        rollingStreak = 0;
-      }
-
-      currentWeek.push({
-        dateStr,
-        count,
-        dayOfWeek: loopDate.getDay(),
-      });
-
-      if (currentWeek.length === 7) {
-        weeks.push(currentWeek);
-        currentWeek = [];
-      }
-
-      loopDate.setDate(loopDate.getDate() + 1);
-    }
-
-    // Chuỗi hiện tại: số ngày liên tiếp có làm bài, tính tới hôm nay (hoặc hôm qua nếu hôm nay chưa học)
-    let currentRun = 0;
-    const cursor = new Date(today);
-    if (!dateCountMap.has(localDay(cursor.toISOString()))) cursor.setDate(cursor.getDate() - 1);
-    while (dateCountMap.has(localDay(cursor.toISOString()))) {
-      currentRun++;
-      cursor.setDate(cursor.getDate() - 1);
-    }
-
-    return {
-      heatmapWeeks: weeks,
-      totalActiveDays: activeDaysCount,
-      maxYearStreak: computedMaxStreak,
-      currentStreak: currentRun,
-      totalYearSubmissions: totalSubmissions,
-    };
-  }, [quizResults, fullTestResults, lessonProgress]);
+  const { heatmapWeeks, totalActiveDays, maxYearStreak, currentStreak, totalYearSubmissions } = useMemo(
+    () => computeActivityStats({ quizResults, fullTestResults, lessonProgress }),
+    [quizResults, fullTestResults, lessonProgress],
+  );
 
   // =========================================================================
   // 5. RECENT SUBMISSIONS MERGED LIST

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { FileCheck2, Clock, Award, X, ArrowRight, CheckCircle2, Headphones, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,12 @@ export const TestHistoryModal: React.FC<TestHistoryModalProps> = ({
   quizzes,
   totalStudyHours,
 }) => {
+  // Chọn 2–3 Full Test để so sánh (E09)
+  const [picked, setPicked] = useState<number[]>([]);
   if (!isOpen) return null;
+  const canCompare = fullTests.length >= 2;
+  const toggle = (id: number) =>
+    setPicked((c) => (c.includes(id) ? c.filter((x) => x !== id) : c.length >= 3 ? c : [...c, id]));
 
   return (
     <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
@@ -107,6 +112,16 @@ export const TestHistoryModal: React.FC<TestHistoryModalProps> = ({
                     className="p-3.5 rounded-xl bg-[#030712]/80 border border-slate-800 hover:border-cyan-500/40 flex items-center justify-between gap-3 transition-colors"
                   >
                     <div className="flex items-center gap-3 min-w-0">
+                      {canCompare && (
+                        <input
+                          type="checkbox"
+                          checked={picked.includes(item.id)}
+                          disabled={!picked.includes(item.id) && picked.length >= 3}
+                          onChange={() => toggle(item.id)}
+                          aria-label="Chọn để so sánh"
+                          className="w-5 h-5 accent-cyan-500 shrink-0"
+                        />
+                      )}
                       <div className="w-10 h-10 rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shrink-0">
                         <FileCheck2 className="w-5 h-5" />
                       </div>
@@ -166,6 +181,15 @@ export const TestHistoryModal: React.FC<TestHistoryModalProps> = ({
           >
             Đóng
           </Button>
+          {picked.length >= 2 && (
+            <Link
+              to={`/fulltests/compare?ids=${picked.join(",")}`}
+              onClick={onClose}
+              className="px-4 py-2 rounded-xl border border-cyan-500/50 text-cyan-300 font-bold text-xs flex items-center gap-1.5"
+            >
+              So sánh ({picked.length})
+            </Link>
+          )}
           <Link
             to="/fulltests"
             onClick={onClose}

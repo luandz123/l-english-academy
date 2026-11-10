@@ -182,6 +182,9 @@ const PracticeResultPage: React.FC = () => {
                 <Sparkles className="w-4 h-4" /> Làm một lượt mới
               </button>
             )}
+            <Link to="/analysis" className="min-h-[44px] px-4 rounded-xl border border-cyan-500/50 text-cyan-300 font-bold text-sm flex items-center gap-1.5">
+              <Target className="w-4 h-4" /> {r.kind === "question_type" ? "Quay lại phân tích điểm yếu" : "Xem điểm yếu tổng hợp"}
+            </Link>
             <Link to="/practice" className="min-h-[44px] px-4 rounded-xl border border-slate-700 text-slate-200 font-bold text-sm flex items-center gap-1.5">
               <Layers className="w-4 h-4" /> Luyện dạng khác
             </Link>

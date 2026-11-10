@@ -49,7 +49,11 @@ export interface MistakeFilter {
 }
 
 export interface CreateSessionBody {
-  kind: "question_type" | "mini_test" | "mistakes" | "retry";
+  kind: "question_type" | "mini_test" | "mistakes" | "retry" | "questions";
+  /** question_type: chỉ câu chưa từng làm (nút "Luyện 10 câu dạng này" ở Phân tích điểm yếu) */
+  unseen_only?: boolean;
+  /** questions: luyện lại đúng các câu này */
+  question_ids?: number[];
   skill?: Skill;
   parts?: number[];
   categories?: string[];
@@ -67,7 +71,7 @@ export interface CreateSessionBody {
 export interface SessionSummary {
   id: string;
   code: string;
-  kind: "question_type" | "mini_test" | "daily" | "mistakes" | "retry";
+  kind: "question_type" | "mini_test" | "daily" | "mistakes" | "retry" | "diagnostic";
   title: string;
   skill: string;
   mode: PracticeMode;

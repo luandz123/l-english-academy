@@ -58,6 +58,13 @@ export const RoadmapSummaryCard: React.FC = () => {
                     {roadmap.current_score} → {roadmap.target_score}+
                   </div>
                   {phase && <div className="text-sm text-slate-300 mt-0.5">Chặng: {phase.title}</div>}
+                  {roadmap.personal && roadmap.personal.week.total > 0 && (
+                    <div className="text-xs text-cyan-300 mt-0.5">
+                      {roadmap.personal.week.completed >= roadmap.personal.week.total
+                        ? "Đã xong việc tuần này"
+                        : `Còn ${roadmap.personal.week.total - roadmap.personal.week.completed}/${roadmap.personal.week.total} việc tuần này`}
+                    </div>
+                  )}
                 </div>
                 <span className={cn("text-xs font-bold px-3 py-1 rounded-full border shrink-0", status.className)}>{status.label}</span>
               </div>
