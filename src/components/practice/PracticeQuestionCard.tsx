@@ -5,6 +5,8 @@ import type { AnswerOption, QuestionFeedback } from "@/lib/api/practice";
 import { AudioBox } from "./AudioBox";
 import { BookmarkButton } from "./BookmarkButton";
 import { ReportIssueButton } from "./ReportIssueButton";
+import { InteractiveTranscript } from "@/components/vocabulary/InteractiveTranscript";
+import { SelectionSaver } from "@/components/vocabulary/SelectionSaver";
 
 export interface QuestionView {
   id: number;
@@ -54,12 +56,21 @@ export const PracticeQuestionCard: React.FC<{
               <img src={q.image_url} alt="Hình của câu hỏi" className="max-w-full h-auto rounded-lg max-h-[320px] object-contain" />
             </div>
           )}
-          {q.passage && (
-            <div
-              className="prose prose-invert prose-slate max-w-[65ch] text-slate-200 text-base leading-[1.6] overflow-x-hidden"
-              dangerouslySetInnerHTML={{ __html: q.passage }}
-            />
-          )}
+          {q.passage &&
+            (feedback ? (
+              // Sau khi chốt câu: bôi đen từ trong đoạn văn để lưu vào Sổ từ vựng (V11)
+              <SelectionSaver sourceRef={String(q.id)}>
+                <div
+                  className="prose prose-invert prose-slate max-w-[65ch] text-slate-200 text-base leading-[1.6] overflow-x-hidden"
+                  dangerouslySetInnerHTML={{ __html: q.passage }}
+                />
+              </SelectionSaver>
+            ) : (
+              <div
+                className="prose prose-invert prose-slate max-w-[65ch] text-slate-200 text-base leading-[1.6] overflow-x-hidden"
+                dangerouslySetInnerHTML={{ __html: q.passage }}
+              />
+            ))}
         </div>
       )}
 
@@ -163,7 +174,7 @@ export const PracticeQuestionCard: React.FC<{
             {shownTranscript && (
               <details className="p-3 bg-cyan-500/10 border border-cyan-500/20 rounded-xl text-xs text-cyan-200">
                 <summary className="font-bold cursor-pointer select-none">Xem transcript</summary>
-                <p className="mt-2 whitespace-pre-line">{shownTranscript}</p>
+                <InteractiveTranscript text={shownTranscript} sourceRef={String(q.id)} className="mt-2" />
               </details>
             )}
           </div>

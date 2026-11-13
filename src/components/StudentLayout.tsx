@@ -25,7 +25,8 @@ import {
   Bookmark,
   Search,
   LineChart,
-  ClipboardCheck
+  ClipboardCheck,
+  BookA
 } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
@@ -55,6 +56,7 @@ const primaryNavItems = [
   { to: "/practice", label: "Luyện theo dạng câu", icon: Layers },
   { to: "/mistakes", label: "Câu hỏi sai của tôi", icon: BookX },
   { to: "/favorites", label: "Đề yêu thích", icon: Bookmark },
+  { to: "/vocabulary", label: "Sổ từ vựng", icon: BookA },
   { to: "/listening", label: "Chép Chính Tả", icon: Headphones },
   { to: "/part2-coach", label: "Luyện Nghe Từng Bước", icon: Zap },
   { to: "/games", label: "Trò Chơi", icon: Gamepad2 },
@@ -145,6 +147,9 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
     progress: "Tiến độ học tập",
     diagnostic: "Kiểm tra trình độ",
     compare: "So sánh",
+    vocabulary: "Sổ từ vựng",
+    review: "Ôn tập",
+    browse: "Theo Part & cấp độ",
     "word-shooter": "Phi cơ diệt từ vựng",
     "word-defense": "Word Defense",
     vocab: "Từ vựng",
@@ -156,7 +161,7 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
   const LINKABLE_SEGMENTS = new Set([
     "dashboard", "my-courses", "profile", "learn", "fulltest", "fulltests", "listening",
     "library", "games", "part2-coach", "vocab", "speaking", "word-shooter", "word-defense",
-    "roadmap", "practice", "mistakes", "favorites", "analysis", "progress", "diagnostic",
+    "roadmap", "practice", "mistakes", "favorites", "analysis", "progress", "diagnostic", "vocabulary",
   ]);
   const pathSegments = location.pathname.split("/").filter(Boolean);
   const breadcrumbs = pathSegments
