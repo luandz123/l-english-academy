@@ -22,6 +22,7 @@ Cách rà soát: chạy app cục bộ (Postgres + NestJS + Vite) với dữ li�
 | D12 | (2026-11-09) Làm tính năng mới **Lộ trình học** (wizard 4 bước). Bài test nhanh dùng **một quiz admin chỉ định**; chủ điểm/đề luyện **gắn với khóa, chương, bộ từ vựng, đề có sẵn**; lộ trình **lưu DB, xem lại ở Bàn học**. Khác D3: bài test nằm trong wizard, là quiz ngắn do admin chọn, không phải đề 200 câu trên Bàn học. |
 | D13 | (2026-11-09) Làm nhóm **Luyện đề ưu tiên 1** (E03/L02/R02 luyện theo dạng câu, E05 bộ lọc thư viện đề, R07/L09 Sổ câu sai, E07 đề yêu thích, E04 Mini Test + Daily Challenge, E06 đề đã xác minh). Chốt: **nhãn dạng câu do script gắn tự động, admin sửa được**; câu luyện **theo quyền đề nguồn** (cùng luật FULLTEST_LOCKED); trang **/practice** (tab Listening/Reading) + lối vào ở /listening, /fulltests, Bàn học, menu; **chỉ admin** xác minh đề, học viên **báo lỗi** được; lượt luyện **cộng XP như Quiz**; Daily Challenge **riêng từng người**. |
 | D14 | (2026-11-10) Làm nhóm **Ưu tiên 2 – Phân tích và cá nhân hóa** (P11 phân tích điểm yếu, P10 tiến độ, E09 so sánh lần làm đề, P01 bài kiểm tra trình độ, P03 lộ trình theo điểm yếu, E10 đề xuất đề). Chốt: **giữ nguyên mọi con số giả định mục 7** của đặc tả; bài chẩn đoán **hệ thống tự rút bộ ~50 câu cố định** từ kho đã gắn nhãn, **miễn phí cho mọi tài khoản**, admin tạo lại được; **Mini Test không quy đổi điểm**; "Việc tuần này" **chỉ tự động**, không tick tay; route `/analysis`, `/progress`, `/diagnostic`, `/fulltests/compare`; "Làm chậm" dùng **thời gian từng câu server ước tính** từ nay (dữ liệu cũ, Full Test không có); hết câu chưa làm → ôn câu sai theo đặc tả. |
+| D15 | (2026-11-13) Làm nhóm **Ưu tiên 3 – Từ vựng** (V07 sổ từ cá nhân, V06 SRS, L06 transcript tương tác, L08/V11 lưu từ từ bài nghe/đọc, V02/V04 từ theo Part/cấp độ). Chốt: nghĩa từ lấy **từ kho có sẵn** (600 từ TOEIC + bộ flashcard), không có thì **học viên tự nhập** — không dùng dịch vụ ngoài; transcript **tương tác không đồng bộ giờ** (nghe lại câu bằng giọng đọc máy, ẩn/hiện câu, bấm từ để lưu); SRS **SM-2 kiểu Anki**, mặc định 20 từ mới/ngày; Part/cấp độ **gắn tự động theo tần suất trong kho đề + admin sửa**; sổ **chỉ gồm từ tự lưu**; **600 từ chuyển vào DB** (game vẫn dùng file cũ); lưu từ **chỉ khi xem giải thích** (không trong lúc làm bài Test); ôn **cộng XP**, không vào phân tích điểm yếu. |
 
 ## Trạng thái từng mục
 
@@ -204,3 +205,19 @@ Ghi chú hợp đồng: `GET /roadmap/placement` thêm trường `diagnostic` (t
 Kiểm tra tay (Postgres tạm + 3 đề mẫu, 1440px và 390px): làm chẩn đoán + 3 lượt Part 5 + 2 lần Full Test bằng API rồi xem `/analysis` (3 điểm yếu, theo Part), `/progress` (điểm 625, −15/30 ngày, biểu đồ), `/diagnostic/result` (540–740, bản đồ Part), `/fulltests/compare` (+35 tổng, tab từng câu), `/roadmap` (trọng tâm Part 5, tỉ trọng điều chỉnh, việc tuần), Bàn học 390px (đề xuất "Làm Part 5 + 6", lý do) → màn chuẩn bị đề chọn sẵn Part 5, 6.
 
 Còn mở: độ chính xác của phân tích phụ thuộc nhãn tự động (đã ghi ở D13); bài chẩn đoán lấy cả câu từ đề trả phí theo quyết định "miễn phí cho mọi tài khoản".
+
+## Từ vựng (D15, 2026-11-13)
+
+Nhánh `feature/vocabulary`. Module backend mới `VocabularyModule` (`backend/src/modules/vocabulary/`).
+
+| Mã | Tính năng | Ở đâu |
+|---|---|---|
+| V07 | Sổ từ vựng: từ lưu từ bài nghe, bài đọc, bộ flashcard, danh sách theo Part hoặc tự thêm; tìm, lọc nguồn/trạng thái, sửa nghĩa/phiên âm/câu ví dụ/ghi chú, xóa, nghe phát âm; không lưu trùng (lưu theo từ gốc: "companies" → "company"). | `/vocabulary` (menu "Sổ từ vựng"), thẻ "Từ vựng hôm nay" ở Bàn học |
+| V06 | Ôn SRS SM-2: thẻ đến hạn + từ mới (đặt số từ mới/ngày), lật thẻ, 4 nút Quên/Khó/Nhớ/Dễ kèm khoảng cách sẽ hẹn, "Quên" hỏi lại cuối phiên, phím tắt (cách = lật, 1–4 = chấm); lịch ôn tính ở server; xong phiên cộng XP. | `/vocabulary/review` |
+| L06 | Transcript tương tác: chia theo người nói/câu, nút nghe lại từng câu (giọng đọc máy), ẩn/hiện từng câu hoặc tất cả để tự kiểm tra, bấm từ để tra nghĩa và lưu. | Giải thích câu nghe ở lượt luyện, kết quả, Sổ câu sai, kết quả Full Test |
+| L08/V11 | Lưu từ mới: bấm từ trong transcript hoặc bôi đen 1–4 từ trong đoạn văn → hộp tra nghĩa (kho có sẵn, không có thì tự nhập) → lưu kèm câu ngữ cảnh. Chỉ bật khi xem giải thích, không bật trong lúc làm bài Test. Nút "Lưu vào Sổ từ vựng" ở bài học từ vựng (flashcard). | Như trên + `VocabLessonPage` |
+| V02/V04 | Từ theo Part và cấp độ: kho 600 từ TOEIC (đã chuyển từ `src/data/toeic600Data.ts` vào bảng `vocab_entries`) + từ admin thêm; Part = nơi từ xuất hiện nhiều nhất trong kho đề đã gắn nhãn, cấp độ Cơ bản/Trung cấp/Nâng cao theo độ phổ biến (600 từ không xếp Nâng cao); lọc, lưu từng từ hoặc cả trang. Admin sửa Part/cấp độ (gắn lại không ghi đè). | `/vocabulary/browse`, API admin `/vocabulary/admin/*` |
+
+Kiểm tra tay (Postgres tạm + đề mẫu, 1440px và 390px): xem docs/PROGRESS.md.
+
+Còn mở: transcript không đồng bộ theo audio gốc (nghe lại bằng giọng đọc máy); trang admin quản lý kho từ chưa có giao diện (mới có API) — nếu cần sẽ làm đợt sau.
