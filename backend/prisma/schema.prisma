@@ -51,6 +51,8 @@ model User {
   roadmap               UserRoadmap?
   roadmapWeekPlans      RoadmapWeekPlan[]
   recommendationSkips   ExamRecommendationSkip[]
+  vocabWords            UserVocab[]
+  vocabSettings         UserVocabSettings?
   practiceSessions      PracticeSession[]
   mistakeItems          MistakeNotebookItem[]
   favoriteExams         FavoriteExam[]
@@ -838,4 +840,92 @@ model ExamRecommendationSkip {
 
   @@unique([userId, testId])
   @@map("exam_recommendation_skips")
+}
+
+/// Kho từ của hệ thống (V02/V04): 600 từ TOEIC + từ admin thêm. Part/cấp độ do bộ gắn nhãn tự động
+/// điền theo tần suất trong kho câu hỏi; admin sửa thì tag_source = 'admin'.
+model VocabEntry {
+  id           Int       @id @default(autoincrement())
+  word         String
+  /// word viết thường, bỏ khoảng trắng thừa — khóa tra cứu
+  wordKey      String    @unique @map("word_key")
+  phonetic     String?
+  definitionVi String?   @map("definition_vi")
+  definitionEn String?   @map("definition_en")
+  example      String?
+  /// 'toeic600' | 'admin'
+  source       String    @default("admin")
+  toeicPart    Int?      @map("toeic_part") @db.SmallInt
+  /// 'basic' | 'intermediate' | 'advanced'
+  level        String?
+  frequency    Int       @default(0)
+  tagSource    String?   @map("tag_source")
+  taggedAt     DateTime? @map("tagged_at") @db.Timestamptz(6)
+  displayOrder Int       @default(0) @map("display_order")
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  userWords    UserVocab[]
+
+  @@index([toeicPart, level], map: "idx_vocab_entries_part_level")
+  @@map("vocab_entries")
+}
+
+/// Sổ từ vựng cá nhân (V07) + trạng thái ôn SRS SM-2 (V06). Mỗi (học viên, từ) một dòng.
+model UserVocab {
+  id               Int              @id @default(autoincrement())
+  userId           String           @map("user_id") @db.Uuid
+  word             String
+  wordKey          String           @map("word_key")
+  phonetic         String?
+  definitionVi     String?          @map("definition_vi")
+  definitionEn     String?          @map("definition_en")
+  /// Câu ngữ cảnh lúc lưu (từ transcript / đoạn văn) hoặc câu ví dụ
+  example          String?
+  note             String?
+  /// 'pack' | 'toeic600' | 'listening' | 'reading' | 'manual'
+  source           String
+  sourceRef        String?          @map("source_ref")
+  entryId          Int?             @map("entry_id")
+  toeicPart        Int?             @map("toeic_part") @db.SmallInt
+  level            String?
+  /// SRS: 'new' | 'learning' | 'review' | 'mastered'
+  state            String           @default("new")
+  ease             Float            @default(2.5)
+  intervalDays     Float            @default(0) @map("interval_days")
+  repetitions      Int              @default(0)
+  lapses           Int              @default(0)
+  dueAt            DateTime?        @map("due_at") @db.Timestamptz(6)
+  introducedAt     DateTime?        @map("introduced_at") @db.Timestamptz(6)
+  lastReviewedAt   DateTime?        @map("last_reviewed_at") @db.Timestamptz(6)
+  createdAt        DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  entry            VocabEntry?      @relation(fields: [entryId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  reviews          UserVocabReview[]
+
+  @@unique([userId, wordKey])
+  @@index([userId, dueAt], map: "idx_user_vocab_due")
+  @@map("user_vocab")
+}
+
+model UserVocabReview {
+  id           Int       @id @default(autoincrement())
+  userVocabId  Int       @map("user_vocab_id")
+  /// 'again' | 'hard' | 'good' | 'easy'
+  rating       String
+  intervalDays Float     @map("interval_days")
+  reviewedAt   DateTime  @default(now()) @map("reviewed_at") @db.Timestamptz(6)
+  userVocab    UserVocab @relation(fields: [userVocabId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([userVocabId], map: "idx_user_vocab_reviews_item")
+  @@index([reviewedAt], map: "idx_user_vocab_reviews_time")
+  @@map("user_vocab_reviews")
+}
+
+model UserVocabSettings {
+  userId    String   @id @map("user_id") @db.Uuid
+  newPerDay Int      @default(20) @map("new_per_day")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("user_vocab_settings")
 }
