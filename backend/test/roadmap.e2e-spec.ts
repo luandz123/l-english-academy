@@ -221,7 +221,7 @@ describe('RoadmapModule (e2e)', () => {
     const res = as<PlacementDto>(
       await http().get('/api/v1/roadmap/placement').set(auth(t.a)).expect(200),
     );
-    expect(res).toEqual({ quiz: null, latest_result: null });
+    expect(res).toEqual({ quiz: null, diagnostic: null, latest_result: null });
     const rest = without('current_score');
     const err = as<ErrorBody>(
       await put(t.a, { ...rest, current_mode: 'placement' }).expect(400),

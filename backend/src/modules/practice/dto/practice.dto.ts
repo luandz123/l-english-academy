@@ -22,6 +22,7 @@ export const SESSION_KINDS = [
   'mini_test',
   'mistakes',
   'retry',
+  'questions',
 ] as const;
 export const DIFFICULTY_FILTERS = ['all', 'easy', 'medium', 'hard'] as const;
 export const MODES = ['practice', 'test'] as const;
@@ -228,6 +229,26 @@ export class CreateSessionDto {
   @Min(0)
   @Max(180)
   time_limit_minutes?: number;
+
+  @ApiPropertyOptional({
+    description:
+      'question_type: chỉ lấy câu học viên chưa từng làm (nút "Luyện 10 câu dạng này")',
+  })
+  @IsOptional()
+  @IsBoolean()
+  unseen_only?: boolean;
+
+  @ApiPropertyOptional({
+    type: [Number],
+    description:
+      'questions: luyện lại đúng các câu này (vd. "Sai cả hai lần" ở So sánh đề); câu không có quyền bị bỏ',
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(100)
+  @IsInt({ each: true })
+  question_ids?: number[];
 
   @ApiPropertyOptional({ description: 'retry: lượt luyện nguồn' })
   @IsOptional()

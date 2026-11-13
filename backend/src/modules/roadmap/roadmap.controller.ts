@@ -5,6 +5,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Post,
   Put,
   UseGuards,
 } from '@nestjs/common';
@@ -45,7 +46,7 @@ export class RoadmapController {
   })
   @ApiOkResponse({ type: MyRoadmapDto })
   getMine(@CurrentUser() user: AuthenticatedUser): Promise<MyRoadmapDto> {
-    return this.roadmap.getMine(user.id);
+    return this.roadmap.getMine(user);
   }
 
   @Put('me')
@@ -63,6 +64,20 @@ export class RoadmapController {
     @Body() dto: CreateRoadmapDto,
   ): Promise<RoadmapDto> {
     return this.roadmap.create(user, dto);
+  }
+
+  @Post('me/advance')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary:
+      'Chuyển sang chặng sau khi điểm ước lượng mới đã vượt chặng hiện tại (học viên bấm đồng ý)',
+  })
+  @ApiOkResponse({ type: RoadmapDto })
+  @ApiBadRequestResponse({
+    description: 'NO_ROADMAP, NOT_EXCEEDED, TARGET_REACHED',
+  })
+  advance(@CurrentUser() user: AuthenticatedUser): Promise<RoadmapDto> {
+    return this.roadmap.advance(user);
   }
 
   @Delete('me')

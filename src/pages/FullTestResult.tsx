@@ -1,5 +1,6 @@
 import StudentLayout from "@/components/StudentLayout";
-import { useParams, useLocation, Link } from "react-router-dom";
+import { useParams, useLocation, Link, useSearchParams } from "react-router-dom";
+import { RecommendationCard } from "@/components/analysis/AnalysisBits";
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -51,10 +52,12 @@ const FullTestResult = () => {
   };
 
   // 1. Get resultId from state or query latest result from DB
-  const stateResultId = state?.resultId;
+  // ?resultId= (từ Tiến độ / So sánh) mở đúng lượt; queryKey thêm id lượt để không lấy nhầm cache
+  const [searchParams] = useSearchParams();
+  const stateResultId = state?.resultId ?? (Number(searchParams.get("resultId")) || undefined);
 
   const { data: latestResult, isLoading: loadingResult, isError: isResultError, refetch: refetchResult } = useQuery({
-    queryKey: ["latest-fulltest-result", user?.id, testId],
+    queryKey: ["latest-fulltest-result", user?.id, testId, stateResultId ?? null],
     queryFn: async () => {
       if (stateResultId) {
         const { data } = await getFullTestResult(stateResultId);
@@ -769,6 +772,20 @@ const FullTestResult = () => {
           >
             📕 Câu sai đã lưu vào Sổ câu sai
           </Link>
+          <Link
+            to="/analysis"
+            className="py-3 px-6 rounded-xl border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20 text-sm font-bold transition-all duration-120 active:scale-95 shadow-soft-xs cursor-pointer"
+          >
+            🎯 Xem điểm yếu tổng hợp
+          </Link>
+          {resultId && (
+            <Link
+              to={`/fulltests/compare?ids=${resultId}`}
+              className="py-3 px-6 rounded-xl border border-violet-500/30 bg-violet-500/10 text-violet-300 hover:bg-violet-500/20 text-sm font-bold transition-all duration-120 active:scale-95 shadow-soft-xs cursor-pointer"
+            >
+              ⚖️ So sánh với lần trước
+            </Link>
+          )}
         </div>
 
         {/* Detailed stats by part */}
@@ -843,6 +860,9 @@ const FullTestResult = () => {
             </table>
           </div>
         </div>
+
+        {/* Đề nên làm tiếp (E10) */}
+        <RecommendationCard />
       </div>
     </StudentLayout>
   );

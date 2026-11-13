@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Route as RouteIcon } from "lucide-react";
 import StudentLayout from "@/components/StudentLayout";
@@ -25,7 +26,9 @@ const RoadmapPage: React.FC = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [editing, setEditing] = useState(false);
+  // ?edit=1 (từ kết quả kiểm tra trình độ): mở lại wizard để cập nhật lộ trình
+  const [searchParams] = useSearchParams();
+  const [editing, setEditing] = useState(searchParams.get("edit") === "1");
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const roadmapKey = ["roadmap", user?.id];

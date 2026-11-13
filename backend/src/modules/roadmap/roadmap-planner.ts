@@ -205,6 +205,14 @@ const PURPOSE_NOTES: Record<Purpose, string> = {
     'Mục tiêu phản xạ: tăng thời lượng nghe và nói theo, kết hợp phòng luyện nói.',
 };
 
+/** Part trọng tâm của chặng (theo khung chặng có sẵn). */
+export function phaseParts(key: string): number[] {
+  return [
+    ...(SKILL_PHASES.find((p) => p.key === key)?.parts ??
+      (key === TEST_PHASE.key ? [1, 2, 3, 4, 5, 6, 7] : [])),
+  ];
+}
+
 // ---------- Tài nguyên có sẵn trong hệ thống ----------
 
 export interface CatalogModule {

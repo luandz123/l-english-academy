@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BookX, ChevronDown, ChevronUp, History, PlayCircle } from "lucide-react";
 import StudentLayout from "@/components/StudentLayout";
@@ -138,8 +138,11 @@ const MistakeNotebookPage: React.FC = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  // Vào từ Phân tích điểm yếu: ?parts=&categories= lọc sẵn
+  const [params] = useSearchParams();
   const [skill, setSkill] = useState<Skill | undefined>();
-  const [parts, setParts] = useState<number[]>([]);
+  const [parts, setParts] = useState<number[]>(() => (params.get("parts") ?? "").split(",").map(Number).filter(Boolean));
+  const [categories, setCategories] = useState<string[]>(() => (params.get("categories") ?? "").split(",").filter(Boolean));
   const [statuses, setStatuses] = useState<MistakeStatus[]>([]);
   const [recent, setRecent] = useState<number | undefined>();
   const [minWrong, setMinWrong] = useState<number | undefined>();
@@ -149,6 +152,7 @@ const MistakeNotebookPage: React.FC = () => {
   const filter: MistakeFilter = {
     skill,
     parts: parts.length ? parts : undefined,
+    categories: categories.length ? categories : undefined,
     statuses: statuses.length ? statuses : undefined,
     recent_days: recent,
     min_wrong: minWrong,
@@ -248,6 +252,9 @@ const MistakeNotebookPage: React.FC = () => {
             <Chip on={recent === 30} onClick={() => { setRecent(recent === 30 ? undefined : 30); reset(); }}>30 ngày qua</Chip>
             <Chip on={minWrong === 2} onClick={() => { setMinWrong(minWrong === 2 ? undefined : 2); reset(); }}>Sai ≥ 2 lần</Chip>
             <Chip on={bookmarked} onClick={() => { setBookmarked(!bookmarked); reset(); }}>Đã bookmark</Chip>
+            {categories.length > 0 && (
+              <Chip on onClick={() => { setCategories([]); reset(); }}>Dạng câu đã chọn ✕</Chip>
+            )}
           </div>
         </div>
 

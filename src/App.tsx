@@ -98,6 +98,11 @@ const PracticeResultPage = lazyWithRetry(() => import("./pages/PracticeResultPag
 const PracticeHistoryPage = lazyWithRetry(() => import("./pages/PracticeHistoryPage"));
 const MistakeNotebookPage = lazyWithRetry(() => import("./pages/MistakeNotebookPage"));
 const FavoritesPage = lazyWithRetry(() => import("./pages/FavoritesPage"));
+const AnalysisPage = lazyWithRetry(() => import("./pages/AnalysisPage"));
+const ProgressPage = lazyWithRetry(() => import("./pages/ProgressPage"));
+const ComparePage = lazyWithRetry(() => import("./pages/ComparePage"));
+const DiagnosticPage = lazyWithRetry(() => import("./pages/DiagnosticPage"));
+const DiagnosticResultPage = lazyWithRetry(() => import("./pages/DiagnosticResultPage"));
 const AdminExamReview = lazyWithRetry(() => import("./pages/admin/AdminExamReview"));
 const ListeningPage = lazyWithRetry(() => import("./pages/ListeningPage"));
 const LibraryPage = lazyWithRetry(() => import("./pages/LibraryPage"));
@@ -232,6 +237,11 @@ const App = () => {
                 <Route path="/reading" element={<Navigate to="/practice?skill=reading" replace />} />
                 <Route path="/mistakes" element={<ProtectedRoute><MistakeNotebookPage /></ProtectedRoute>} />
                 <Route path="/favorites" element={<ProtectedRoute><FavoritesPage /></ProtectedRoute>} />
+                <Route path="/analysis" element={<ProtectedRoute><AnalysisPage /></ProtectedRoute>} />
+                <Route path="/progress" element={<ProtectedRoute><ProgressPage /></ProtectedRoute>} />
+                <Route path="/diagnostic" element={<ProtectedRoute><DiagnosticPage /></ProtectedRoute>} />
+                <Route path="/diagnostic/result/:id" element={<ProtectedRoute><DiagnosticResultPage /></ProtectedRoute>} />
+                <Route path="/fulltests/compare" element={<ProtectedRoute><ComparePage /></ProtectedRoute>} />
                 <Route path="/fulltests/:testId" element={<ProtectedRoute><FullTestDirectRedirect /></ProtectedRoute>} />
                 <Route path="/listening" element={<ProtectedRoute><ListeningPage /></ProtectedRoute>} />
                 <Route path="/library" element={<ProtectedRoute><LibraryPage /></ProtectedRoute>} />

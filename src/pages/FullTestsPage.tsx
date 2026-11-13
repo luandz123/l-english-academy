@@ -19,6 +19,7 @@ import {
   type Facet,
 } from "@/lib/api/practice";
 import { ExamCard } from "@/components/practice/ExamBits";
+import { RecommendationCard } from "@/components/analysis/AnalysisBits";
 
 type GroupKey = "years" | "difficulties" | "topics" | "types" | "skills" | "parts" | "statuses" | "access" | "verified";
 
@@ -245,6 +246,8 @@ export const FullTestsPage: React.FC = () => {
           </aside>
 
           <section className="space-y-4 min-w-0">
+            {/* Gợi ý cho bạn (E10): ẩn khi đang dùng bộ lọc hoặc tìm kiếm */}
+            {activeCount === 0 && !params.get("q") && <RecommendationCard title="Gợi ý cho bạn" />}
             {data && (
               <p className={cn("text-sm text-slate-400", isFetching && "opacity-60")}>
                 Tìm thấy <b className="text-white">{data.total}</b> / {data.total_all} đề phù hợp

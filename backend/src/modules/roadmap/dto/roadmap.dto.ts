@@ -130,6 +130,40 @@ export class RoadmapSummaryDto {
   @ApiProperty() current_phase_index!: number;
 }
 
+export class RoadmapPersonalDto {
+  @ApiProperty({
+    enum: ['analysis', 'diagnostic'],
+    nullable: true,
+    type: String,
+    description:
+      'Nguồn điểm yếu; null = chưa có dữ liệu, lộ trình chia đều theo chặng',
+  })
+  focus_source!: string | null;
+  @ApiProperty({
+    type: 'array',
+    items: { type: 'object' },
+    description: 'Dạng yếu trong phạm vi chặng hiện tại',
+  })
+  focus!: unknown[];
+  @ApiProperty({
+    type: [String],
+    description: 'Dạng yếu ngoài phạm vi chặng ("Để dành cho chặng sau")',
+  })
+  deferred!: string[];
+  @ApiProperty({ type: 'object', additionalProperties: true })
+  adjusted_focus!: unknown;
+  @ApiProperty({ type: String, nullable: true }) adjustment_note!:
+    string | null;
+  @ApiProperty({
+    type: 'object',
+    additionalProperties: true,
+    description: 'Việc tuần này + tiến độ từ bài đã nộp',
+  })
+  week!: unknown;
+  @ApiProperty({ type: 'array', items: { type: 'object' } })
+  notices!: unknown[];
+}
+
 export class RoadmapDto {
   @ApiProperty() id!: string;
   @ApiProperty({ enum: CURRENT_MODES }) current_mode!: CurrentMode;
@@ -147,6 +181,12 @@ export class RoadmapDto {
   @ApiProperty() purpose_note!: string;
   @ApiProperty({ type: RoadmapSummaryDto }) summary!: RoadmapSummaryDto;
   @ApiProperty({ type: [RoadmapPhaseDto] }) phases!: RoadmapPhaseDto[];
+  @ApiPropertyOptional({
+    type: RoadmapPersonalDto,
+    nullable: true,
+    description: 'Cá nhân hóa theo điểm yếu (P03)',
+  })
+  personal?: RoadmapPersonalDto | null;
 }
 
 export class MyRoadmapDto {
@@ -164,7 +204,20 @@ export class PlacementQuizDto {
 }
 
 export class PlacementResultDto {
-  @ApiProperty() id!: number;
+  @ApiProperty({
+    description:
+      'id kết quả quiz (bài test cũ) hoặc 0 với bài kiểm tra trình độ',
+  })
+  id!: number;
+  @ApiPropertyOptional({ enum: ['quiz', 'diagnostic'] }) source?: string;
+  @ApiPropertyOptional({ description: 'Bài kiểm tra trình độ: id lượt' })
+  session_id?: string;
+  @ApiPropertyOptional({
+    type: 'object',
+    additionalProperties: true,
+    description: 'Khoảng điểm tổng { min, max }',
+  })
+  range?: { min: number; max: number } | null;
   @ApiProperty() correct_answers!: number;
   @ApiProperty() total_questions!: number;
   @ApiProperty() estimated_score!: number;
@@ -182,4 +235,13 @@ export class PlacementDto {
 
   @ApiProperty({ type: PlacementResultDto, nullable: true })
   latest_result!: PlacementResultDto | null;
+
+  @ApiProperty({
+    type: 'object',
+    nullable: true,
+    additionalProperties: true,
+    description:
+      'Bài kiểm tra trình độ (P01): { total_questions, minutes }. Có thì thay cho bài test nhanh cũ.',
+  })
+  diagnostic!: { total_questions: number; minutes: number } | null;
 }

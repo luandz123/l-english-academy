@@ -42,6 +42,7 @@ import {
   UpdateVerificationDto,
 } from './dto/library.dto';
 import { LibraryService } from './library.service';
+import { DiagnosticService } from './diagnostic.service';
 import { QuestionTaggingService } from './question-tagging.service';
 
 /** Kiểm duyệt đề (Verified), thông tin thư viện, nhãn câu hỏi, báo lỗi — chỉ admin. */
@@ -56,7 +57,34 @@ export class PracticeAdminController {
   constructor(
     private readonly library: LibraryService,
     private readonly tagging: QuestionTaggingService,
+    private readonly diagnostic: DiagnosticService,
   ) {}
+
+  @Get('diagnostic')
+  @ApiOperation({
+    summary: 'Bộ câu bài kiểm tra trình độ: số câu theo Part, Part còn thiếu',
+  })
+  @ApiOkResponse({
+    description:
+      '{ available, total_questions, structure, missing, generated_at }',
+  })
+  diagnosticStatus() {
+    return this.diagnostic.adminStatus();
+  }
+
+  @Post('diagnostic/regenerate')
+  @ApiOperation({
+    summary:
+      'Rút lại bộ câu bài kiểm tra trình độ từ kho đã gắn nhãn (thiếu Part thì báo, không chặn)',
+  })
+  @ApiOkResponse({
+    description:
+      '{ available, total_questions, structure, missing, generated_at }',
+  })
+  async regenerateDiagnostic() {
+    await this.diagnostic.generate();
+    return this.diagnostic.adminStatus();
+  }
 
   @Get('exams')
   @ApiOperation({
