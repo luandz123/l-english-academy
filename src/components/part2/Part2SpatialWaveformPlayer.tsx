@@ -118,7 +118,7 @@ export const Part2SpatialWaveformPlayer: React.FC<Part2SpatialWaveformPlayerProp
         {/* Waveform track with segments */}
         <div className="bg-slate-900/95 dark:bg-[#070e1c] rounded-2xl p-3 sm:p-4 border border-cyan-500/20 shadow-inner flex flex-col gap-2">
           {/* Waveform bars grid */}
-          <div className="grid grid-cols-7 gap-1.5 sm:gap-2 items-center min-h-[56px]">
+          <div className={cn('grid gap-1.5 sm:gap-2 items-center min-h-[56px]', segments.length > 7 ? 'grid-cols-9' : 'grid-cols-7')}>
             {segments.map((seg, idx) => {
               // Calculate if this segment is currently active
               const nonPauseIdx = nonPauseSegments.findIndex((s) => s.id === seg.id);

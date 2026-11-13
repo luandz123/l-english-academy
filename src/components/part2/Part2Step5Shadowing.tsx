@@ -408,6 +408,17 @@ export const Part2Step5Shadowing: React.FC<Part2Step5ShadowingProps> = ({
         })}
       </div>
 
+      {/* Optional Photo / Chart Image (Part 1 & Graphic Part 3/4) */}
+      {currentQ?.imageUrl && (
+        <div className="bg-card border border-border/80 rounded-2xl p-3 flex justify-center shadow-soft-xs">
+          <img
+            src={currentQ.imageUrl}
+            alt={`Câu ${currentQ.questionNumber}`}
+            className="max-h-56 sm:max-h-64 w-auto rounded-xl object-contain"
+          />
+        </div>
+      )}
+
       {/* Sub-turn Splitter (Lượt 1: Hỏi vs Lượt 2: Đáp) */}
       <div className="grid grid-cols-2 gap-3 p-1 bg-muted/60 rounded-2xl">
         <button

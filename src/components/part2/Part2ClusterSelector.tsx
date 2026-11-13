@@ -17,6 +17,7 @@ interface Part2ClusterSelectorProps {
   onOpenChange: (open: boolean) => void;
   selectedClusterId: string;
   onSelectCluster: (cluster: Part2Cluster) => void;
+  activePart?: 'part1' | 'part2' | 'part3' | 'part4';
 }
 
 export const Part2ClusterSelector: React.FC<Part2ClusterSelectorProps> = ({
@@ -24,16 +25,27 @@ export const Part2ClusterSelector: React.FC<Part2ClusterSelectorProps> = ({
   onOpenChange,
   selectedClusterId,
   onSelectCluster,
+  activePart,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
 
-  // 25 clusters indexed and sorted in strict sequential order 1 -> 25
+  const resolvedPart = useMemo(() => {
+    if (activePart) return activePart;
+    return PART2_CLUSTERS.find((c) => c.id === selectedClusterId)?.part ?? 'part2';
+  }, [activePart, selectedClusterId]);
+
+  const partClusters = useMemo(
+    () => PART2_CLUSTERS.filter((c) => (c.part ?? 'part2') === resolvedPart),
+    [resolvedPart]
+  );
+
+  // Clusters indexed sequentially within the active Part
   const orderedClusters = useMemo(() => {
-    return PART2_CLUSTERS.map((c, idx) => ({
+    return partClusters.map((c, idx) => ({
       ...c,
       info: getCleanClusterInfo(c, idx)
     }));
-  }, []);
+  }, [partClusters]);
 
   const filteredClusters = useMemo(() => {
     if (!searchQuery.trim()) return orderedClusters;
@@ -41,10 +53,18 @@ export const Part2ClusterSelector: React.FC<Part2ClusterSelectorProps> = ({
     return orderedClusters.filter((c) => {
       const matchTitle = c.info.formattedTitle.toLowerCase().includes(q);
       const matchDesc = c.info.cleanDescription.toLowerCase().includes(q);
+      const matchSource = c.info.sourceLabel.toLowerCase().includes(q);
       const matchNumber = String(c.info.sequentialNumber).includes(q);
-      return matchTitle || matchDesc || matchNumber;
+      return matchTitle || matchDesc || matchSource || matchNumber;
     });
   }, [orderedClusters, searchQuery]);
+
+  const partLabelMap = {
+    part1: 'Part 1 (Mô tả tranh)',
+    part2: 'Part 2 (Hỏi & Đáp)',
+    part3: 'Part 3 (Hội thoại)',
+    part4: 'Part 4 (Bài nói)',
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -55,11 +75,11 @@ export const Part2ClusterSelector: React.FC<Part2ClusterSelectorProps> = ({
               <Layers className="w-4 h-4" />
             </div>
             <DialogTitle className="text-xl sm:text-2xl font-black text-foreground">
-              Chọn bài luyện nghe từng bước
+              Chọn bài luyện {partLabelMap[resolvedPart]}
             </DialogTitle>
           </div>
           <DialogDescription className="text-sm font-medium text-muted-foreground">
-            Danh sách {PART2_CLUSTERS.length} bài luyện tập được chia nhỏ và sắp xếp theo độ khó tăng dần.
+            Danh sách {partClusters.length} bài luyện tập được chia nhỏ và sắp xếp theo độ khó tăng dần.
           </DialogDescription>
         </DialogHeader>
 

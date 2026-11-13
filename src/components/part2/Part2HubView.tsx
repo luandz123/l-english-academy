@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Part2Cluster } from '@/types/part2Coach';
 import { PART2_CLUSTERS, PART2_STEPS_META } from '@/data/part2CoachData';
 import { Button } from '@/components/ui/button';
@@ -57,19 +57,52 @@ export const getClusterQuestionTypes = (cluster: Part2Cluster): string[] => {
 
 // Tên bài: "Bài 02: Where · Why · Câu trần thuật"; nguồn và phạm vi câu tách riêng
 // (bài 2–6 lấy từ bài điền từ, bài 7+ từ đề Fulltest nên số câu có thể trùng nhau giữa các nguồn)
+type ListeningPartKey = 'part1' | 'part2' | 'part3' | 'part4';
+
+const PART_META: Record<ListeningPartKey, { pill: string; description: string }> = {
+  part1: {
+    pill: 'TOEIC Part 1 · Mô tả tranh',
+    description: 'Mỗi bài gồm 6 câu mô tả tranh kèm hình ảnh, học qua 7 bước từ nghe thử đến nghe lặp.',
+  },
+  part2: {
+    pill: 'TOEIC Part 2 · Hỏi & Đáp',
+    description: 'Mỗi bài gồm 5 câu hỏi – đáp, học qua 7 bước ngắn. Độ khó tăng dần từ cơ bản đến nâng cao.',
+  },
+  part3: {
+    pill: 'TOEIC Part 3 · Hội thoại ngắn',
+    description: 'Mỗi bài luyện 2–3 đoạn hội thoại (6–9 câu hỏi), có transcript & dịch nghĩa chi tiết qua 7 bước.',
+  },
+  part4: {
+    pill: 'TOEIC Part 4 · Bài nói ngắn',
+    description: 'Mỗi bài luyện 2 bài nói ngắn (6 câu hỏi), rèn bắt ý chính và paraphrase qua 7 bước.',
+  },
+};
+
 export const getCleanClusterInfo = (cluster: Part2Cluster, index: number) => {
   const padIndex = String(index + 1).padStart(2, '0');
+  const clusterPart: ListeningPartKey = cluster.part ?? 'part2';
 
+  const study4 = cluster.title.match(/^Study4 Collection 1 - Test (\d+)(?:\s*\(Part (\d)\))?:\s*(.*)$/i);
   const fulltest = cluster.title.match(/^Đề Thi Fulltest (\d+):\s*(.*)$/i);
   const dictation = cluster.title.match(/^Điền Từ Part 2 - Cụm \d+:\s*(.*)$/i);
-  const rest = (fulltest?.[2] ?? dictation?.[1] ?? cluster.title).trim();
+  const rest = (study4?.[3] ?? fulltest?.[2] ?? dictation?.[1] ?? cluster.title).trim();
   const isRangeOnly = /^Câu \d+\s*[–-]\s*\d+$/i.test(rest);
 
   const types = getClusterQuestionTypes(cluster);
-  const topic = isRangeOnly ? types.slice(0, 3).join(' · ') || rest : rest;
+  let topic = rest;
+  if (isRangeOnly) {
+    if (clusterPart === 'part1') topic = 'Mô tả tranh';
+    else if (clusterPart === 'part3') topic = 'Hội thoại ngắn';
+    else if (clusterPart === 'part4') topic = 'Bài nói ngắn';
+    else topic = types.slice(0, 3).join(' · ') || rest;
+  }
   const formattedTitle = `Bài ${padIndex}: ${topic}`;
 
-  const sourceName = fulltest ? `Đề Fulltest ${fulltest[1]}` : 'Bài nghe điền từ';
+  const sourceName = study4
+    ? `Study4 Test ${study4[1]}`
+    : fulltest
+    ? `Đề Fulltest ${fulltest[1]}`
+    : 'Bài nghe điền từ';
   const sourceLabel = isRangeOnly ? `${sourceName} · ${rest}` : sourceName;
 
   // Clean description removing any "Trích từ ..." prefix
@@ -87,11 +120,28 @@ export const getCleanClusterInfo = (cluster: Part2Cluster, index: number) => {
 };
 
 export const Part2HubView: React.FC<Part2HubViewProps> = ({ onSelectCluster }) => {
-  const navigate = useNavigate();
-  
-  // Part Filter: Part 1 | Part 2 | Part 3 | Part 4 (Part 2 active by default)
-  const [selectedPart, setSelectedPart] = useState<'part1' | 'part2' | 'part3' | 'part4'>('part2');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlPart = searchParams.get('part');
+  const initialPart: ListeningPartKey =
+    urlPart === 'part1' || urlPart === 'part2' || urlPart === 'part3' || urlPart === 'part4'
+      ? urlPart
+      : 'part2';
+
+  // Part Filter: Part 1 | Part 2 | Part 3 | Part 4
+  const [selectedPart, setSelectedPart] = useState<ListeningPartKey>(initialPart);
   const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    if (urlPart === 'part1' || urlPart === 'part2' || urlPart === 'part3' || urlPart === 'part4') {
+      setSelectedPart(urlPart);
+    }
+  }, [urlPart]);
+
+  const handleSelectPart = (part: ListeningPartKey) => {
+    setSelectedPart(part);
+    setSearchQuery('');
+    setSearchParams({ part }, { replace: true });
+  };
   
   const [isPlayingAudioTest, setIsPlayingAudioTest] = useState(false);
   const [audioTestSuccess, setAudioTestSuccess] = useState(false);
@@ -122,13 +172,27 @@ export const Part2HubView: React.FC<Part2HubViewProps> = ({ onSelectCluster }) =
     };
   };
 
-  // 25 clusters indexed and sorted in strict sequential order 1 -> 25
+  const partCounts = useMemo(() => {
+    const counts: Record<ListeningPartKey, number> = { part1: 0, part2: 0, part3: 0, part4: 0 };
+    for (const c of PART2_CLUSTERS) {
+      const p: ListeningPartKey = c.part ?? 'part2';
+      counts[p] += 1;
+    }
+    return counts;
+  }, []);
+
+  const partClusters = useMemo(
+    () => PART2_CLUSTERS.filter((c) => (c.part ?? 'part2') === selectedPart),
+    [selectedPart]
+  );
+
+  // Ordered clusters indexed sequentially for the active Part
   const orderedClusters = useMemo(() => {
-    return PART2_CLUSTERS.map((c, idx) => ({
+    return partClusters.map((c, idx) => ({
       ...c,
       info: getCleanClusterInfo(c, idx)
     }));
-  }, []);
+  }, [partClusters]);
 
   const filteredClusters = useMemo(() => {
     if (!searchQuery.trim()) return orderedClusters;
@@ -136,20 +200,21 @@ export const Part2HubView: React.FC<Part2HubViewProps> = ({ onSelectCluster }) =
     return orderedClusters.filter((c) => {
       const matchTitle = c.info.formattedTitle.toLowerCase().includes(q);
       const matchDesc = c.info.cleanDescription.toLowerCase().includes(q);
+      const matchSource = c.info.sourceLabel.toLowerCase().includes(q);
       const matchNumber = String(c.info.sequentialNumber).includes(q);
       const matchQuestion = c.questions.some((qu) => qu.questionText.toLowerCase().includes(q));
-      return matchTitle || matchDesc || matchNumber || matchQuestion;
+      return matchTitle || matchDesc || matchSource || matchNumber || matchQuestion;
     });
   }, [orderedClusters, searchQuery]);
 
-  const totalQuestions = PART2_CLUSTERS.reduce((acc, c) => acc + c.questions.length, 0);
+  const totalQuestions = partClusters.reduce((acc, c) => acc + c.questions.length, 0);
   const progressById = useMemo(
     () => Object.fromEntries(PART2_CLUSTERS.map((c) => [c.id, getClusterProgress(c.id)])),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [getProgress]
   );
-  const finishedClustersCount = PART2_CLUSTERS.filter((c) => progressById[c.id]?.isFinished).length;
-  const overallPercent = Math.round((finishedClustersCount / Math.max(1, PART2_CLUSTERS.length)) * 100);
+  const finishedClustersCount = partClusters.filter((c) => progressById[c.id]?.isFinished).length;
+  const overallPercent = Math.round((finishedClustersCount / Math.max(1, partClusters.length)) * 100);
 
   // "Học tiếp": bài đang dở được mở gần nhất; nếu chưa có thì bài đầu tiên chưa xong
   const resumeCluster = useMemo(() => {
@@ -166,8 +231,8 @@ export const Part2HubView: React.FC<Part2HubViewProps> = ({ onSelectCluster }) =
     ? PART2_STEPS_META.find((st) => !resumeProgress.completedSteps.includes(st.id)) ?? PART2_STEPS_META[0]
     : PART2_STEPS_META[0];
   const recommendedId = orderedClusters.find((c) => !progressById[c.id]?.isFinished)?.id;
-  const minQ = Math.min(...PART2_CLUSTERS.map((c) => c.questions.length));
-  const maxQ = Math.max(...PART2_CLUSTERS.map((c) => c.questions.length));
+  const minQ = partClusters.length > 0 ? Math.min(...partClusters.map((c) => c.questions.length)) : 0;
+  const maxQ = partClusters.length > 0 ? Math.max(...partClusters.map((c) => c.questions.length)) : 0;
 
   return (
     <div className="space-y-6 pb-16 font-sans">
@@ -180,7 +245,7 @@ export const Part2HubView: React.FC<Part2HubViewProps> = ({ onSelectCluster }) =
           <div className="space-y-2.5 min-w-0">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/20 text-purple-200 text-xs font-black uppercase tracking-wider border border-purple-400/30">
               <img src={iconReflex} alt="" className="w-4 h-4 object-contain inline-block" />
-              <span>TOEIC Part 2 · Hỏi &amp; Đáp</span>
+              <span>{PART_META[selectedPart].pill}</span>
             </div>
 
             <h1 className="text-2xl sm:text-3xl font-black text-white font-display tracking-tight leading-tight">
@@ -188,7 +253,7 @@ export const Part2HubView: React.FC<Part2HubViewProps> = ({ onSelectCluster }) =
             </h1>
 
             <p className="text-slate-300 text-xs sm:text-sm font-medium leading-relaxed max-w-2xl">
-              Mỗi bài {minQ === maxQ ? minQ : `${minQ}–${maxQ}`} câu hỏi – đáp, học qua 7 bước ngắn. Độ khó tăng dần từ cơ bản đến nâng cao.
+              {PART_META[selectedPart].description}
             </p>
 
             {/* Lộ trình 7 bước: người mới nhìn là biết sẽ làm gì */}
@@ -212,7 +277,7 @@ export const Part2HubView: React.FC<Part2HubViewProps> = ({ onSelectCluster }) =
             {/* Tiến độ chung */}
             <div className="rounded-2xl bg-white/10 border border-white/15 p-3 space-y-2">
               <div className="flex items-center justify-between text-xs font-bold">
-                <span className="text-slate-200">Đã xong {finishedClustersCount}/{PART2_CLUSTERS.length} bài</span>
+                <span className="text-slate-200">Đã xong {finishedClustersCount}/{partClusters.length} bài</span>
                 <span className="text-slate-400">{totalQuestions} câu</span>
               </div>
               <div className="h-2 rounded-full bg-white/10 overflow-hidden">
@@ -277,7 +342,7 @@ export const Part2HubView: React.FC<Part2HubViewProps> = ({ onSelectCluster }) =
           <div className="flex items-center gap-1.5 bg-muted/60 p-1.5 rounded-2xl shrink-0 overflow-x-auto">
             <button
               type="button"
-              onClick={() => setSelectedPart('part1')}
+              onClick={() => handleSelectPart('part1')}
               className={cn(
                 'px-3 sm:px-4 min-h-10 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer flex items-center gap-1.5',
                 selectedPart === 'part1'
@@ -287,11 +352,14 @@ export const Part2HubView: React.FC<Part2HubViewProps> = ({ onSelectCluster }) =
             >
               <BookOpen className="w-4 h-4" />
               <span className="whitespace-nowrap">Part 1<span className="hidden sm:inline"> (Mô tả tranh)</span></span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 font-mono font-black">
+                {partCounts.part1} bài
+              </span>
             </button>
 
             <button
               type="button"
-              onClick={() => setSelectedPart('part2')}
+              onClick={() => handleSelectPart('part2')}
               className={cn(
                 'px-3 sm:px-4 min-h-10 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer flex items-center gap-2',
                 selectedPart === 'part2'
@@ -302,13 +370,13 @@ export const Part2HubView: React.FC<Part2HubViewProps> = ({ onSelectCluster }) =
               <Mic className="w-4 h-4 text-purple-600 dark:text-purple-400" />
               <span className="whitespace-nowrap">Part 2<span className="hidden sm:inline"> (Hỏi &amp; Đáp)</span></span>
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 font-mono font-black">
-                {PART2_CLUSTERS.length} bài
+                {partCounts.part2} bài
               </span>
             </button>
 
             <button
               type="button"
-              onClick={() => setSelectedPart('part3')}
+              onClick={() => handleSelectPart('part3')}
               className={cn(
                 'px-3 sm:px-4 min-h-10 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer flex items-center gap-1.5',
                 selectedPart === 'part3'
@@ -318,11 +386,14 @@ export const Part2HubView: React.FC<Part2HubViewProps> = ({ onSelectCluster }) =
             >
               <MessageSquare className="w-4 h-4" />
               <span className="whitespace-nowrap">Part 3<span className="hidden sm:inline"> (Hội thoại)</span></span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 font-mono font-black">
+                {partCounts.part3} bài
+              </span>
             </button>
 
             <button
               type="button"
-              onClick={() => setSelectedPart('part4')}
+              onClick={() => handleSelectPart('part4')}
               className={cn(
                 'px-3 sm:px-4 min-h-10 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer flex items-center gap-1.5',
                 selectedPart === 'part4'
@@ -332,68 +403,29 @@ export const Part2HubView: React.FC<Part2HubViewProps> = ({ onSelectCluster }) =
             >
               <Radio className="w-4 h-4" />
               <span className="whitespace-nowrap">Part 4<span className="hidden sm:inline"> (Bài nói)</span></span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 font-mono font-black">
+                {partCounts.part4} bài
+              </span>
             </button>
           </div>
 
           {/* Quick Search */}
-          {selectedPart === 'part2' && (
-            <div className="relative w-full sm:w-64 shrink-0">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Tìm theo số bài, từ khóa..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-8 pr-3 py-2 rounded-xl text-xs border border-border bg-card focus:outline-none focus:ring-2 focus:ring-purple-500/40"
-              />
-            </div>
-          )}
+          <div className="relative w-full sm:w-64 shrink-0">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Tìm theo số bài, từ khóa..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-8 pr-3 py-2 rounded-xl text-xs border border-border bg-card focus:outline-none focus:ring-2 focus:ring-purple-500/40"
+            />
+          </div>
         </div>
       </div>
 
-      {/* 3. Render Content Based on Selected Part */}
-      {selectedPart !== 'part2' ? (
-        /* Part 1, 3, 4 Navigation Card */
-        <div className="bg-card rounded-3xl border border-border/80 p-8 sm:p-12 text-center space-y-5 shadow-soft-sm max-w-2xl mx-auto">
-          <div className="w-16 h-16 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center mx-auto shadow-soft-xs">
-            {selectedPart === 'part1' && <BookOpen className="w-8 h-8" />}
-            {selectedPart === 'part3' && <MessageSquare className="w-8 h-8" />}
-            {selectedPart === 'part4' && <Radio className="w-8 h-8" />}
-          </div>
-
-          <div className="space-y-2">
-            <h3 className="text-lg sm:text-xl font-black text-foreground">
-              {selectedPart === 'part1' && 'Khóa Luyện Nghe Điền Từ Part 1 (Mô Tả Tranh)'}
-              {selectedPart === 'part3' && 'Khóa Luyện Nghe Điền Từ Part 3 (Hội Thoại Ngắn)'}
-              {selectedPart === 'part4' && 'Khóa Luyện Nghe Điền Từ Part 4 (Bài Nói Ngắn)'}
-            </h3>
-            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              {selectedPart === 'part1' && 'Luyện nghe chép chính tả mô tả hình ảnh, hành động nhân vật và vị trí đồ vật trong đề thi TOEIC.'}
-              {selectedPart === 'part3' && 'Bắt trọn ý chính, lượt thoại người nói và rèn phản xạ nắm bắt thông tin nhanh trong cuộc trò chuyện.'}
-              {selectedPart === 'part4' && 'Bóc tách thông báo, quảng cáo, tin nhắn thoại ngắn với độ chính xác cao nhất.'}
-            </p>
-          </div>
-
-          <div className="pt-2 flex justify-center gap-3">
-            <Button
-              onClick={() => navigate('/listening')}
-              className="btn-3d btn-3d-blue h-11 px-6 rounded-2xl text-xs sm:text-sm font-extrabold cursor-pointer"
-            >
-              Vào danh sách khóa nghe <ArrowRight className="w-4 h-4 ml-1.5" />
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => setSelectedPart('part2')}
-              className="h-11 px-5 rounded-2xl text-xs sm:text-sm font-bold border-border cursor-pointer"
-            >
-              Quay lại Part 2
-            </Button>
-          </div>
-        </div>
-      ) : (
-        /* Part 2: 25 Units Ordered Sequentially (Bài 01 -> Bài 25) */
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredClusters.length === 0 ? (
+      {/* 3. Render Clusters Grid for Selected Part */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {filteredClusters.length === 0 ? (
             <div className="col-span-full py-12 text-center bg-card rounded-2xl p-6 space-y-2.5 shadow-soft-xs border border-border/70">
               <Headphones className="w-10 h-10 text-muted-foreground/30 mx-auto" />
               <h4 className="text-sm font-black text-foreground">Không tìm thấy bài luyện phù hợp</h4>
@@ -504,8 +536,7 @@ export const Part2HubView: React.FC<Part2HubViewProps> = ({ onSelectCluster }) =
               );
             })
           )}
-        </div>
-      )}
+      </div>
     </div>
   );
 };

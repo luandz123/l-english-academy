@@ -167,6 +167,17 @@ export const Part2Step8LoopPlayer: React.FC<Part2Step8LoopPlayerProps> = ({
 
       {/* Main Loop Player Card */}
       <div className="bg-card border border-border rounded-3xl p-6 sm:p-8 space-y-6 shadow-soft-sm text-center">
+        {/* Optional Photo / Chart Image (Part 1 & Graphic Part 3/4) */}
+        {currentQ?.imageUrl && (
+          <div className="bg-muted/20 border border-border/70 rounded-2xl p-3 flex justify-center">
+            <img
+              src={currentQ.imageUrl}
+              alt={`Câu ${currentQ.questionNumber}`}
+              className="max-h-56 sm:max-h-64 w-auto rounded-xl object-contain"
+            />
+          </div>
+        )}
+
         {/* Animated Visualizer */}
         <div className="flex items-center justify-center gap-1.5 h-12">
           {[40, 75, 100, 60, 35, 90, 50, 95, 65, 30].map((h, i) => (

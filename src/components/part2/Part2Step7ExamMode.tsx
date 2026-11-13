@@ -18,11 +18,23 @@ import {
 import { cn } from '@/lib/utils';
 import { soundAudioPlayer } from '@/services/soundAudioPlayer';
 import { useSound } from '@/hooks/useSound';
-import { Part2SpatialWaveformPlayer } from './Part2SpatialWaveformPlayer';
+import { Part2SpatialWaveformPlayer, WaveformSegment } from './Part2SpatialWaveformPlayer';
+
+const FOUR_CHOICE_SEGMENTS: WaveformSegment[] = [
+  { id: 'q', label: 'Câu hỏi', subLabel: 'Nghe bắt Key' },
+  { id: 'p1', label: 'Nghỉ', isPause: true },
+  { id: 'a', label: 'Đáp án (A)', subLabel: 'Lựa chọn A' },
+  { id: 'p2', label: 'Nghỉ', isPause: true },
+  { id: 'b', label: 'Đáp án (B)', subLabel: 'Lựa chọn B' },
+  { id: 'p3', label: 'Nghỉ', isPause: true },
+  { id: 'c', label: 'Đáp án (C)', subLabel: 'Lựa chọn C' },
+  { id: 'p4', label: 'Nghỉ', isPause: true },
+  { id: 'd', label: 'Đáp án (D)', subLabel: 'Lựa chọn D' },
+];
 
 interface Part2Step7ExamModeProps {
   questions: Part2CoachQuestion[];
-  step1Diagnostics?: Record<number, { guess: 'A' | 'B' | 'C'; rating: number }>;
+  step1Diagnostics?: Record<number, { guess: 'A' | 'B' | 'C' | 'D'; rating: number }>;
   onCompleteStep: () => void;
 }
 
@@ -32,24 +44,46 @@ export const Part2Step7ExamMode: React.FC<Part2Step7ExamModeProps> = ({
 }) => {
   const { playSound } = useSound();
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [userAnswers, setUserAnswers] = useState<Record<number, 'A' | 'B' | 'C'>>({});
+  const [userAnswers, setUserAnswers] = useState<Record<number, 'A' | 'B' | 'C' | 'D'>>({});
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [activeStepIndex, setActiveStepIndex] = useState<number | null>(null);
 
   const currentQ = questions[currentIndex];
 
+  const getChoiceText = useCallback((letter: 'A' | 'B' | 'C' | 'D') => {
+    if (!currentQ) return '';
+    return currentQ.correctChoice.letter === letter
+      ? currentQ.correctChoice.text
+      : currentQ.distractors.find((d) => d.letter === letter)?.text || '';
+  }, [currentQ]);
+
+  const hasD = Boolean(getChoiceText('D'));
+  const availableChoices: readonly ('A' | 'B' | 'C' | 'D')[] = hasD
+    ? (['A', 'B', 'C', 'D'] as const)
+    : (['A', 'B', 'C'] as const);
+
   const playExamAudio = useCallback(() => {
     if (!currentQ) return;
-    const aText = currentQ.correctChoice.letter === 'A' ? currentQ.correctChoice.text : currentQ.distractors.find(d => d.letter === 'A')?.text || '';
-    const bText = currentQ.correctChoice.letter === 'B' ? currentQ.correctChoice.text : currentQ.distractors.find(d => d.letter === 'B')?.text || '';
-    const cText = currentQ.correctChoice.letter === 'C' ? currentQ.correctChoice.text : currentQ.distractors.find(d => d.letter === 'C')?.text || '';
+    if (/^https?:\/\//i.test(currentQ.audioUrl || '')) {
+      setIsPlaying(true);
+      soundAudioPlayer.playUrl(currentQ.audioUrl, 1.0).catch(() => {
+        setIsPlaying(false);
+      });
+      return;
+    }
+
+    const aText = getChoiceText('A');
+    const bText = getChoiceText('B');
+    const cText = getChoiceText('C');
+    const dText = getChoiceText('D');
 
     const items = [
       { text: currentQ.questionText, pauseAfterMs: 900 },
       { text: `(A) ${aText}`, pauseAfterMs: 700 },
       { text: `(B) ${bText}`, pauseAfterMs: 700 },
-      { text: `(C) ${cText}`, pauseAfterMs: 400 },
+      { text: `(C) ${cText}`, pauseAfterMs: dText ? 700 : 400 },
+      ...(dText ? [{ text: `(D) ${dText}`, pauseAfterMs: 400 }] : []),
     ];
 
     soundAudioPlayer.speakSequence(items, {
@@ -58,7 +92,7 @@ export const Part2Step7ExamMode: React.FC<Part2Step7ExamModeProps> = ({
         setActiveStepIndex(idx);
       },
     });
-  }, [currentQ]);
+  }, [currentQ, getChoiceText]);
 
   // Audio subscription
   useEffect(() => {
@@ -112,25 +146,30 @@ export const Part2Step7ExamMode: React.FC<Part2Step7ExamModeProps> = ({
     setIsPlaying(true);
     setActiveStepIndex(segIdx);
 
-    const aText = currentQ.correctChoice.letter === 'A' ? currentQ.correctChoice.text : currentQ.distractors.find(d => d.letter === 'A')?.text || '';
-    const bText = currentQ.correctChoice.letter === 'B' ? currentQ.correctChoice.text : currentQ.distractors.find(d => d.letter === 'B')?.text || '';
-    const cText = currentQ.correctChoice.letter === 'C' ? currentQ.correctChoice.text : currentQ.distractors.find(d => d.letter === 'C')?.text || '';
+    const aText = getChoiceText('A');
+    const bText = getChoiceText('B');
+    const cText = getChoiceText('C');
+    const dText = getChoiceText('D');
 
     let textToSpeak = '';
     if (segIdx === 0) textToSpeak = currentQ.questionText;
     else if (segIdx === 1) textToSpeak = `(A) ${aText}`;
     else if (segIdx === 2) textToSpeak = `(B) ${bText}`;
     else if (segIdx === 3) textToSpeak = `(C) ${cText}`;
+    else if (segIdx === 4 && dText) textToSpeak = `(D) ${dText}`;
 
     if (textToSpeak) {
       soundAudioPlayer.speakText(textToSpeak, 0.95).finally(() => {
         setIsPlaying(false);
         setActiveStepIndex(null);
       });
+    } else {
+      setIsPlaying(false);
+      setActiveStepIndex(null);
     }
-  }, [currentQ]);
+  }, [currentQ, getChoiceText]);
 
-  const handleSelectChoice = (choice: 'A' | 'B' | 'C') => {
+  const handleSelectChoice = (choice: 'A' | 'B' | 'C' | 'D') => {
     if (isSubmitted) return;
     setUserAnswers((prev) => ({ ...prev, [currentQ.id]: choice }));
   };
@@ -180,6 +219,9 @@ export const Part2Step7ExamMode: React.FC<Part2Step7ExamModeProps> = ({
       } else if (!isSubmitted && (e.key === '3' || e.key === 'c' || e.key === 'C')) {
         e.preventDefault();
         handleSelectChoice('C');
+      } else if (!isSubmitted && hasD && (e.key === '4' || e.key === 'd' || e.key === 'D')) {
+        e.preventDefault();
+        handleSelectChoice('D');
       } else if (e.key === 'ArrowLeft') {
         e.preventDefault();
         handlePrev();
@@ -261,6 +303,17 @@ export const Part2Step7ExamMode: React.FC<Part2Step7ExamModeProps> = ({
       {/* Main Examination View */}
       {!isSubmitted ? (
         <div className="bg-card border border-border rounded-3xl p-6 sm:p-8 space-y-6 shadow-soft-sm">
+          {/* Optional Image (Part 1 & Graphic Part 3/4) */}
+          {currentQ?.imageUrl && (
+            <div className="bg-muted/20 border border-border/70 rounded-2xl p-3 flex justify-center">
+              <img
+                src={currentQ.imageUrl}
+                alt={`Câu ${currentQ.questionNumber}`}
+                className="max-h-64 sm:max-h-72 w-auto rounded-xl object-contain"
+              />
+            </div>
+          )}
+
           {/* Spatial Waveform Player */}
           <Part2SpatialWaveformPlayer
             isPlaying={isPlaying}
@@ -272,14 +325,29 @@ export const Part2Step7ExamMode: React.FC<Part2Step7ExamModeProps> = ({
             canPrev={currentIndex > 0}
             canNext={currentIndex < questions.length - 1}
             onSelectSegment={handleSelectSegment}
-            currentQuestionText={currentQ?.questionText}
+            segments={hasD ? FOUR_CHOICE_SEGMENTS : undefined}
+            currentQuestionText={currentQ?.part === 'part1' ? undefined : currentQ?.questionText}
           />
 
-          {/* Answer Choice Buttons (A, B, C) */}
+          {/* Question Prompt for Part 3 & 4 */}
+          {(currentQ.part === 'part3' || currentQ.part === 'part4') && (
+            <div className="bg-muted/40 border border-border/80 rounded-2xl p-4 text-left space-y-1">
+              <div className="text-[11px] font-black uppercase tracking-wider text-purple-500">
+                Câu {currentQ.questionNumber}
+              </div>
+              <div className="text-sm sm:text-base font-black text-foreground">
+                {currentQ.questionText}
+              </div>
+            </div>
+          )}
+
+          {/* Answer Choice Buttons */}
           <div className="space-y-3">
-            {(['A', 'B', 'C'] as const).map((choice, i) => {
+            {availableChoices.map((choice, i) => {
               const isSelected = userAnswers[currentQ.id] === choice;
               const isSpeaking = activeStepIndex === i + 1;
+              const showChoiceText = currentQ.part === 'part3' || currentQ.part === 'part4';
+              const choiceLabel = showChoiceText ? getChoiceText(choice) || `Đáp án ${choice}` : `Đáp án ${choice}`;
 
               return (
                 <button
@@ -295,22 +363,22 @@ export const Part2Step7ExamMode: React.FC<Part2Step7ExamModeProps> = ({
                       : 'bg-muted/30 border-border hover:bg-muted/70 text-foreground'
                   )}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
                     <span className={cn(
-                      'w-8 h-8 rounded-xl flex items-center justify-center font-black text-sm',
+                      'w-8 h-8 rounded-xl flex items-center justify-center font-black text-sm shrink-0',
                       isSelected
                         ? 'bg-white text-blue-600'
                         : 'bg-card border border-border text-foreground'
                     )}>
                       {choice}
                     </span>
-                    <span className="text-sm sm:text-base font-bold">
-                      Đáp án {choice}
+                    <span className="text-sm sm:text-base font-bold break-words">
+                      {choiceLabel}
                     </span>
                   </div>
 
                   <span className={cn(
-                    'text-xs font-mono px-2 py-0.5 rounded-md border',
+                    'text-xs font-mono px-2 py-0.5 rounded-md border shrink-0',
                     isSelected
                       ? 'border-white/40 text-white'
                       : 'border-border text-muted-foreground'
@@ -378,6 +446,16 @@ export const Part2Step7ExamMode: React.FC<Part2Step7ExamModeProps> = ({
               </Button>
             </div>
 
+            {currentQ?.imageUrl && (
+              <div className="bg-card/60 border border-border/60 rounded-xl p-2 flex justify-center">
+                <img
+                  src={currentQ.imageUrl}
+                  alt={`Câu ${currentQ.questionNumber}`}
+                  className="max-h-56 w-auto rounded-lg object-contain"
+                />
+              </div>
+            )}
+
             <div className="text-base font-black text-foreground">
               "{currentQ.questionText}"
             </div>
@@ -404,6 +482,23 @@ export const Part2Step7ExamMode: React.FC<Part2Step7ExamModeProps> = ({
                 {currentQ.correctChoice.translation}
               </div>
             </div>
+
+            {/* Full Transcript & Passage Translation */}
+            {currentQ.transcriptText && (
+              <div className="pt-3 border-t border-border/60 space-y-2">
+                <div className="text-xs font-black uppercase tracking-wider text-cyan-500">
+                  Transcript &amp; Dịch nghĩa
+                </div>
+                <pre className="whitespace-pre-wrap font-sans text-xs text-foreground/90 leading-relaxed bg-card/60 border border-border/60 rounded-xl p-3">
+                  {currentQ.transcriptText}
+                </pre>
+                {currentQ.passageTranslation && (
+                  <pre className="whitespace-pre-wrap font-sans text-xs text-muted-foreground leading-relaxed bg-card/40 border border-border/50 rounded-xl p-3">
+                    {currentQ.passageTranslation}
+                  </pre>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Navigation & Completion */}

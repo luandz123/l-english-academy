@@ -68,7 +68,7 @@ const Part2CoachPage: React.FC = () => {
 
   const [currentStep, setCurrentStep] = useState<Part2StepId>(initialStep);
   const [completedSteps, setCompletedSteps] = useState<Set<Part2StepId>>(new Set());
-  const [step1Diagnostics, setStep1Diagnostics] = useState<Record<number, { guess: 'A' | 'B' | 'C'; rating: number }>>({});
+  const [step1Diagnostics, setStep1Diagnostics] = useState<Record<number, { guess: 'A' | 'B' | 'C' | 'D'; rating: number }>>({});
   const [isClusterModalOpen, setIsClusterModalOpen] = useState(false);
   // Bước vừa xong: hiện thẻ chúc mừng ngắn + giới thiệu bước sau thay vì tự nhảy bước
   const [justCompletedStep, setJustCompletedStep] = useState<Part2StepId | null>(null);
@@ -172,9 +172,10 @@ const Part2CoachPage: React.FC = () => {
   };
 
   const handleBackToHub = () => {
+    const part = activeCluster?.part || 'part2';
     soundAudioPlayer.stop();
     setActiveCluster(null);
-    navigate(basePrefix);
+    navigate(`${basePrefix}?part=${part}`);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -217,7 +218,9 @@ const Part2CoachPage: React.FC = () => {
     setIsClusterModalOpen(true);
   };
 
-  const activeClusterIndex = activeCluster ? PART2_CLUSTERS.findIndex(c => c.id === activeCluster.id) : 0;
+  const activePart = activeCluster?.part ?? 'part2';
+  const activePartClusters = PART2_CLUSTERS.filter((c) => (c.part ?? 'part2') === activePart);
+  const activeClusterIndex = activeCluster ? activePartClusters.findIndex(c => c.id === activeCluster.id) : 0;
   const cleanActiveTitle = activeCluster ? getCleanClusterInfo(activeCluster, activeClusterIndex >= 0 ? activeClusterIndex : 0).formattedTitle : '';
 
   return (
@@ -416,6 +419,7 @@ const Part2CoachPage: React.FC = () => {
               isOpen={isClusterModalOpen}
               onOpenChange={setIsClusterModalOpen}
               selectedClusterId={activeCluster.id}
+              activePart={activeCluster.part ?? 'part2'}
               onSelectCluster={(cluster) => {
                 soundAudioPlayer.stop();
                 setActiveCluster(cluster);

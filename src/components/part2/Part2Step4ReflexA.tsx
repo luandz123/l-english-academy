@@ -126,6 +126,17 @@ export const Part2Step4ReflexA: React.FC<Part2Step4ReflexAProps> = ({
         })}
       </div>
 
+      {/* Optional Photo / Chart Image (Part 1 & Graphic Part 3/4) */}
+      {currentQ?.imageUrl && (
+        <div className="bg-card border border-border/80 rounded-2xl p-3 flex justify-center shadow-soft-xs">
+          <img
+            src={currentQ.imageUrl}
+            alt={`Câu ${currentQ.questionNumber}`}
+            className="max-h-56 sm:max-h-64 w-auto rounded-xl object-contain"
+          />
+        </div>
+      )}
+
       {/* Main Reflex Answer Card */}
       <div className="bg-card border border-border rounded-3xl p-6 sm:p-8 space-y-6 shadow-soft-sm text-center">
         {/* Question Header */}

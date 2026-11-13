@@ -27,7 +27,7 @@ export interface Part2IndirectReflex {
   vietnamesePrompt: string;
   englishResponse: string;
   explanation: string;
-  category: 'khong_biet' | 'hoi_nguoi_khac' | 'thay_doi_ke_hoach' | 'tinh_huong_thuc_te';
+  category: 'khong_biet' | 'hoi_nguoi_khac' | 'thay_doi_ke_hoach' | 'tinh_huong_thuc_te' | 'chi_tai_lieu' | 'doi_chu';
 }
 
 export interface Part2ConnectedSpeechNote {
@@ -38,7 +38,7 @@ export interface Part2ConnectedSpeechNote {
 }
 
 export interface Part2DistractorTrap {
-  letter: 'A' | 'B' | 'C';
+  letter: 'A' | 'B' | 'C' | 'D';
   text: string;
   translation: string;
   trapType: Part2TrapType;
@@ -49,8 +49,12 @@ export interface Part2DistractorTrap {
 
 export interface Part2CoachQuestion {
   id: number;
+  part?: 'part1' | 'part2' | 'part3' | 'part4';
   questionNumber: number; // e.g. 7, 8, 9, 10
   audioUrl: string;
+  imageUrl?: string;
+  transcriptText?: string;
+  passageTranslation?: string;
   
   // Script & Audio
   questionText: string;
@@ -81,7 +85,7 @@ export interface Part2CoachQuestion {
 
   // BƯỚC 5: Shadowing Cặp Đúng
   correctChoice: {
-    letter: 'A' | 'B' | 'C';
+    letter: 'A' | 'B' | 'C' | 'D';
     text: string;
     translation: string;
     connectedSpeechNotes: Part2ConnectedSpeechNote[];
@@ -93,6 +97,7 @@ export interface Part2CoachQuestion {
 
 export interface Part2Cluster {
   id: string;
+  part?: 'part1' | 'part2' | 'part3' | 'part4';
   title: string;
   description: string;
   testSource: string; // e.g. "ETS TOEIC Test 1"
@@ -119,6 +124,6 @@ export interface Part2StepMeta {
 
 export interface Part2DiagnosticResult {
   questionId: number;
-  selectedChoice?: 'A' | 'B' | 'C';
+  selectedChoice?: 'A' | 'B' | 'C' | 'D';
   comprehensionPercent?: number;
 }

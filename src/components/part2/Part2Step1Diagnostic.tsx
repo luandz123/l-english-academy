@@ -5,12 +5,24 @@ import { Button } from '@/components/ui/button';
 import { soundAudioPlayer } from '@/services/soundAudioPlayer';
 import { ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Part2SpatialWaveformPlayer } from './Part2SpatialWaveformPlayer';
+import { Part2SpatialWaveformPlayer, WaveformSegment } from './Part2SpatialWaveformPlayer';
+
+const FOUR_CHOICE_SEGMENTS: WaveformSegment[] = [
+  { id: 'q', label: 'Câu hỏi', subLabel: 'Nghe bắt Key' },
+  { id: 'p1', label: 'Nghỉ', isPause: true },
+  { id: 'a', label: 'Đáp án (A)', subLabel: 'Lựa chọn A' },
+  { id: 'p2', label: 'Nghỉ', isPause: true },
+  { id: 'b', label: 'Đáp án (B)', subLabel: 'Lựa chọn B' },
+  { id: 'p3', label: 'Nghỉ', isPause: true },
+  { id: 'c', label: 'Đáp án (C)', subLabel: 'Lựa chọn C' },
+  { id: 'p4', label: 'Nghỉ', isPause: true },
+  { id: 'd', label: 'Đáp án (D)', subLabel: 'Lựa chọn D' },
+];
 
 interface Part2Step1DiagnosticProps {
   questions: Part2CoachQuestion[];
   onCompleteStep: () => void;
-  onSaveDiagnostics?: (data: Record<number, { guess: 'A' | 'B' | 'C'; rating: number }>) => void;
+  onSaveDiagnostics?: (data: Record<number, { guess: 'A' | 'B' | 'C' | 'D'; rating: number }>) => void;
 }
 
 export const Part2Step1Diagnostic: React.FC<Part2Step1DiagnosticProps> = ({
@@ -24,22 +36,38 @@ export const Part2Step1Diagnostic: React.FC<Part2Step1DiagnosticProps> = ({
   const currentQ = questions[currentIndex];
 
   const getOptionTexts = useCallback(() => {
-    if (!currentQ) return { aText: '', bText: '', cText: '' };
-    const aText = currentQ.correctChoice.letter === 'A' ? currentQ.correctChoice.text : currentQ.distractors.find(d => d.letter === 'A')?.text || '';
-    const bText = currentQ.correctChoice.letter === 'B' ? currentQ.correctChoice.text : currentQ.distractors.find(d => d.letter === 'B')?.text || '';
-    const cText = currentQ.correctChoice.letter === 'C' ? currentQ.correctChoice.text : currentQ.distractors.find(d => d.letter === 'C')?.text || '';
-    return { aText, bText, cText };
+    if (!currentQ) return { aText: '', bText: '', cText: '', dText: '', hasD: false };
+    const findText = (letter: 'A' | 'B' | 'C' | 'D') =>
+      currentQ.correctChoice.letter === letter
+        ? currentQ.correctChoice.text
+        : currentQ.distractors.find((d) => d.letter === letter)?.text || '';
+    const aText = findText('A');
+    const bText = findText('B');
+    const cText = findText('C');
+    const dText = findText('D');
+    return { aText, bText, cText, dText, hasD: Boolean(dText) };
   }, [currentQ]);
+
+  const { hasD } = getOptionTexts();
 
   const playAudioSequence = useCallback(() => {
     if (!currentQ) return;
-    const { aText, bText, cText } = getOptionTexts();
+    if (/^https?:\/\//i.test(currentQ.audioUrl || '')) {
+      setIsPlaying(true);
+      soundAudioPlayer.playUrl(currentQ.audioUrl, 1.0).catch(() => {
+        setIsPlaying(false);
+      });
+      return;
+    }
+
+    const { aText, bText, cText, dText, hasD: qHasD } = getOptionTexts();
 
     const items = [
       { text: currentQ.questionText, pauseAfterMs: 800 },
       { text: `(A) ${aText}`, pauseAfterMs: 600 },
       { text: `(B) ${bText}`, pauseAfterMs: 600 },
-      { text: `(C) ${cText}`, pauseAfterMs: 400 },
+      { text: `(C) ${cText}`, pauseAfterMs: qHasD ? 600 : 400 },
+      ...(qHasD ? [{ text: `(D) ${dText}`, pauseAfterMs: 400 }] : []),
     ];
 
     soundAudioPlayer.speakSequence(items, {
@@ -57,18 +85,22 @@ export const Part2Step1Diagnostic: React.FC<Part2Step1DiagnosticProps> = ({
     setIsPlaying(true);
     setActiveStepIndex(segIdx);
 
-    const { aText, bText, cText } = getOptionTexts();
+    const { aText, bText, cText, dText } = getOptionTexts();
     let textToSpeak = '';
     if (segIdx === 0) textToSpeak = currentQ.questionText;
     else if (segIdx === 1) textToSpeak = `(A) ${aText}`;
     else if (segIdx === 2) textToSpeak = `(B) ${bText}`;
     else if (segIdx === 3) textToSpeak = `(C) ${cText}`;
+    else if (segIdx === 4 && dText) textToSpeak = `(D) ${dText}`;
 
     if (textToSpeak) {
       soundAudioPlayer.speakText(textToSpeak, 0.95).finally(() => {
         setIsPlaying(false);
         setActiveStepIndex(null);
       });
+    } else {
+      setIsPlaying(false);
+      setActiveStepIndex(null);
     }
   }, [currentQ, getOptionTexts]);
 
@@ -163,6 +195,17 @@ export const Part2Step1Diagnostic: React.FC<Part2Step1DiagnosticProps> = ({
         })}
       </div>
 
+      {/* Optional Photo / Chart Image (Part 1 & Graphic Part 3/4) */}
+      {currentQ?.imageUrl && (
+        <div className="bg-card border border-border/80 rounded-2xl p-3 flex justify-center shadow-soft-xs">
+          <img
+            src={currentQ.imageUrl}
+            alt={`Câu ${currentQ.questionNumber}`}
+            className="max-h-64 sm:max-h-72 w-auto rounded-xl object-contain"
+          />
+        </div>
+      )}
+
       {/* Spatial Waveform Player Component */}
       <Part2SpatialWaveformPlayer
         isPlaying={isPlaying}
@@ -174,7 +217,8 @@ export const Part2Step1Diagnostic: React.FC<Part2Step1DiagnosticProps> = ({
         canPrev={currentIndex > 0}
         canNext={true}
         onSelectSegment={handleSelectSegment}
-        currentQuestionText={currentQ?.questionText}
+        segments={hasD ? FOUR_CHOICE_SEGMENTS : undefined}
+        currentQuestionText={currentQ?.part === 'part1' ? undefined : currentQ?.questionText}
       />
 
       {/* Bottom Step Forward Button */}

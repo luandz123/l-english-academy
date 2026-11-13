@@ -126,6 +126,17 @@ export const Part2Step2Chunks: React.FC<Part2Step2ChunksProps> = ({
         })}
       </div>
 
+      {/* Optional Photo / Chart Image (Part 1 & Graphic Part 3/4) */}
+      {currentQ?.imageUrl && (
+        <div className="bg-card border border-border/80 rounded-2xl p-3 flex justify-center shadow-soft-xs">
+          <img
+            src={currentQ.imageUrl}
+            alt={`Câu ${currentQ.questionNumber}`}
+            className="max-h-56 sm:max-h-64 w-auto rounded-xl object-contain"
+          />
+        </div>
+      )}
+
       {/* Question Context Bar */}
       <div className="bg-card border border-border/80 rounded-2xl p-4 flex items-center justify-between gap-3 shadow-soft-xs">
         <div className="min-w-0">
