@@ -59,6 +59,7 @@ import { RoadmapSummaryCard } from "@/components/roadmap/RoadmapSummaryCard";
 import { DailyChallengeCard, FavoriteExamsCard, MistakeNotebookCard } from "@/components/practice/DashboardPracticeCards";
 import { RecommendationCard } from "@/components/analysis/AnalysisBits";
 import { ProgressSummaryCard } from "@/components/analysis/ProgressSummaryCard";
+import { VocabTodayCard } from "@/components/vocabulary/VocabTodayCard";
 import { useToast } from "@/hooks/use-toast";
 
 export const DashboardPage: React.FC = () => {
@@ -839,6 +840,7 @@ export const DashboardPage: React.FC = () => {
           <div className="lg:col-span-5 xl:col-span-4 space-y-6 xl:space-y-8">
             <RoadmapSummaryCard />
             <ProgressSummaryCard />
+            <VocabTodayCard />
             <DailyChallengeCard />
             <MistakeNotebookCard />
             <FavoriteExamsCard />

@@ -99,6 +99,9 @@ const PracticeHistoryPage = lazyWithRetry(() => import("./pages/PracticeHistoryP
 const MistakeNotebookPage = lazyWithRetry(() => import("./pages/MistakeNotebookPage"));
 const FavoritesPage = lazyWithRetry(() => import("./pages/FavoritesPage"));
 const AnalysisPage = lazyWithRetry(() => import("./pages/AnalysisPage"));
+const VocabularyNotebookPage = lazyWithRetry(() => import("./pages/VocabularyNotebookPage"));
+const VocabReviewPage = lazyWithRetry(() => import("./pages/VocabReviewPage"));
+const VocabBrowsePage = lazyWithRetry(() => import("./pages/VocabBrowsePage"));
 const ProgressPage = lazyWithRetry(() => import("./pages/ProgressPage"));
 const ComparePage = lazyWithRetry(() => import("./pages/ComparePage"));
 const DiagnosticPage = lazyWithRetry(() => import("./pages/DiagnosticPage"));
@@ -238,6 +241,9 @@ const App = () => {
                 <Route path="/mistakes" element={<ProtectedRoute><MistakeNotebookPage /></ProtectedRoute>} />
                 <Route path="/favorites" element={<ProtectedRoute><FavoritesPage /></ProtectedRoute>} />
                 <Route path="/analysis" element={<ProtectedRoute><AnalysisPage /></ProtectedRoute>} />
+                <Route path="/vocabulary" element={<ProtectedRoute><VocabularyNotebookPage /></ProtectedRoute>} />
+                <Route path="/vocabulary/review" element={<ProtectedRoute><VocabReviewPage /></ProtectedRoute>} />
+                <Route path="/vocabulary/browse" element={<ProtectedRoute><VocabBrowsePage /></ProtectedRoute>} />
                 <Route path="/progress" element={<ProtectedRoute><ProgressPage /></ProtectedRoute>} />
                 <Route path="/diagnostic" element={<ProtectedRoute><DiagnosticPage /></ProtectedRoute>} />
                 <Route path="/diagnostic/result/:id" element={<ProtectedRoute><DiagnosticResultPage /></ProtectedRoute>} />
