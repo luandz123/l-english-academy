@@ -423,6 +423,9 @@ describe('LearningService', () => {
           tagSource: null,
           practiceEligible: false,
           taggedAt: null,
+          grammarTopicId: null,
+          grammarTagSource: null,
+          grammarTaggedAt: null,
           answers: [
             {
               id: 1001,

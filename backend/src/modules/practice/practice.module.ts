@@ -18,6 +18,7 @@ import { QuestionTaggingService } from './question-tagging.service';
 /**
  * Luyện đề: theo dạng câu, Mini Test, Daily Challenge, sổ câu sai, thư viện đề có bộ lọc,
  * yêu thích, đề đã xác minh. Export MistakesService để AssessmentModule ghi câu sai khi nộp Full Test.
+ * Export PracticeService cho GrammarModule (lượt luyện theo chủ điểm ngữ pháp).
  */
 @Module({
   // LearningModule: canAccessCourse — quyền với câu = quyền với đề nguồn
@@ -39,6 +40,7 @@ import { QuestionTaggingService } from './question-tagging.service';
     QuestionTaggingService,
     DiagnosticService,
   ],
-  exports: [MistakesService],
+  // PracticeService: GrammarModule tạo lượt luyện câu TOEIC theo chủ điểm (G04) và câu TOEIC trong phiên ôn (G08)
+  exports: [MistakesService, PracticeService],
 })
 export class PracticeModule {}

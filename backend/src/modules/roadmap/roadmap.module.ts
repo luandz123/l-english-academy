@@ -13,5 +13,7 @@ import { RoadmapService } from './roadmap.service';
   imports: [AuthModule, LearningModule, AnalyticsModule],
   controllers: [RoadmapController],
   providers: [RoadmapService, RoadmapRepository, RoadmapMapper],
+  // GrammarModule (G01) đọc chặng hiện tại để gợi ý chủ điểm ngữ pháp
+  exports: [RoadmapService],
 })
 export class RoadmapModule {}

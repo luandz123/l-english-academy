@@ -18,6 +18,7 @@ import { RoadmapModule } from './modules/roadmap/roadmap.module';
 import { PracticeModule } from './modules/practice/practice.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { VocabularyModule } from './modules/vocabulary/vocabulary.module';
+import { GrammarModule } from './modules/grammar/grammar.module';
 
 @Module({
   imports: [
@@ -66,6 +67,7 @@ import { VocabularyModule } from './modules/vocabulary/vocabulary.module';
     PracticeModule,
     AnalyticsModule,
     VocabularyModule,
+    GrammarModule,
   ],
 })
 export class AppModule {}

@@ -43,6 +43,8 @@ export interface PoolFilter {
   passageTypes?: string[];
   difficulty?: 'easy' | 'medium' | 'hard';
   excludeIds?: number[];
+  /** Chủ điểm ngữ pháp (module grammar, G04) */
+  grammarTopicId?: number;
 }
 
 /** Bảng practice_sessions / practice_answers + đọc chỉ-đọc kho câu đã gắn nhãn. */
@@ -67,6 +69,7 @@ export class PracticeRepository {
           : [{ difficulty: f.difficulty }];
     }
     if (f.excludeIds?.length) where.id = { notIn: f.excludeIds };
+    if (f.grammarTopicId) where.grammarTopicId = f.grammarTopicId;
     return where;
   }
 
@@ -209,14 +212,16 @@ export class PracticeRepository {
 
   findActiveSession(userId: string) {
     return this.prisma.practiceSession.findFirst({
-      where: { userId, status: 'in_progress' },
+      // Câu TOEIC trong phiên ôn ngữ pháp được nộp ở màn ôn (module grammar), không hiện "đang làm dở" ở đây
+      where: { userId, status: 'in_progress', kind: { not: 'grammar_review' } },
       orderBy: { startedAt: 'desc' },
     });
   }
 
   findHistory(userId: string, limit: number) {
     return this.prisma.practiceSession.findMany({
-      where: { userId, status: 'submitted' },
+      // Lượt 1 câu của phiên ôn ngữ pháp không hiện ở lịch sử luyện đề (vẫn tính vào phân tích)
+      where: { userId, status: 'submitted', kind: { not: 'grammar_review' } },
       orderBy: { submittedAt: 'desc' },
       take: limit,
     });

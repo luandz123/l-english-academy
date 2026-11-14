@@ -117,6 +117,16 @@ export class MistakeFilterDto {
   )
   @IsBoolean()
   bookmarked?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Chỉ câu có chủ điểm ngữ pháp (Sổ lỗi ngữ pháp, G07)',
+  })
+  @IsOptional()
+  @Transform(({ obj, key }: { obj: Record<string, unknown>; key: string }) =>
+    toOptionalBoolean(obj[key]),
+  )
+  @IsBoolean()
+  grammar?: boolean;
 }
 
 export class ListMistakesQueryDto extends MistakeFilterDto {
