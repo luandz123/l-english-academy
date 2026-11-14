@@ -427,37 +427,52 @@ function extractFinishParams(html, cookie) {
   return { csrf, uid, firstQid };
 }
 
+function hasAllParts(html, partIds) {
+  return Boolean(html) && partIds.every((pid) => html.includes(`partcontent-${pid}`));
+}
+
 async function fetchOrReuseDetails(
   testMeta,
   partIds,
   cookie,
   cacheDir,
   practiceHtml = '',
-  existingResultId = null,
+  existingResultIds = [],
+  practiceFromCache = false,
 ) {
   const cachedFile = cacheDir ? path.join(cacheDir, `full_details_${testMeta.id}.html`) : null;
   if (cachedFile && fs.existsSync(cachedFile)) {
-    return fs.readFileSync(cachedFile, 'utf8');
+    const cachedHtml = fs.readFileSync(cachedFile, 'utf8');
+    if (hasAllParts(cachedHtml, partIds)) {
+      return cachedHtml;
+    }
+    fs.unlinkSync(cachedFile);
+    console.log(`  Discarding incomplete cached details for ${testMeta.id}...`);
   }
 
-  if (existingResultId) {
-    const existingDetailsUrl = `https://study4.com/tests/${testMeta.id}/${testMeta.slug}/results/${existingResultId}/details/`;
+  for (const rid of existingResultIds) {
+    const existingDetailsUrl = `https://study4.com/tests/${testMeta.id}/${testMeta.slug}/results/${rid}/details/`;
     const existingRes = await fetchText(existingDetailsUrl, cookie);
-    if (existingRes.status === 200 && existingRes.body.includes('questionexplanation-')) {
-      console.log(`  Reusing existing result ${existingResultId} (0 submission quota used).`);
+    if (
+      existingRes.status === 200 &&
+      existingRes.body.includes('questionexplanation-') &&
+      hasAllParts(existingRes.body, partIds)
+    ) {
+      console.log(`  Reusing existing result ${rid} (0 submission quota used).`);
       if (cachedFile) {
         fs.mkdirSync(path.dirname(cachedFile), { recursive: true });
         fs.writeFileSync(cachedFile, existingRes.body, 'utf8');
       }
       return existingRes.body;
     }
+    console.log(`  Existing result ${rid} is partial, skipping reuse.`);
   }
 
   const allPartsQuery = partIds.map((p) => `part=${encodeURIComponent(p)}`).join('&');
   const practiceUrl = `https://study4.com/tests/${testMeta.id}/practice/?${allPartsQuery}`;
   const startUrl = `https://study4.com/tests/${testMeta.id}/start/`;
 
-  let sourceHtml = practiceHtml;
+  let sourceHtml = practiceFromCache ? '' : practiceHtml;
   let sourceReferer = practiceUrl;
 
   for (let attempt = 1; attempt <= 6; attempt++) {
@@ -466,21 +481,39 @@ async function fetchOrReuseDetails(
       : { csrf: '', uid: '', firstQid: '' };
 
     if (!csrf || !firstQid) {
-      const startRes = await fetchText(startUrl, cookie, { redirect: 'manual' });
-      if (startRes.status === 302) {
+      const freshPractice = await fetchText(practiceUrl, cookie, {
+        headers: { Referer: testMeta.url },
+        redirect: 'manual',
+      });
+      if (freshPractice.status === 302) {
         if (attempt < 6) {
-          console.log(`  Rate limit cooldown on start ${testMeta.id}, waiting 65s (attempt ${attempt}/6)...`);
+          console.log(`  Rate limit cooldown on practice ${testMeta.id}, waiting 65s (attempt ${attempt}/6)...`);
           await sleep(65000);
           continue;
         }
-        throw new Error(`SKIP_GATED: Start GET ${startUrl} returned HTTP ${startRes.status}`);
+        throw new Error(`SKIP_GATED: Practice GET ${practiceUrl} returned HTTP ${freshPractice.status}`);
       }
-      if (startRes.status !== 200) {
-        throw new Error(`SKIP_GATED: Start GET ${startUrl} returned HTTP ${startRes.status}`);
+      if (freshPractice.status === 200 && freshPractice.body.includes('data-qid=')) {
+        sourceHtml = freshPractice.body;
+        sourceReferer = practiceUrl;
+        ({ csrf, uid, firstQid } = extractFinishParams(sourceHtml, cookie));
+      } else {
+        const startRes = await fetchText(startUrl, cookie, { redirect: 'manual' });
+        if (startRes.status === 302) {
+          if (attempt < 6) {
+            console.log(`  Rate limit cooldown on start ${testMeta.id}, waiting 65s (attempt ${attempt}/6)...`);
+            await sleep(65000);
+            continue;
+          }
+          throw new Error(`SKIP_GATED: Start GET ${startUrl} returned HTTP ${startRes.status}`);
+        }
+        if (startRes.status !== 200) {
+          throw new Error(`SKIP_GATED: Start GET ${startUrl} returned HTTP ${startRes.status}`);
+        }
+        sourceHtml = startRes.body;
+        sourceReferer = startUrl;
+        ({ csrf, uid, firstQid } = extractFinishParams(sourceHtml, cookie));
       }
-      sourceHtml = startRes.body;
-      sourceReferer = startUrl;
-      ({ csrf, uid, firstQid } = extractFinishParams(sourceHtml, cookie));
     }
 
     if (!csrf || !firstQid) {
@@ -611,10 +644,13 @@ async function main() {
     if (detailRes.status !== 200) {
       throw new Error(`Test page ${target.url} HTTP ${detailRes.status}`);
     }
-    const existingResultMatch = detailRes.body.match(
-      new RegExp(`/tests/${target.id}/[^"'\\s]*?/results/(\\d+)/`),
-    );
-    const existingResultId = existingResultMatch ? existingResultMatch[1] : null;
+    const existingResultIds = [
+      ...new Set(
+        [...detailRes.body.matchAll(new RegExp(`/tests/${target.id}/[^"'\\s]*?/results/(\\d+)/`, 'g'))].map(
+          (m) => m[1],
+        ),
+      ),
+    ];
 
     const dDoc = new JSDOM(detailRes.body).window.document;
     const rawH1 = dDoc.querySelector('h1')?.textContent?.replace(/\s+/g, ' ').trim() || target.slug;
@@ -630,9 +666,11 @@ async function main() {
     const practiceCache = cacheDir ? path.join(cacheDir, `practice_${target.id}.html`) : null;
     let practiceHtml = '';
     let audioByQid = new Map();
+    let practiceFromCache = false;
     if (practiceCache && fs.existsSync(practiceCache)) {
       practiceHtml = fs.readFileSync(practiceCache, 'utf8');
       audioByQid = buildAudioMap(practiceHtml);
+      if (audioByQid.size > 0) practiceFromCache = true;
     }
     if (audioByQid.size === 0) {
       const allPartsQuery = partIds.map((p) => `part=${encodeURIComponent(p)}`).join('&');
@@ -648,6 +686,7 @@ async function main() {
           if (mapped.size > 0) {
             practiceHtml = practiceRes.body;
             audioByQid = mapped;
+            practiceFromCache = false;
             if (practiceCache) {
               fs.mkdirSync(path.dirname(practiceCache), { recursive: true });
               fs.writeFileSync(practiceCache, practiceRes.body, 'utf8');
@@ -676,7 +715,8 @@ async function main() {
         cookie,
         cacheDir,
         practiceHtml,
-        existingResultId,
+        existingResultIds,
+        practiceFromCache,
       );
     } catch (e) {
       if (String(e.message).startsWith('SKIP_GATED:')) {
