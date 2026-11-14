@@ -198,10 +198,30 @@ async function deleteQuizIds(client, quizIds) {
   await client.query('DELETE FROM quizzes WHERE id = ANY($1::int[])', [quizIds]);
 }
 
+async function getTableCols(client, tableName) {
+  const { rows } = await client.query(
+    `SELECT column_name FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = $1`,
+    [tableName],
+  );
+  return new Set(rows.map((r) => r.column_name));
+}
+
 async function importIntoDatabase(label, connectionString, tests) {
   console.log(`\n=== Importing into ${label} ===`);
   const client = new Client({ connectionString, connectionTimeoutMillis: 10000 });
   await client.connect();
+
+  const ftCols = await getTableCols(client, 'full_tests');
+  const qCols = await getTableCols(client, 'questions');
+  const hasFtExtra =
+    ftCols.has('duration_minutes') &&
+    ftCols.has('test_type') &&
+    ftCols.has('verification_status') &&
+    ftCols.has('year');
+  const hasQExtra =
+    qCols.has('toeic_part') &&
+    qCols.has('part_index') &&
+    qCols.has('practice_eligible');
 
   try {
     await client.query('BEGIN');
@@ -269,8 +289,12 @@ async function importIntoDatabase(label, connectionString, tests) {
       }
 
       const ftInsert = await client.query(
-        `INSERT INTO full_tests (course_id, category, title, total_questions, display_order, audio_url, description, duration_minutes, test_type, verification_status, year)
+        hasFtExtra
+          ? `INSERT INTO full_tests (course_id, category, title, total_questions, display_order, audio_url, description, duration_minutes, test_type, verification_status, year)
          VALUES ($1, 'general', $2, $3, $4, $5, $6, 120, 'full', 'verified', 2026)
+         RETURNING id`
+          : `INSERT INTO full_tests (course_id, category, title, total_questions, display_order, audio_url, description)
+         VALUES ($1, 'general', $2, $3, $4, $5, $6)
          RETURNING id`,
         [
           ftCourseId,
@@ -322,27 +346,47 @@ async function importIntoDatabase(label, connectionString, tests) {
           }
 
           const qInsert = await client.query(
-            `INSERT INTO questions (
+            hasQExtra
+              ? `INSERT INTO questions (
                quiz_id, question_text, question_type, image_url, audio_url, display_order,
                translation, explanation, transcript, passage_text, group_id,
                toeic_part, part_index, practice_eligible
              ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,true)
+             RETURNING id`
+              : `INSERT INTO questions (
+               quiz_id, question_text, question_type, image_url, audio_url, display_order,
+               translation, explanation, transcript, passage_text, group_id
+             ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
              RETURNING id`,
-            [
-              quizId,
-              qText,
-              `part${partNumber}`,
-              q.imageUrl || null,
-              q.audioUrl || null,
-              q.questionNumber,
-              combinedTrans || null,
-              q.explanationText || null,
-              q.transcriptText || null,
-              q.passageHtml || null,
-              q.groupId || null,
-              partNumber,
-              pIdx + 1,
-            ],
+            hasQExtra
+              ? [
+                  quizId,
+                  qText,
+                  `part${partNumber}`,
+                  q.imageUrl || null,
+                  q.audioUrl || null,
+                  q.questionNumber,
+                  combinedTrans || null,
+                  q.explanationText || null,
+                  q.transcriptText || null,
+                  q.passageHtml || null,
+                  q.groupId || null,
+                  partNumber,
+                  pIdx + 1,
+                ]
+              : [
+                  quizId,
+                  qText,
+                  `part${partNumber}`,
+                  q.imageUrl || null,
+                  q.audioUrl || null,
+                  q.questionNumber,
+                  combinedTrans || null,
+                  q.explanationText || null,
+                  q.transcriptText || null,
+                  q.passageHtml || null,
+                  q.groupId || null,
+                ],
           );
           const newQid = qInsert.rows[0].id;
           importedFullTestQuestions++;
@@ -568,26 +612,45 @@ async function importIntoDatabase(label, connectionString, tests) {
 
         for (const item of spec.items) {
           const qInsert = await client.query(
-            `INSERT INTO questions (
+            hasQExtra
+              ? `INSERT INTO questions (
                quiz_id, question_text, question_type, image_url, audio_url, display_order,
                translation, dictation_keywords, explanation, transcript,
                toeic_part, part_index, practice_eligible
              ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,true)
+             RETURNING id`
+              : `INSERT INTO questions (
+               quiz_id, question_text, question_type, image_url, audio_url, display_order,
+               translation, dictation_keywords, explanation, transcript
+             ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
              RETURNING id`,
-            [
-              quizId,
-              item.questionText,
-              item.questionType,
-              item.imageUrl || null,
-              item.audioUrl || null,
-              item.displayOrder,
-              item.translation || null,
-              item.keywords || null,
-              item.explanation || null,
-              item.transcript || null,
-              Number(item.questionType.replace('part', '')),
-              item.displayOrder,
-            ],
+            hasQExtra
+              ? [
+                  quizId,
+                  item.questionText,
+                  item.questionType,
+                  item.imageUrl || null,
+                  item.audioUrl || null,
+                  item.displayOrder,
+                  item.translation || null,
+                  item.keywords || null,
+                  item.explanation || null,
+                  item.transcript || null,
+                  Number(item.questionType.replace('part', '')),
+                  item.displayOrder,
+                ]
+              : [
+                  quizId,
+                  item.questionText,
+                  item.questionType,
+                  item.imageUrl || null,
+                  item.audioUrl || null,
+                  item.displayOrder,
+                  item.translation || null,
+                  item.keywords || null,
+                  item.explanation || null,
+                  item.transcript || null,
+                ],
           );
           const qid = qInsert.rows[0].id;
           importedDictQuestions++;
@@ -684,17 +747,15 @@ async function importIntoDatabase(label, connectionString, tests) {
       }
     }
 
-    const taggedColRes = await client.query(
-      "SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'questions' AND column_name = 'tagged_at') AS has_col",
-    );
-    if (taggedColRes.rows[0]?.has_col) {
+    if (qCols.has('tagged_at')) {
       const untaggedRes = await client.query(
         `SELECT COUNT(*)::int AS cnt
          FROM questions q
          JOIN quizzes qz ON qz.id = q.quiz_id
          JOIN full_test_sections fts ON fts.quiz_id = qz.id
          JOIN full_tests ft ON ft.id = fts.test_id
-         WHERE ft.title LIKE 'TOEIC LR Collection 1%' AND q.tagged_at IS NULL`,
+         WHERE ft.course_id = $1 AND q.tagged_at IS NULL`,
+        [ftCourseId],
       );
       console.log(`  [TagCheck ${label}] Untagged Study4 FullTest questions: ${untaggedRes.rows[0].cnt}`);
     }
@@ -732,7 +793,21 @@ function buildPart2CoachClusters(tests) {
 
   for (let tIdx = 0; tIdx < tests.length; tIdx++) {
     const t = tests[tIdx];
-    const testNum = String(tIdx + 1).padStart(2, '0');
+    const colMatch = t.title.match(/Collection\s*(\d+)\s*Test\s*(\d+)/i);
+    const sampleMatch = t.title.match(/Sample\s*TOEIC\s*Test\s*(\d+)/i);
+    const colNum = colMatch ? Number(colMatch[1]) : null;
+    const rawTestNum = colMatch ? Number(colMatch[2]) : sampleMatch ? Number(sampleMatch[1]) : tIdx + 1;
+    const testNum = String(rawTestNum).padStart(2, '0');
+    const idPrefix = colNum
+      ? `study4-c${colNum}-t${rawTestNum}`
+      : sampleMatch
+      ? `study4-sample-t${rawTestNum}`
+      : `study4-idx${tIdx + 1}`;
+    const titlePrefix = colNum
+      ? `Study4 Collection ${colNum} - Test ${testNum}`
+      : sampleMatch
+      ? `Study4 Sample - Test ${testNum}`
+      : `Study4 ${t.title}`;
 
     // ---------------- PART 1 (6 câu / 1 cụm per test) ----------------
     const p1Parsed = [];
@@ -758,7 +833,7 @@ function buildPart2CoachClusters(tests) {
         }));
 
       p1Parsed.push({
-        id: Number(q.study4Qid) || 910000 + (tIdx + 1) * 100 + q.questionNumber,
+        id: Number(q.study4Qid) || 910000 + (tIdx + 1) * 1000 + q.questionNumber,
         part: 'part1',
         questionNumber: q.questionNumber,
         audioUrl: q.audioUrl,
@@ -809,9 +884,9 @@ function buildPart2CoachClusters(tests) {
       const startQ = p1Parsed[0].questionNumber;
       const endQ = p1Parsed[p1Parsed.length - 1].questionNumber;
       clusters.push({
-        id: `study4-c1-t${tIdx + 1}-p1-q${startQ}-q${endQ}`,
+        id: `${idPrefix}-p1-q${startQ}-q${endQ}`,
         part: 'part1',
-        title: `Study4 Collection 1 - Test ${testNum} (Part 1): Câu ${startQ} – ${endQ}`,
+        title: `${titlePrefix} (Part 1): Câu ${startQ} – ${endQ}`,
         description: `Luyện nghe mô tả tranh Part 1 (${p1Parsed.length} câu) từ ${t.title} kèm ảnh và transcript chi tiết.`,
         testSource: `Study4 ${t.title}`,
         difficulty: 'Cơ bản (500+)',
@@ -857,7 +932,7 @@ function buildPart2CoachClusters(tests) {
         .trim();
 
       parsedQuestions.push({
-        id: Number(q.study4Qid) || 900000 + (tIdx + 1) * 100 + q.questionNumber,
+        id: Number(q.study4Qid) || 900000 + (tIdx + 1) * 1000 + q.questionNumber,
         part: 'part2',
         questionNumber: q.questionNumber,
         audioUrl: q.audioUrl,
@@ -921,9 +996,9 @@ function buildPart2CoachClusters(tests) {
       const startQ = chunk[0].questionNumber;
       const endQ = chunk[chunk.length - 1].questionNumber;
       clusters.push({
-        id: `study4-c1-t${tIdx + 1}-q${startQ}-q${endQ}`,
+        id: `${idPrefix}-q${startQ}-q${endQ}`,
         part: 'part2',
-        title: `Study4 Collection 1 - Test ${testNum}: Câu ${startQ} – ${endQ}`,
+        title: `${titlePrefix}: Câu ${startQ} – ${endQ}`,
         description: `Luyện nghe phản xạ từng bước 5 câu Part 2 từ ${t.title} (Audio chuẩn Study4).`,
         testSource: `Study4 ${t.title}`,
         difficulty: i === 0 ? 'Cơ bản (500+)' : i < 15 ? 'Trung cấp (650+)' : 'Nâng cao (800+)',
@@ -968,7 +1043,7 @@ function buildPart2CoachClusters(tests) {
           }));
 
         const item = {
-          id: Number(q.study4Qid) || 900000 + partNum * 10000 + (tIdx + 1) * 100 + q.questionNumber,
+          id: Number(q.study4Qid) || 900000 + partNum * 100000 + (tIdx + 1) * 1000 + q.questionNumber,
           part: partKey,
           questionNumber: q.questionNumber,
           audioUrl: q.audioUrl,
@@ -1032,9 +1107,9 @@ function buildPart2CoachClusters(tests) {
         const endQ = chunk[chunk.length - 1].questionNumber;
         const partLabel = partNum === 3 ? 'Hội thoại ngắn' : 'Bài nói ngắn';
         clusters.push({
-          id: `study4-c1-t${tIdx + 1}-p${partNum}-q${startQ}-q${endQ}`,
+          id: `${idPrefix}-p${partNum}-q${startQ}-q${endQ}`,
           part: partKey,
-          title: `Study4 Collection 1 - Test ${testNum} (Part ${partNum}): Câu ${startQ} – ${endQ}`,
+          title: `${titlePrefix} (Part ${partNum}): Câu ${startQ} – ${endQ}`,
           description: `Luyện nghe Part ${partNum} (${partLabel} · ${chunk.length} câu) từ ${t.title} (Audio chuẩn Study4).`,
           testSource: `Study4 ${t.title}`,
           difficulty: sIdx === 0 ? 'Cơ bản (500+)' : difficultyLabel,
@@ -1064,10 +1139,29 @@ function buildPart2CoachClusters(tests) {
 function updatePart2CoachFile(newClusters) {
   const filePath = path.resolve('src/data/part2CoachData.ts');
   const src = fs.readFileSync(filePath, 'utf8');
+  const s4Marker = 'const STUDY4_PART2_CLUSTERS = ';
+  const baseMarker = 'const BASE_PART2_CLUSTERS: Part2Cluster[] = ';
+  const s4Idx = src.indexOf(s4Marker);
+  const baseIdx = src.indexOf(baseMarker);
+
+  const totalQs = newClusters.reduce((s, c) => s + c.questions.length, 0);
+
+  if (s4Idx !== -1 && baseIdx !== -1 && baseIdx > s4Idx) {
+    const prefix = src.slice(0, s4Idx);
+    const tail = src.slice(baseIdx);
+    const serialized = JSON.stringify(JSON.stringify(newClusters));
+    const updated = `${prefix}${s4Marker}JSON.parse(${serialized}) as Part2Cluster[];\n\n${tail}`;
+    fs.writeFileSync(filePath, updated, 'utf8');
+    console.log(
+      `\n[Part2Coach] Updated ${filePath}: wrote ${newClusters.length} Study4 clusters (${totalQs} questions) + preserved BASE_PART2_CLUSTERS.`,
+    );
+    return;
+  }
+
   const marker = 'export const PART2_CLUSTERS: Part2Cluster[] = ';
   const markerIdx = src.indexOf(marker);
   if (markerIdx === -1) {
-    throw new Error('Could not find export const PART2_CLUSTERS in src/data/part2CoachData.ts');
+    throw new Error('Could not find PART2_CLUSTERS markers in src/data/part2CoachData.ts');
   }
 
   const prefix = src.slice(0, markerIdx + marker.length);
@@ -1079,7 +1173,7 @@ function updatePart2CoachFile(newClusters) {
   const updated = `${prefix}${JSON.stringify(combined, null, 2)};\n`;
   fs.writeFileSync(filePath, updated, 'utf8');
   console.log(
-    `\n[Part2Coach] Updated ${filePath}: added ${newClusters.length} Study4 clusters (${newClusters.reduce((s, c) => s + c.questions.length, 0)} questions), kept ${keptExisting.length} existing clusters.`,
+    `\n[Part2Coach] Updated ${filePath}: added ${newClusters.length} Study4 clusters (${totalQs} questions), kept ${keptExisting.length} existing clusters.`,
   );
 }
 

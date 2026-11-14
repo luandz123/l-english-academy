@@ -82,10 +82,10 @@ export const getCleanClusterInfo = (cluster: Part2Cluster, index: number) => {
   const padIndex = String(index + 1).padStart(2, '0');
   const clusterPart: ListeningPartKey = cluster.part ?? 'part2';
 
-  const study4 = cluster.title.match(/^Study4 Collection 1 - Test (\d+)(?:\s*\(Part (\d)\))?:\s*(.*)$/i);
+  const study4 = cluster.title.match(/^Study4 (?:Collection (\d+)|Sample) - Test (\d+)(?:\s*\(Part (\d)\))?:\s*(.*)$/i);
   const fulltest = cluster.title.match(/^Đề Thi Fulltest (\d+):\s*(.*)$/i);
   const dictation = cluster.title.match(/^Điền Từ Part 2 - Cụm \d+:\s*(.*)$/i);
-  const rest = (study4?.[3] ?? fulltest?.[2] ?? dictation?.[1] ?? cluster.title).trim();
+  const rest = (study4?.[4] ?? fulltest?.[2] ?? dictation?.[1] ?? cluster.title).trim();
   const isRangeOnly = /^Câu \d+\s*[–-]\s*\d+$/i.test(rest);
 
   const types = getClusterQuestionTypes(cluster);
@@ -99,7 +99,11 @@ export const getCleanClusterInfo = (cluster: Part2Cluster, index: number) => {
   const formattedTitle = `Bài ${padIndex}: ${topic}`;
 
   const sourceName = study4
-    ? `Study4 Test ${study4[1]}`
+    ? study4[1]
+      ? study4[1] === '1'
+        ? `Study4 Test ${study4[2]}`
+        : `Study4 Col ${study4[1]} · Test ${study4[2]}`
+      : `Study4 Sample · Test ${study4[2]}`
     : fulltest
     ? `Đề Fulltest ${fulltest[1]}`
     : 'Bài nghe điền từ';

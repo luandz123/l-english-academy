@@ -396,112 +396,214 @@ function parseDetailsHtml(detailsHtml, testMeta, partIds, audioByQid) {
   };
 }
 
-async function fetchOrReuseDetails(testMeta, partIds, cookie, cacheDir) {
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+function saveOutputJson(outPath, collectionFilter, tests) {
+  fs.mkdirSync(path.dirname(outPath), { recursive: true });
+  fs.writeFileSync(
+    outPath,
+    JSON.stringify(
+      {
+        source: 'https://study4.com/tests/toeic/',
+        crawledAt: new Date().toISOString(),
+        collectionFilter,
+        testCount: tests.length,
+        tests,
+      },
+      null,
+      2,
+    ),
+    'utf8',
+  );
+}
+
+function extractFinishParams(html, cookie) {
+  const doc = new JSDOM(html).window.document;
+  const csrf =
+    doc.querySelector('input[name="csrfmiddlewaretoken"]')?.getAttribute('value') ||
+    getCookieValue(cookie, 'csrftoken');
+  const uid = doc.querySelector('input[name="uid"]')?.getAttribute('value') || '';
+  const firstQid = doc.querySelector('[data-qid]')?.getAttribute('data-qid') || '';
+  return { csrf, uid, firstQid };
+}
+
+async function fetchOrReuseDetails(
+  testMeta,
+  partIds,
+  cookie,
+  cacheDir,
+  practiceHtml = '',
+  existingResultId = null,
+) {
   const cachedFile = cacheDir ? path.join(cacheDir, `full_details_${testMeta.id}.html`) : null;
   if (cachedFile && fs.existsSync(cachedFile)) {
     return fs.readFileSync(cachedFile, 'utf8');
   }
 
+  if (existingResultId) {
+    const existingDetailsUrl = `https://study4.com/tests/${testMeta.id}/${testMeta.slug}/results/${existingResultId}/details/`;
+    const existingRes = await fetchText(existingDetailsUrl, cookie);
+    if (existingRes.status === 200 && existingRes.body.includes('questionexplanation-')) {
+      console.log(`  Reusing existing result ${existingResultId} (0 submission quota used).`);
+      if (cachedFile) {
+        fs.mkdirSync(path.dirname(cachedFile), { recursive: true });
+        fs.writeFileSync(cachedFile, existingRes.body, 'utf8');
+      }
+      return existingRes.body;
+    }
+  }
+
+  const allPartsQuery = partIds.map((p) => `part=${encodeURIComponent(p)}`).join('&');
+  const practiceUrl = `https://study4.com/tests/${testMeta.id}/practice/?${allPartsQuery}`;
   const startUrl = `https://study4.com/tests/${testMeta.id}/start/`;
-  const startRes = await fetchText(startUrl, cookie, { redirect: 'manual' });
-  if (startRes.status !== 200) {
-    throw new Error(`SKIP_GATED: Start GET ${startUrl} returned HTTP ${startRes.status}`);
-  }
-  const sDoc = new JSDOM(startRes.body).window.document;
-  const csrf =
-    sDoc.querySelector('input[name="csrfmiddlewaretoken"]')?.getAttribute('value') ||
-    getCookieValue(cookie, 'csrftoken');
-  const uid = sDoc.querySelector('input[name="uid"]')?.getAttribute('value') || '';
-  const firstQid = sDoc.querySelector('[data-qid]')?.getAttribute('data-qid');
 
-  if (!csrf || !firstQid) {
-    throw new Error(`Could not extract csrf/firstQid from ${startUrl} (maybe not logged in?)`);
-  }
+  let sourceHtml = practiceHtml;
+  let sourceReferer = practiceUrl;
 
-  const nowSec = Math.floor(Date.now() / 1000);
-  const form = new URLSearchParams();
-  form.set('csrfmiddlewaretoken', csrf);
-  form.set('start_time', String(nowSec - 60));
-  form.set('end_time', String(nowSec));
-  form.set('time_limit', '120.0');
-  form.set('timeleft_value', '119.0');
-  if (uid) form.set('uid', uid);
-  form.set('extra_data', '');
-  form.set(`question-${firstQid}`, 'A');
+  for (let attempt = 1; attempt <= 6; attempt++) {
+    let { csrf, uid, firstQid } = sourceHtml
+      ? extractFinishParams(sourceHtml, cookie)
+      : { csrf: '', uid: '', firstQid: '' };
 
-  const finishUrl = `https://study4.com/tests/${testMeta.id}/finish/`;
-  const finishRes = await fetch(finishUrl, {
-    method: 'POST',
-    redirect: 'manual',
-    headers: {
-      'User-Agent': DEFAULT_UA,
-      Cookie: cookie,
-      'Content-Type': 'application/x-www-form-urlencoded',
-      Origin: 'https://study4.com',
-      Referer: startUrl,
-      'X-CSRFToken': csrf,
-    },
-    body: form.toString(),
-  });
+    if (!csrf || !firstQid) {
+      const startRes = await fetchText(startUrl, cookie, { redirect: 'manual' });
+      if (startRes.status === 302) {
+        if (attempt < 6) {
+          console.log(`  Rate limit cooldown on start ${testMeta.id}, waiting 65s (attempt ${attempt}/6)...`);
+          await sleep(65000);
+          continue;
+        }
+        throw new Error(`SKIP_GATED: Start GET ${startUrl} returned HTTP ${startRes.status}`);
+      }
+      if (startRes.status !== 200) {
+        throw new Error(`SKIP_GATED: Start GET ${startUrl} returned HTTP ${startRes.status}`);
+      }
+      sourceHtml = startRes.body;
+      sourceReferer = startUrl;
+      ({ csrf, uid, firstQid } = extractFinishParams(sourceHtml, cookie));
+    }
 
-  const location = finishRes.headers.get('location');
-  if (finishRes.status !== 302 || !location || !location.includes('/results/')) {
+    if (!csrf || !firstQid) {
+      throw new Error(`Could not extract csrf/firstQid for test ${testMeta.id} (maybe not logged in?)`);
+    }
+
+    const nowSec = Math.floor(Date.now() / 1000);
+    const form = new URLSearchParams();
+    form.set('csrfmiddlewaretoken', csrf);
+    form.set('start_time', String(nowSec - 60));
+    form.set('end_time', String(nowSec));
+    form.set('time_limit', sourceReferer.includes('/practice/') ? '0' : '120.0');
+    form.set('timeleft_value', sourceReferer.includes('/practice/') ? '0' : '119.0');
+    if (uid) form.set('uid', uid);
+    form.set('extra_data', '');
+    form.set(`question-${firstQid}`, 'A');
+
+    const finishUrl = `https://study4.com/tests/${testMeta.id}/finish/`;
+    const finishRes = await fetch(finishUrl, {
+      method: 'POST',
+      redirect: 'manual',
+      headers: {
+        'User-Agent': DEFAULT_UA,
+        Cookie: cookie,
+        'Content-Type': 'application/x-www-form-urlencoded',
+        Origin: 'https://study4.com',
+        Referer: sourceReferer,
+        'X-CSRFToken': csrf,
+      },
+      body: form.toString(),
+    });
+
+    const location = finishRes.headers.get('location') || '';
+    if (finishRes.status === 302 && location.includes('/results/')) {
+      const resultsUrl = location.startsWith('http') ? location : `https://study4.com${location}`;
+      const detailsUrl = resultsUrl.endsWith('/') ? `${resultsUrl}details/` : `${resultsUrl}/details/`;
+      const detailsRes = await fetchText(detailsUrl, cookie);
+      if (detailsRes.status !== 200) {
+        throw new Error(`Details GET ${detailsUrl} returned HTTP ${detailsRes.status}`);
+      }
+      if (cachedFile) {
+        fs.mkdirSync(path.dirname(cachedFile), { recursive: true });
+        fs.writeFileSync(cachedFile, detailsRes.body, 'utf8');
+      }
+      return detailsRes.body;
+    }
+
+    if (finishRes.status === 302 && attempt < 6) {
+      console.log(
+        `  [RateLimit] Finish ${testMeta.id} redirected (${location}), waiting 65s (attempt ${attempt}/6)...`,
+      );
+      await sleep(65000);
+      sourceHtml = '';
+      const freshPractice = await fetchText(practiceUrl, cookie, {
+        headers: { Referer: testMeta.url },
+        redirect: 'manual',
+      });
+      if (freshPractice.status === 200 && freshPractice.body.includes('data-qid=')) {
+        sourceHtml = freshPractice.body;
+        sourceReferer = practiceUrl;
+      }
+      continue;
+    }
+
     const body = await finishRes.text();
-    throw new Error(`Finish POST ${finishUrl} unexpected HTTP ${finishRes.status} location=${location} body=${body.slice(0, 300)}`);
+    throw new Error(
+      `Finish POST ${finishUrl} unexpected HTTP ${finishRes.status} location=${location} body=${body.slice(0, 300)}`,
+    );
   }
 
-  const resultsUrl = location.startsWith('http') ? location : `https://study4.com${location}`;
-  const detailsUrl = resultsUrl.endsWith('/') ? `${resultsUrl}details/` : `${resultsUrl}/details/`;
-  const detailsRes = await fetchText(detailsUrl, cookie);
-  if (detailsRes.status !== 200) {
-    throw new Error(`Details GET ${detailsUrl} returned HTTP ${detailsRes.status}`);
-  }
-  if (cachedFile) {
-    fs.mkdirSync(path.dirname(cachedFile), { recursive: true });
-    fs.writeFileSync(cachedFile, detailsRes.body, 'utf8');
-  }
-  return detailsRes.body;
+  throw new Error(`Exceeded rate-limit retries for test ${testMeta.id}`);
 }
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
-  const limit = Number.parseInt(args.limit || '10', 10);
-  const collectionFilter = args.filter || 'toeic-lr-collection-1-test-';
+  const limit = Number.parseInt(args.limit || '60', 10);
+  const maxPages = Number.parseInt(args.pages || '3', 10);
+  const collectionFilter = args.filter ?? '';
+  const includeOld = Boolean(args['include-old']);
   const cacheDir = args['cache-dir'] || '';
-  const outPath = args.out || 'scripts/study4-toeic-collection-1.json';
+  const outPath = args.out || 'scripts/study4-toeic-all.json';
   const cookie = loadCookie(args['cookie-file']);
 
-  console.log(`Fetching TOEIC test list (filter="${collectionFilter}", limit=${limit})...`);
-  const listRes = await fetchText('https://study4.com/tests/toeic/', cookie);
-  if (listRes.status !== 200) {
-    throw new Error(`Failed to fetch test list: HTTP ${listRes.status}`);
-  }
+  console.log(
+    `Fetching TOEIC test list (pages=${maxPages}, filter="${collectionFilter}", limit=${limit}, includeOld=${includeOld})...`,
+  );
 
-  const listDoc = new JSDOM(listRes.body).window.document;
   const seen = new Set();
   const candidates = [];
-  for (const a of listDoc.querySelectorAll('a[href*="/tests/"]')) {
-    const href = a.getAttribute('href') || '';
-    const m = href.match(/^\/tests\/(\d+)\/([^/]+)\/?$/);
-    if (!m) continue;
-    const [, id, slug] = m;
-    if (!slug.includes(collectionFilter)) continue;
-    if (seen.has(id)) continue;
-    seen.add(id);
-    candidates.push({
-      id,
-      slug,
-      url: `https://study4.com/tests/${id}/${slug}/`,
-    });
+  for (let page = 1; page <= maxPages; page++) {
+    const listUrl = page === 1 ? 'https://study4.com/tests/toeic/' : `https://study4.com/tests/toeic/?page=${page}`;
+    const listRes = await fetchText(listUrl, cookie);
+    if (listRes.status !== 200) {
+      throw new Error(`Failed to fetch test list page ${page}: HTTP ${listRes.status}`);
+    }
+
+    const listDoc = new JSDOM(listRes.body).window.document;
+    let addedOnPage = 0;
+    for (const a of listDoc.querySelectorAll('a[href*="/tests/"]')) {
+      const href = a.getAttribute('href') || '';
+      const m = href.match(/^\/tests\/(\d+)\/([^/]+)\/?$/);
+      if (!m) continue;
+      const [, id, slug] = m;
+      if (!includeOld && slug.startsWith('old-format-')) continue;
+      if (collectionFilter && !slug.includes(collectionFilter)) continue;
+      if (seen.has(id)) continue;
+      seen.add(id);
+      candidates.push({
+        id,
+        slug,
+        url: `https://study4.com/tests/${id}/${slug}/`,
+      });
+      addedOnPage++;
+    }
+    console.log(`  Page ${page}: added ${addedOnPage} tests (total so far: ${candidates.length}).`);
   }
 
   const targets = candidates.slice(0, limit);
   if (targets.length === 0) {
-    throw new Error(`No matching tests found on page 1 for filter="${collectionFilter}"`);
+    throw new Error(`No matching tests found across ${maxPages} pages for filter="${collectionFilter}"`);
   }
   console.log(`Found ${candidates.length} matching tests; crawling ${targets.length}.`);
 
-  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const tests = [];
   for (const target of targets) {
     console.log(`\n[${target.id}] ${target.slug}...`);
@@ -509,6 +611,11 @@ async function main() {
     if (detailRes.status !== 200) {
       throw new Error(`Test page ${target.url} HTTP ${detailRes.status}`);
     }
+    const existingResultMatch = detailRes.body.match(
+      new RegExp(`/tests/${target.id}/[^"'\\s]*?/results/(\\d+)/`),
+    );
+    const existingResultId = existingResultMatch ? existingResultMatch[1] : null;
+
     const dDoc = new JSDOM(detailRes.body).window.document;
     const rawH1 = dDoc.querySelector('h1')?.textContent?.replace(/\s+/g, ' ').trim() || target.slug;
     const title = rawH1.replace(/^Đề thi thử TOEIC\s*/i, '').trim() || rawH1;
@@ -521,31 +628,37 @@ async function main() {
     }
 
     const practiceCache = cacheDir ? path.join(cacheDir, `practice_${target.id}.html`) : null;
+    let practiceHtml = '';
     let audioByQid = new Map();
     if (practiceCache && fs.existsSync(practiceCache)) {
-      const cachedBody = fs.readFileSync(practiceCache, 'utf8');
-      audioByQid = buildAudioMap(cachedBody);
+      practiceHtml = fs.readFileSync(practiceCache, 'utf8');
+      audioByQid = buildAudioMap(practiceHtml);
     }
     if (audioByQid.size === 0) {
-      const listeningQuery = partIds
-        .slice(0, 4)
-        .map((p) => `part=${encodeURIComponent(p)}`)
-        .join('&');
-      const practiceUrl = `https://study4.com/tests/${target.id}/practice/?${listeningQuery}`;
-      for (let attempt = 1; attempt <= 2; attempt++) {
-        await sleep(attempt === 1 ? 1500 : 3500);
+      const allPartsQuery = partIds.map((p) => `part=${encodeURIComponent(p)}`).join('&');
+      const practiceUrl = `https://study4.com/tests/${target.id}/practice/?${allPartsQuery}`;
+      for (let attempt = 1; attempt <= 6; attempt++) {
+        await sleep(attempt === 1 ? 1000 : 65000);
         const practiceRes = await fetchText(practiceUrl, cookie, {
           headers: { Referer: target.url },
+          redirect: 'manual',
         });
         if (practiceRes.status === 200) {
-          audioByQid = buildAudioMap(practiceRes.body);
-          if (audioByQid.size > 0) {
+          const mapped = buildAudioMap(practiceRes.body);
+          if (mapped.size > 0) {
+            practiceHtml = practiceRes.body;
+            audioByQid = mapped;
             if (practiceCache) {
               fs.mkdirSync(path.dirname(practiceCache), { recursive: true });
               fs.writeFileSync(practiceCache, practiceRes.body, 'utf8');
             }
             break;
           }
+        }
+        if (attempt < 6) {
+          console.log(
+            `  Rate limit cooldown on practice ${target.id} (status=${practiceRes.status}), waiting 65s (attempt ${attempt}/6)...`,
+          );
         }
       }
     }
@@ -562,6 +675,8 @@ async function main() {
         partIds,
         cookie,
         cacheDir,
+        practiceHtml,
+        existingResultId,
       );
     } catch (e) {
       if (String(e.message).startsWith('SKIP_GATED:')) {
@@ -581,24 +696,10 @@ async function main() {
       console.warn(`  WARNING: incomplete data for test ${target.id}`);
     }
     tests.push(parsed);
+    saveOutputJson(outPath, collectionFilter, tests);
   }
 
-  fs.mkdirSync(path.dirname(outPath), { recursive: true });
-  fs.writeFileSync(
-    outPath,
-    JSON.stringify(
-      {
-        source: 'https://study4.com/tests/toeic/',
-        crawledAt: new Date().toISOString(),
-        collectionFilter,
-        testCount: tests.length,
-        tests,
-      },
-      null,
-      2,
-    ),
-    'utf8',
-  );
+  saveOutputJson(outPath, collectionFilter, tests);
   console.log(`\nSaved ${tests.length} tests (${tests.reduce((s, t) => s + t.totalQuestions, 0)} questions) -> ${outPath}`);
 }
 
