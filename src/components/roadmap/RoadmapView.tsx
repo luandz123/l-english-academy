@@ -1,5 +1,7 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { getGrammarLinks } from "@/lib/api/grammar";
 import {
   AlertTriangle,
   BookOpen,
@@ -47,6 +49,13 @@ interface Props {
 export const RoadmapView: React.FC<Props> = ({ roadmap, onRedo, onDelete, deleting }) => {
   const s = roadmap.summary;
   const status = STATUS_META[s.status];
+  // Chủ điểm ngữ pháp đã có nội dung → chữ trong chặng thành link sang trang chủ điểm
+  const { data: links } = useQuery({ queryKey: ["grammar-links"], queryFn: getGrammarLinks, staleTime: 5 * 60_000 });
+  const grammarLinks = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const l of links ?? []) for (const label of l.roadmap_labels) if (!m.has(label)) m.set(label, l.slug);
+    return m;
+  }, [links]);
   const weekPercent = Math.round((s.current_week / s.total_weeks) * 100);
 
   return (
@@ -210,7 +219,7 @@ export const RoadmapView: React.FC<Props> = ({ roadmap, onRedo, onDelete, deleti
               </div>
 
               <div className="grid md:grid-cols-3 gap-4">
-                <TopicList title="Ngữ pháp" icon={PenLine} items={p.grammar_topics} />
+                <TopicList title="Ngữ pháp" icon={PenLine} items={p.grammar_topics} links={grammarLinks} />
                 <TopicList title="Từ vựng" icon={Layers} items={p.vocab_topics} />
                 <TopicList title="Luyện tập" icon={Target} items={p.practice} />
               </div>
@@ -248,7 +257,7 @@ export const RoadmapView: React.FC<Props> = ({ roadmap, onRedo, onDelete, deleti
   );
 };
 
-const TopicList: React.FC<{ title: string; icon: React.ElementType; items: string[] }> = ({ title, icon: Icon, items }) => (
+const TopicList: React.FC<{ title: string; icon: React.ElementType; items: string[]; links?: Map<string, string> }> = ({ title, icon: Icon, items, links }) => (
   <div className="p-4 rounded-2xl bg-[#030712]/80 border border-slate-800">
     <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
       <Icon className="w-4 h-4 text-cyan-400" /> {title}
@@ -257,7 +266,13 @@ const TopicList: React.FC<{ title: string; icon: React.ElementType; items: strin
       {items.map((t) => (
         <li key={t} className="text-sm text-slate-200 flex gap-2">
           <span className="text-cyan-400">•</span>
-          <span>{t}</span>
+          {links?.get(t) ? (
+            <Link to={`/grammar/${links.get(t)}`} className="text-cyan-200 hover:text-cyan-100 underline underline-offset-2 decoration-cyan-500/40">
+              {t}
+            </Link>
+          ) : (
+            <span>{t}</span>
+          )}
         </li>
       ))}
     </ul>

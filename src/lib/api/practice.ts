@@ -46,6 +46,8 @@ export interface MistakeFilter {
   recent_days?: number;
   min_wrong?: number;
   bookmarked?: boolean;
+  /** Chỉ câu có chủ điểm ngữ pháp */
+  grammar?: boolean;
 }
 
 export interface CreateSessionBody {
@@ -369,6 +371,7 @@ export const listMistakes = (f: MistakeFilter & { page?: number; limit?: number 
       recent_days: f.recent_days,
       min_wrong: f.min_wrong,
       bookmarked: f.bookmarked,
+      grammar: f.grammar,
       page: f.page,
       limit: f.limit,
     },
