@@ -17,6 +17,7 @@ import { MediaModule } from './modules/media/media.module';
 import { RoadmapModule } from './modules/roadmap/roadmap.module';
 import { PracticeModule } from './modules/practice/practice.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { VocabularyModule } from './modules/vocabulary/vocabulary.module';
 
 @Module({
   imports: [
@@ -64,6 +65,7 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
     RoadmapModule,
     PracticeModule,
     AnalyticsModule,
+    VocabularyModule,
   ],
 })
 export class AppModule {}

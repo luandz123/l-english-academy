@@ -14,6 +14,7 @@ import { useSound } from "@/hooks/useSound";
 import { useGamification } from "@/hooks/useGamification";
 import { MysteryChestModal } from "@/components/MysteryChestModal";
 import EmptyState from "@/components/EmptyState";
+import { SavePackWordButton } from "@/components/vocabulary/SavePackWordButton";
 
 export default function VocabLessonPage() {
   const { courseId, lessonId } = useParams();
@@ -297,6 +298,9 @@ export default function VocabLessonPage() {
                   <p className="text-xl text-primary font-mono font-bold bg-primary/10 border border-primary/20 px-4 py-1.5 rounded-xl inline-block mt-2">
                     {word.phonetic}
                   </p>
+                  <div className="mt-3 flex justify-center">
+                    <SavePackWordButton packWordId={word.id} word={word.word} />
+                  </div>
                 </div>
 
                 <div 

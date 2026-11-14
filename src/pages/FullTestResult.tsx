@@ -1,6 +1,8 @@
 import StudentLayout from "@/components/StudentLayout";
 import { useParams, useLocation, Link, useSearchParams } from "react-router-dom";
 import { RecommendationCard } from "@/components/analysis/AnalysisBits";
+import { InteractiveTranscript } from "@/components/vocabulary/InteractiveTranscript";
+import { SelectionSaver } from "@/components/vocabulary/SelectionSaver";
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -445,10 +447,12 @@ const FullTestResult = () => {
                             )}
 
                             {group.passage && (
-                              <div 
-                                className="prose prose-sm max-w-none text-foreground font-medium bg-card p-5 rounded-xl border border-border/60 leading-relaxed shadow-soft-xs"
-                                dangerouslySetInnerHTML={{ __html: group.passage }}
-                              />
+                              <SelectionSaver>
+                                <div 
+                                  className="prose prose-sm max-w-none text-foreground font-medium bg-card p-5 rounded-xl border border-border/60 leading-relaxed shadow-soft-xs"
+                                  dangerouslySetInnerHTML={{ __html: group.passage }}
+                                />
+                              </SelectionSaver>
                             )}
                           </div>
                         )}
@@ -562,8 +566,9 @@ const FullTestResult = () => {
                             </div>
                           )}
                           {q.transcript && (
-                            <div className="p-3 bg-primary/10 border border-primary/20 rounded-xl text-xs font-medium text-primary">
-                              📝 <b className="font-bold">Transcript:</b> {q.transcript}
+                            <div className="p-3 bg-primary/10 border border-primary/20 rounded-xl text-xs font-medium text-primary space-y-2">
+                              📝 <b className="font-bold">Transcript:</b>
+                              <InteractiveTranscript text={q.transcript} sourceRef={String(q.id)} />
                             </div>
                           )}
                         </div>
