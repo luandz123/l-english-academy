@@ -14,6 +14,7 @@ const KIND_LABELS: Record<string, string> = {
   daily: "Daily Challenge",
   mistakes: "Câu sai",
   retry: "Luyện lại",
+  grammar_topic: "Ngữ pháp",
 };
 
 /** Lịch sử lượt luyện (mỗi lượt có mã riêng, lưu như một lượt thi). */

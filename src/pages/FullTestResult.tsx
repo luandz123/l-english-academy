@@ -2,6 +2,7 @@ import StudentLayout from "@/components/StudentLayout";
 import { useParams, useLocation, Link, useSearchParams } from "react-router-dom";
 import { RecommendationCard } from "@/components/analysis/AnalysisBits";
 import { InteractiveTranscript } from "@/components/vocabulary/InteractiveTranscript";
+import { GrammarTopicLine } from "@/components/grammar/GrammarTopicLine";
 import { SelectionSaver } from "@/components/vocabulary/SelectionSaver";
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -560,6 +561,7 @@ const FullTestResult = () => {
                               🇻🇳 <b className="font-bold text-foreground">Dịch nghĩa:</b> {q.translation}
                             </div>
                           )}
+                          {(q.part_number === 5 || q.part_number === 6) && <GrammarTopicLine questionId={q.id} part={q.part_number} className="text-xs text-muted-foreground flex flex-wrap items-center gap-1.5" />}
                           {(q.explanation || correctOpt?.explanation) && (
                             <div className="p-3 bg-success/10 border border-success/30 rounded-xl text-xs font-medium text-success">
                               💡 <b className="font-bold">Giải thích:</b> {q.explanation || correctOpt?.explanation}

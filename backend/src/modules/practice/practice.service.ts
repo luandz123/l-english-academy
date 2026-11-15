@@ -372,6 +372,102 @@ export class PracticeService {
     return this.mapper.toSummary(session, 0);
   }
 
+  // ---------------- Cho module grammar ----------------
+
+  /**
+   * G04: lượt luyện câu Part 5/6 của một chủ điểm ngữ pháp (theo quyền đề nguồn). "Ưu tiên câu chưa
+   * làm": lấy câu chưa làm trước, thiếu thì bù câu đã làm.
+   */
+  async createGrammarTopicSession(
+    user: AuthenticatedUser,
+    dto: CreateSessionDto,
+    topic: { id: number; slug: string; name: string },
+  ): Promise<SessionSummaryDto> {
+    const count = this.requireCount(dto.count);
+    const testIds = [...(await this.access.accessibleTestIds(user))];
+    const pool = await this.repo.findPool({
+      testIds,
+      parts: [5, 6],
+      difficulty: this.difficulty(dto),
+      grammarTopicId: topic.id,
+    });
+    let ids = this.pickOrFail(pool, count, 'random', Math.random);
+    if (dto.unseen_only) {
+      const seen = new Set(await this.repo.seenQuestionIds(user.id));
+      const fresh = pool.filter((p) => !seen.has(p.id));
+      const freshCount = Math.min(count, new Set(fresh.map((p) => p.id)).size);
+      const first = freshCount
+        ? pickQuestions(fresh, freshCount, 'random', Math.random)
+        : [];
+      const rest = pool.filter((p) => !first.includes(p.id));
+      ids =
+        first.length >= count
+          ? first
+          : [
+              ...first,
+              ...pickQuestions(
+                rest,
+                count - first.length,
+                'random',
+                Math.random,
+              ),
+            ];
+    }
+    const parts = await this.partsOf(ids);
+    return this.persist(
+      user.id,
+      { ...dto, kind: 'question_type' },
+      {
+        kind: 'grammar_topic',
+        skill: 'reading',
+        ids,
+        title: `Ngữ pháp · ${topic.name}`,
+        parts,
+        extra: { grammar_topic: topic.slug },
+      },
+    );
+  }
+
+  /**
+   * G08/G07: lượt luyện (phản hồi ngay) cho câu TOEIC trong phiên ôn ngữ pháp hoặc "Làm lại" một lỗi.
+   * Chỉ giữ câu thuộc đề có quyền; nộp lượt thì câu vào sổ câu sai và phân tích như lượt luyện lại.
+   */
+  async createGrammarReviewSession(
+    user: AuthenticatedUser,
+    questionIds: number[],
+    title: string,
+    extra: Record<string, unknown>,
+  ): Promise<SessionSummaryDto | null> {
+    const allowed = await this.access.accessibleTestIds(user);
+    const sources = await this.repo.findQuestionSources([
+      ...new Set(questionIds),
+    ]);
+    const ok = new Set(
+      sources
+        .filter((q) => q.sourceTestId !== null && allowed.has(q.sourceTestId))
+        .map((q) => q.id),
+    );
+    const ids = questionIds.filter((id) => ok.has(id));
+    if (ids.length === 0) return null;
+    const parts = await this.partsOf(ids);
+    return this.persist(
+      user.id,
+      {
+        kind: 'questions',
+        mode: 'practice',
+        feedback: 'immediate',
+      },
+      {
+        kind: 'grammar_review',
+        skill: skillOf(parts),
+        ids,
+        title,
+        parts,
+        extra,
+      },
+    );
+  }
+
   // ---------------- Daily Challenge ----------------
 
   async getDaily(user: AuthenticatedUser): Promise<DailyChallengeDto> {

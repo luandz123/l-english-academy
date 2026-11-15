@@ -26,7 +26,8 @@ import {
   Search,
   LineChart,
   ClipboardCheck,
-  BookA
+  BookA,
+  PenLine
 } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
@@ -57,6 +58,7 @@ const primaryNavItems = [
   { to: "/mistakes", label: "Câu hỏi sai của tôi", icon: BookX },
   { to: "/favorites", label: "Đề yêu thích", icon: Bookmark },
   { to: "/vocabulary", label: "Sổ từ vựng", icon: BookA },
+  { to: "/grammar", label: "Ngữ pháp", icon: PenLine },
   { to: "/listening", label: "Chép Chính Tả", icon: Headphones },
   { to: "/part2-coach", label: "Luyện Nghe Từng Bước", icon: Zap },
   { to: "/games", label: "Trò Chơi", icon: Gamepad2 },
@@ -148,6 +150,8 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
     diagnostic: "Kiểm tra trình độ",
     compare: "So sánh",
     vocabulary: "Sổ từ vựng",
+    grammar: "Ngữ pháp",
+    formulas: "Bảng công thức",
     review: "Ôn tập",
     browse: "Theo Part & cấp độ",
     "word-shooter": "Phi cơ diệt từ vựng",
@@ -161,7 +165,7 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
   const LINKABLE_SEGMENTS = new Set([
     "dashboard", "my-courses", "profile", "learn", "fulltest", "fulltests", "listening",
     "library", "games", "part2-coach", "vocab", "speaking", "word-shooter", "word-defense",
-    "roadmap", "practice", "mistakes", "favorites", "analysis", "progress", "diagnostic", "vocabulary",
+    "roadmap", "practice", "mistakes", "favorites", "analysis", "progress", "diagnostic", "vocabulary", "grammar",
   ]);
   const pathSegments = location.pathname.split("/").filter(Boolean);
   const breadcrumbs = pathSegments
@@ -173,6 +177,8 @@ const StudentLayout = ({ children }: { children: React.ReactNode }) => {
       // Mã bài luyện nghe từng bước (vd. dictation-part2-unit1) không có nghĩa với người học
       const label =
         (pathSegments[index - 1] === "part2-coach" ? "Bài đang học" : undefined) ||
+        (pathSegments[index - 1] === "grammar" && segment === "mistakes" ? "Lỗi ngữ pháp" : undefined) ||
+        (pathSegments[index - 1] === "grammar" && !["formulas", "mistakes", "review"].includes(segment) ? "Chủ điểm" : undefined) ||
         CRUMB_LABELS[segment] ||
         segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, " ");
       const linkable = segment === "courses" || LINKABLE_SEGMENTS.has(segment);

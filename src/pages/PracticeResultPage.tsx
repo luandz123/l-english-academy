@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BookmarkPlus, Clock, Layers, RotateCcw, Sparkles, Target, Timer } from "lucide-react";
+import { BookmarkPlus, Clock, Layers, PenLine, RotateCcw, Sparkles, Target, Timer } from "lucide-react";
 import StudentLayout from "@/components/StudentLayout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/ErrorState";
@@ -181,6 +181,14 @@ const PracticeResultPage: React.FC = () => {
               >
                 <Sparkles className="w-4 h-4" /> Làm một lượt mới
               </button>
+            )}
+            {typeof (r.config as Record<string, unknown>).grammar_topic === "string" && (
+              <Link
+                to={`/grammar/${(r.config as Record<string, unknown>).grammar_topic as string}?tab=toeic`}
+                className="min-h-[44px] px-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold text-sm flex items-center gap-1.5"
+              >
+                <PenLine className="w-4 h-4" /> Quay lại chủ điểm
+              </Link>
             )}
             <Link to="/analysis" className="min-h-[44px] px-4 rounded-xl border border-cyan-500/50 text-cyan-300 font-bold text-sm flex items-center gap-1.5">
               <Target className="w-4 h-4" /> {r.kind === "question_type" ? "Quay lại phân tích điểm yếu" : "Xem điểm yếu tổng hợp"}

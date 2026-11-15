@@ -12,6 +12,8 @@ export interface MistakeFilter {
   recentDays?: number;
   minWrong?: number;
   bookmarked?: boolean;
+  /** Chỉ câu có chủ điểm ngữ pháp (module grammar gắn) */
+  grammar?: boolean;
 }
 
 export type Tx = Prisma.TransactionClient;
@@ -87,6 +89,7 @@ export class MistakesRepository {
       q.AND = [{ toeicPart: { in: f.parts } }];
     }
     if (f.categories?.length) q.questionCategory = { in: f.categories };
+    if (f.grammar === true) q.grammarTopicId = { not: null };
     if (Object.keys(q).length) and.push({ question: q });
     if (f.statuses?.length)
       and.push({ status: { in: f.statuses }, wrongCount: { gt: 0 } });
