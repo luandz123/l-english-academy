@@ -61,6 +61,13 @@ export default function VocabLessonPage() {
     },
   });
 
+  // Thoát bài từ vựng: về bài chép chính tả của bài học này; chưa biết quiz thì để /courses/:id tự chọn trang theo loại khóa
+  const exitPath = quizId
+    ? `/courses/${courseId}/dictation/${quizId}`
+    : courseId
+      ? `/courses/${courseId}`
+      : "/courses";
+
   const word = words?.[currentIdx];
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -222,7 +229,7 @@ export default function VocabLessonPage() {
             </Button>
             <Button
               variant="outline"
-              onClick={() => navigate(courseId ? `/courses/${courseId}/vocab` : "/courses")}
+              onClick={() => navigate(exitPath)}
               className="rounded-xl font-bold"
             >
               Quay lại
@@ -239,8 +246,8 @@ export default function VocabLessonPage() {
         <EmptyState
           title="Bài học này chưa có từ vựng"
           description="Nội dung từ vựng cho bài học này đang được biên soạn. Bạn vui lòng quay lại sau nhé!"
-          actionLabel={"Quay lại danh sách từ vựng"}
-          onAction={() => navigate(`/courses/${courseId}/vocab`)}
+          actionLabel={"Quay lại bài học"}
+          onAction={() => navigate(exitPath)}
         />
       </div>
     </StudentLayout>
@@ -254,7 +261,7 @@ export default function VocabLessonPage() {
         {/* Header Tabs */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-card p-5 border border-border/70 rounded-2xl shadow-soft-sm">
           <div className="flex items-center gap-3 w-full sm:w-auto">
-            <Button size="icon" variant="ghost" className="rounded-full hover:bg-muted" onClick={() => navigate(`/courses/${courseId}/vocab`)}>
+            <Button size="icon" variant="ghost" className="rounded-full hover:bg-muted" onClick={() => navigate(exitPath)}>
               <XIcon className="w-6 h-6 text-muted-foreground" />
             </Button>
             <h1 className="font-extrabold text-xl text-foreground">Từ vựng</h1>
@@ -500,9 +507,9 @@ export default function VocabLessonPage() {
                 )}
                 <Button 
                   className="btn-3d bg-white text-muted-foreground hover:bg-gray-50 border-gray-200 w-full h-16 rounded-2xl text-xl font-bold"
-                  onClick={() => navigate(`/courses/${courseId}/vocab`)}
+                  onClick={() => navigate(exitPath)}
                 >
-                  <ChevronLeft className="w-6 h-6 mr-2" /> Quay về danh sách từ vựng
+                  <ChevronLeft className="w-6 h-6 mr-2" /> Quay về bài học
                 </Button>
                 <Button 
                   className="btn-3d bg-[var(--duo-yellow)] hover:bg-[#E5A800] border-[#E5A800] text-black w-full h-16 rounded-2xl text-xl font-bold mt-2"

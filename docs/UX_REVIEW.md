@@ -223,6 +223,14 @@ Kiểm tra tay (Postgres tạm + đề mẫu, 1440px và 390px): xem docs/PROGRE
 
 Còn mở: transcript không đồng bộ theo audio gốc (nghe lại bằng giọng đọc máy); trang admin quản lý kho từ chưa có giao diện (mới có API) — nếu cần sẽ làm đợt sau.
 
+## Sửa nút thoát bài học từ vựng (2026-11-14)
+
+| Mã | Lỗi | Sửa |
+|---|---|---|
+| V12 | Nút "Quay lại" (khi lỗi tải), nút X ở đầu trang, "Quay lại danh sách từ vựng" (bài trống) và "Quay về danh sách từ vựng" (màn hoàn thành) trong `VocabLessonPage` đều dẫn tới `/courses/:id/vocab`. Bài từ vựng hiện chỉ mở từ bài chép chính tả (khóa loại `listening`), mà khóa này không có danh mục từ vựng → học viên rơi vào trang trống "chưa có danh mục". | Cả 4 nút về bài chép chính tả của bài học (`/courses/:id/dictation/:quizId`). Chưa biết quiz thì về `/courses/:id` để trang tự chọn theo loại khóa (khóa `flashcard` vẫn về `/vocab` như cũ). Đổi chữ: "Quay lại bài học", "Quay về bài học". |
+
+Không đổi route, query key hay API. Chưa chụp ảnh trước/sau: cần đăng nhập tài khoản học viên trên môi trường chạy thử.
+
 ### Bổ sung Kho Flashcard & Từ vựng TOEIC (2026-11-15)
 
 | Tính năng | Thay đổi | Ở đâu |
