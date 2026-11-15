@@ -249,3 +249,7 @@ Ghi chú hành vi:
 - "Đã sửa đúng" theo đúng luật đang dùng ở Sổ câu sai: làm lại đúng 1 lần.
 
 Còn mở: nội dung mẫu do agent soạn — admin nên duyệt; chủ điểm câu TOEIC gắn tự động còn thô (nhất là "Thì & dạng động từ"), nên rà trong `/admin/grammar` → "Chủ điểm câu TOEIC".
+
+### Cập nhật nạp dữ liệu Ngân hàng Ngữ pháp (2026-11-15)
+- Nguồn chính: `51` bài học công khai từ `dautoeic.vn` (đồng bộ qua `scripts/crawl-dauenglish-grammar.mjs` và `scripts/import-dauenglish-grammar.mjs`), thay cho endpoint `get_grammar_questions` bị giới hạn trên `dauenglish.com`.
+- Số lượng sau import trên cả Neon và Supabase Pooler: `18` chủ điểm (`grammar_topics`), `304` mục công thức (`grammar_formulas`), `1,048` bài tập (`grammar_exercises`: `342` cơ bản, `371` trung bình, `335` nâng cao) kèm giải thích ngữ pháp tiếng Việt và câu ví dụ/lỗi thường gặp (admin có thể rà thêm trong `/admin/grammar`); bổ sung `8` từ vựng mới (`source = 'grammar'`) vào `vocab_entries` trên Neon. Không thay đổi giao diện hay hợp đồng API hiện có.
