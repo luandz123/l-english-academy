@@ -207,5 +207,6 @@ function toFilter(q: MistakeFilterDto): MistakeFilter {
     recentDays: q.recent_days,
     minWrong: q.min_wrong,
     bookmarked: q.bookmarked,
+    grammar: q.grammar,
   };
 }

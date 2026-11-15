@@ -7,6 +7,7 @@ import { BookmarkButton } from "./BookmarkButton";
 import { ReportIssueButton } from "./ReportIssueButton";
 import { InteractiveTranscript } from "@/components/vocabulary/InteractiveTranscript";
 import { SelectionSaver } from "@/components/vocabulary/SelectionSaver";
+import { GrammarTopicLine } from "@/components/grammar/GrammarTopicLine";
 
 export interface QuestionView {
   id: number;
@@ -161,6 +162,7 @@ export const PracticeQuestionCard: React.FC<{
             >
               {feedback.selected_answer_id === null ? "Chưa trả lời" : feedback.is_correct ? "Chính xác!" : "Chưa đúng"}
             </div>
+            {(q.part === 5 || q.part === 6) && <GrammarTopicLine questionId={q.id} part={q.part} />}
             {feedback.translation && (
               <div className="p-3 bg-slate-900 border border-slate-800 rounded-xl text-xs text-slate-300">
                 <b className="text-white">Dịch nghĩa:</b> {feedback.translation}

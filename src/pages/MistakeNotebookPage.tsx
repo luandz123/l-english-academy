@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BookX, ChevronDown, ChevronUp, History, PlayCircle } from "lucide-react";
 import StudentLayout from "@/components/StudentLayout";
@@ -147,6 +147,7 @@ const MistakeNotebookPage: React.FC = () => {
   const [recent, setRecent] = useState<number | undefined>();
   const [minWrong, setMinWrong] = useState<number | undefined>();
   const [bookmarked, setBookmarked] = useState(false);
+  const [grammar, setGrammar] = useState(false);
   const [page, setPage] = useState(1);
 
   const filter: MistakeFilter = {
@@ -157,6 +158,7 @@ const MistakeNotebookPage: React.FC = () => {
     recent_days: recent,
     min_wrong: minWrong,
     bookmarked: bookmarked || undefined,
+    grammar: grammar || undefined,
   };
 
   const { data: summary } = useQuery({ queryKey: ["mistake-summary", user?.id], queryFn: getMistakeSummary, enabled: !!user });
@@ -192,6 +194,9 @@ const MistakeNotebookPage: React.FC = () => {
           <p className="text-sm text-slate-400 mt-1">
             Câu bạn trả lời sai khi nộp bài được tự lưu ở đây. Làm đúng lại thì câu chuyển sang "Đã sửa đúng" — lịch sử sai vẫn được giữ.
           </p>
+          <Link to="/grammar/mistakes" className="text-sm text-cyan-400 hover:text-cyan-300 font-bold inline-flex items-center min-h-[40px]">
+            Xem theo chủ điểm ngữ pháp
+          </Link>
         </div>
 
         <div className="grid grid-cols-3 gap-3">
@@ -252,6 +257,7 @@ const MistakeNotebookPage: React.FC = () => {
             <Chip on={recent === 30} onClick={() => { setRecent(recent === 30 ? undefined : 30); reset(); }}>30 ngày qua</Chip>
             <Chip on={minWrong === 2} onClick={() => { setMinWrong(minWrong === 2 ? undefined : 2); reset(); }}>Sai ≥ 2 lần</Chip>
             <Chip on={bookmarked} onClick={() => { setBookmarked(!bookmarked); reset(); }}>Đã bookmark</Chip>
+            <Chip on={grammar} onClick={() => { setGrammar(!grammar); reset(); }}>Có chủ điểm ngữ pháp</Chip>
             {categories.length > 0 && (
               <Chip on onClick={() => { setCategories([]); reset(); }}>Dạng câu đã chọn ✕</Chip>
             )}

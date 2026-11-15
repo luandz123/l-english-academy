@@ -1,12 +1,13 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowDownRight, ArrowRight, ArrowUpRight, Clock, Lock, Minus, PlayCircle, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowDownRight, ArrowRight, ArrowUpRight, BookOpenCheck, Clock, Lock, Minus, PlayCircle, ShieldCheck, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { getFriendlyErrorMessage } from "@/lib/errorHandler";
 import { createPracticeSession, DIFFICULTY_LABELS } from "@/lib/api/practice";
+import { getCategoryTopic, getGrammarLinks } from "@/lib/api/grammar";
 import {
   getRecommendations,
   LEVEL_CLASS,
@@ -46,6 +47,24 @@ export const AccuracyBar: React.FC<{ accuracy: number | null; level: Level }> = 
     <div className={cn("h-full rounded-full", LEVEL_CLASS[level].bar)} style={{ width: `${accuracy ?? 0}%` }} />
   </div>
 );
+
+/** "Học lại ngữ pháp" trên thẻ điểm yếu Part 5/6: mở chủ điểm có tỉ lệ đúng thấp nhất trong nhóm dạng câu. */
+const RelearnGrammarButton: React.FC<{ category: string; className: string }> = ({ category, className }) => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { data: links } = useQuery({ queryKey: ["grammar-links"], queryFn: getGrammarLinks, staleTime: 5 * 60_000 });
+  const go = useMutation({
+    mutationFn: () => getCategoryTopic(category),
+    onSuccess: (r) => r.topic && navigate(`/grammar/${r.topic.slug}`),
+    onError: (err) => toast({ title: "Chưa mở được bài học", description: getFriendlyErrorMessage(err), variant: "destructive" }),
+  });
+  if (!links?.some((l) => l.toeic_categories.includes(category))) return null;
+  return (
+    <button type="button" onClick={() => go.mutate()} disabled={go.isPending} className={className}>
+      <BookOpenCheck className="w-4 h-4" /> Học lại ngữ pháp
+    </button>
+  );
+};
 
 /**
  * Nút "Luyện 10 câu dạng này": tạo thẳng lượt luyện (Practice, phản hồi ngay, chỉ câu chưa làm).
@@ -97,6 +116,7 @@ export const PracticeCategoryActions: React.FC<{ item: CategoryAnalysis; compact
       ) : (
         <span className="text-xs text-slate-500 self-center">Chưa có câu mới cho dạng này</span>
       )}
+      {(item.part === 5 || item.part === 6) && <RelearnGrammarButton category={item.category} className={cn(btn, "border border-violet-500/40 text-violet-200 hover:bg-violet-500/10")} />}
       {!compact && item.wrong > 0 && item.practice.action !== "review" && (
         <Link to={mistakesUrl} className={cn(btn, "border border-slate-700 text-slate-300 hover:bg-slate-800")}>
           Xem câu đã sai

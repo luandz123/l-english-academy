@@ -102,6 +102,12 @@ const AnalysisPage = lazyWithRetry(() => import("./pages/AnalysisPage"));
 const VocabularyNotebookPage = lazyWithRetry(() => import("./pages/VocabularyNotebookPage"));
 const VocabReviewPage = lazyWithRetry(() => import("./pages/VocabReviewPage"));
 const VocabBrowsePage = lazyWithRetry(() => import("./pages/VocabBrowsePage"));
+const GrammarCenterPage = lazyWithRetry(() => import("./pages/GrammarCenterPage"));
+const GrammarTopicPage = lazyWithRetry(() => import("./pages/GrammarTopicPage"));
+const GrammarFormulasPage = lazyWithRetry(() => import("./pages/GrammarFormulasPage"));
+const GrammarMistakesPage = lazyWithRetry(() => import("./pages/GrammarMistakesPage"));
+const GrammarReviewPage = lazyWithRetry(() => import("./pages/GrammarReviewPage"));
+const AdminGrammar = lazyWithRetry(() => import("./pages/admin/AdminGrammar"));
 const ProgressPage = lazyWithRetry(() => import("./pages/ProgressPage"));
 const ComparePage = lazyWithRetry(() => import("./pages/ComparePage"));
 const DiagnosticPage = lazyWithRetry(() => import("./pages/DiagnosticPage"));
@@ -244,6 +250,13 @@ const App = () => {
                 <Route path="/vocabulary" element={<ProtectedRoute><VocabularyNotebookPage /></ProtectedRoute>} />
                 <Route path="/vocabulary/review" element={<ProtectedRoute><VocabReviewPage /></ProtectedRoute>} />
                 <Route path="/vocabulary/browse" element={<ProtectedRoute><VocabBrowsePage /></ProtectedRoute>} />
+                <Route path="/vocabulary/sets" element={<ProtectedRoute><VocabPage /></ProtectedRoute>} />
+                {/* Ngữ pháp (D16): khách xem được trang tổng, bài học, công thức */}
+                <Route path="/grammar" element={<GrammarCenterPage />} />
+                <Route path="/grammar/formulas" element={<GrammarFormulasPage />} />
+                <Route path="/grammar/mistakes" element={<ProtectedRoute><GrammarMistakesPage /></ProtectedRoute>} />
+                <Route path="/grammar/review" element={<ProtectedRoute><GrammarReviewPage /></ProtectedRoute>} />
+                <Route path="/grammar/:slug" element={<GrammarTopicPage />} />
                 <Route path="/progress" element={<ProtectedRoute><ProgressPage /></ProtectedRoute>} />
                 <Route path="/diagnostic" element={<ProtectedRoute><DiagnosticPage /></ProtectedRoute>} />
                 <Route path="/diagnostic/result/:id" element={<ProtectedRoute><DiagnosticResultPage /></ProtectedRoute>} />
@@ -271,6 +284,7 @@ const App = () => {
                 <Route path="/admin/courses/:courseId" element={<AdminRoute><AdminCourseDetail /></AdminRoute>} />
                 <Route path="/admin/fulltests" element={<AdminRoute><AdminFullTestManager /></AdminRoute>} />
                 <Route path="/admin/exam-review" element={<AdminRoute><AdminExamReview /></AdminRoute>} />
+                <Route path="/admin/grammar" element={<AdminRoute><AdminGrammar /></AdminRoute>} />
                 <Route path="/admin/fulltests/:testId/questions" element={<AdminRoute><AdminFullTestQuestions /></AdminRoute>} />
                 <Route path="/admin/import-json" element={<AdminRoute><AdminCourseJsonImport /></AdminRoute>} />
                 <Route path="/admin/students" element={<AdminRoute><AdminStudents /></AdminRoute>} />
