@@ -14,15 +14,12 @@ COPY src ./src
 RUN npm run build
 
 # --- Dependency production riêng ---
-# @prisma/client khai báo prisma + typescript là peer dependency nên npm vẫn cài cả Prisma CLI
-# (kèm Studio, engines ~240MB). Lúc chạy chỉ cần runtime của client (Prisma Client đã được
-# biên dịch vào dist/generated) → xóa các gói chỉ CLI dùng. Smoke test container sau khi đổi.
+# @prisma/client khai báo prisma là peer dependency nên npm cài cả Prisma CLI. Giữ nguyên toàn bộ
+# vì container chạy `prisma migrate deploy` lúc khởi động (CLI require tĩnh cả Studio, xóa là hỏng).
 FROM node:22-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev --ignore-scripts \
- && rm -rf node_modules/prisma node_modules/typescript node_modules/@prisma/studio-core \
-      node_modules/@prisma/dev node_modules/@prisma/engines node_modules/effect node_modules/@electric-sql
+RUN npm ci --omit=dev --ignore-scripts  && test -x node_modules/.bin/prisma
 
 # --- Runtime: chỉ dependency production, chạy bằng user không phải root ---
 FROM node:22-alpine
@@ -32,13 +29,15 @@ RUN apk add --no-cache tini
 
 COPY --from=deps --chown=node:node /app/node_modules ./node_modules
 COPY --from=build --chown=node:node /app/dist ./dist
-COPY --from=build --chown=node:node /app/package.json ./
+COPY --from=build --chown=node:node /app/package.json /app/prisma.config.ts ./
+COPY --from=build --chown=node:node /app/prisma ./prisma
+COPY --chown=node:node docker-entrypoint.sh ./
 
 USER node
 EXPOSE 3000
 
 # tini chuyển SIGTERM tới node để Nest đóng kết nối DB gọn gàng khi Render dừng container.
-# Migration KHÔNG chạy ở đây: workflow deploy-staging chạy `prisma migrate deploy` trước khi
-# gọi Render Deploy Hook (migration lỗi thì không deploy; image không cần Prisma CLI ~200MB).
+# docker-entrypoint.sh áp migration rồi mới chạy app. Migration lỗi → container thoát, Render
+# đánh dấu deploy thất bại và giữ bản đang chạy. Deploy không còn phụ thuộc GitHub Actions.
 ENTRYPOINT ["/sbin/tini", "--"]
-CMD ["node", "dist/main.js"]
+CMD ["sh", "docker-entrypoint.sh"]
