@@ -223,6 +223,13 @@ Kiểm tra tay (Postgres tạm + đề mẫu, 1440px và 390px): xem docs/PROGRE
 
 Còn mở: transcript không đồng bộ theo audio gốc (nghe lại bằng giọng đọc máy); trang admin quản lý kho từ chưa có giao diện (mới có API) — nếu cần sẽ làm đợt sau.
 
+### Bổ sung Kho Flashcard & Từ vựng TOEIC (2026-11-15)
+
+| Tính năng | Thay đổi | Ở đâu |
+|---|---|---|
+| Trang Bộ Flashcard & Bài tập | Thêm route `/vocabulary/sets` dẫn trực tiếp tới khóa `flashcard` đang hoạt động (*"Kho Từ Vựng TOEIC Toàn Diện"* với `8` chuyên đề, `140` bài học, `7,235` thẻ từ/câu hỏi); tự động chọn chuyên đề đầu tiên khi mở trang. Nút điều hướng đặt ở `Sổ từ vựng` (`/vocabulary`) và `Từ theo Part & cấp độ` (`/vocabulary/browse`). | `/vocabulary/sets`, `VocabPage.tsx`, `VocabularyNotebookPage.tsx`, `VocabBrowsePage.tsx` |
+| Thẻ Flashcard nâng cao | Bổ sung ảnh minh họa (khi có), hai nút phát âm riêng **US / UK** (tự ngắt phát âm cũ), khối **Mở rộng & Mẹo TOEIC** (cụm từ, đồng nghĩa, gia đình từ, mẹo TOEIC) và nút **Lưu vào Sổ từ vựng** (`SavePackWordButton`). Đảm bảo vùng bấm tối thiểu 40–44px cho cả desktop và mobile. | `VocabPage.tsx` |
+
 ## Ngữ pháp (D16, 2026-11-14)
 
 Nhánh `feature/grammar`. Module backend mới `GrammarModule` (`backend/src/modules/grammar/`), migration `20261114000000_grammar` (bảng `grammar_*`, `user_grammar_*`, cột chủ điểm trên `questions`, nạp nội dung mẫu từ `backend/prisma/data/grammar/*.cjs`).
@@ -242,3 +249,7 @@ Ghi chú hành vi:
 - "Đã sửa đúng" theo đúng luật đang dùng ở Sổ câu sai: làm lại đúng 1 lần.
 
 Còn mở: nội dung mẫu do agent soạn — admin nên duyệt; chủ điểm câu TOEIC gắn tự động còn thô (nhất là "Thì & dạng động từ"), nên rà trong `/admin/grammar` → "Chủ điểm câu TOEIC".
+
+### Cập nhật nạp dữ liệu Ngân hàng Ngữ pháp (2026-11-15)
+- Nguồn chính: `51` bài học công khai từ `dautoeic.vn` (đồng bộ qua `scripts/crawl-dauenglish-grammar.mjs` và `scripts/import-dauenglish-grammar.mjs`), thay cho endpoint `get_grammar_questions` bị giới hạn trên `dauenglish.com`.
+- Số lượng sau import trên cả Neon và Supabase Pooler: `18` chủ điểm (`grammar_topics`), `304` mục công thức (`grammar_formulas`), `1,048` bài tập (`grammar_exercises`: `342` cơ bản, `371` trung bình, `335` nâng cao) kèm giải thích ngữ pháp tiếng Việt và câu ví dụ/lỗi thường gặp (admin có thể rà thêm trong `/admin/grammar`); bổ sung `8` từ vựng mới (`source = 'grammar'`) vào `vocab_entries` trên Neon. Không thay đổi giao diện hay hợp đồng API hiện có.
