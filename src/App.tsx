@@ -250,6 +250,7 @@ const App = () => {
                 <Route path="/vocabulary" element={<ProtectedRoute><VocabularyNotebookPage /></ProtectedRoute>} />
                 <Route path="/vocabulary/review" element={<ProtectedRoute><VocabReviewPage /></ProtectedRoute>} />
                 <Route path="/vocabulary/browse" element={<ProtectedRoute><VocabBrowsePage /></ProtectedRoute>} />
+                <Route path="/vocabulary/sets" element={<ProtectedRoute><VocabPage /></ProtectedRoute>} />
                 {/* Ngữ pháp (D16): khách xem được trang tổng, bài học, công thức */}
                 <Route path="/grammar" element={<GrammarCenterPage />} />
                 <Route path="/grammar/formulas" element={<GrammarFormulasPage />} />

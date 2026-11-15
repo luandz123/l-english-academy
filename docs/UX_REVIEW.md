@@ -223,6 +223,13 @@ Kiểm tra tay (Postgres tạm + đề mẫu, 1440px và 390px): xem docs/PROGRE
 
 Còn mở: transcript không đồng bộ theo audio gốc (nghe lại bằng giọng đọc máy); trang admin quản lý kho từ chưa có giao diện (mới có API) — nếu cần sẽ làm đợt sau.
 
+### Bổ sung Kho Flashcard & Từ vựng TOEIC (2026-11-15)
+
+| Tính năng | Thay đổi | Ở đâu |
+|---|---|---|
+| Trang Bộ Flashcard & Bài tập | Thêm route `/vocabulary/sets` dẫn trực tiếp tới khóa `flashcard` đang hoạt động (*"Kho Từ Vựng TOEIC Toàn Diện"* với `8` chuyên đề, `140` bài học, `7,235` thẻ từ/câu hỏi); tự động chọn chuyên đề đầu tiên khi mở trang. Nút điều hướng đặt ở `Sổ từ vựng` (`/vocabulary`) và `Từ theo Part & cấp độ` (`/vocabulary/browse`). | `/vocabulary/sets`, `VocabPage.tsx`, `VocabularyNotebookPage.tsx`, `VocabBrowsePage.tsx` |
+| Thẻ Flashcard nâng cao | Bổ sung ảnh minh họa (khi có), hai nút phát âm riêng **US / UK** (tự ngắt phát âm cũ), khối **Mở rộng & Mẹo TOEIC** (cụm từ, đồng nghĩa, gia đình từ, mẹo TOEIC) và nút **Lưu vào Sổ từ vựng** (`SavePackWordButton`). Đảm bảo vùng bấm tối thiểu 40–44px cho cả desktop và mobile. | `VocabPage.tsx` |
+
 ## Ngữ pháp (D16, 2026-11-14)
 
 Nhánh `feature/grammar`. Module backend mới `GrammarModule` (`backend/src/modules/grammar/`), migration `20261114000000_grammar` (bảng `grammar_*`, `user_grammar_*`, cột chủ điểm trên `questions`, nạp nội dung mẫu từ `backend/prisma/data/grammar/*.cjs`).

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BookmarkCheck, BookmarkPlus, Layers, Volume2 } from "lucide-react";
+import { BookA, BookOpen, BookmarkCheck, BookmarkPlus, Layers, Volume2 } from "lucide-react";
 import StudentLayout from "@/components/StudentLayout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/ErrorState";
@@ -58,14 +58,24 @@ const VocabBrowsePage: React.FC = () => {
   return (
     <StudentLayout>
       <div className="w-full max-w-5xl mx-auto space-y-6 pb-16 font-sans">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-display font-black text-white flex items-center gap-2.5">
-            <Layers className="w-7 h-7 text-cyan-400" /> Từ vựng theo Part & cấp độ
-          </h1>
-          <p className="text-sm text-slate-400 mt-1">
-            Part = nơi từ xuất hiện nhiều nhất trong kho đề; cấp độ theo độ phổ biến của từ. Lưu từ vào{" "}
-            <Link to="/vocabulary" className="text-cyan-400 font-bold">Sổ từ vựng</Link> để ôn theo lịch.
-          </p>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-display font-black text-white flex items-center gap-2.5">
+              <Layers className="w-7 h-7 text-cyan-400" /> Từ vựng theo Part & cấp độ
+            </h1>
+            <p className="text-sm text-slate-400 mt-1">
+              Part = nơi từ xuất hiện nhiều nhất trong kho đề; cấp độ theo độ phổ biến của từ. Lưu từ vào{" "}
+              <Link to="/vocabulary" className="text-cyan-400 font-bold">Sổ từ vựng</Link> để ôn theo lịch.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Link to="/vocabulary/sets" className="min-h-[44px] px-4 rounded-xl border border-cyan-500/40 bg-cyan-500/10 text-cyan-200 hover:bg-cyan-500/20 text-sm font-bold inline-flex items-center gap-1.5">
+              <BookOpen className="w-4 h-4" /> Bộ Flashcard & Bài tập
+            </Link>
+            <Link to="/vocabulary" className="min-h-[44px] px-4 rounded-xl border border-slate-700 text-slate-200 text-sm font-bold inline-flex items-center gap-1.5">
+              <BookA className="w-4 h-4" /> Sổ từ vựng
+            </Link>
+          </div>
         </div>
 
         <div className="space-y-2">

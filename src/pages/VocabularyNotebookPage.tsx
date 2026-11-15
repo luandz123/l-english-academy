@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BookA, Brain, Layers, Pencil, Plus, Trash2, Volume2 } from "lucide-react";
+import { BookA, BookOpen, Brain, Layers, Pencil, Plus, Trash2, Volume2 } from "lucide-react";
 import StudentLayout from "@/components/StudentLayout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/ErrorState";
@@ -141,6 +141,9 @@ const VocabularyNotebookPage: React.FC = () => {
             <p className="text-sm text-slate-400 mt-1">Từ bạn lưu từ bài nghe, bài đọc, flashcard hoặc tự thêm. Ôn theo lịch lặp lại ngắt quãng.</p>
           </div>
           <div className="flex flex-wrap gap-2">
+            <Link to="/vocabulary/sets" className="min-h-[44px] px-4 rounded-xl border border-cyan-500/40 bg-cyan-500/10 text-cyan-200 hover:bg-cyan-500/20 text-sm font-bold inline-flex items-center gap-1.5">
+              <BookOpen className="w-4 h-4" /> Bộ Flashcard & Bài tập
+            </Link>
             <Link to="/vocabulary/browse" className="min-h-[44px] px-4 rounded-xl border border-slate-700 text-slate-200 text-sm font-bold inline-flex items-center gap-1.5">
               <Layers className="w-4 h-4" /> Từ theo Part & cấp độ
             </Link>
