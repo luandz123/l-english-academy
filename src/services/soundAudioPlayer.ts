@@ -146,7 +146,10 @@ class SoundAudioPlayer {
         audio.onended = finish;
         audio.onerror = finish;
 
+        // Chỉ chờ tối đa 20 giây để audio bắt đầu phát; đã phát thì chờ hết bài
+        // (audio Part 3/4 dài 30–60 giây, trước đây bị coi là đã xong ở giây 20).
         const timeout = setTimeout(finish, 20000);
+        audio.onplaying = () => clearTimeout(timeout);
         audio.onended = () => {
           clearTimeout(timeout);
           finish();

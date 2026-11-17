@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Part2Cluster } from '@/types/part2Coach';
-import { PART2_CLUSTERS } from '@/data/part2CoachData';
+import { LISTENING_UNITS } from '@/data/listeningUnits';
 import { getCleanClusterInfo } from './Part2HubView';
 import {
   Dialog,
@@ -31,11 +31,11 @@ export const Part2ClusterSelector: React.FC<Part2ClusterSelectorProps> = ({
 
   const resolvedPart = useMemo(() => {
     if (activePart) return activePart;
-    return PART2_CLUSTERS.find((c) => c.id === selectedClusterId)?.part ?? 'part2';
+    return LISTENING_UNITS.find((c) => c.id === selectedClusterId)?.part ?? 'part2';
   }, [activePart, selectedClusterId]);
 
   const partClusters = useMemo(
-    () => PART2_CLUSTERS.filter((c) => (c.part ?? 'part2') === resolvedPart),
+    () => LISTENING_UNITS.filter((c) => (c.part ?? 'part2') === resolvedPart),
     [resolvedPart]
   );
 

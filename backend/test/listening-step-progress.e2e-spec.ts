@@ -69,6 +69,8 @@ describe('LearningModule — tiến độ Luyện nghe từng bước (e2e)', ()
       { completed_steps: [1, 1], current_step: 2 },
       { completed_steps: [1], current_step: 9 },
       { completed_steps: 'all', current_step: 1 },
+      { completed_steps: [1], current_step: 1, total_steps: 3 },
+      { completed_steps: [1], current_step: 1, total_steps: 8 },
     ]) {
       await http()
         .put(`${url}/dictation-part2-unit1`)
@@ -115,6 +117,24 @@ describe('LearningModule — tiến độ Luyện nghe từng bước (e2e)', ()
     const doneBody = done.body as ListeningStepProgressDto;
     expect(doneBody.completed_steps).toEqual([1, 2, 3, 4, 5, 6, 7]);
     expect(doneBody.completed_at).not.toBeNull();
+  });
+
+  it('total_steps (D17): bài Part 1 có 5 bước xong khi đủ bước 1–5', async () => {
+    const tokenC = await userWithToken('c@listening-steps.test');
+    const id = 'v2-study4-c1-t1-p1-q1-q6';
+    const partial = await http()
+      .put(`${url}/${id}`)
+      .set(bearer(tokenC))
+      .send({ completed_steps: [1, 2, 3, 4], current_step: 5, total_steps: 5 })
+      .expect(200);
+    expect((partial.body as ListeningStepProgressDto).completed_at).toBeNull();
+
+    const done = await http()
+      .put(`${url}/${id}`)
+      .set(bearer(tokenC))
+      .send({ completed_steps: [5], current_step: 5, total_steps: 5 })
+      .expect(200);
+    expect((done.body as ListeningStepProgressDto).completed_at).not.toBeNull();
   });
 
   it('mỗi người chỉ thấy tiến độ của mình', async () => {

@@ -14,6 +14,9 @@ import type {
   EntriesQueryDto,
   EntryDto,
   EntryListDto,
+  ExtractedWordDto,
+  ExtractResultDto,
+  ExtractVocabDto,
   LookupDto,
   NotebookListDto,
   NotebookQueryDto,
@@ -30,7 +33,11 @@ import { VocabularyRepository } from './vocabulary.repository';
 import {
   assignTags,
   countByPart,
+  extractCandidates,
+  isContentKey,
   lemmaCandidates,
+  rankExtracted,
+  sentenceWith,
   previewIntervals,
   schedule,
   SRS,
@@ -132,6 +139,95 @@ export class VocabularyService implements OnApplicationBootstrap {
       };
     }
     return null;
+  }
+
+  // =================== Từ quan trọng trong bài (D17) ===================
+
+  /**
+   * Từ quan trọng của một bài nghe: các từ/cụm từ trong bài có trong kho (600 từ TOEIC, từ admin
+   * thêm; thiếu thì lấy từ bộ flashcard). Chỉ trả từ có nghĩa tiếng Việt. Không dùng dịch vụ ngoài.
+   */
+  async extract(
+    userId: string,
+    dto: ExtractVocabDto,
+  ): Promise<ExtractResultDto> {
+    const limit = dto.limit ?? 10;
+    const cands = extractCandidates(dto.text);
+    const keys = [...cands.keys()];
+    const [entries, saved] = await Promise.all([
+      this.repo.findEntriesByKeys(keys),
+      this.repo.savedKeys(userId),
+    ]);
+
+    type Item = ExtractedWordDto & {
+      key: string;
+      index: number;
+      size: number;
+    };
+    const items: Item[] = [];
+    const found = new Set<string>();
+    for (const e of entries) {
+      const c = cands.get(e.wordKey);
+      if (!c || !e.definitionVi) continue;
+      found.add(e.wordKey);
+      items.push({
+        key: e.wordKey,
+        index: c.index,
+        size: c.size,
+        word: e.word,
+        surface: c.surface,
+        phonetic: e.phonetic,
+        definition_vi: e.definitionVi,
+        part: e.toeicPart,
+        level: e.level,
+        source: 'entry',
+        entry_id: e.id,
+        example: null,
+        saved: false,
+      });
+    }
+
+    if (items.length < limit) {
+      const rest = keys.filter((k) => !found.has(k) && isContentKey(k));
+      for (const p of await this.repo.findPackWordsForKeys(rest)) {
+        const key = wordKey(p.word);
+        const c = cands.get(key);
+        if (!c || found.has(key)) continue;
+        found.add(key);
+        items.push({
+          key,
+          index: c.index,
+          size: c.size,
+          word: p.word.trim(),
+          surface: c.surface,
+          phonetic: p.phonetic,
+          definition_vi: p.definition_vi,
+          part: null,
+          level: null,
+          source: 'pack',
+          pack_word_id: p.id,
+          example: null,
+          saved: false,
+        });
+      }
+    }
+
+    const picked = rankExtracted(items, dto.part, limit);
+    return {
+      items: picked.map((w) => ({
+        word: w.word,
+        surface: w.surface,
+        phonetic: w.phonetic,
+        definition_vi: w.definition_vi,
+        part: w.part,
+        level: w.level,
+        source: w.source,
+        ...(w.entry_id ? { entry_id: w.entry_id } : {}),
+        ...(w.pack_word_id ? { pack_word_id: w.pack_word_id } : {}),
+        example: sentenceWith(dto.text, w.surface),
+        saved: saved.has(w.key),
+      })),
+    };
   }
 
   // =================== Sổ từ ===================

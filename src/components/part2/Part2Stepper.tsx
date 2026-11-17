@@ -1,30 +1,32 @@
 import React from 'react';
-import { Part2StepId } from '@/types/part2Coach';
-import { PART2_STEPS_META } from '@/data/part2CoachData';
+import type { ListeningFlowStep } from '@/data/listeningFlows';
 import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface Part2StepperProps {
-  currentStep: Part2StepId;
-  completedSteps: Set<Part2StepId>;
-  onStepSelect: (stepId: Part2StepId) => void;
+  /** Các bước của bài (theo Part, D17) */
+  steps: ListeningFlowStep[];
+  currentStep: number;
+  completedSteps: Set<number>;
+  onStepSelect: (stepId: number) => void;
   clusterId?: string;
   className?: string;
 }
 
 export const Part2Stepper: React.FC<Part2StepperProps> = ({
+  steps,
   currentStep,
   completedSteps,
   onStepSelect,
   className,
 }) => {
-  const totalSteps = PART2_STEPS_META.length;
-  const currentMeta = PART2_STEPS_META.find((s) => s.id === currentStep) || PART2_STEPS_META[0];
+  const totalSteps = steps.length;
+  const currentMeta = steps.find((s) => s.id === currentStep) || steps[0];
   const progressPercent = Math.round((completedSteps.size / totalSteps) * 100);
 
   return (
     <div className={cn('w-full', className)}>
-      {/* Mobile Indicator (< 768px): Chỉ báo số nhỏ + tiến độ mỏng, không ép 7 chữ nhỏ < 11px */}
+      {/* Điện thoại (< 768px): chỉ báo số nhỏ + ô bước bấm được */}
       <div className="md:hidden flex flex-col gap-1.5 py-1">
         <div className="flex items-center justify-between text-xs px-1">
           <span className="font-extrabold text-foreground flex items-center gap-1.5">
@@ -38,9 +40,9 @@ export const Part2Stepper: React.FC<Part2StepperProps> = ({
           </span>
         </div>
 
-        {/* 7 ô bước bấm được: thấy toàn bộ lộ trình và nhảy bước ngay trên điện thoại */}
-        <div className="grid grid-cols-7 gap-1.5">
-          {PART2_STEPS_META.map((step) => {
+        {/* Ô bước bấm được: thấy toàn bộ lộ trình và nhảy bước ngay trên điện thoại */}
+        <div className={cn('grid gap-1.5', totalSteps === 5 ? 'grid-cols-5' : totalSteps === 6 ? 'grid-cols-6' : 'grid-cols-7')}>
+          {steps.map((step) => {
             const isCurrent = step.id === currentStep;
             const isCompleted = completedSteps.has(step.id);
             return (
@@ -68,7 +70,7 @@ export const Part2Stepper: React.FC<Part2StepperProps> = ({
 
       {/* Desktop Stepper (>= 768px): Capsule Stepper thu gọn (height: 56px), cố định gọn gàng */}
       <div className="hidden md:flex items-center justify-between h-14 bg-card/90 backdrop-blur-md rounded-2xl px-3 border border-border/70 shadow-soft-xs">
-        {PART2_STEPS_META.map((step, idx) => {
+        {steps.map((step, idx) => {
           const isCurrent = step.id === currentStep;
           const isCompleted = completedSteps.has(step.id);
           const isUpcoming = !isCurrent && !isCompleted;
@@ -87,7 +89,7 @@ export const Part2Stepper: React.FC<Part2StepperProps> = ({
                     ? 'bg-emerald-600 text-white font-bold hover:brightness-105'
                     : 'bg-muted/40 text-[#94A3B8] hover:text-foreground hover:bg-muted font-medium'
                 )}
-                title={`Bước ${step.id}: ${step.name} - ${step.subtitle}`}
+                title={`Bước ${step.id}: ${step.name}`}
                 aria-current={isCurrent ? 'step' : undefined}
               >
                 {/* Circle Badge inside capsule */}

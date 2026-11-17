@@ -132,7 +132,7 @@ export class LearningController {
   @Get('listening-steps/progress')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({
-    summary: 'Tiến độ "Luyện nghe từng bước" (7 bước) của tôi',
+    summary: 'Tiến độ "Luyện nghe từng bước" của tôi',
     description: 'Mỗi phần tử là một bài đã mở; bài mở gần nhất lên đầu.',
   })
   @ApiOkResponse({ type: [ListeningStepProgressDto] })

@@ -30,7 +30,7 @@ const Footer = () => {
               <span>🎮</span>
             </p>
             <p className="text-xs text-slate-400 font-medium leading-relaxed max-w-sm">
-              L-English — Hệ thống học và luyện thi TOEIC tốt nhất 2026. Kết hợp đề thi thử chuẩn ETS, luyện nghe từng bước (7 bước) và đấu trường học từ vựng Arcade.
+              L-English — Hệ thống học và luyện thi TOEIC tốt nhất 2026. Kết hợp đề thi thử chuẩn ETS, luyện nghe từng bước Part 1–4 và đấu trường học từ vựng Arcade.
             </p>
 
             <div className="pt-2">

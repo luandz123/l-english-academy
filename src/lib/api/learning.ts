@@ -238,7 +238,7 @@ export async function setLessonProgress(
   );
 }
 
-/** Tiến độ "Luyện nghe từng bước" (7 bước) của một bài. */
+/** Tiến độ "Luyện nghe từng bước" của một bài (số bước theo Part, D17). */
 export interface ListeningStepProgressRow {
   cluster_id: string;
   completed_steps: number[];
@@ -261,11 +261,17 @@ export async function saveListeningStepProgress(
   clusterId: string,
   completedSteps: number[],
   currentStep: number,
+  /** Số bước của bài (D17: Part 1 có 5, Part 2/3/4 có 6). Bỏ trống = 7 (bài cũ). */
+  totalSteps?: number,
 ): Promise<{ data: ListeningStepProgressRow | null; error: ApiError | null }> {
   return toResult(
     apiClient.put<ListeningStepProgressRow>(
       `learning/listening-steps/progress/${encodeURIComponent(clusterId)}`,
-      { completed_steps: completedSteps, current_step: currentStep },
+      {
+        completed_steps: completedSteps,
+        current_step: currentStep,
+        ...(totalSteps ? { total_steps: totalSteps } : {}),
+      },
     ),
   );
 }

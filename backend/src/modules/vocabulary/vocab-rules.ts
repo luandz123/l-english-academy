@@ -249,3 +249,127 @@ export function sentenceAround(text: string, word: string): string | null {
   const hit = sentences.find((s) => s.toLowerCase().includes(k));
   return hit ? hit.slice(0, 300) : null;
 }
+
+// ---------- Từ quan trọng trong một bài (D17) ----------
+
+/** Từ chức năng / quá phổ biến: không đưa vào danh sách "từ quan trọng" khi lấy từ bộ flashcard. */
+const COMMON_WORDS = new Set(
+  (
+    'about above after again also always another anything around because been before being below ' +
+    'between both could didn doesn does doing done down during each even every from have having here ' +
+    'into just know like make many more most much must need never next only other over really right ' +
+    'same should some still such sure take than that their them then there these they thing think ' +
+    'this those through time very want well were what when where which while will with would your ' +
+    'yours yeah okay thank thanks hello please good great today tomorrow yesterday morning afternoon ' +
+    'evening sorry going come came went said says tell told give gave look looks looking people'
+  ).split(' '),
+);
+
+export interface ExtractCandidate {
+  /** Vị trí từ đầu tiên trong bài (để xếp theo thứ tự xuất hiện) */
+  index: number;
+  /** Dạng gặp trong bài, vd. "parked" cho từ gốc "park" */
+  surface: string;
+  /** Số từ của cụm (1–3) */
+  size: number;
+}
+
+/**
+ * Ứng viên tra kho cho một đoạn văn: các dạng gốc của từng từ (bỏ -s/-ed/-ing) và các cụm
+ * 2–3 từ liền nhau. Mỗi khóa giữ lần xuất hiện đầu tiên.
+ */
+export function extractCandidates(text: string): Map<string, ExtractCandidate> {
+  const toks = tokenize(text);
+  const out = new Map<string, ExtractCandidate>();
+  const add = (key: string, c: ExtractCandidate) => {
+    if (key && !out.has(key)) out.set(key, c);
+  };
+  for (let i = 0; i < toks.length; i++) {
+    const t = toks[i];
+    if (t.length >= 3) {
+      for (const k of lemmaCandidates(t))
+        add(k, { index: i, surface: t, size: 1 });
+    }
+    if (i + 1 < toks.length) {
+      const surface = `${t} ${toks[i + 1]}`;
+      add(surface, { index: i, surface, size: 2 });
+    }
+    if (i + 2 < toks.length) {
+      const surface = `${t} ${toks[i + 1]} ${toks[i + 2]}`;
+      add(surface, { index: i, surface, size: 3 });
+    }
+  }
+  return out;
+}
+
+/** Từ có nên lấy từ bộ flashcard không (bỏ từ ngắn và từ quá phổ biến). */
+export function isContentKey(key: string): boolean {
+  if (key.includes(' ')) return true;
+  return key.length >= 4 && !COMMON_WORDS.has(key);
+}
+
+export interface RankableWord {
+  key: string;
+  index: number;
+  size: number;
+  part: number | null;
+  level: string | null;
+}
+
+/**
+ * Chọn tối đa `limit` từ quan trọng: ưu tiên từ gắn đúng Part của bài, cấp độ cao hơn, cụm
+ * nhiều từ; mỗi vị trí trong bài chỉ giữ một từ (vd. "parked" không ra cả "park" lẫn "parked").
+ * Kết quả xếp theo thứ tự xuất hiện trong bài.
+ */
+export function rankExtracted<T extends RankableWord>(
+  items: T[],
+  part: number | undefined,
+  limit: number,
+): T[] {
+  const levelScore: Record<string, number> = {
+    advanced: 2,
+    intermediate: 1,
+    basic: 0,
+  };
+  const score = (w: T) =>
+    (part && w.part === part ? 3 : 0) +
+    (levelScore[w.level ?? ''] ?? 1) +
+    (w.size > 1 ? 1 : 0);
+  const sorted = [...items].sort(
+    (a, b) => score(b) - score(a) || a.index - b.index,
+  );
+  const usedIndex = new Set<number>();
+  const usedKey = new Set<string>();
+  const picked: T[] = [];
+  for (const w of sorted) {
+    if (picked.length >= limit) break;
+    if (usedKey.has(w.key)) continue;
+    const span = Array.from({ length: w.size }, (_, i) => w.index + i);
+    if (span.some((i) => usedIndex.has(i))) continue;
+    span.forEach((i) => usedIndex.add(i));
+    usedKey.add(w.key);
+    picked.push(w);
+  }
+  return picked.sort((a, b) => a.index - b.index);
+}
+
+/** Câu (hoặc lượt nói) trong bài chứa dạng từ đã gặp, bỏ nhãn người nói "W1:". */
+export function sentenceWith(text: string, surface: string): string | null {
+  const lines = text
+    .replace(/<[^>]+>/g, ' ')
+    .split(/\n+/)
+    .map((l) => l.replace(/^\s*(?:\([A-D]\)|[A-Z][A-Za-z]?\d?:)\s*/, '').trim())
+    .filter(Boolean);
+  // surface chỉ gồm chữ thường, dấu ' và khoảng trắng (từ tokenize) nên không cần thoát ký tự
+  const pattern = surface
+    .replace(/[^a-z' ]/g, '')
+    .split(' ')
+    .join(String.raw`\s+`);
+  const re = new RegExp(String.raw`\b` + pattern + String.raw`\b`, 'i');
+  for (const line of lines) {
+    for (const s of line.split(/(?<=[.!?])\s+/)) {
+      if (re.test(s)) return s.slice(0, 300);
+    }
+  }
+  return null;
+}

@@ -38,6 +38,8 @@ import {
   EntriesQueryDto,
   EntryDto,
   EntryListDto,
+  ExtractResultDto,
+  ExtractVocabDto,
   LookupDto,
   LookupQueryDto,
   NotebookListDto,
@@ -79,6 +81,22 @@ export class VocabularyController {
     @Query() q: LookupQueryDto,
   ): Promise<LookupDto> {
     return this.vocab.lookup(user.id, q.word);
+  }
+
+  @Post('extract')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary:
+      'Từ quan trọng trong một bài nghe (từ có trong kho 600 từ TOEIC / bộ flashcard)',
+    description:
+      'Dùng cho bước "Từ vựng" của Luyện nghe từng bước (D17). Chỉ đọc kho, kèm cờ đã lưu của người gọi.',
+  })
+  @ApiOkResponse({ type: ExtractResultDto })
+  extract(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: ExtractVocabDto,
+  ): Promise<ExtractResultDto> {
+    return this.vocab.extract(user.id, dto);
   }
 
   @Get('notebook')
