@@ -96,6 +96,26 @@ export const saveWord = (body: {
   source_ref?: string;
 }) => apiClient.post<{ word: SavedWord; already: boolean }>("vocabulary/notebook", body);
 
+/** Một từ quan trọng trong bài nghe (D17), lấy từ kho có sẵn. */
+export interface ExtractedWord {
+  word: string;
+  /** Dạng gặp trong bài, vd. "parked" */
+  surface: string;
+  phonetic: string | null;
+  definition_vi: string;
+  part: number | null;
+  level: VocabLevel | null;
+  source: "entry" | "pack";
+  entry_id?: number;
+  pack_word_id?: number;
+  /** Câu trong bài chứa từ */
+  example: string | null;
+  saved: boolean;
+}
+
+export const extractLessonVocab = (body: { text: string; part?: number; limit?: number }) =>
+  apiClient.post<{ items: ExtractedWord[] }>("vocabulary/extract", body);
+
 export const saveWordsBatch = (body: { entry_ids?: number[]; pack_word_ids?: number[] }) =>
   apiClient.post<{ added: number; skipped: number }>("vocabulary/notebook/batch", body);
 

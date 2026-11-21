@@ -524,5 +524,43 @@ describe('LearningService', () => {
       );
       expect(again.completed_at).toBe(doneAt.toISOString());
     });
+
+    it('total_steps: bài 5 bước ghi completed_at khi đủ bước 1–5 (D17)', async () => {
+      repo.findOneListeningStepProgress.mockResolvedValueOnce(
+        row({
+          clusterId: 'v2-study4-c1-t1-p1-q1-q6',
+          completedSteps: [1, 2, 3],
+        }),
+      );
+      const notYet = await service.saveListeningStepProgress(
+        mockUserId,
+        'v2-study4-c1-t1-p1-q1-q6',
+        { completed_steps: [5], current_step: 4, total_steps: 5 },
+      );
+      expect(notYet.completed_at).toBeNull();
+
+      repo.findOneListeningStepProgress.mockResolvedValueOnce(
+        row({ completedSteps: [1, 2, 3, 5] }),
+      );
+      const done = await service.saveListeningStepProgress(
+        mockUserId,
+        'v2-study4-c1-t1-p1-q1-q6',
+        { completed_steps: [4], current_step: 5, total_steps: 5 },
+      );
+      expect(done.completed_steps).toEqual([1, 2, 3, 4, 5]);
+      expect(done.completed_at).not.toBeNull();
+    });
+
+    it('total_steps: 6 bước nhưng thiếu bước 1 thì chưa xong dù đủ 6 phần tử', async () => {
+      repo.findOneListeningStepProgress.mockResolvedValueOnce(
+        row({ completedSteps: [2, 3, 4, 5, 6] }),
+      );
+      const res = await service.saveListeningStepProgress(
+        mockUserId,
+        'study4-c1-t1-p3-q32-q34',
+        { completed_steps: [7], current_step: 6, total_steps: 6 },
+      );
+      expect(res.completed_at).toBeNull();
+    });
   });
 });

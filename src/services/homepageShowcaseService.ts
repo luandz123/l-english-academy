@@ -161,16 +161,16 @@ export const DEFAULT_HOMEPAGE_CONFIG: HomepageShowcaseConfig = {
     youtube_url: "https://www.youtube.com/@YOUR_YOUTUBE",
   },
   part2_banner: {
-    badge: "Luyện nghe từng bước · 7 bước",
+    badge: "Luyện nghe từng bước · Part 1–4",
     title: "Luyện Nghe Từng Bước TOEIC Part 2",
-    description: "Nghe thử • Học cụm từ • Hiểu nhanh câu hỏi • Bật câu đáp • Nhại theo (shadowing) • Làm thử đề • Nghe lặp cho ngấm.",
-    button_text: "Học Thử 7 Bước Ngay",
+    description: "Làm thử • Học từ vựng quan trọng • Hiểu câu hỏi • Bật câu đáp • Nhại theo (shadowing) • Làm lại và nghe lặp cho ngấm.",
+    button_text: "Học Thử Ngay",
     button_link: "/part2-coach",
   },
   vip_combo: {
     badge: "GÓI VIP TOÀN DIỆN TOEIC · ƯU ĐÃI ĐỢT 1 TIẾT KIỆM 50%",
     title: "NÂNG CẤP VIP TRỌN ĐỜI",
-    subtitle: "Mở khóa vĩnh viễn toàn bộ kho đề thi ETS 200 câu có giải chi tiết, luyện nghe từng bước 7 bước và trọn bộ video bài giảng Part 1–7.",
+    subtitle: "Mở khóa vĩnh viễn toàn bộ kho đề thi ETS 200 câu có giải chi tiết, luyện nghe từng bước Part 1–4 và trọn bộ video bài giảng Part 1–7.",
     original_price: 3500000,
     price: 1750000,
     price_note: "Thanh toán 1 lần duy nhất để học trọn đời",
@@ -183,7 +183,7 @@ export const DEFAULT_HOMEPAGE_CONFIG: HomepageShowcaseConfig = {
       },
       {
         title: "Luyện Nghe Dictation Không Giới Hạn",
-        desc: "Luyện nghe từng bước: 7 bước chia nhỏ âm thanh.",
+        desc: "Luyện nghe từng bước: chia nhỏ từng câu để nghe ra từng từ.",
       },
       {
         title: "Trọn Bộ Video Bài Giảng Part 1–7",

@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Part2Cluster } from '@/types/part2Coach';
-import { PART2_CLUSTERS, PART2_STEPS_META } from '@/data/part2CoachData';
+import { LISTENING_UNITS } from '@/data/listeningUnits';
+import { getFlow } from '@/data/listeningFlows';
 import { Button } from '@/components/ui/button';
 import { soundAudioPlayer } from '@/services/soundAudioPlayer';
 import {
@@ -62,19 +63,19 @@ type ListeningPartKey = 'part1' | 'part2' | 'part3' | 'part4';
 const PART_META: Record<ListeningPartKey, { pill: string; description: string }> = {
   part1: {
     pill: 'TOEIC Part 1 · Mô tả tranh',
-    description: 'Mỗi bài gồm 6 câu mô tả tranh kèm hình ảnh, học qua 7 bước từ nghe thử đến nghe lặp.',
+    description: 'Mỗi bài gồm 6 tranh. Làm thử, học từ vựng, học từng câu mô tả A–D, nhại theo rồi làm lại để thấy mình tiến bộ.',
   },
   part2: {
     pill: 'TOEIC Part 2 · Hỏi & Đáp',
-    description: 'Mỗi bài gồm 5 câu hỏi – đáp, học qua 7 bước ngắn. Độ khó tăng dần từ cơ bản đến nâng cao.',
+    description: 'Mỗi bài gồm 5 câu hỏi – đáp, học qua 6 bước ngắn: làm thử, từ vựng, hiểu câu hỏi, bật câu đáp, nhại theo, làm lại.',
   },
   part3: {
     pill: 'TOEIC Part 3 · Hội thoại ngắn',
-    description: 'Mỗi bài luyện 2–3 đoạn hội thoại (6–9 câu hỏi), có transcript & dịch nghĩa chi tiết qua 7 bước.',
+    description: 'Mỗi bài là 1 đoạn hội thoại với 3 câu hỏi. Đọc trước câu hỏi, học từ vựng, rồi học từng câu thoại để tự tìm ra đáp án.',
   },
   part4: {
     pill: 'TOEIC Part 4 · Bài nói ngắn',
-    description: 'Mỗi bài luyện 2 bài nói ngắn (6 câu hỏi), rèn bắt ý chính và paraphrase qua 7 bước.',
+    description: 'Mỗi bài là 1 bài nói ngắn với 3 câu hỏi. Đọc trước câu hỏi, học từ vựng, rồi học từng câu để bắt được ý chính và chi tiết.',
   },
 };
 
@@ -165,11 +166,12 @@ export const Part2HubView: React.FC<Part2HubViewProps> = ({ onSelectCluster }) =
   };
 
   const { getProgress } = useListeningStepProgress();
-  const getClusterProgress = (clusterId: string) => {
-    const p = getProgress(clusterId);
+  const getClusterProgress = (unit: Part2Cluster) => {
+    const p = getProgress(unit);
     return {
       completedCount: p.completedSteps.length,
       isFinished: p.isFinished,
+      totalSteps: p.totalSteps,
       currentStep: p.currentStep,
       completedSteps: p.completedSteps,
       updatedAt: p.updatedAt,
@@ -178,7 +180,7 @@ export const Part2HubView: React.FC<Part2HubViewProps> = ({ onSelectCluster }) =
 
   const partCounts = useMemo(() => {
     const counts: Record<ListeningPartKey, number> = { part1: 0, part2: 0, part3: 0, part4: 0 };
-    for (const c of PART2_CLUSTERS) {
+    for (const c of LISTENING_UNITS) {
       const p: ListeningPartKey = c.part ?? 'part2';
       counts[p] += 1;
     }
@@ -186,7 +188,7 @@ export const Part2HubView: React.FC<Part2HubViewProps> = ({ onSelectCluster }) =
   }, []);
 
   const partClusters = useMemo(
-    () => PART2_CLUSTERS.filter((c) => (c.part ?? 'part2') === selectedPart),
+    () => LISTENING_UNITS.filter((c) => (c.part ?? 'part2') === selectedPart),
     [selectedPart]
   );
 
@@ -213,9 +215,9 @@ export const Part2HubView: React.FC<Part2HubViewProps> = ({ onSelectCluster }) =
 
   const totalQuestions = partClusters.reduce((acc, c) => acc + c.questions.length, 0);
   const progressById = useMemo(
-    () => Object.fromEntries(PART2_CLUSTERS.map((c) => [c.id, getClusterProgress(c.id)])),
+    () => Object.fromEntries(partClusters.map((c) => [c.id, getClusterProgress(c)])),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [getProgress]
+    [getProgress, partClusters]
   );
   const finishedClustersCount = partClusters.filter((c) => progressById[c.id]?.isFinished).length;
   const overallPercent = Math.round((finishedClustersCount / Math.max(1, partClusters.length)) * 100);
@@ -231,9 +233,10 @@ export const Part2HubView: React.FC<Part2HubViewProps> = ({ onSelectCluster }) =
     return inProgress[0] ?? orderedClusters.find((c) => !progressById[c.id]?.isFinished) ?? null;
   }, [orderedClusters, progressById]);
   const resumeProgress = resumeCluster ? progressById[resumeCluster.id] : null;
+  const flow = getFlow(selectedPart);
   const resumeStepMeta = resumeProgress
-    ? PART2_STEPS_META.find((st) => !resumeProgress.completedSteps.includes(st.id)) ?? PART2_STEPS_META[0]
-    : PART2_STEPS_META[0];
+    ? flow.find((st) => !resumeProgress.completedSteps.includes(st.id)) ?? flow[0]
+    : flow[0];
   const recommendedId = orderedClusters.find((c) => !progressById[c.id]?.isFinished)?.id;
   const minQ = partClusters.length > 0 ? Math.min(...partClusters.map((c) => c.questions.length)) : 0;
   const maxQ = partClusters.length > 0 ? Math.max(...partClusters.map((c) => c.questions.length)) : 0;
@@ -260,9 +263,9 @@ export const Part2HubView: React.FC<Part2HubViewProps> = ({ onSelectCluster }) =
               {PART_META[selectedPart].description}
             </p>
 
-            {/* Lộ trình 7 bước: người mới nhìn là biết sẽ làm gì */}
-            <ol className="flex flex-wrap gap-1.5 pt-1" aria-label="7 bước của mỗi bài">
-              {PART2_STEPS_META.map((st) => (
+            {/* Lộ trình các bước của Part đang chọn: người mới nhìn là biết sẽ làm gì */}
+            <ol className="flex flex-wrap gap-1.5 pt-1" aria-label={`${flow.length} bước của mỗi bài`}>
+              {flow.map((st) => (
                 <li
                   key={st.id}
                   title={st.description}
@@ -448,10 +451,10 @@ export const Part2HubView: React.FC<Part2HubViewProps> = ({ onSelectCluster }) =
           ) : (
             filteredClusters.map((cluster) => {
               const progress = progressById[cluster.id] ?? { completedCount: 0, isFinished: false, completedSteps: [] as number[] };
+              const totalSteps = flow.length;
               const isFinished = progress.isFinished;
               const isStarted = !isFinished && progress.completedCount > 0;
               const isRecommended = !isFinished && !isStarted && cluster.id === recommendedId;
-              const totalSteps = PART2_STEPS_META.length;
 
               return (
                 <button
@@ -504,7 +507,7 @@ export const Part2HubView: React.FC<Part2HubViewProps> = ({ onSelectCluster }) =
 
                   <div className="space-y-2 pt-2 border-t border-border/50 w-full">
                     <div className="flex items-center gap-1" aria-hidden="true">
-                      {PART2_STEPS_META.map((st) => {
+                      {flow.map((st) => {
                         const isStepDone = progress.completedSteps.includes(st.id);
                         return (
                           <div
@@ -518,10 +521,10 @@ export const Part2HubView: React.FC<Part2HubViewProps> = ({ onSelectCluster }) =
                     <div className="flex items-center justify-between text-xs pt-1">
                       <span className="text-[11px] font-medium text-muted-foreground">
                         {isFinished
-                          ? 'Đã xong cả 7 bước'
+                          ? `Đã xong cả ${totalSteps} bước`
                           : isStarted
                           ? `Còn ${totalSteps - progress.completedCount} bước`
-                          : 'Chưa học · 7 bước'}
+                          : `Chưa học · ${totalSteps} bước`}
                       </span>
                       <span className="font-black text-purple-400 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
                         {isFinished ? (

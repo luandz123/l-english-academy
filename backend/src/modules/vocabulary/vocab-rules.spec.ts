@@ -1,7 +1,11 @@
 import {
   assignTags,
   countByPart,
+  extractCandidates,
+  isContentKey,
   lemmaCandidates,
+  rankExtracted,
+  sentenceWith,
   previewIntervals,
   schedule,
   sentenceAround,
@@ -113,5 +117,54 @@ describe('gắn nhãn Part / cấp độ', () => {
     expect(tags.get('invoice')!.part).toBe(5);
     expect(tags.get('zygote')).toMatchObject({ part: null, level: 'advanced' });
     expect(tags.get('abide by')!.level).not.toBe('advanced');
+  });
+});
+
+describe('từ quan trọng trong bài (D17)', () => {
+  it('extractCandidates: dạng gốc của từ và cụm 2–3 từ, giữ lần gặp đầu tiên', () => {
+    const c = extractCandidates(
+      'Some bicycles are parked in a rack. Bicycles!',
+    );
+    expect(c.get('bicycle')).toEqual({
+      index: 1,
+      surface: 'bicycles',
+      size: 1,
+    });
+    expect(c.get('park')).toMatchObject({ surface: 'parked', size: 1 });
+    expect(c.get('parked in')).toMatchObject({ index: 3, size: 2 });
+    expect(c.get('parked in a')).toMatchObject({ size: 3 });
+    expect(c.has('a')).toBe(false);
+  });
+
+  it('isContentKey: bỏ từ ngắn và từ quá phổ biến, giữ cụm từ', () => {
+    expect(isContentKey('rack')).toBe(true);
+    expect(isContentKey('there')).toBe(false);
+    expect(isContentKey('go')).toBe(false);
+    expect(isContentKey('in charge')).toBe(true);
+  });
+
+  it('rankExtracted: ưu tiên đúng Part, cấp độ cao, không trùng vị trí, xếp theo bài', () => {
+    const items = [
+      { key: 'park', index: 3, size: 1, part: 1, level: 'basic' },
+      { key: 'parked', index: 3, size: 1, part: null, level: 'basic' },
+      { key: 'rack', index: 6, size: 1, part: 1, level: 'intermediate' },
+      { key: 'bicycle', index: 1, size: 1, part: 4, level: 'advanced' },
+      { key: 'in a rack', index: 4, size: 3, part: null, level: null },
+    ];
+    const picked = rankExtracted(items, 1, 3).map((w) => w.key);
+    // "rack" (Part 1, trung cấp) và "park" (Part 1) thắng; "in a rack" trùng vị trí của "rack"
+    expect(picked).toEqual(['bicycle', 'park', 'rack']);
+    expect(rankExtracted(items, 1, 10).map((w) => w.key)).not.toContain(
+      'parked',
+    );
+  });
+
+  it('sentenceWith: câu chứa dạng từ, bỏ nhãn người nói / (A)', () => {
+    const text = 'W1: Hi there. I have a broken heater.\nM1: Let me check.';
+    expect(sentenceWith(text, 'heater')).toBe('I have a broken heater.');
+    expect(
+      sentenceWith('(B) Some benches are being repaired.', 'benches'),
+    ).toBe('Some benches are being repaired.');
+    expect(sentenceWith(text, 'nothing')).toBeNull();
   });
 });

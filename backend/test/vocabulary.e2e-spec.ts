@@ -87,6 +87,25 @@ describe('VocabularyModule (e2e)', () => {
     await http().get('/api/v1/vocabulary/lookup?word=agreement').expect(401);
   });
 
+  it('từ quan trọng trong bài (D17): cần đăng nhập, kiểm tra đầu vào', async () => {
+    await http()
+      .post('/api/v1/vocabulary/extract')
+      .send({ text: 'The agreements were signed.' })
+      .expect(401);
+    for (const body of [
+      { text: '' },
+      { text: 'x', part: 9 },
+      { text: 'x', limit: 50 },
+      {},
+    ]) {
+      await http()
+        .post('/api/v1/vocabulary/extract')
+        .set(auth(t.a))
+        .send(body)
+        .expect(400);
+    }
+  });
+
   it('600 từ TOEIC đã nằm trong kho; tra cả dạng biến đổi', async () => {
     expect(
       await prisma.vocabEntry.count({ where: { source: 'toeic600' } }),
@@ -226,6 +245,38 @@ describe('VocabularyModule (e2e)', () => {
           .expect(200),
       ).total,
     ).toBe(0);
+  });
+
+  it('từ quan trọng trong bài: lấy từ kho + bộ flashcard, câu ví dụ, cờ đã lưu riêng từng người', async () => {
+    const text =
+      'W1: I checked the agreements this morning.\nM1: Great, the Zzpackword is ready too.';
+    const forA = as(
+      await http()
+        .post('/api/v1/vocabulary/extract')
+        .set(auth(t.a))
+        .send({ text, part: 3 })
+        .expect(200),
+    );
+    const agreement = forA.items.find((w: Body) => w.word === 'agreement');
+    expect(agreement).toMatchObject({
+      source: 'entry',
+      surface: 'agreements',
+      example: 'I checked the agreements this morning.',
+      saved: true, // học viên A đã lưu "agreement" ở bước trước
+    });
+    expect(forA.items.find((w: Body) => w.source === 'pack')).toMatchObject({
+      definition_vi: 'từ trong bộ',
+    });
+
+    const forB = as(
+      await http()
+        .post('/api/v1/vocabulary/extract')
+        .set(auth(t.b))
+        .send({ text, limit: 1 })
+        .expect(200),
+    );
+    expect(forB.items).toHaveLength(1);
+    expect(forB.items.every((w: Body) => w.saved === false)).toBe(true);
   });
 
   it('SRS: hàng ôn gồm từ mới trong giới hạn ngày; chấm Nhớ → hẹn 1 ngày, chưa đến hạn thì không chấm lại', async () => {

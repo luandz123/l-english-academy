@@ -53,6 +53,25 @@ export class VocabularyRepository {
       LIMIT 5`;
   }
 
+  /** Từ trong bộ flashcard có nghĩa, mỗi từ một dòng (tra nhiều khóa một lần). */
+  findPackWordsForKeys(keys: string[]) {
+    if (keys.length === 0) return Promise.resolve([]);
+    return this.prisma.$queryRaw<
+      {
+        id: number;
+        word: string;
+        phonetic: string | null;
+        definition_vi: string;
+      }[]
+    >`
+      SELECT DISTINCT ON (lower(trim(word))) id, word, phonetic, definition_vi
+      FROM vocab_questions
+      WHERE lower(trim(word)) = ANY(${keys}::text[])
+        AND definition_vi IS NOT NULL AND trim(definition_vi) <> ''
+      ORDER BY lower(trim(word)), id
+      LIMIT 200`;
+  }
+
   findPackWordsByIds(ids: number[]) {
     if (ids.length === 0) return Promise.resolve([]);
     return this.prisma.vocabQuestion.findMany({

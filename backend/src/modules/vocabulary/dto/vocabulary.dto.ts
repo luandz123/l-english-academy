@@ -394,3 +394,61 @@ export class NotebookListDto {
   @ApiProperty() page!: number;
   @ApiProperty() limit!: number;
 }
+
+// ---------- Từ quan trọng trong một bài (D17) ----------
+
+export class ExtractVocabDto {
+  @ApiProperty({
+    description:
+      'Nội dung bài (transcript, câu hỏi, đáp án). Server tìm các từ có trong kho.',
+  })
+  @IsString()
+  @MinLength(1)
+  @MaxLength(8000)
+  text!: string;
+
+  @ApiPropertyOptional({
+    minimum: 1,
+    maximum: 7,
+    description: 'Part của bài — từ gắn đúng Part được ưu tiên',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(7)
+  part?: number;
+
+  @ApiPropertyOptional({ minimum: 1, maximum: 20, default: 10 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(20)
+  limit?: number;
+}
+
+export class ExtractedWordDto {
+  @ApiProperty() word!: string;
+  @ApiProperty({ description: 'Dạng gặp trong bài, vd. "parked"' })
+  surface!: string;
+  @ApiProperty({ nullable: true, type: String }) phonetic!: string | null;
+  @ApiProperty() definition_vi!: string;
+  @ApiProperty({ nullable: true, type: Number }) part!: number | null;
+  @ApiProperty({ nullable: true, enum: LEVELS }) level!: string | null;
+  @ApiProperty({ enum: ['entry', 'pack'] }) source!: 'entry' | 'pack';
+  @ApiPropertyOptional() entry_id?: number;
+  @ApiPropertyOptional() pack_word_id?: number;
+  @ApiProperty({
+    nullable: true,
+    type: String,
+    description: 'Câu trong bài chứa từ',
+  })
+  example!: string | null;
+  @ApiProperty({ description: 'Đã có trong Sổ từ vựng của tôi' })
+  saved!: boolean;
+}
+
+export class ExtractResultDto {
+  @ApiProperty({ type: [ExtractedWordDto] }) items!: ExtractedWordDto[];
+}

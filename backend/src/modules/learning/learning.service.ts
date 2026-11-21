@@ -234,7 +234,8 @@ export class LearningService {
 
   /**
    * Lưu tiến độ một bài. Bước đã xong chỉ cộng thêm, không bị xóa (gửi từ 2 máy
-   * cùng lúc không làm mất tiến độ). completed_at ghi lần đầu đủ 7 bước.
+   * cùng lúc không làm mất tiến độ). completed_at ghi lần đầu xong đủ các bước
+   * 1..total_steps (mặc định 7 — bài cũ theo D10; D17: mỗi Part số bước riêng).
    */
   async saveListeningStepProgress(
     userId: string,
@@ -254,7 +255,10 @@ export class LearningService {
     const completedSteps = Array.from(
       new Set([...(existing?.completedSteps ?? []), ...dto.completed_steps]),
     ).sort((a, b) => a - b);
-    const isAllDone = completedSteps.length >= LISTENING_STEP_COUNT;
+    const totalSteps = dto.total_steps ?? LISTENING_STEP_COUNT;
+    const isAllDone = Array.from({ length: totalSteps }, (_, i) => i + 1).every(
+      (s) => completedSteps.includes(s),
+    );
     const saved = await this.repo.upsertListeningStepProgress(
       userId,
       clusterId,
